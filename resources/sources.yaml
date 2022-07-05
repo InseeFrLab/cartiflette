@@ -1,4 +1,7 @@
 IGN:
+  ADMINEXPRESS:
+    documentation: https://geoservices.ign.fr/documentation/donnees/vecteur/adminexpress
+    metadata: https://geoservices.ign.fr/sites/default/files/2021-11/IGNF_ADMIN_EXPRESS_3-1.html
 
 Insee:
   COG:
