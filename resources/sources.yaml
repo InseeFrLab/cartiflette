@@ -2,12 +2,17 @@ IGN:
   ADMINEXPRESS:
     documentation: https://geoservices.ign.fr/documentation/donnees/vecteur/adminexpress
     metadata: https://geoservices.ign.fr/sites/default/files/2021-11/IGNF_ADMIN_EXPRESS_3-1.html
+    EXPRESS-COG:
+      file: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG_SHP_TERRITOIRES_PACK_2022-04-15$ADMIN-EXPRESS-COG_3-1__SHP__FRA_L93_2022-04-15/file/ADMIN-EXPRESS-COG_3-1__SHP__FRA_L93_2022-04-15.7z
+      
 
 Insee:
   COG:
     2022:
+      id: 6051727
       file: https://www.insee.fr/fr/statistiques/fichier/6051727/commune_2022.csv
       documentation: https://www.insee.fr/fr/information/6051727
     2021:
+      id: 5057840
       file: https://www.insee.fr/fr/statistiques/fichier/5057840/commune2021-csv.zip
       documentation: https://www.insee.fr/fr/information/5057840
