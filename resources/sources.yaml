@@ -5,6 +5,16 @@ IGN:
     EXPRESS-COG:
       2022:
         file: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG_SHP_TERRITOIRES_PACK_2022-04-15$ADMIN-EXPRESS-COG_3-1__SHP__FRA_L93_2022-04-15/file/ADMIN-EXPRESS-COG_3-1__SHP__FRA_L93_2022-04-15.7z
+      field:
+        prefix: ADECOG_3-1_SHP_
+        metropole: LAMB93_FR
+        guadeloupe: RGAF09UTM20_D971
+        martinique: RGAF09UTM20_D972
+        guyane: UTM22RGFG95_D973
+        reunion: RGR92UTM40S_D974
+        st-pierre-miquelon: 
+        mayotte: RGM04UTM38S_D976
+
 
 
 Insee:
