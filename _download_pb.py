@@ -34,3 +34,18 @@ def _download_pb(url: str, fname: str, total: int = None):
         for data in resp.iter_content(chunk_size=1024):
             size = file.write(data)
             obj.update(size)
+
+
+def _download_pb_ftp(ftp, url, fname):
+    with open(fname, 'wb') as fd:
+        total = ftp.size(url)
+        with tqdm(total=total,
+                unit_scale=True,
+                desc=url,
+                miniters=1,
+                leave=False
+                ) as pbar:
+            def cb(data):
+                pbar.update(len(data))
+                fd.write(data)
+            ftp.retrbinary(f'RETR {url}', cb)

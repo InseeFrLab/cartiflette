@@ -7,11 +7,12 @@ import py7zr
 import shutil
 import glob
 import os
+import ftplib
 import geopandas as gpd
 
 
 #os.chdir("cartogether/")
-from _download_pb import _download_pb
+from _download_pb import _download_pb, _download_pb_ftp
 
 # Read YAML file
 def import_yaml_config(location = "resources/sources.yaml"):
@@ -22,6 +23,7 @@ def import_yaml_config(location = "resources/sources.yaml"):
 def safe_download_write(
     url,
     location = None,
+    param_ftp = None,
     ext = "7z"):
 
     if location is None:
@@ -29,12 +31,19 @@ def safe_download_write(
         location = tmp.name
         location = location + ext
 
-    _download_pb(url, location)
+    if param_ftp is not None:
+        ftp = ftplib.FTP(param_ftp['hostname'], param_ftp['username'], param_ftp['pwd'])
+        _download_pb_ftp(ftp, url, fname = location)
+    else:
+        _download_pb(url, location)
     #r = requests.get(url)
     #with open(tmp.name, 'w') as f:
     #    f.write(r.content)
 
     return location
+
+
+
 
 
 def download_admin_express(
@@ -49,13 +58,22 @@ def download_admin_express(
 
     url = dict_source[year]["file"]
 
+    if url.startswith('http'):
+        param_ftp = None
+    else:
+        param_ftp = dict_source["FTP"]
+
+
     if location is not None and os.path.isdir(location):
        print(f"Data have been previously downloaded and are still available in {location}")
     else:
         # download 7z file
         temp_file = tempfile.NamedTemporaryFile()
         temp_file_raw = temp_file.name + ".7z"
-        out_name = safe_download_write(url, location = temp_file_raw)
+        out_name = safe_download_write(
+            url,
+            location=temp_file_raw,
+            param_ftp=param_ftp)
         if location is None:
             tmp = tempfile.TemporaryDirectory()
             location = tmp.name
