@@ -83,10 +83,12 @@ def download_admin_express(
         archive.extractall(path=location)
         archive.close()
     
-    subdir = url.rsplit("/", maxsplit = 1)[-1]
+    subdir = url.rsplit("/", maxsplit=1)[-1]
     subdir = subdir.replace(".7z", "")
-    date_livraison = subdir.replace("ADMIN-EXPRESS-COG_3-1__SHP__FRA_L93_", "")
+    if url.startswith('http') is False:
+        subdir = subdir.replace("_L93", "") #2021: L93 en trop
 
+    date_livraison = subdir.rsplit("_", maxsplit=1)[-1]
     arbo = f"{location}/{subdir}/ADMIN-EXPRESS-COG/1_DONNEES_LIVRAISON_{date_livraison}"
 
     return arbo
@@ -130,6 +132,10 @@ def import_ign_shapefile(
 
     ign_code_level = dict_open_data['IGN']\
         ['ADMINEXPRESS'][source]['field']
+    
+    if year < 2022:
+        ign_code_level['prefix'] = ign_code_level['prefix'].replace("-1_", "-0_")
+
     shp_location = f"{path_cache_ign}/{ign_code_level['prefix']}{ign_code_level[field]}"
     
     return shp_location
@@ -152,7 +158,7 @@ def get_administrative_level_available_ign(
 
     if year is None:
         year = max(
-            [i for i in dict_source.keys() if i != "field"]
+            [i for i in dict_source.keys() if i not in ("field", "FTP")]
         )
 
     if isinstance(field, list):
@@ -191,7 +197,7 @@ def get_shapefile_ign(
 
     if year is None:
         year = max(
-            [i for i in dict_source.keys() if i != "field"]
+            [i for i in dict_source.keys() if i not in ("field", "FTP")]
         )
 
     if isinstance(field, list):
