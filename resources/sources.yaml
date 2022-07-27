@@ -36,7 +36,11 @@ Insee:
       id: 5057840
       file: https://www.insee.fr/fr/statistiques/fichier/5057840/commune2021-csv.zip
       documentation: https://www.insee.fr/fr/information/5057840
-      
+  BV:
+    2022:
+     id: 2115016
+     file: https://www.insee.fr/fr/statistiques/fichier/2115016/BV2012_au_01-01-2022.zip
+     documentation: https://www.insee.fr/fr/information/2115016      
       
 Services comparables :
   Nom : "NUTS Converter"
