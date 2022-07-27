@@ -88,6 +88,8 @@ def download_admin_express(
     subdir = subdir.replace(".7z", "")
     if url.startswith('http') is False:
         subdir = subdir.replace("_L93", "") #2021: L93 en trop
+        subdir = subdir.replace("_WGS84G", "") #2019: WGS84 en trop
+        subdir = subdir.replace(".001", "")
 
     date_livraison = subdir.rsplit("_", maxsplit=1)[-1]
     arbo = f"{location}/{subdir}/ADMIN-EXPRESS-COG/1_DONNEES_LIVRAISON_{date_livraison}"
@@ -139,7 +141,14 @@ def import_ign_shapefile(
     if year < 2022:
         ign_code_level['prefix'] = ign_code_level['prefix'].replace("3-1_", f"{ign_version}_")
 
-    shp_location = f"{path_cache_ign}/{ign_code_level['prefix']}{ign_code_level[field]}"
+    if year <= 2019:
+        ign_code_level[field] = ign_code_level[field].replace("LAMB93", "WGS84")
+
+
+    shp_location = f"{path_cache_ign}/{ign_code_level['prefix']}"
+
+    shp_location = f"{shp_location}{ign_code_level[field]}"
+
 
     if os.path.isdir(shp_location) is False:
         # sometimes, ADECOG is spelled ADE-COG
@@ -209,6 +218,9 @@ def get_shapefile_ign(
 
     if isinstance(field, list):
         field = field[0]
+
+    if year < 2020:
+        field = "metropole"
 
     shp_location = import_ign_shapefile(
             source = source,
