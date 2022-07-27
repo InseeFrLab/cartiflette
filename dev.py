@@ -1,17 +1,14 @@
 """
 Request data from IGN and other tile providers
 """
-import requests
-import yaml
+import os
+import ftplib
+import glob
+import re
 import typing
 import tempfile
-import zipfile
+import yaml
 import py7zr
-import shutil
-import glob
-import os
-import re
-import ftplib
 import geopandas as gpd
 
 
@@ -31,7 +28,7 @@ def import_yaml_config(location: str = "resources/sources.yaml") -> dict:
         dict: hierarchical dict where, for each source, we have some relevent information
             for imports
     """
-    with open(location, 'r') as stream:
+    with open(location, 'r', encoding="utf-8") as stream:
         dict_open_data = yaml.safe_load(stream)
     return dict_open_data
 
@@ -39,26 +36,26 @@ def safe_download_write(
     url: str,
     location: str = None,
     param_ftp: dict = None,
-    ext: str = "7z") -> dict :
+    ext: str = "7z") -> str :
     """
     Download data given URL and additional parameters.
 
-    File is downloaded either using requests or 
+    File is downloaded either using requests or ftplib
 
     Args:
         url (str): URL from which data should be fetched. Depending
-          on the type of URL (http/https protocole or FTP), 
+          on the type of URL (http/https protocole or FTP),
           either request or ftplib will be used to download
           dataset.
         location (str, optional): Location where the file should be written.
           Defaults to None means a temporary file is used.
-        param_ftp (dict, optional): Dictionary with parameters useful 
-          for FTP download. Ignored if the file is not located on a 
+        param_ftp (dict, optional): Dictionary with parameters useful
+          for FTP download. Ignored if the file is not located on a
           FTP server. Defaults to None.
         ext (str, optional): File extension. Defaults to "7z".
 
     Returns:
-        dict: 
+        str: File location
     """
 
     if location is None:
@@ -71,9 +68,6 @@ def safe_download_write(
         _download_pb_ftp(ftp, url, fname = location)
     else:
         _download_pb(url, location)
-    #r = requests.get(url)
-    #with open(tmp.name, 'w') as f:
-    #    f.write(r.content)
 
     return location
 
@@ -84,7 +78,20 @@ def safe_download_write(
 def download_admin_express(
     source: typing.Union[list, str] = ['EXPRESS-COG'],
     year: typing.Optional[str] = None,
-    location = None):
+    location: str = None) -> str:
+    """
+    Download AdminExpress data for a given type of source and year
+
+    Args:
+        source (typing.Union[list, str], optional): Sources used.
+         Can either be a string or a list. Defaults to ['EXPRESS-COG'].
+         year (typing.Optional[str], optional): Year to use. Defaults to None.
+        location (str, optional): Location where file should be written.
+          Defaults to None.
+
+    Returns:
+        str: Complete path where the IGN source has been unzipped.
+    """
 
     dict_open_data = import_yaml_config()
 
@@ -113,7 +120,6 @@ def download_admin_express(
             tmp = tempfile.TemporaryDirectory()
             location = tmp.name
         # unzip in location directory
-        temp_dir = tempfile.TemporaryDirectory()
         archive = py7zr.SevenZipFile(out_name, mode='r')
         archive.extractall(path=location)
         archive.close()
@@ -134,10 +140,26 @@ def download_admin_express(
 def download_store_admin_express(
     source: typing.Union[list, str] = ['EXPRESS-COG'],
     year: typing.Optional[str] = None,
-    location = None):
+    location: str = None) -> str:
+    """
+    Download, unzip and store AdminExpress data
+
+    Args:
+        source (typing.Union[list, str], optional): IGN data product. Defaults to ['EXPRESS-COG'].
+        year (typing.Optional[str], optional): Year used. Defaults to None.
+        location (str, optional): File location. Defaults to None.
+
+    Returns:
+        str: _description_
+    """
 
     if isinstance(source, list):
         source = source[0]
+
+    dict_open_data = import_yaml_config()
+
+    dict_source = dict_open_data['IGN']\
+        ['ADMINEXPRESS'][source]
 
     if year is None:
         year = max(
@@ -149,9 +171,9 @@ def download_store_admin_express(
         location = f"{location}/{source}-{year}"
 
     path_cache_ign = download_admin_express(
-        source = source,
-        year = year,
-        location = location
+        source=source,
+        year=year,
+        location=location
     )
 
     return path_cache_ign
@@ -162,7 +184,18 @@ def import_ign_shapefile(
     source: typing.Union[list, str] = ['EXPRESS-COG'],
     year: typing.Optional[str] = None,
     field: str = "metropole"
-    ):
+    ) -> str:
+    """
+    Function to download raw IGN shapefile and store them unzipped in filesystem 
+
+    Args:
+        source (typing.Union[list, str], optional): IGN data product. Defaults to ['EXPRESS-COG'].
+        year (typing.Optional[str], optional): Year used. Defaults to None.
+        field (str, optional): Geographic level to use. Defaults to "metropole".
+
+    Returns:
+        str: Returns where file is stored on filesystem.
+    """
 
     dict_open_data = import_yaml_config()
     path_cache_ign = download_store_admin_express(source, year)
@@ -194,9 +227,26 @@ def import_ign_shapefile(
 def get_administrative_level_available_ign(
     source: typing.Union[list, str] = ['EXPRESS-COG'],
     year: typing.Optional[str] = None,
-    field: typing.Union[list, str] = ["metropole", "guadeloupe", \
+    field: typing.Union[list, str] = [
+        "metropole", "guadeloupe",
         "martinique", "reunion", "guyane", "mayotte"],
-    verbose: bool = True):
+    verbose: bool = True) -> list:
+    """
+    User-level function to get administrative data that are available
+     in IGN raw sources for a given year
+
+    Args:
+        source (typing.Union[list, str], optional): IGN data product. Defaults to ['EXPRESS-COG'].
+        year (typing.Optional[str], optional): Year used. Defaults to None.
+        field (typing.Union[list, str], optional): _description_.
+           Defaults to "metropole". Acceptable values are "metropole",
+           "guadeloupe", "martinique", "reunion", "guyane", "mayotte"].
+        verbose (bool, optional): Should we print values or just return
+           them as list ? Defaults to True.
+
+    Returns:
+        list: List of administrative levels available
+    """
 
     dict_open_data = import_yaml_config()
 
@@ -232,10 +282,25 @@ def get_administrative_level_available_ign(
 def get_shapefile_ign(
     source: typing.Union[list, str] = ['EXPRESS-COG'],
     year: typing.Optional[str] = None,
-    field: typing.Union[list, str] = ["metropole", "guadeloupe", \
+    field: typing.Union[list, str] = [
+        "metropole", "guadeloupe",
         "martinique", "reunion", "guyane", "mayotte"],
     level: typing.Union[list, str] = ['COMMUNE']
-):
+) -> gpd.GeoDataFrame:
+    """
+    User-level function to get shapefiles from IGN
+
+    Args:
+        source (typing.Union[list, str], optional): IGN data product. Defaults to ['EXPRESS-COG'].
+        year (typing.Optional[str], optional): Year used. Defaults to None.
+        field (typing.Union[list, str], optional): _description_.
+           Defaults to "metropole". Acceptable values are "metropole",
+           "guadeloupe", "martinique", "reunion", "guyane", "mayotte"].
+        level (typing.Union[list, str], optional): Administrative level. Defaults to ['COMMUNE'].
+
+    Returns:
+        gpd.GeoDataFrame : _description_
+    """
     dict_open_data = import_yaml_config()
 
     if isinstance(source, list):
@@ -260,12 +325,11 @@ def get_shapefile_ign(
         field = "metropole"
 
     shp_location = import_ign_shapefile(
-            source = source,
-            year = year,
-            field = field
+            source=source,
+            year=year,
+            field=field
         )
 
-    df = gpd.read_file(f'{shp_location}/{level}.shp')
+    data_ign = gpd.read_file(f'{shp_location}/{level}.shp')
 
-    return df
-
+    return data_ign
