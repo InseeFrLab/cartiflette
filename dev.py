@@ -1,3 +1,6 @@
+"""
+Request data from IGN and other tile providers
+"""
 import requests
 import yaml
 import typing
@@ -16,16 +19,47 @@ import geopandas as gpd
 from _download_pb import _download_pb, _download_pb_ftp
 
 # Read YAML file
-def import_yaml_config(location = "resources/sources.yaml"):
+def import_yaml_config(location: str = "resources/sources.yaml") -> dict:
+    """
+    Import data sources list from YAML file
+
+    Args:
+        location (str, optional): YAML file location.
+            Defaults to "resources/sources.yaml".
+
+    Returns:
+        dict: hierarchical dict where, for each source, we have some relevent information
+            for imports
+    """
     with open(location, 'r') as stream:
         dict_open_data = yaml.safe_load(stream)
     return dict_open_data
 
 def safe_download_write(
-    url,
-    location = None,
-    param_ftp = None,
-    ext = "7z"):
+    url: str,
+    location: str = None,
+    param_ftp: dict = None,
+    ext: str = "7z") -> dict :
+    """
+    Download data given URL and additional parameters.
+
+    File is downloaded either using requests or 
+
+    Args:
+        url (str): URL from which data should be fetched. Depending
+          on the type of URL (http/https protocole or FTP), 
+          either request or ftplib will be used to download
+          dataset.
+        location (str, optional): Location where the file should be written.
+          Defaults to None means a temporary file is used.
+        param_ftp (dict, optional): Dictionary with parameters useful 
+          for FTP download. Ignored if the file is not located on a 
+          FTP server. Defaults to None.
+        ext (str, optional): File extension. Defaults to "7z".
+
+    Returns:
+        dict: 
+    """
 
     if location is None:
         tmp = tempfile.NamedTemporaryFile()
@@ -66,7 +100,7 @@ def download_admin_express(
 
 
     if location is not None and os.path.isdir(location):
-       print(f"Data have been previously downloaded and are still available in {location}")
+        print(f"Data have been previously downloaded and are still available in {location}")
     else:
         # download 7z file
         temp_file = tempfile.NamedTemporaryFile()
@@ -83,7 +117,7 @@ def download_admin_express(
         archive = py7zr.SevenZipFile(out_name, mode='r')
         archive.extractall(path=location)
         archive.close()
-    
+
     subdir = url.rsplit("/", maxsplit=1)[-1]
     subdir = subdir.replace(".7z", "")
     if url.startswith('http') is False:
@@ -137,13 +171,13 @@ def import_ign_shapefile(
         ['ADMINEXPRESS'][source]['field']
 
     ign_version = re.search('/ADMIN-EXPRESS-COG_(.*)__SHP', path_cache_ign).group(1)
-    
+
     if year < 2022:
-        ign_code_level['prefix'] = ign_code_level['prefix'].replace("3-1_", f"{ign_version}_")
+        ign_code_level['prefix'] = ign_code_level['prefix']\
+            .replace("3-1_", f"{ign_version}_")
 
     if year <= 2019:
         ign_code_level[field] = ign_code_level[field].replace("LAMB93", "WGS84")
-
 
     shp_location = f"{path_cache_ign}/{ign_code_level['prefix']}"
 
@@ -153,14 +187,15 @@ def import_ign_shapefile(
     if os.path.isdir(shp_location) is False:
         # sometimes, ADECOG is spelled ADE-COG
         shp_location = shp_location.replace("ADECOG", "ADE-COG")
-    
+
     return shp_location
 
 
 def get_administrative_level_available_ign(
     source: typing.Union[list, str] = ['EXPRESS-COG'],
     year: typing.Optional[str] = None,
-    field: typing.Union[list, str] = ["metropole", "guadeloupe", "martinique", "reunion", "guyane", "mayotte"],
+    field: typing.Union[list, str] = ["metropole", "guadeloupe", \
+        "martinique", "reunion", "guyane", "mayotte"],
     verbose: bool = True):
 
     dict_open_data = import_yaml_config()
@@ -186,7 +221,8 @@ def get_administrative_level_available_ign(
         field = field
     )
 
-    list_levels = [os.path.basename(i).replace(".shp", "") for i in glob.glob(shp_location + "/*.shp")]
+    list_levels = [os.path.basename(i).replace(".shp", "") \
+        for i in glob.glob(shp_location + "/*.shp")]
     if verbose:
         print(
             "\n  - ".join(["Available administrative levels are :"] + list_levels)
@@ -196,7 +232,8 @@ def get_administrative_level_available_ign(
 def get_shapefile_ign(
     source: typing.Union[list, str] = ['EXPRESS-COG'],
     year: typing.Optional[str] = None,
-    field: typing.Union[list, str] = ["metropole", "guadeloupe", "martinique", "reunion", "guyane", "mayotte"],
+    field: typing.Union[list, str] = ["metropole", "guadeloupe", \
+        "martinique", "reunion", "guyane", "mayotte"],
     level: typing.Union[list, str] = ['COMMUNE']
 ):
     dict_open_data = import_yaml_config()
@@ -231,14 +268,4 @@ def get_shapefile_ign(
     df = gpd.read_file(f'{shp_location}/{level}.shp')
 
     return df
-
-
-
-
-
-
-
-    
-
-
 
