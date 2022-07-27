@@ -269,3 +269,17 @@ def get_shapefile_ign(
 
     return df
 
+def get_bv(location):
+    dict_open_data = import_yaml_config()
+    url = dict_open_data['Insee']\
+        ['BV']['2022']["file"]
+    
+    if location is not None and os.path.isdir(location):
+        print(f"Data have been previously downloaded and are still available in {location}")
+    else:
+    
+    safe_download_write(
+    url: str,
+    location: str = None,
+    param_ftp: dict = None,
+    ext: str = "7z")
