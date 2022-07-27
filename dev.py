@@ -7,6 +7,7 @@ import py7zr
 import shutil
 import glob
 import os
+import re
 import ftplib
 import geopandas as gpd
 
@@ -132,11 +133,17 @@ def import_ign_shapefile(
 
     ign_code_level = dict_open_data['IGN']\
         ['ADMINEXPRESS'][source]['field']
+
+    ign_version = re.search('/ADMIN-EXPRESS-COG_(.*)__SHP', path_cache_ign).group(1)
     
     if year < 2022:
-        ign_code_level['prefix'] = ign_code_level['prefix'].replace("-1_", "-0_")
+        ign_code_level['prefix'] = ign_code_level['prefix'].replace("3-1_", f"{ign_version}_")
 
     shp_location = f"{path_cache_ign}/{ign_code_level['prefix']}{ign_code_level[field]}"
+
+    if os.path.isdir(shp_location) is False:
+        # sometimes, ADECOG is spelled ADE-COG
+        shp_location = shp_location.replace("ADECOG", "ADE-COG")
     
     return shp_location
 
