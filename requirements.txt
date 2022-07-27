@@ -1,2 +1,3 @@
 requests
 py7zr
+geopandas
