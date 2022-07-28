@@ -133,6 +133,12 @@ def download_admin_express(
 
     date_livraison = subdir.rsplit("_", maxsplit=1)[-1]
     arbo = f"{location}/{subdir}/ADMIN-EXPRESS-COG"
+
+    if os.path.exists(arbo) is False:
+        # if we don't find arbo, we use the bulldozer
+        subdirs = set([x.replace(".md5", "") for x in glob.glob(f"{location}/**/ADMIN-EXPRESS-COG*")])
+        arbo = list(subdirs)[0]
+
     arbo_complete = f"{arbo}/1_DONNEES_LIVRAISON_{date_livraison}"
 
     if os.path.exists(arbo_complete) is False:
@@ -141,8 +147,6 @@ def download_admin_express(
         date_livraison_subdir = [i for i in set(subdirs)][0]
         date_livraison_subdir = date_livraison_subdir.rsplit("_", maxsplit = 1)[-1]
         arbo_complete = f"{arbo}/1_DONNEES_LIVRAISON_{date_livraison_subdir}"
-    else:
-        arbo_complete = f"{arbo}/1_DONNEES_LIVRAISON_{date_livraison}"
 
     return arbo_complete
 

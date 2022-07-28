@@ -26,7 +26,8 @@ IGN:
         file: ADMIN-EXPRESS-COG_2-0__SHP__FRA_WGS84G_2019-09-24.7z.001
       2018:
         file: ADMIN-EXPRESS-COG_1-1__SHP__FRA_2018-04-03.7z
-
+      2017:
+        file: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG-PACK_2017-07-07$ADMIN-EXPRESS-COG_1-0__SHP__FRA_2017-06-19/file/ADMIN-EXPRESS-COG_1-0__SHP__FRA_2017-06-19.7z
 
 Insee:
   COG:
