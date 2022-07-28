@@ -132,9 +132,19 @@ def download_admin_express(
         subdir = subdir.replace(".001", "")
 
     date_livraison = subdir.rsplit("_", maxsplit=1)[-1]
-    arbo = f"{location}/{subdir}/ADMIN-EXPRESS-COG/1_DONNEES_LIVRAISON_{date_livraison}"
+    arbo = f"{location}/{subdir}/ADMIN-EXPRESS-COG"
+    arbo_complete = f"{arbo}/1_DONNEES_LIVRAISON_{date_livraison}"
 
-    return arbo
+    if os.path.exists(arbo_complete) is False:
+        # sometimes we have a different livraison date
+        subdirs = [os.path.basename(x).replace(".md5","") for x in glob.glob(f"{arbo}/1_DONNEES_LIVRAISON_*")]
+        date_livraison_subdir = [i for i in set(subdirs)][0]
+        date_livraison_subdir = date_livraison_subdir.rsplit("_", maxsplit = 1)[-1]
+        arbo_complete = f"{arbo}/1_DONNEES_LIVRAISON_{date_livraison_subdir}"
+    else:
+        arbo_complete = f"{arbo}/1_DONNEES_LIVRAISON_{date_livraison}"
+
+    return arbo_complete
 
 
 def download_store_admin_express(
@@ -179,7 +189,6 @@ def download_store_admin_express(
     return path_cache_ign
 
 
-
 def import_ign_shapefile(
     source: typing.Union[list, str] = ['EXPRESS-COG'],
     year: typing.Optional[str] = None,
@@ -209,7 +218,7 @@ def import_ign_shapefile(
         ign_code_level['prefix'] = ign_code_level['prefix']\
             .replace("3-1_", f"{ign_version}_")
 
-    if year <= 2019:
+    if year == 2019:
         ign_code_level[field] = ign_code_level[field].replace("LAMB93", "WGS84")
 
     shp_location = f"{path_cache_ign}/{ign_code_level['prefix']}"
@@ -220,6 +229,12 @@ def import_ign_shapefile(
     if os.path.isdir(shp_location) is False:
         # sometimes, ADECOG is spelled ADE-COG
         shp_location = shp_location.replace("ADECOG", "ADE-COG")
+    
+    if os.path.isdir(shp_location) is False:
+        # for some years, geographic codes were not the same
+        dep_code = ign_code_level[field].rsplit("_", maxsplit = 1)[-1]
+        filename = glob.glob(f"{os.path.dirname(shp_location)}/*_{dep_code}")
+        shp_location = filename[0]
 
     return shp_location
 
@@ -321,7 +336,7 @@ def get_shapefile_ign(
     if isinstance(field, list):
         field = field[0]
 
-    if year < 2020:
+    if year == 2019:
         field = "metropole"
 
     shp_location = import_ign_shapefile(
@@ -334,18 +349,18 @@ def get_shapefile_ign(
 
     return data_ign
 
-def get_bv(location):
-    dict_open_data = import_yaml_config()
-    url = dict_open_data['Insee']\
-        ['BV']['2022']["file"]
-    
-    if location is not None and os.path.isdir(location):
-        print(f"Data have been previously downloaded and are still available in {location}")
-    else:
-    
-    safe_download_write(
-    url: str,
-    location: str = None,
-    param_ftp: dict = None,
-    ext: str = "7z")
+#def get_bv(location):
+#    dict_open_data = import_yaml_config()
+#    url = dict_open_data['Insee']\
+#        ['BV']['2022']["file"]
+#    
+#    if location is not None and os.path.isdir(location):
+#        print(f"Data have been previously downloaded and are still available in {location}")
+#    else:
+#    
+#    safe_download_write(
+#    url: str,
+#    location: str = None,
+#    param_ftp: dict = None,
+#    ext: str = "7z")
 
