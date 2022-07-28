@@ -136,14 +136,22 @@ def download_admin_express(
 
     if os.path.exists(arbo) is False:
         # if we don't find arbo, we use the bulldozer
-        subdirs = set([x.replace(".md5", "") for x in glob.glob(f"{location}/**/ADMIN-EXPRESS-COG*")])
+        subdirs = set(
+            [
+                x.replace(".md5", "") \
+                    for x in glob.glob(f"{location}/**/ADMIN-EXPRESS-COG*")
+            ]
+            )
         arbo = list(subdirs)[0]
 
     arbo_complete = f"{arbo}/1_DONNEES_LIVRAISON_{date_livraison}"
 
     if os.path.exists(arbo_complete) is False:
         # sometimes we have a different livraison date
-        subdirs = [os.path.basename(x).replace(".md5","") for x in glob.glob(f"{arbo}/1_DONNEES_LIVRAISON_*")]
+        subdirs = [
+            os.path.basename(x).replace(".md5","") \
+                for x in glob.glob(f"{arbo}/1_DONNEES_LIVRAISON_*")
+            ]
         date_livraison_subdir = [i for i in set(subdirs)][0]
         date_livraison_subdir = date_livraison_subdir.rsplit("_", maxsplit = 1)[-1]
         arbo_complete = f"{arbo}/1_DONNEES_LIVRAISON_{date_livraison_subdir}"
@@ -199,7 +207,7 @@ def import_ign_shapefile(
     field: str = "metropole"
     ) -> str:
     """
-    Function to download raw IGN shapefile and store them unzipped in filesystem 
+    Function to download raw IGN shapefile and store them unzipped in filesystem
 
     Args:
         source (typing.Union[list, str], optional): IGN data product. Defaults to ['EXPRESS-COG'].
@@ -233,7 +241,7 @@ def import_ign_shapefile(
     if os.path.isdir(shp_location) is False:
         # sometimes, ADECOG is spelled ADE-COG
         shp_location = shp_location.replace("ADECOG", "ADE-COG")
-    
+
     if os.path.isdir(shp_location) is False:
         # for some years, geographic codes were not the same
         dep_code = ign_code_level[field].rsplit("_", maxsplit = 1)[-1]
@@ -361,10 +369,9 @@ def get_shapefile_ign(
 #    if location is not None and os.path.isdir(location):
 #        print(f"Data have been previously downloaded and are still available in {location}")
 #    else:
-#    
+#
 #    safe_download_write(
 #    url: str,
 #    location: str = None,
 #    param_ftp: dict = None,
 #    ext: str = "7z")
-
