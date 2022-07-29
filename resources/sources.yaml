@@ -1,0 +1,224 @@
+IGN:
+  ADMINEXPRESS:
+    documentation: https://geoservices.ign.fr/documentation/donnees/vecteur/adminexpress
+    metadata: https://geoservices.ign.fr/sites/default/files/2021-11/IGNF_ADMIN_EXPRESS_3-1.html
+    EXPRESS-COG:
+      2022:
+        file: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG_SHP_TERRITOIRES_PACK_2022-04-15$ADMIN-EXPRESS-COG_3-1__SHP__FRA_L93_2022-04-15/file/ADMIN-EXPRESS-COG_3-1__SHP__FRA_L93_2022-04-15.7z
+      field:
+        prefix: ADECOG_3-1_SHP_
+        metropole: LAMB93_FR
+        guadeloupe: RGAF09UTM20_D971
+        martinique: RGAF09UTM20_D972
+        guyane: UTM22RGFG95_D973
+        reunion: RGR92UTM40S_D974
+        st-pierre-miquelon: 
+        mayotte: RGM04UTM38S_D976
+      FTP:
+        hostname: "ftp3.ign.fr"
+        username: "Admin_Express_ext"
+        pwd: "Dahnoh0eigheeFok"      
+      2021:
+        file: ADMIN-EXPRESS-COG_3-0__SHP__FRA_L93_2021-05-19.7z
+      2020:
+        file: ADMIN-EXPRESS-COG_2-1__SHP__FRA_L93_2020-11-20.7z
+      2019:
+        file: ADMIN-EXPRESS-COG_2-0__SHP__FRA_WGS84G_2019-09-24.7z.001
+      2018:
+        file: ADMIN-EXPRESS-COG_1-1__SHP__FRA_2018-04-03.7z
+      2017:
+        file: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG-PACK_2017-07-07$ADMIN-EXPRESS-COG_1-0__SHP__FRA_2017-06-19/file/ADMIN-EXPRESS-COG_1-0__SHP__FRA_2017-06-19.7z
+  CONTOUR-IRIS: #variables INSEE_COM NOM_COM IRIS CODE_IRIS NOM_IRIS TYP_IRIS ; manque la var Grand-Quartier (GRD_QUART) présente sur les tables insee https://www.insee.fr/fr/information/2017499
+    documentation: https://geoservices.ign.fr/documentation/donnees/vecteur/contoursiris
+    metadata: https://geoservices.ign.fr/sites/default/files/2022-03/IGNF_Contours-IRISr_2-1.html
+    2022: #absence du fichier sur le FTP verifiee
+      file: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/CONTOURS-IRIS-PACK_2022-01$CONTOURS-IRIS_2-1__SHP__FRA_2022-01-01/file/CONTOURS-IRIS_2-1__SHP__FRA_2022-01-01.7z
+    field:
+      prefix: CONTOURS-IRIS_2-1_SHP_
+      metropole: LAMB93_FXX-
+      guadeloupe: RGAF09UTM20_GLP-
+      martinique: RGAF09UTM20_MTQ-
+      guyane: UTM22RGFG95_GUF-
+      reunion: RGR92UTM40S_REU-
+      mayotte: RGM04UTM38S_MYT-
+      suffix: $ANNEE # les noms de fichiers comportent le millésime à la fin du moins en 2022 et 2021, faudrait donc un paramètre...vive l'ign...   
+    FTP:
+      hostname: "ftp3.ign.fr"
+      username: "Contours_IRIS_ext"
+      pwd: "ao6Phu5ohJ4jaeji"     
+    2021:
+      file: CONTOURS-IRIS_2-1__SHP__FRA_2021-01-01.7z
+    2020:
+      file: CONTOURS-IRIS_2-1__SHP__FRA_2020-01-01.7z
+    2019:
+      file: CONTOURS-IRIS_2-1__SHP__FRA_2019-01-01.7z.001
+    2018:
+      file: CONTOURS-IRIS_2-1__SHP__FRA_2018-01-01.7z.001
+    2017:
+      file: CONTOURS-IRIS_2-1__SHP__FRA_2017-01-01.7z
+    2016: #absence sur le FTP verifiee 
+      file: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/CONTOURS-IRIS-2017-06-30%24CONTOURS-IRIS_2-1__SHP__FRA_2017-06-30/file/CONTOURS-IRIS_2-1__SHP__FRA_2017-06-30.7z
+    2015: #absence sur le FTP verifiee 
+      file: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/CONTOURS-IRIS-2015-01-01%24CONTOURS-IRIS_2-1__SHP_LAMB93_FXX_2016-11-10/file/CONTOURS-IRIS_2-1__SHP_LAMB93_FXX_2016-11-10.7z
+    2014: #absence sur le FTP verifiee
+      file: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/CONTOURS-IRIS-2014-01-01%24CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/file/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01.7z
+    2013:
+      file: CONTOURS-IRIS_1-0__SHP_LAMB93_FXX_2013-01-01.7z.001
+    2009:
+      file: CONTOURS-IRIS_1-0__SHP_LAMB93_FRA_2009-01-01.7z 
+
+
+Insee:
+  COG:
+    2022:
+      id: 6051727
+      file: https://www.insee.fr/fr/statistiques/fichier/6051727/commune_2022.csv
+      documentation: https://www.insee.fr/fr/information/6051727
+    2021:
+      id: 5057840
+      file: https://www.insee.fr/fr/statistiques/fichier/5057840/commune2021-csv.zip
+      documentation: https://www.insee.fr/fr/information/5057840
+  BV:
+    2022:
+     id: 2115016
+     file: https://www.insee.fr/fr/statistiques/fichier/2115016/BV2012_au_01-01-2022.zip
+     documentation: https://www.insee.fr/fr/information/2115016      
+  TAGC: #Table d’appartenance géographique des communes ; pourrait carrément remplacer le recours au COG car contient pour chaque com : reg, dept, arr, cv + ZE, BV, UU, AAV, aire d'attraction des villes
+    2022: #ZE2020 UU2020 AAV2020 BV2012 + potentiellement BV2022 en fin d'année 2022
+      id: 2028028-2022 #Révision probable sous peu suite correction uu2020 rattachement depcom 72213 - probable fichier _v1
+      file: https://www.insee.fr/fr/statistiques/fichier/2028028/table-appartenance-geo-communes-22.zip
+      documentation: https://www.insee.fr/fr/information/2028028
+    2021: #ZE2020 UU2020 AAV2020 BV2012
+      id: 2028028-2021 #Révision probable sous peu suite correction uu2020 rattachement depcom 72213 - probable fichier _v1
+      file: https://www.insee.fr/fr/statistiques/fichier/2028028/table-appartenance-geo-communes-21.zip
+      documentation: https://www.insee.fr/fr/information/2028028
+    2020: #ZE2020 UU2020 AAV2020 BV2012
+      id: 2028028-2020 #Révision probable sous peu suite correction uu2020 rattachement depcom 72213 - probable fichier _v2
+      file: https://www.insee.fr/fr/statistiques/fichier/2028028/table-appartenance-geo-communes-20_zonages20_v1.zip
+      documentation: https://www.insee.fr/fr/information/2028028
+    2019: #ZE2010 UU2010 AU2010 BV2012
+      id: 2028028-2019 
+      file: https://www.insee.fr/fr/statistiques/fichier/2028028/table-appartenance-geo-communes-19.zip
+      documentation: https://www.insee.fr/fr/information/2028028
+    2018: #ZE2010 UU2010 AU2010 BV2012
+      id: 2028028-2018 
+      file: https://www.insee.fr/fr/statistiques/fichier/2028028/table-appartenance-geo-communes-18_V2.zip
+      documentation: https://www.insee.fr/fr/information/2028028
+    2017: #ZE2010 UU2010 AU2010 BV2012
+      id: 2028028-2017 
+      file: https://www.insee.fr/fr/statistiques/fichier/2028028/table-appartenance-geo-communes-17.zip
+      documentation: https://www.insee.fr/fr/information/2028028
+    2016: #ZE2010 UU2010 AU2010 BV2012
+      id: 2028028-2016 
+      file: https://www.insee.fr/fr/statistiques/fichier/2028028/table-appartenance-geo-communes-16.zip
+      documentation: https://www.insee.fr/fr/information/2028028
+    2015: #ZE2010 UU2010 AU2010 BV2012
+      id: 2028028-2015 
+      file: https://www.insee.fr/fr/statistiques/fichier/2028028/table-appartenance-geo-communes-15.zip
+      documentation: https://www.insee.fr/fr/information/2028028
+    2014: #ZE2010 UU2010 AU2010 BV2012
+      id: 2028028-2014 
+      file: https://www.insee.fr/fr/statistiques/fichier/2028028/table-appartenance-geo-communes-14.zip
+      documentation: https://www.insee.fr/fr/information/2028028
+    2013: #ZE2010 UU2010 AU2010 
+      id: 2028028-2013 
+      file: https://www.insee.fr/fr/statistiques/fichier/2028028/table-appartenance-geo-communes-13.zip
+      documentation: https://www.insee.fr/fr/information/2028028   
+    2012: #ZE2010 UU2010 AU2010 
+      id: 2028028-2012 
+      file: https://www.insee.fr/fr/statistiques/fichier/2028028/table-appartenance-geo-communes-12.zip
+      documentation: https://www.insee.fr/fr/information/2028028        
+    2011: #ZE2010 UU2010 AU2010 
+      id: 2028028-2011 
+      file: https://www.insee.fr/fr/statistiques/fichier/2028028/table-appartenance-geo-communes-11.zip
+      documentation: https://www.insee.fr/fr/information/2028028
+    2010: #ZE1990 ZE2010 UU1999 AU1999 EU1999
+      id: 2028028-2010
+      file: https://www.insee.fr/fr/statistiques/fichier/2028028/table-appartenance-geo-communes-10.zip
+      documentation: https://www.insee.fr/fr/information/2028028
+    2009: #ZE1990 UU1999 AU1999 EU1999
+      id: 2028028-2009 
+      file: https://www.insee.fr/fr/statistiques/fichier/2028028/table-appartenance-geo-communes-09.zip
+      documentation: https://www.insee.fr/fr/information/2028028
+    2008: #ZE1990 UU1999 AU1999 EU1999
+      id: 2028028-2008 
+      file: https://www.insee.fr/fr/statistiques/fichier/2028028/table-appartenance-geo-communes-08.zip
+      documentation: https://www.insee.fr/fr/information/2028028      
+  DENS: #grille communale de densité 7 niveaux
+    2022: #vars principales Typo degré densité et Libellé degré densité
+      id: 6439600-2022 
+      file: https://www.insee.fr/fr/statistiques/fichier/6439600/grille_densite_7_niveaux_detaille_2022.xlsx
+      documentation: https://www.insee.fr/fr/information/6439600
+    2021: #vars principales Typo degré densité et Libellé degré densité
+      id: 6439600-2021 
+      file: https://www.insee.fr/fr/statistiques/fichier/6439600/grille_densite_7_niveaux_detaille_2021.xlsx
+      documentation: https://www.insee.fr/fr/information/6439600  
+  FUA: #composition communale des cities et des aires urbaines fonctionnelles 
+    2021: #vars principales Typo degré densité et Libellé degré densité
+      id: 3642744-2021 
+      file: https://www.insee.fr/fr/statistiques/fichier/3642744/com2021_citiesfua2021.xlsx
+      documentation: https://www.insee.fr/fr/information/3642744
+  CIRCO: #circonscriptions législatives
+    2022: #var ppales COMMUNE_RESID	circo type_com (entière ou partiel)
+      id: 6436476 #Table de correspondance entre les communes et les circonscriptions législatives
+      file: https://www.insee.fr/fr/statistiques/fichier/6436476/circo_composition.xlsx  
+      documentation : https://www.insee.fr/fr/statistiques/6436476
+    SHP:
+      id: 6441661  #shp des contours simplifiés en WGS84
+      file: https://www.insee.fr/fr/statistiques/fichier/6441661/contours_circonscriptions_legislatives_03052022.zip
+      documentation : https://www.insee.fr/fr/statistiques/6441661
+
+
+
+Services comparables :
+  Nom : "NUTS Converter"
+  Nature : service web
+  Producteur : Commission européenne
+  Service rendu : "Convertit la nomenclature des NUTS entre Etats et entre niveaux (ex : à quel découpage administratif polonais correspondent les départements français ?)"
+  URL : https://urban.jrc.ec.europa.eu/nutsconverter/#/
+
+          
+Eurostat: # Voir https://ropengov.github.io/giscoR/ ou directeeent API Gisco si besoin de géométrie ou de récupérer son dbf/table attributaire
+  LAU: #Table de correspondance LAU - NUTS pour faire une jointure éventuelle avec shp/base communale via le LAU CODE. Variables ppales : NUTS3 CODE, LAU CODE, LAU NAME NATIONAL,LAU NAME LATIN, DEGURBA, COASTAL AREA, new_CITY_ID, new_CITY_NAME, new_FUA_ID, new_FUA_NAME
+    documentation: https://ec.europa.eu/eurostat/fr/web/nuts/local-administrative-units
+    2021: #provisoire,  NUTS 2021     
+      file: https://ec.europa.eu/eurostat/documents/345175/501971/EU-27-LAU-2021-NUTS-2021.xlsx #autre possibilité de récupérer les données LAU via l'API GISCO https://gisco-services.ec.europa.eu/distribution/v2/
+    2020: #provisoire, NUTS 2016/2021
+      file: https://ec.europa.eu/eurostat/documents/345175/501971/EU-27-LAU-2020-NUTS-2021-NUTS-2016.xlsx  
+    2019: #NUTS 2016
+      file: https://ec.europa.eu/eurostat/documents/345175/501971/EU-28-LAU-2019-NUTS-2016.xlsx
+    2018: #NUTS 2016
+      file: https://ec.europa.eu/eurostat/documents/345175/501971/EU-28-LAU-2018-NUTS-2016.xlsx
+    2017: #NUTS 2016
+      file: https://ec.europa.eu/eurostat/documents/345175/501971/EU-28_LAU_2017_NUTS_2016.xlsx  
+      
+
+#POTENTIELLEMENT INTERESSANT 
+#mais à sourcer sur plusieurs milésimes (uniquement en geo communale 2021 sur Observatoire des territoires)
+#et probablement directement auprès des producteurs. Question de qualité des bases compilées par l'ANCT/ODT. 
+#https://www.observatoire-des-territoires.gouv.fr/ 
+#https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/#view=map36&c=indicator
+#les compositions communales sont soir dans fichiers communes_2021 du site web soit via tableau de données du site carto
+#Zonages:
+#Périmètre des ressorts des cours d'appel
+#Périmètre des ressorts des tribunaux judiciaires
+#Périmètre des ressorts des tribunaux de proximité ou pôles de proximité de tribunaux judiciaires
+#Périmètre des académies
+#Modalités de classement des communes en zone de revitalisation rurale - ZRR (2018...1995)
+#Classement des communes en zone de revitalisation rurale - ZRR (2018...1995)
+#Communes éligibles au zonage d'aide à finalité régionale (AFR), période 2014-2021
+#Classement des communes en zone de revitalisation des commerces en milieu rural - ZoRCoMiR
+#Communes classées en zone de montagne (zonage agriculture)
+#Communes classées en zone de montagne (zonage urbanisme)
+#Modalités du classement des communes en loi littoral
+#Classement des communes en loi littoral
+#Part de la population municipale vivant dans un quartier prioritaire de la politique de la ville (QPV)
+#Nombre de quartiers prioritaires de la politique de la ville (QPV)
+#Population municipale vivant dans un quartier prioritaire de la politique de la ville (QPV)
+#Villes bénéficiaires du programme Action Coeur de Ville (ACV)
+#Périmètre des territoires d'industrie
+#Périmètre des contrats de relance et de transition écologique (CRTE)
+#Communes des parcs naturels régionaux (PNR)
+#Communes des parcs nationaux
+#Périmètre des massifs
+#Villes bénéficiaire du programme Petites villes de demain (PVD)
