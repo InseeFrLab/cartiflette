@@ -102,4 +102,4 @@ def write_shapefile_from_s3(
 
     print(
         f"Requested file has been saved at location {filename}"
-        )
+    )
