@@ -170,11 +170,23 @@ Insee:
       
     
 ANCT: 
-  QPV: #Quartiers Prioritaires de la Ville
-  file : https://www.data.gouv.fr/fr/datasets/r/f288f4d1-a253-4c4a-9f5e-67c040a39e80
-  documentation : https://sig.ville.gouv.fr/page/198/les-quartiers-prioritaires-de-la-politique-de-la-ville-2014-2022
-  SCR : 4326
-
+    QPV: #Quartiers Prioritaires de la Ville 
+            file : https://www.data.gouv.fr/fr/datasets/r/f288f4d1-a253-4c4a-9f5e-67c040a39e80
+            documentation : https://sig.ville.gouv.fr/page/198/les-quartiers-prioritaires-de-la-politique-de-la-ville-2014-2022
+            SCR : 4326
+    
+    ZUS: #Zones Urbaines Sensibles
+            file : https://www.data.gouv.fr/fr/datasets/r/0ba9346e-bc8a-4e68-9e07-73b70bcd1023
+            documentation : https://www.data.gouv.fr/fr/datasets/zones-urbaines-sensibles-zus/
+            SCR :
+    
+    ZRR : #Zones de Revitalisation Rurale
+            file : https://www.data.gouv.fr/fr/datasets/r/4160134c-017c-42c7-b838-6048ad56e5f2
+            documentation : https://www.data.gouv.fr/fr/datasets/zones-de-revitalisation-rurale-zrr/
+            SCR :
+            
+        
+    
 
 
 
@@ -202,6 +214,7 @@ Eurostat: # Voir https://ropengov.github.io/giscoR/ ou directeeent API Gisco si 
       
 
 #POTENTIELLEMENT INTERESSANT 
+# Moult zonages et données géographiques sont disponibles ici https://www.data.gouv.fr/fr/pages/donnees-geographiques/
 #mais à sourcer sur plusieurs milésimes (uniquement en geo communale 2021 sur Observatoire des territoires)
 #et probablement directement auprès des producteurs. Question de qualité des bases compilées par l'ANCT/ODT. 
 #https://www.observatoire-des-territoires.gouv.fr/ 
