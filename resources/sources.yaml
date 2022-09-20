@@ -97,7 +97,7 @@ Insee:
       file: https://www.insee.fr/fr/statistiques/fichier/2028028/table-appartenance-geo-communes-20_zonages20_v1.zip
       documentation: https://www.insee.fr/fr/information/2028028
     2019: #ZE2010 UU2010 AU2010 BV2012
-      id: 2028028-2019 
+      id: 2028028-2019
       file: https://www.insee.fr/fr/statistiques/fichier/2028028/table-appartenance-geo-communes-19.zip
       documentation: https://www.insee.fr/fr/information/2028028
     2018: #ZE2010 UU2010 AU2010 BV2012
