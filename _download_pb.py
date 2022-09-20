@@ -6,7 +6,11 @@ import requests
 from tqdm import tqdm
 
 
-def _download_pb(url: str, fname: str, total: int = None):
+def _download_pb(
+    url: str,
+    fname: str,
+    total: int = None,
+    verify: bool = True):
     """Useful function to get request with a progress bar
 
     Borrowed from
@@ -16,6 +20,7 @@ def _download_pb(url: str, fname: str, total: int = None):
         url {str} -- URL for the source file
         fname {str} -- Destination where data will be written
         total {int} -- Filesize. Optional argument, recommended to let the default value.
+        verify {bool} -- Optional argument, inherited from requests.get
     """
 
     try:
@@ -23,7 +28,11 @@ def _download_pb(url: str, fname: str, total: int = None):
     except KeyError:
         proxies = {"http": "", "https": ""}
 
-    resp = requests.get(url, proxies=proxies, stream=True)
+    resp = requests.get(
+        url,
+        proxies=proxies,
+        stream=True,
+        verify = verify)
 
     if total is None:
         total = int(resp.headers.get("content-length", 0))
