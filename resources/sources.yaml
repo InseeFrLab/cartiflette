@@ -170,23 +170,32 @@ Insee:
       
     
 ANCT: 
-    QPV: #Quartiers Prioritaires de la Ville 
+    QPV: #Quartiers Prioritaires de la politique de la Ville 
+            id : 5a561801c751df42d7fca9b6
             file : https://www.data.gouv.fr/fr/datasets/r/f288f4d1-a253-4c4a-9f5e-67c040a39e80
             documentation : https://sig.ville.gouv.fr/page/198/les-quartiers-prioritaires-de-la-politique-de-la-ville-2014-2022
-            SCR : 4326
     
     ZUS: #Zones Urbaines Sensibles
+            id : 5a67414888ee385f0ca521eb 
             file : https://www.data.gouv.fr/fr/datasets/r/0ba9346e-bc8a-4e68-9e07-73b70bcd1023
             documentation : https://www.data.gouv.fr/fr/datasets/zones-urbaines-sensibles-zus/
-            SCR :
     
     ZRR : #Zones de Revitalisation Rurale
+            id : 5943d13588ee38742a95eb0c
             file : https://www.data.gouv.fr/fr/datasets/r/4160134c-017c-42c7-b838-6048ad56e5f2
             documentation : https://www.data.gouv.fr/fr/datasets/zones-de-revitalisation-rurale-zrr/
-            SCR :
             
-        
-    
+    ZFU : #Zones Franches Urbaines
+            id : 5a5784f9c751df1b5b1d530f
+            file : https://www.data.gouv.fr/fr/datasets/r/62ac564a-16f1-42d7-baef-77da89f61336
+            documentation : https://www.data.gouv.fr/fr/datasets/zones-franches-urbaines-zfu/
+
+    AFR : #Zones d'Aide à Finalité Régionale
+            id : 5943d4c188ee38742a95eb0d
+            file : https://www.data.gouv.fr/fr/datasets/r/b418e65d-01fa-48ba-aed4-d7673c641942
+            documentation : https://www.data.gouv.fr/fr/datasets/zones-daide-a-finalite-regionale-afr/
+
+      
 
 
 
