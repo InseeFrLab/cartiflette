@@ -36,7 +36,8 @@ def safe_download_write(
     url: str,
     location: str = None,
     param_ftp: dict = None,
-    ext: str = "7z") -> str :
+    ext: str = "7z",
+    verify: bool = True, force = True) -> str :
     """
     Download data given URL and additional parameters.
 
@@ -67,7 +68,7 @@ def safe_download_write(
         ftp = ftplib.FTP(param_ftp['hostname'], param_ftp['username'], param_ftp['pwd'])
         _download_pb_ftp(ftp, url, fname = location)
     else:
-        _download_pb(url, location)
+        _download_pb(url, location, verify = verify, force = force)
 
     return location
 

@@ -10,6 +10,7 @@ def _download_pb(
     url: str,
     fname: str,
     total: int = None,
+    force: bool = True,
     verify: bool = True):
     """Useful function to get request with a progress bar
 
@@ -34,7 +35,7 @@ def _download_pb(
         stream=True,
         verify = verify)
 
-    if total is None:
+    if total is None and force is False:
         total = int(resp.headers.get("content-length", 0))
 
     with open(fname, "wb") as file, tqdm(
