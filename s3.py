@@ -2,11 +2,23 @@ import s3fs
 import tempfile
 import os
 
+from dev import get_shapefile_ign
+
 BUCKET = "lgaliana"
 PATH_WITHIN_BUCKET = 'cartogether/shapefiles-test'
 
 fs = s3fs.S3FileSystem(
   client_kwargs={'endpoint_url': 'https://minio.lab.sspcloud.fr'})
+
+
+def dict_corresp_decoupage():
+    corresp_decoupage_columns = {
+        "region": 'INSEE_REG',
+        "departement": "INSEE_DEP",
+        "commune": "INSEE_COM"
+        }
+    return corresp_decoupage_columns
+
 
 def keep_subset_geopandas(object, variable, values):
     if isinstance(values, (int, str, float)):
@@ -28,6 +40,27 @@ def create_path_bucket(
     return write_path
 
 
+def write_shapefile_all_levels(
+    object,
+    level_var,
+    shapefile_format="geojson",
+    decoupage="region",
+    year=2022,
+    bucket=BUCKET,
+    path_within_bucket=PATH_WITHIN_BUCKET,
+):
+
+    [write_shapefile_subset(
+        object,
+        shapefile_format=shapefile_format,
+        decoupage=decoupage,
+        year=year,
+        bucket=bucket,
+        path_within_bucket=path_within_bucket,
+        value=level) for level in object[level_var].unique()
+    ]
+
+
 def write_shapefile_subset(
   object, 
   value="28",
@@ -38,11 +71,7 @@ def write_shapefile_subset(
   path_within_bucket=PATH_WITHIN_BUCKET,
 ) :
 
-    corresp_decoupage_columns = {
-        "region": 'INSEE_REG',
-        "departement": "INSEE_DEP",
-        "commune": "INSEE_COM"
-        }
+    corresp_decoupage_columns = dict_corresp_decoupage()
     
     format_standardized = {
         "geojson": 'geojson',
@@ -113,6 +142,30 @@ def write_shapefile_s3_shp(
 
     [fs.put(f"{tdir.name}/{file_name}", f"{write_path}{file_name}") for file_name in list_files_shp]
 
+
+
+def write_shapefile_s3_all(
+    level="COMMUNE",
+    shapefile_format="geojson",
+    decoupage="region",
+    year=2022,
+    bucket=BUCKET,
+    path_within_bucket=PATH_WITHIN_BUCKET):
+
+    corresp_decoupage_columns = dict_corresp_decoupage()
+    var_decoupage = corresp_decoupage_columns[decoupage]
+
+    # IMPORT SHAPEFILES ------------------
+
+    territories = {f: get_shapefile_ign(level=level, field=f) for f in ["metropole", "martinique", "reunion", "guadeloupe", "guyane"]}
+
+    # WRITE ALL
+     
+    [
+        write_shapefile_all_levels(
+            territory,
+            var_decoupage) for territory in territories
+    ]
 
 
 def open_shapefile_from_s3(
