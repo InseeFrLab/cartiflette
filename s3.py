@@ -20,7 +20,7 @@ def create_path_bucket(
     year="2022",
     value="28"
 ):
-    write_path = f"{bucket}/{path_within_bucket}/{year}/{decoupage}/{value}/{shapefile_format}/raw.geojson"
+    write_path = f"{bucket}/{path_within_bucket}/{year}/{decoupage}/{value}/{shapefile_format}/raw.{shapefile_format}"
     return write_path
 
 
@@ -40,22 +40,31 @@ def write_shapefile_subset(
         "commune": "INSEE_COM"
         }
     
-    corresp_driver_format = {
-        "geojson": 'GeoJSON',
+    format_standardized = {
+        "geojson": 'geojson',
         "geopackage": "GPKG",
         "gpkg": "GPKG"
     }
 
+    gpd_driver = {
+        "geojson": "GeoJSON",
+        "GPKG": "GPKG"
+    }
+
+    format_write = format_standardized[shapefile_format.lower()]
+    driver = gpd_driver[format_write]
+
     write_path = create_path_bucket(
         bucket=bucket,
         path_within_bucket=path_within_bucket,
-        shapefile_format=shapefile_format,
+        shapefile_format=format_write,
         decoupage=decoupage,
         year=year,
         value=value
     )
-
-    fs.rm(write_path)  # single file
+    
+    if fs.exists(write_path):
+        fs.rm(write_path)  # single file
     
     object_subset = keep_subset_geopandas(
         object,
@@ -65,8 +74,7 @@ def write_shapefile_subset(
     with fs.open(write_path, 'wb') as f:
         object_subset.to_file(
             f,
-            driver=corresp_driver_format[
-                shapefile_format]
+            driver=driver
         )   
 
 
