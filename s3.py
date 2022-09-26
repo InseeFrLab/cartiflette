@@ -43,12 +43,15 @@ def write_shapefile_subset(
     format_standardized = {
         "geojson": 'geojson',
         "geopackage": "GPKG",
-        "gpkg": "GPKG"
+        "gpkg": "GPKG",
+        "shp": "shp",
+        "shapefile": "shp"
     }
 
     gpd_driver = {
         "geojson": "GeoJSON",
-        "GPKG": "GPKG"
+        "GPKG": "GPKG",
+        "shp": None
     }
 
     format_write = format_standardized[shapefile_format.lower()]
@@ -64,7 +67,11 @@ def write_shapefile_subset(
     )
     
     if fs.exists(write_path):
-        fs.rm(write_path)  # single file
+        if format_standardized == "shp":
+            dir_s3 = write_path.rsplit("/", maxsplit=1)[0] + "/"
+            [fs.rm(l) for l in fs.ls(dir_s3)]
+        else:
+            fs.rm(write_path)  # single file
     
     object_subset = keep_subset_geopandas(
         object,
