@@ -24,6 +24,13 @@ s3.write_shapefile_s3_all(
 
 s3.write_shapefile_s3_all(
     level="COMMUNE",
+    shapefile_format="parquet",
+    decoupage="region",
+    year=2019)
+
+
+s3.write_shapefile_s3_all(
+    level="COMMUNE",
     shapefile_format="shp",
     decoupage="region",
     year=2020)

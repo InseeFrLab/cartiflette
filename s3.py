@@ -57,13 +57,16 @@ def write_shapefile_subset(
         "geopackage": "GPKG",
         "gpkg": "GPKG",
         "shp": "shp",
-        "shapefile": "shp"
+        "shapefile": "shp",
+        "geoparquet": "parquet",
+        "parquet": "parquet"
     }
 
     gpd_driver = {
         "geojson": "GeoJSON",
         "GPKG": "GPKG",
-        "shp": None
+        "shp": None,
+        "parquet": None
     }
 
     format_write = format_standardized[shapefile_format.lower()]
@@ -96,6 +99,11 @@ def write_shapefile_subset(
             fs=fs,
             write_path=write_path,
             driver=driver)
+    elif format_write == "parquet":
+        with fs.open(write_path, 'wb') as f:
+            object_subset.to_parquet(
+                f
+            )
     else:
         with fs.open(write_path, 'wb') as f:
             object_subset.to_file(
