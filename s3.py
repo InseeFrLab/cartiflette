@@ -40,27 +40,6 @@ def create_path_bucket(
     return write_path
 
 
-def write_shapefile_all_levels(
-    object,
-    level_var,
-    shapefile_format="geojson",
-    decoupage="region",
-    year=2022,
-    bucket=BUCKET,
-    path_within_bucket=PATH_WITHIN_BUCKET,
-):
-
-    [write_shapefile_subset(
-        object,
-        shapefile_format=shapefile_format,
-        decoupage=decoupage,
-        year=year,
-        bucket=bucket,
-        path_within_bucket=path_within_bucket,
-        value=level) for level in object[level_var].unique()
-    ]
-
-
 def write_shapefile_subset(
   object, 
   value="28",
@@ -125,6 +104,28 @@ def write_shapefile_subset(
             )   
 
 
+def write_shapefile_all_levels(
+    object,
+    level_var,
+    shapefile_format="geojson",
+    decoupage="region",
+    year=2022,
+    bucket=BUCKET,
+    path_within_bucket=PATH_WITHIN_BUCKET,
+):
+
+    [write_shapefile_subset(
+        object,
+        shapefile_format=shapefile_format,
+        decoupage=decoupage,
+        year=year,
+        bucket=bucket,
+        path_within_bucket=path_within_bucket,
+        value=level) for level in object[level_var].unique()
+    ]
+
+
+
 def write_shapefile_s3_shp(
     object,
     fs,
@@ -169,11 +170,11 @@ def write_shapefile_s3_all(
 
     # WRITE ALL
      
-    [
+    for territory in territories:
+        print(f"Writing {territory}")
         write_shapefile_all_levels(
-            territory,
-            var_decoupage) for territory in territories
-    ]
+            object=territories[territory],
+            level_var=var_decoupage)
 
 
 def open_shapefile_from_s3(
