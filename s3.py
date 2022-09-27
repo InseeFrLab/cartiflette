@@ -161,6 +161,7 @@ def write_shapefile_s3_all(
     territories = {
         f: get_shapefile_ign(
             level=level,
+            year=year,
             field=f) for f in [
                 "metropole", "martinique",
                 "reunion", "guadeloupe",
@@ -174,7 +175,10 @@ def write_shapefile_s3_all(
         print(f"Writing {territory}")
         write_shapefile_all_levels(
             object=territories[territory],
-            level_var=var_decoupage)
+            level_var=var_decoupage,
+            shapefile_format=shapefile_format,
+            decoupage=decoupage,
+            year=year)
 
 
 def open_shapefile_from_s3(
