@@ -157,7 +157,15 @@ def write_shapefile_s3_all(
 
     # IMPORT SHAPEFILES ------------------
 
-    territories = {f: get_shapefile_ign(level=level, field=f) for f in ["metropole", "martinique", "reunion", "guadeloupe", "guyane"]}
+    territories = {
+        f: get_shapefile_ign(
+            level=level,
+            field=f) for f in [
+                "metropole", "martinique",
+                "reunion", "guadeloupe",
+                "guyane"
+                ]
+        }
 
     # WRITE ALL
      
