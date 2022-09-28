@@ -90,17 +90,16 @@ def download_shapefile_s3_single(
     except:
         raise Exception('Shapefile has not been found')   
 
-    print(read_path)
 
     if format_read == "shp":
         print("not yet implemented")
     elif format_read == "parquet":
-        with fs.open(format_read, 'wb') as f:
+        with fs.open(read_path, 'rb') as f:
             object = gpd.read_parquet(
                 f
             )
     else:
-        with fs.open(format_read, 'wb') as f:
+        with fs.open(read_path, 'rb') as f:
             object = gpd.read_file(
                 f,
                 driver=driver
