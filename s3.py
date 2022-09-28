@@ -92,7 +92,15 @@ def download_shapefile_s3_single(
 
 
     if format_read == "shp":
-        print("not yet implemented")
+        dir_s3 = read_path
+        print("When using shp format, we first need to store a local version")
+        tdir = tempfile.TemporaryDirectory()
+        for remote_file in fs.ls(dir_s3):
+            fs.download(remote_file, f"{tdir.name}/{remote_file.replace(dir_s3, '')}")
+        object = gpd.read_file(
+                f"{tdir.name}/raw.shp",
+                driver=None
+            )
     elif format_read == "parquet":
         with fs.open(read_path, 'rb') as f:
             object = gpd.read_parquet(
@@ -146,7 +154,7 @@ def write_shapefile_subset(
 
     if format_write == "shp":
         write_shapefile_s3_shp(
-            object=object,
+            object=object_subset,
             fs=fs,
             write_path=write_path,
             driver=driver)

@@ -5,9 +5,21 @@ os.chdir("cartogether")
 import s3
 
 
-s3.download_shapefile_s3_single(
+obj = s3.download_shapefile_s3_single(
     level="COMMUNE",
     shapefile_format="geojson",
+    decoupage="region",
+    year=2022)
+
+obj2 = s3.download_shapefile_s3_single(
+    level="COMMUNE",
+    shapefile_format="gpkg",
+    decoupage="region",
+    year=2022)
+
+obj3 = s3.download_shapefile_s3_single(
+    level="COMMUNE",
+    shapefile_format="shp",
     decoupage="region",
     year=2022)
 
@@ -41,3 +53,10 @@ s3.write_shapefile_s3_all(
     shapefile_format="shp",
     decoupage="region",
     year=2020)
+
+
+s3.write_shapefile_s3_all(
+    level="COMMUNE",
+    shapefile_format="shp",
+    decoupage="region",
+    year=2022)
