@@ -4,6 +4,13 @@ os.chdir("cartogether")
 
 import s3
 
+
+s3.download_shapefile_s3_single(
+    level="COMMUNE",
+    shapefile_format="geojson",
+    decoupage="region",
+    year=2022)
+
 s3.write_shapefile_s3_all(
     level="COMMUNE",
     shapefile_format="geojson",
