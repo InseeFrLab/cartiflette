@@ -1,0 +1,25 @@
+[build-system]
+requires = [
+    "setuptools>=42",
+    "wheel"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cartiflette"
+version = "0.0.1"
+authors = [
+  { name="Lino Galiana", email="lino.galiana@insee.fr" },
+]
+description = "Tools to easily retrieve shapefiles for geographic data analytics"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OPEN LICENCE 2.0/LICENCE OUVERTE 2.0",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/InseeFrLab/cartogether"
+"Bug Tracker" = "https://github.com/InseeFrLab/cartogether/issues"
