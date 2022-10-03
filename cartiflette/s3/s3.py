@@ -3,7 +3,12 @@ import tempfile
 import os
 import geopandas as gpd
 
-from dev import get_shapefile_ign
+from cartiflette.utils import keep_subset_geopandas,\
+    dict_corresp_decoupage,\
+    create_format_standardized,\
+    create_format_driver,\
+    keep_subset_geopandas
+from cartiflette.download import get_shapefile_ign
 
 BUCKET = "lgaliana"
 PATH_WITHIN_BUCKET = 'cartogether/shapefiles-test'
@@ -11,41 +16,6 @@ PATH_WITHIN_BUCKET = 'cartogether/shapefiles-test'
 fs = s3fs.S3FileSystem(
   client_kwargs={'endpoint_url': 'https://minio.lab.sspcloud.fr'})
 
-
-def dict_corresp_decoupage():
-    corresp_decoupage_columns = {
-        "region": 'INSEE_REG',
-        "departement": "INSEE_DEP",
-        "commune": "INSEE_COM"
-        }
-    return corresp_decoupage_columns
-
-def create_format_standardized():    
-    format_standardized = {
-        "geojson": 'geojson',
-        "geopackage": "GPKG",
-        "gpkg": "GPKG",
-        "shp": "shp",
-        "shapefile": "shp",
-        "geoparquet": "parquet",
-        "parquet": "parquet"
-    }
-    return format_standardized
-
-def create_format_driver():
-    gpd_driver = {
-        "geojson": "GeoJSON",
-        "GPKG": "GPKG",
-        "shp": None,
-        "parquet": None
-    }
-    return gpd_driver
-
-def keep_subset_geopandas(object, variable, values):
-    if isinstance(values, (int, str, float)):
-        return object.loc[object[variable] == values]
-    else:
-        return object.loc[object[variable].isin(values)]
 
 def create_path_bucket(
     bucket=BUCKET,

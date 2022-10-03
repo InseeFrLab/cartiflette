@@ -7,10 +7,11 @@ import glob
 import re
 import typing
 import tempfile
-import yaml
 import py7zr
 import geopandas as gpd
 
+
+from cartiflette.utils import download_pb, download_pb_ftp, import_yaml_config
 
 def safe_download_write(
     url: str,
@@ -44,10 +45,15 @@ def safe_download_write(
         location = location + ext
 
     if param_ftp is not None:
-        ftp = ftplib.FTP(param_ftp['hostname'], param_ftp['username'], param_ftp['pwd'])
-        _download_pb_ftp(ftp, url, fname = location)
+        ftp = ftplib.FTP(
+            param_ftp['hostname'], param_ftp['username'], param_ftp['pwd']
+            )
+        download_pb_ftp(
+            ftp, url,
+            fname=location
+            )
     else:
-        _download_pb(url, location)
+        download_pb(url, location)
 
     return location
 
