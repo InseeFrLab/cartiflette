@@ -6,7 +6,7 @@ import requests
 from tqdm import tqdm
 
 
-def _download_pb(
+def download_pb(
     url: str,
     fname: str,
     total: int = None,
@@ -49,7 +49,7 @@ def _download_pb(
             obj.update(size)
 
 
-def _download_pb_ftp(ftp, url: str, fname: str):
+def download_pb_ftp(ftp, url: str, fname: str):
     """Useful function to get request with a progress bar
 
     Borrowed from
