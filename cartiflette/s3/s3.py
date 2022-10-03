@@ -1,20 +1,23 @@
-import s3fs
-import tempfile
+"""Module for communication with Minio S3 Storage
+"""
+
 import os
+import tempfile
+import s3fs
 import geopandas as gpd
 
 from cartiflette.utils import keep_subset_geopandas,\
     dict_corresp_decoupage,\
     create_format_standardized,\
-    create_format_driver,\
-    keep_subset_geopandas
+    create_format_driver
 from cartiflette.download import get_shapefile_ign
 
 BUCKET = "lgaliana"
 PATH_WITHIN_BUCKET = 'cartogether/shapefiles-test'
+ENDPOINT_URL = 'https://minio.lab.sspcloud.fr'
 
 fs = s3fs.S3FileSystem(
-  client_kwargs={'endpoint_url': 'https://minio.lab.sspcloud.fr'})
+  client_kwargs={'endpoint_url': ENDPOINT_URL})
 
 
 def create_path_bucket(
@@ -25,7 +28,11 @@ def create_path_bucket(
     year="2022",
     value="28"
 ):
-    write_path = f"{bucket}/{path_within_bucket}/{year}/{decoupage}/{value}/{shapefile_format}/raw.{shapefile_format}"
+
+    write_path = f"{bucket}/{path_within_bucket}/{year}"
+    write_path = f"/{decoupage}/{value}/{shapefile_format}"
+    write_path = f"/raw.{shapefile_format}"
+
     if shapefile_format == "shp":
         write_path = write_path.rsplit("/", maxsplit=1)[0] + "/"
     return write_path
@@ -40,7 +47,7 @@ def download_shapefile_s3_single(
     bucket=BUCKET,
     path_within_bucket=PATH_WITHIN_BUCKET
 ):
-    corresp_decoupage_columns = dict_corresp_decoupage()
+    #corresp_decoupage_columns = dict_corresp_decoupage()
     format_standardized = create_format_standardized()
     gpd_driver = create_format_driver()
     format_read = format_standardized[shapefile_format.lower()]
@@ -58,7 +65,7 @@ def download_shapefile_s3_single(
     try:
         fs.exists(read_path)
     except:
-        raise Exception('Shapefile has not been found')   
+        raise Exception('Shapefile has not been found')
 
 
     if format_read == "shp":
@@ -82,11 +89,11 @@ def download_shapefile_s3_single(
                 f,
                 driver=driver
             )
-    
+
     return object
 
 def write_shapefile_subset(
-  object, 
+  object,
   value="28",
   shapefile_format="geojson",
   decoupage="region",
@@ -109,14 +116,14 @@ def write_shapefile_subset(
         year=year,
         value=value
     )
-    
+
     if fs.exists(write_path):
         if format_write == "shp":
             dir_s3 = write_path
             [fs.rm(path_s3) for path_s3 in fs.ls(dir_s3)]
         else:
             fs.rm(write_path)  # single file
-    
+
     object_subset = keep_subset_geopandas(
         object,
         corresp_decoupage_columns[decoupage],
@@ -138,7 +145,7 @@ def write_shapefile_subset(
             object_subset.to_file(
                 f,
                 driver=driver
-            )   
+            )
 
 
 def write_shapefile_all_levels(
@@ -207,7 +214,7 @@ def write_shapefile_s3_all(
         }
 
     # WRITE ALL
-     
+
     for territory in territories:
         print(f"Writing {territory}")
         write_shapefile_all_levels(
@@ -221,7 +228,7 @@ def write_shapefile_s3_all(
 def open_shapefile_from_s3(
     shapefile_format,
     decoupage,
-    year, 
+    year,
     value
 ):
     read_path = create_path_bucket(
@@ -233,11 +240,21 @@ def open_shapefile_from_s3(
 
 
 def write_shapefile_from_s3(
-    filename,
-    decoupage, year,
-    value,
-    shapefile_format="geojson"
+    filename: str,
+    decoupage: str, year: int,
+    value: str,
+    shapefile_format : str = "geojson"
 ):
+    """Retrieve shapefiles stored in S3
+
+    Args:
+        filename (str): Filename
+        decoupage (str): _description_
+        year (int): Year that should be used
+        value (str): Which value should be retrieved
+        shapefile_format (str, optional): Shapefile format needed. Defaults to "geojson".
+    """
+
     read_path = create_path_bucket(
         shapefile_format=shapefile_format,
         decoupage=decoupage,

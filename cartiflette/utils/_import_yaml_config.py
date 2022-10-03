@@ -1,3 +1,6 @@
+"""
+Import sources from YAML
+"""
 # Read YAML file
 import os
 import yaml

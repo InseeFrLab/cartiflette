@@ -1,3 +1,5 @@
+"""utils that help for other cartiflette packages"""
+
 from ._download_pb import download_pb, download_pb_ftp
 from ._import_yaml_config import import_yaml_config
 from .dict_correspondance import dict_corresp_decoupage,\
