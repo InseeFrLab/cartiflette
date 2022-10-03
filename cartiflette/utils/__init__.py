@@ -2,9 +2,11 @@
 
 from ._download_pb import download_pb, download_pb_ftp
 from ._import_yaml_config import import_yaml_config
-from .dict_correspondance import dict_corresp_decoupage,\
-    create_format_standardized,\
-    create_format_driver
+from .dict_correspondance import (
+    dict_corresp_decoupage,
+    create_format_standardized,
+    create_format_driver,
+)
 from .keep_subset_geopandas import keep_subset_geopandas
 
 __all__ = [
@@ -14,4 +16,5 @@ __all__ = [
     "dict_corresp_decoupage",
     "create_format_standardized",
     "create_format_driver",
-    "keep_subset_geopandas"]
+    "keep_subset_geopandas",
+]

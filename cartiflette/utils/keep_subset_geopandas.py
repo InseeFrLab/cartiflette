@@ -4,11 +4,10 @@
 import typing
 import geopandas as gpd
 
+
 def keep_subset_geopandas(
-    obj: gpd.GeoDataFrame,
-    variable: str,
-    values: typing.Union[list, str, int, float]
-    ) -> gpd.GeoDataFrame :
+    obj: gpd.GeoDataFrame, variable: str, values: typing.Union[list, str, int, float]
+) -> gpd.GeoDataFrame:
     """A utility to subset gpd.GeoDataFrame
 
     Args:

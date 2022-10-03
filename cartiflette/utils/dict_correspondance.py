@@ -2,6 +2,7 @@
 Collection of utils to reformat inputs
 """
 
+
 def dict_corresp_decoupage() -> dict:
     """Transforms explicit administrative borders into relevant column
 
@@ -10,10 +11,10 @@ def dict_corresp_decoupage() -> dict:
             user prompted administrative level
     """
     corresp_decoupage_columns = {
-        "region": 'INSEE_REG',
+        "region": "INSEE_REG",
         "departement": "INSEE_DEP",
-        "commune": "INSEE_COM"
-        }
+        "commune": "INSEE_COM",
+    }
     return corresp_decoupage_columns
 
 
@@ -25,13 +26,13 @@ def create_format_standardized() -> dict:
          format
     """
     format_standardized = {
-        "geojson": 'geojson',
+        "geojson": "geojson",
         "geopackage": "GPKG",
         "gpkg": "GPKG",
         "shp": "shp",
         "shapefile": "shp",
         "geoparquet": "parquet",
-        "parquet": "parquet"
+        "parquet": "parquet",
     }
     return format_standardized
 
@@ -43,10 +44,5 @@ def create_format_driver() -> dict:
         dict: Geopandas driver as well as user-prompted
          format
     """
-    gpd_driver = {
-        "geojson": "GeoJSON",
-        "GPKG": "GPKG",
-        "shp": None,
-        "parquet": None
-    }
+    gpd_driver = {"geojson": "GeoJSON", "GPKG": "GPKG", "shp": None, "parquet": None}
     return gpd_driver
