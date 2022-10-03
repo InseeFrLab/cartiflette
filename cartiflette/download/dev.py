@@ -12,9 +12,6 @@ import py7zr
 import geopandas as gpd
 
 
-#os.chdir("cartogether/")
-from _download_pb import _download_pb, _download_pb_ftp
-
 def safe_download_write(
     url: str,
     location: str = None,
