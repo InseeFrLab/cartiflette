@@ -28,7 +28,7 @@ jobs:
     - name: Lint with pylint
       run: |
         pip install pylint
-        pylint . --fail-under=5
+        pylint cartiflette --fail-under=5
 #    - name: Test with pytest
 #      run: |
 #        conda install pytest
