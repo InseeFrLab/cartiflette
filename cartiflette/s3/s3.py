@@ -14,8 +14,8 @@ from cartiflette.utils import (
 )
 from cartiflette.download import get_shapefile_ign
 
-BUCKET = "lgaliana"
-PATH_WITHIN_BUCKET = "cartogether/shapefiles-test"
+BUCKET = "projet-cartiflette"
+PATH_WITHIN_BUCKET = "diffusion/shapefiles-test"
 ENDPOINT_URL = "https://minio.lab.sspcloud.fr"
 
 fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL})
@@ -31,8 +31,8 @@ def create_path_bucket(
 ):
 
     write_path = f"{bucket}/{path_within_bucket}/{year}"
-    write_path = f"/{decoupage}/{value}/{shapefile_format}"
-    write_path = f"/raw.{shapefile_format}"
+    write_path = f"{write_path}/{decoupage}/{value}/{shapefile_format}"
+    write_path = f"{write_path}/raw.{shapefile_format}"
 
     if shapefile_format == "shp":
         write_path = write_path.rsplit("/", maxsplit=1)[0] + "/"

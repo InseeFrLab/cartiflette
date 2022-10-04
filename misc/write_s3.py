@@ -2,7 +2,7 @@ import os
 
 os.chdir("cartogether")
 
-import s3
+import cartiflette.s3 as s3
 
 
 obj = s3.download_shapefile_s3_single(
