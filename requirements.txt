@@ -1,3 +1,5 @@
 requests
 py7zr
 geopandas
+tqdm
+s3fs
