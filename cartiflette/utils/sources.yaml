@@ -69,7 +69,7 @@ IGN:
 
 
 Insee:
-  COG:
+  COG: #Penser à filtrer sur TYPECOM=COM pour les communes (sans les déléguées) et TYPECOM=ARM pour les arrondissements municipaux PLM
     2022:
       id: 6051727
       file: https://www.insee.fr/fr/statistiques/fichier/6051727/commune_2022.csv
@@ -78,11 +78,22 @@ Insee:
       id: 5057840
       file: https://www.insee.fr/fr/statistiques/fichier/5057840/commune2021-csv.zip
       documentation: https://www.insee.fr/fr/information/5057840
-  BV:
-    2022:
-     id: 2115016
-     file: https://www.insee.fr/fr/statistiques/fichier/2115016/BV2012_au_01-01-2022.zip
-     documentation: https://www.insee.fr/fr/information/2115016      
+    2020:
+      id: 4316069
+      file: https://www.insee.fr/fr/statistiques/fichier/4316069/communes2020-csv.zip
+      documentation: https://www.insee.fr/fr/information/4316069
+    2019:
+      id: 3720946
+      file: https://www.insee.fr/fr/statistiques/fichier/3720946/communes-01012019-csv.zip
+      documentation: https://www.insee.fr/fr/information/3720946
+    2018:
+      id: 3363419
+      file: https://www.insee.fr/fr/statistiques/fichier/3363419/comsimp2018-txt.zip # format .txt et zippé d'origine
+      documentation: https://www.insee.fr/fr/information/3363419
+    2017:
+      id: 2666684
+      file: https://www.insee.fr/fr/statistiques/fichier/2666684/comsimp2017-txt.zip
+      documentation: https://www.insee.fr/fr/information/2666684     
   TAGC: #Table d’appartenance géographique des communes ; pourrait carrément remplacer le recours au COG car contient pour chaque com : reg, dept, arr, cv + ZE, BV, UU, AAV, aire d'attraction des villes
     2022: #ZE2020 UU2020 AAV2020 BV2012 + potentiellement BV2022 en fin d'année 2022
       id: 2028028-2022 #Révision 27/09/22
@@ -143,13 +154,149 @@ Insee:
     2008: #ZE1990 UU1999 AU1999 EU1999
       id: 2028028-2008 
       file: https://www.insee.fr/fr/statistiques/fichier/2028028/table-appartenance-geo-communes-08.zip
-      documentation: https://www.insee.fr/fr/information/2028028      
+      documentation: https://www.insee.fr/fr/information/2028028 
+  BV2012:  
+    2022: #Pour appariement sur code commune : au sein du zip, fichier XLSX "BV2012_au_01-01-2022.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO BV2012 LIBBV2012 DEP REG (début du tab, ligne 6)  
+     id: 2115016-2022
+     file: https://www.insee.fr/fr/statistiques/fichier/2115016/BV2012_au_01-01-2022.zip
+     documentation: https://www.insee.fr/fr/information/2115016
+    2021: #Pour appariement sur code commune : au sein du zip, fichier XLSX "BV2012_au_01-01-2021.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO BV2012 LIBBV2012 DEP REG (début du tab, ligne 6)
+      id: 2115016-2021
+      file: https://www.insee.fr/fr/statistiques/fichier/2115016/BV2012_au_01-01-2021.zip
+      documentation: https://www.insee.fr/fr/information/2115016
+    2020: #Pour appariement sur code commune : au sein du zip, fichier XLSX "BV2012_au_01-01-2020_v1.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO BV2012 LIBBV2012 DEP REG (début du tab, ligne 6)
+      id: 2115016-2020
+      file: https://www.insee.fr/fr/statistiques/fichier/2115016/BV2012_au_01-01-2020_v1.zip
+      documentation: https://www.insee.fr/fr/information/2115016  
+    2019: #Pour appariement sur code commune : au sein du zip, fichier XLS "BV2012_au_01-01-2019.xls", onglet "Composition_communale", variables CODGEO LIBGEO BV2012 LIBBV2012 DEP REG (début du tab, ligne 6)
+      id: 2115016-2019
+      file: https://www.insee.fr/fr/statistiques/fichier/2115016/BV2012_au_01-01-2019.zip
+      documentation: https://www.insee.fr/fr/information/2115016
+    2018: #Pour appariement sur code commune : au sein du zip, fichier XLS "BV2012_au_01-01-2018_V2.xls", onglet "Composition_communale", variables CODGEO LIBGEO BV2012 LIBBV2012 DEP REG (début du tab, ligne 6)
+      id: 2115016-2018
+      file: https://www.insee.fr/fr/statistiques/fichier/2115016/BV2012_au_01-01-2018_V2.zip
+      documentation: https://www.insee.fr/fr/information/2115016
+  UU2020:
+    2022: #Pour appariement sur code commune : au sein du zip, fichier XLSX "UU2020_au_01-01-2022_v2022-09-27.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO UU2020 LIBUU2020 TYPE_COM STATUT_2017 DEP REG (début du tab, ligne 6)  
+      id: 4802589-2022
+      file: https://www.insee.fr/fr/statistiques/fichier/4802589/UU2020_au_01-01-2022_V2.zip
+      documentation: https://www.insee.fr/fr/information/4802589
+    2021: #Pour appariement sur code commune : au sein du zip, fichier XLSX "UU2020_au_01-01-2021_v2022-09-27.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO UU2020 LIBUU2020 TYPE_COM STATUT_2017 DEP REG (début du tab, ligne 6)  
+      id: 4802589-2021
+      file: https://www.insee.fr/fr/statistiques/fichier/4802589/UU2020_au_01-01-2021_V2.zip
+      documentation: https://www.insee.fr/fr/information/4802589
+    2020: #Pour appariement sur code commune : au sein du zip, fichier XLSX "UU2020_au_01-01-2020_v2022-09-27.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO UU2020 LIBUU2020 TYPE_COM STATUT_2017 DEP REG (début du tab, ligne 6)  
+      id: 4802589-2020
+      file: https://www.insee.fr/fr/statistiques/fichier/4802589/UU2020_au_01-01-2020_V2.zip
+      documentation: https://www.insee.fr/fr/information/4802589
+  UU2010:
+    2020: #Pour appariement sur code commune : au sein du zip, fichier XLSX "UU2010_au_01-01-2020.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO UU2010 LIBUU2010 TYPE_COM STATUT_2017 DEP REG (début du tab, ligne 6)
+      id: 2115018-2020
+      file: https://www.insee.fr/fr/statistiques/fichier/2115018/UU2010_au_01-01-2020.zip
+      documentation: https://www.insee.fr/fr/information/2115018
+    2019: #Pour appariement sur code commune : au sein du zip, fichier XLS "UU2010_au_01-01-2019.xls", onglet "Composition_communale", variables CODGEO LIBGEO UU2010 LIBUU2010 TYPE_COM STATUT_2017 DEP REG (début du tab, ligne 6)
+      id: 2115018-2019
+      file: https://www.insee.fr/fr/statistiques/fichier/2115018/UU2010_au_01-01-2019.zip
+      documentation: https://www.insee.fr/fr/information/2115018
+    2018: #Pour appariement sur code commune : au sein du zip, fichier XLS "UU2010_au_01-01-2018.xls", onglet "Composition_communale", variables CODGEO LIBGEO UU2010 LIBUU2010 TYPE_COM STATUT_2017 DEP REG (début du tab, ligne 6)
+      id: 2115018-2018
+      file: https://www.insee.fr/fr/statistiques/fichier/2115018/UU2010_au_01-01-2018.zip
+      documentation: https://www.insee.fr/fr/information/2115018
+  AAV2020:
+    2022: #Pour appariement sur code commune : au sein du zip, fichier XLSX "AAV2020_au_01-01-2022.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO AAV2020 LIBAAV2020 CATEAAV2020 DEP REG (début du tab, ligne 6)  
+      id: 4803954-2022
+      file: https://www.insee.fr/fr/statistiques/fichier/4803954/AAV2020_au_01-01-2022.zip
+      documentation: https://www.insee.fr/fr/information/4803954
+    2021: #Pour appariement sur code commune : au sein du zip, fichier XLSX "AAV2020_au_01-01-2021.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO AAV2020 LIBAAV2020 CATEAAV2020 DEP REG (début du tab, ligne 6)  
+      id: 4803954-2021
+      file: https://www.insee.fr/fr/statistiques/fichier/4803954/AAV2020_au_01-01-2021.zip
+      documentation: https://www.insee.fr/fr/information/4803954
+    2020: #Pour appariement sur code commune : au sein du zip, fichier XLSX "AAV2020_au_01-01-2020_v1.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO AAV2020 LIBAAV2020 CATEAAV2020 DEP REG (début du tab, ligne 6)  
+      id: 4803954-2020
+      file: https://www.insee.fr/fr/statistiques/fichier/4803954/AAV2020_au_01-01-2020.zip
+      documentation: https://www.insee.fr/fr/information/4803954
+    2019: #Pour appariement sur code commune : fichier multizip 2014-2019, au sein du zip AAV2020_au_01-01-2019.zip, fichier XLSX "AAV2020_au_01-01-2019.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO AAV2020 LIBAAV2020 CATEAAV2020 DEP REG (début du tab, ligne 6)  
+      id: 4803954-2019
+      file: https://www.insee.fr/fr/statistiques/fichier/4803954/AAV2020_2014-2019.zip
+      documentation: https://www.insee.fr/fr/information/4803954
+    2018: #Pour appariement sur code commune : fichier multizip 2014-2019, au sein du zip AAV2020_au_01-01-2018.zip, fichier XLSX "AAV2020_au_01-01-2018.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO AAV2020 LIBAAV2020 CATEAAV2020 DEP REG (début du tab, ligne 6)  
+      id: 4803954-2018
+      file: https://www.insee.fr/fr/statistiques/fichier/4803954/AAV2020_2014-2019.zip
+      documentation: https://www.insee.fr/fr/information/4803954
+    2017: #Pour appariement sur code commune : fichier multizip 2014-2019, au sein du zip AAV2020_au_01-01-2017.zip, fichier XLSX "AAV2020_au_01-01-2017.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO AAV2020 LIBAAV2020 CATEAAV2020 DEP REG (début du tab, ligne 6)  
+      id: 4803954-2017
+      file: https://www.insee.fr/fr/statistiques/fichier/4803954/AAV2020_2014-2019.zip
+      documentation: https://www.insee.fr/fr/information/4803954
+  AU2010:
+    2020: #Pour appariement sur code commune : au sein du zip, fichier XLSX "AU2010_au_01-01-2020.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO AU2010 LIBAU2010 CATAEU2010 DEP REG (début du tab, ligne 6) 
+      id: 2115011-2020
+      file: https://www.insee.fr/fr/statistiques/fichier/2115011/AU2010_au_01-01-2020.zip
+      documentation: https://www.insee.fr/fr/information/2115011
+    2019: #Pour appariement sur code commune : au sein du zip, fichier XLS "AU2010_au_01-01-2019.xls, onglet "Composition_communale", variables CODGEO LIBGEO AU2010 LIBAU2010 CATAEU2010 DEP REG (début du tab, ligne 6) 
+      id: 2115011-2019
+      file: https://www.insee.fr/fr/statistiques/fichier/2115011/AU2010_au_01-01-2019.zip
+      documentation: https://www.insee.fr/fr/information/2115011
+    2018: #Pour appariement sur code commune : au sein du zip, fichier XLS "AU2010_au_01-01-2018_V2.xls", onglet "Composition_communale", variables CODGEO LIBGEO AU2010 LIBAU2010 CATAEU2010 DEP REG (début du tab, ligne 6) 
+      id: 2115011-2018
+      file: https://www.insee.fr/fr/statistiques/fichier/2115011/AU2010_au_01-01-2018_V2.zip
+      documentation: https://www.insee.fr/fr/information/2115011
+  ZE2020:
+    2022: #Pour appariement sur code commune : au sein du zip, fichier XLSX "ZE2020_au_01-01-2022.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO ZE2020 LIBZE2020 ZE2020_PARTIE_REG DEP REG (début du tab, ligne 6)  
+      id: 4652957-2022
+      file: https://www.insee.fr/fr/statistiques/fichier/4652957/ZE2020_au_01-01-2022.zip
+      documentation: https://www.insee.fr/fr/information/4652957
+    2021: #Pour appariement sur code commune : au sein du zip, fichier XLSX "ZE2020_au_01-01-2021.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO ZE2020 LIBZE2020 ZE2020_PARTIE_REG DEP REG (début du tab, ligne 6) 
+      id: 4652957-2021
+      file: https://www.insee.fr/fr/statistiques/fichier/4652957/ZE2020_au_01-01-2021.zip
+      documentation: https://www.insee.fr/fr/information/4652957
+    2020: #Pour appariement sur code commune : au sein du zip, fichier XLSX "ZE2020_au_01-01-2020_v1.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO ZE2020 LIBZE2020 ZE2020_PARTIE_REG DEP REG (début du tab, ligne 6) 
+      id: 4652957-2020
+      file: https://www.insee.fr/fr/statistiques/fichier/4652957/ZE2020_au_01-01-2020_v1.zip
+      documentation: https://www.insee.fr/fr/information/4652957
+  ZE2010:
+    2020: #Pour appariement sur code commune : au sein du zip, fichier XLSX "ZE2010_au_01-01-2020.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO ZE2010 LIBZE2010 DEP REG (début du tab, ligne 6)  
+      id: 2114596-2020
+      file: https://www.insee.fr/fr/statistiques/fichier/2114596/ZE2010_au_01-01-2020.zip
+      documentation: https://www.insee.fr/fr/information/2114596
+    2019: #Pour appariement sur code commune : au sein du zip, fichier XLS "ZE2010_au_01-01-2019.xls", onglet "Composition_communale", variables CODGEO LIBGEO ZE2010 LIBZE2010 DEP REG (début du tab, ligne 6) 
+      id: 2114596-2019
+      file: https://www.insee.fr/fr/statistiques/fichier/2114596/ZE2010_au_01-01-2019.zip
+      documentation: https://www.insee.fr/fr/information/2114596
+    2018: #Pour appariement sur code commune : au sein du zip, fichier XLS "ZE2010_au_01-01-2018.xls", onglet "Composition_communale", variables CODGEO LIBGEO ZE2010 LIBZE2010 DEP REG (début du tab, ligne 6) 
+      id: 2114596-2018
+      file: https://www.insee.fr/fr/statistiques/fichier/2114596/ZE2010_au_01-01-2018.zip
+      documentation: https://www.insee.fr/fr/information/2114596
+  EPCI:
+    2022: #Pour appariement sur code commune : au sein du zip, fichier XLSX "Intercommunalite_Metropole_au_01-01-2022.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO EPCI LIBEPCI DEP REG (début du tab, ligne 6)
+      id: 2510634-2022
+      file: https://www.insee.fr/fr/statistiques/fichier/2510634/Intercommunalite_Metropole_au_01-01-2022.zip
+      documentation: https://www.insee.fr/fr/information/2510634
+    2021: #Pour appariement sur code commune : au sein du zip, fichier XLSX "Intercommunalite-Metropole_au_01-01-2021.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO EPCI LIBEPCI DEP REG (début du tab, ligne 6)
+      id: 2510634-2021
+      file: https://www.insee.fr/fr/statistiques/fichier/2510634/Intercommunalite_Metropole_au_01-01-2021.zip
+      documentation: https://www.insee.fr/fr/information/2510634
+    2020: #Pour appariement sur code commune : au sein du zip, fichier XLSX "Intercommunalite-Metropole_au_01-01-2020_v1.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO EPCI LIBEPCI DEP REG (début du tab, ligne 6)
+      id: 2510634-2020
+      file: https://www.insee.fr/fr/statistiques/fichier/2510634/Intercommunalite_Metropole_au_01-01-2020_v1.zip
+      documentation: https://www.insee.fr/fr/information/2510634
+    2019: #Pour appariement sur code commune : au sein du zip, fichier XLS "Intercommunalite_Metropole_au_01-01-2019.xls", onglet "Composition_communale", variables CODGEO LIBGEO EPCI LIBEPCI DEP REG (début du tab, ligne 6)
+      id: 2510634-2019
+      file: https://www.insee.fr/fr/statistiques/fichier/2510634/Intercommunalite_Metropole_au_01-01-2019.zip
+      documentation: https://www.insee.fr/fr/information/2510634
+    2018: #Pour appariement sur code commune : au sein du zip, fichier XLS "Intercommunalite_Metropole_au_01-01-2018.xls", onglet "Composition_communale", variables CODGEO LIBGEO EPCI LIBEPCI DEP REG (début du tab, ligne 6)
+      id: 2510634-2018
+      file: https://www.insee.fr/fr/statistiques/fichier/2510634/Intercommunalite_Metropole_au_01-01-2018.zip
+      documentation: https://www.insee.fr/fr/information/2510634
+    2017: #Pour appariement sur code commune : au sein du zip, fichier XLS "Intercommunalite_Metropole_au_01-01-2017.xls", onglet "Composition_communale", variables CODGEO LIBGEO EPCI LIBEPCI DEP REG (début du tab, ligne 6)
+      id: 2510634-2017
+      file: https://www.insee.fr/fr/statistiques/fichier/2510634/Intercommunalite_Metropole_au_01-01-2017.zip
+      documentation: https://www.insee.fr/fr/information/2510634      
   DENS: #grille communale de densité 7 niveaux
-    2022: #vars principales Typo degré densité et Libellé degré densité
+    2022: #Pour appariement, variables ppales "Code commune", "Libellé commune", "Typo degré densité" ,"Libellé degré densité"
       id: 6439600-2022 
       file: https://www.insee.fr/fr/statistiques/fichier/6439600/grille_densite_7_niveaux_detaille_2022.xlsx
       documentation: https://www.insee.fr/fr/information/6439600
-    2021: #vars principales Typo degré densité et Libellé degré densité
+    2021: #Pour appariement, variables ppales "Code Commune", "Libellé des communes", "Typo degré de Densité", "Libellé degré de densité"
       id: 6439600-2021 
       file: https://www.insee.fr/fr/statistiques/fichier/6439600/grille_densite_7_niveaux_detaille_2021.xlsx
       documentation: https://www.insee.fr/fr/information/6439600  
@@ -167,7 +314,6 @@ Insee:
       id: 6441661  #shp des contours simplifiés en WGS84
       file: https://www.insee.fr/fr/statistiques/fichier/6441661/contours_circonscriptions_legislatives_03052022.zip
       documentation : https://www.insee.fr/fr/statistiques/6441661
-
 
 
 Services comparables :
