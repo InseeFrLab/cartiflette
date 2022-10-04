@@ -85,16 +85,16 @@ Insee:
      documentation: https://www.insee.fr/fr/information/2115016      
   TAGC: #Table d’appartenance géographique des communes ; pourrait carrément remplacer le recours au COG car contient pour chaque com : reg, dept, arr, cv + ZE, BV, UU, AAV, aire d'attraction des villes
     2022: #ZE2020 UU2020 AAV2020 BV2012 + potentiellement BV2022 en fin d'année 2022
-      id: 2028028-2022 #Révision probable sous peu suite correction uu2020 rattachement depcom 72213 - probable fichier _v1
-      file: https://www.insee.fr/fr/statistiques/fichier/2028028/table-appartenance-geo-communes-22.zip
+      id: 2028028-2022 #Révision 27/09/22
+      file: https://www.insee.fr/fr/statistiques/fichier/2028028/table-appartenance-geo-communes-22_V2.zip
       documentation: https://www.insee.fr/fr/information/2028028
     2021: #ZE2020 UU2020 AAV2020 BV2012
-      id: 2028028-2021 #Révision probable sous peu suite correction uu2020 rattachement depcom 72213 - probable fichier _v1
-      file: https://www.insee.fr/fr/statistiques/fichier/2028028/table-appartenance-geo-communes-21.zip
+      id: 2028028-2021 #Révision 27/09/22
+      file: https://www.insee.fr/fr/statistiques/fichier/2028028/table-appartenance-geo-communes-21_V2.zip
       documentation: https://www.insee.fr/fr/information/2028028
     2020: #ZE2020 UU2020 AAV2020 BV2012
-      id: 2028028-2020 #Révision probable sous peu suite correction uu2020 rattachement depcom 72213 - probable fichier _v2
-      file: https://www.insee.fr/fr/statistiques/fichier/2028028/table-appartenance-geo-communes-20_zonages20_v1.zip
+      id: 2028028-2020 #Révision 27/09/22
+      file: https://www.insee.fr/fr/statistiques/fichier/2028028/table-appartenance-geo-communes-20_zonages20_V2.zip
       documentation: https://www.insee.fr/fr/information/2028028
     2019: #ZE2010 UU2010 AU2010 BV2012
       id: 2028028-2019
