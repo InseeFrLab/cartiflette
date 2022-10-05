@@ -5,6 +5,22 @@ os.chdir("cartogether")
 import cartiflette.s3 as s3
 from cartiflette.download import get_administrative_level_available_ign
 
+
+import itertools
+formats=["geoparquet", "shp", "gpkg", "geojson"]
+decoupage=["region", "departement"]
+level=["COMMUNE", "ARRONDISSEMENT"]
+for format, decoup, lev in itertools.product(formats, decoupage, level):
+    s3.write_vectorfile_s3_all(
+        level=lev,
+        vectorfile_format=format,
+        decoupage=decoup,
+        year=2022)
+
+
+# OLD --------------
+
+
 obj = s3.download_vectorfile_s3_all(
     level="COMMUNE",
     vectorfile_format="geojson",
