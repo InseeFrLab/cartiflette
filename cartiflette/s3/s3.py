@@ -25,12 +25,14 @@ def create_path_bucket(
     bucket=BUCKET,
     path_within_bucket=PATH_WITHIN_BUCKET,
     shapefile_format="geojson",
+    level="COMMUNE",
     decoupage="region",
     year="2022",
     value="28",
 ):
 
     write_path = f"{bucket}/{path_within_bucket}/{year}"
+    write_path = f"{write_path}/{level}"
     write_path = f"{write_path}/{decoupage}/{value}/{shapefile_format}"
     write_path = f"{write_path}/raw.{shapefile_format}"
 
@@ -58,6 +60,7 @@ def download_shapefile_s3_single(
         bucket=bucket,
         path_within_bucket=path_within_bucket,
         shapefile_format=format_read,
+        level=level,
         decoupage=decoupage,
         year=year,
         value=value,
@@ -73,14 +76,21 @@ def download_shapefile_s3_single(
         print("When using shp format, we first need to store a local version")
         tdir = tempfile.TemporaryDirectory()
         for remote_file in fs.ls(dir_s3):
-            fs.download(remote_file, f"{tdir.name}/{remote_file.replace(dir_s3, '')}")
-        object = gpd.read_file(f"{tdir.name}/raw.shp", driver=None)
+            fs.download(
+                remote_file,
+                f"{tdir.name}/{remote_file.replace(dir_s3, '')}"
+                )
+        object = gpd.read_file(
+            f"{tdir.name}/raw.shp", driver=None
+            )
     elif format_read == "parquet":
         with fs.open(read_path, "rb") as f:
             object = gpd.read_parquet(f)
     else:
         with fs.open(read_path, "rb") as f:
-            object = gpd.read_file(f, driver=driver)
+            object = gpd.read_file(
+                f, driver=driver
+                )
 
     return object
 
@@ -89,6 +99,7 @@ def write_shapefile_subset(
     object,
     value="28",
     shapefile_format="geojson",
+    level="COMMUNE",
     decoupage="region",
     year=2022,
     bucket=BUCKET,
@@ -105,6 +116,7 @@ def write_shapefile_subset(
         bucket=bucket,
         path_within_bucket=path_within_bucket,
         shapefile_format=format_write,
+        level=level,
         decoupage=decoupage,
         year=year,
         value=value,
@@ -136,6 +148,7 @@ def write_shapefile_subset(
 def write_shapefile_all_levels(
     object,
     level_var,
+    level="COMMUNE",
     shapefile_format="geojson",
     decoupage="region",
     year=2022,
@@ -151,9 +164,10 @@ def write_shapefile_all_levels(
             year=year,
             bucket=bucket,
             path_within_bucket=path_within_bucket,
-            value=level,
+            value=obs,
+            level=level
         )
-        for level in object[level_var].unique()
+        for obs in object[level_var].unique()
     ]
 
 
@@ -197,6 +211,7 @@ def write_shapefile_s3_all(
         print(f"Writing {territory}")
         write_shapefile_all_levels(
             object=territories[territory],
+            level=level,
             level_var=var_decoupage,
             shapefile_format=shapefile_format,
             decoupage=decoupage,
@@ -229,7 +244,10 @@ def write_shapefile_from_s3(
     """
 
     read_path = create_path_bucket(
-        shapefile_format=shapefile_format, decoupage=decoupage, year=year, value=value
+        shapefile_format=shapefile_format,
+        decoupage=decoupage,
+        year=year,
+        value=value
     )
 
     fs.download(read_path, filename)
