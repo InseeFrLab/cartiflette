@@ -18,7 +18,7 @@ from cartiflette.download import get_vectorfile_ign
 
 BUCKET = "projet-cartiflette"
 PATH_WITHIN_BUCKET = "diffusion/shapefiles-test"
-ENDPOINT_URL = "https://minio.lab.sspcloud.fr"
+ENDPOINT_URL = "http://minio.lab.sspcloud.fr"
 
 fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL})
 
