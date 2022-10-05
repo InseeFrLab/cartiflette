@@ -11,7 +11,7 @@ version = "0.0.1"
 authors = [
   { name="Lino Galiana", email="lino.galiana@insee.fr" },
 ]
-description = "Tools to easily retrieve shapefiles for geographic data analytics"
+description = "Tools to easily retrieve French borders for geographic data analytics"
 readme = "README.md"
 requires-python = ">=3.8"
 classifiers = [
