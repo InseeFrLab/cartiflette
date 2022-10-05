@@ -5,11 +5,12 @@ os.chdir("cartogether")
 import cartiflette.s3 as s3
 from cartiflette.download import get_administrative_level_available_ign
 
-obj = s3.download_shapefile_s3_single(
+obj = s3.download_shapefile_s3_all(
     level="COMMUNE",
     shapefile_format="geojson",
     decoupage="region",
-    year=2022)
+    year=2022,
+    values = ["28","11"])
 
 get_administrative_level_available_ign()
 
@@ -43,6 +44,7 @@ s3.write_shapefile_s3_all(
     shapefile_format="geojson",
     decoupage="region",
     year=2022)
+
 
 s3.write_shapefile_s3_all(
     level="COMMUNE",
