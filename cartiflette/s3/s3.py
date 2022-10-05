@@ -14,7 +14,7 @@ from cartiflette.utils import (
     create_format_standardized,
     create_format_driver,
 )
-from cartiflette.download import get_shapefile_ign
+from cartiflette.download import get_vectorfile_ign
 
 BUCKET = "projet-cartiflette"
 PATH_WITHIN_BUCKET = "diffusion/shapefiles-test"
@@ -26,7 +26,7 @@ fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL})
 def create_path_bucket(
     bucket=BUCKET,
     path_within_bucket=PATH_WITHIN_BUCKET,
-    shapefile_format="geojson",
+    vectorfile_format="geojson",
     level="COMMUNE",
     decoupage="region",
     year="2022",
@@ -35,17 +35,17 @@ def create_path_bucket(
 
     write_path = f"{bucket}/{path_within_bucket}/{year}"
     write_path = f"{write_path}/{level}"
-    write_path = f"{write_path}/{decoupage}/{value}/{shapefile_format}"
-    write_path = f"{write_path}/raw.{shapefile_format}"
+    write_path = f"{write_path}/{decoupage}/{value}/{vectorfile_format}"
+    write_path = f"{write_path}/raw.{vectorfile_format}"
 
-    if shapefile_format == "shp":
+    if vectorfile_format == "shp":
         write_path = write_path.rsplit("/", maxsplit=1)[0] + "/"
     return write_path
 
-def download_shapefile_s3_all(
+def download_vectorfile_s3_all(
     values: typing.Union[list, str, int, float] = "28",
     level="COMMUNE",
-    shapefile_format="geojson",
+    vectorfile_format="geojson",
     decoupage="region",
     year=2022):
 
@@ -53,10 +53,10 @@ def download_shapefile_s3_all(
         values = [str(values)]
 
     vectors = [
-        download_shapefile_s3_single(
+        download_vectorfile_s3_single(
             value=val,
             level=level,
-            shapefile_format=shapefile_format,
+            vectorfile_format=vectorfile_format,
             decoupage=decoupage,
             year=year) for val in values
     ]
@@ -67,10 +67,10 @@ def download_shapefile_s3_all(
 
 
 
-def download_shapefile_s3_single(
+def download_vectorfile_s3_single(
     value="28",
     level="COMMUNE",
-    shapefile_format="geojson",
+    vectorfile_format="geojson",
     decoupage="region",
     year=2022,
     bucket=BUCKET,
@@ -79,13 +79,13 @@ def download_shapefile_s3_single(
     # corresp_decoupage_columns = dict_corresp_decoupage()
     format_standardized = create_format_standardized()
     gpd_driver = create_format_driver()
-    format_read = format_standardized[shapefile_format.lower()]
+    format_read = format_standardized[vectorfile_format.lower()]
     driver = gpd_driver[format_read]
 
     read_path = create_path_bucket(
         bucket=bucket,
         path_within_bucket=path_within_bucket,
-        shapefile_format=format_read,
+        vectorfile_format=format_read,
         level=level,
         decoupage=decoupage,
         year=year,
@@ -121,10 +121,10 @@ def download_shapefile_s3_single(
     return object
 
 
-def write_shapefile_subset(
+def write_vectorfile_subset(
     object,
     value="28",
-    shapefile_format="geojson",
+    vectorfile_format="geojson",
     level="COMMUNE",
     decoupage="region",
     year=2022,
@@ -135,13 +135,13 @@ def write_shapefile_subset(
     corresp_decoupage_columns = dict_corresp_decoupage()
     format_standardized = create_format_standardized()
     gpd_driver = create_format_driver()
-    format_write = format_standardized[shapefile_format.lower()]
+    format_write = format_standardized[vectorfile_format.lower()]
     driver = gpd_driver[format_write]
 
     write_path = create_path_bucket(
         bucket=bucket,
         path_within_bucket=path_within_bucket,
-        shapefile_format=format_write,
+        vectorfile_format=format_write,
         level=level,
         decoupage=decoupage,
         year=year,
@@ -160,7 +160,7 @@ def write_shapefile_subset(
     )
 
     if format_write == "shp":
-        write_shapefile_s3_shp(
+        write_vectorfile_s3_shp(
             object=object_subset, fs=fs, write_path=write_path, driver=driver
         )
     elif format_write == "parquet":
@@ -171,11 +171,11 @@ def write_shapefile_subset(
             object_subset.to_file(f, driver=driver)
 
 
-def write_shapefile_all_levels(
+def write_vectorfile_all_levels(
     object,
     level_var,
     level="COMMUNE",
-    shapefile_format="geojson",
+    vectorfile_format="geojson",
     decoupage="region",
     year=2022,
     bucket=BUCKET,
@@ -183,9 +183,9 @@ def write_shapefile_all_levels(
 ):
 
     [
-        write_shapefile_subset(
+        write_vectorfile_subset(
             object,
-            shapefile_format=shapefile_format,
+            vectorfile_format=vectorfile_format,
             decoupage=decoupage,
             year=year,
             bucket=bucket,
@@ -197,7 +197,7 @@ def write_shapefile_all_levels(
     ]
 
 
-def write_shapefile_s3_shp(object, fs, write_path, driver=None):
+def write_vectorfile_s3_shp(object, fs, write_path, driver=None):
 
     print("When using shp format, we first need a local temporary save")
 
@@ -212,9 +212,9 @@ def write_shapefile_s3_shp(object, fs, write_path, driver=None):
     ]
 
 
-def write_shapefile_s3_all(
+def write_vectorfile_s3_all(
     level="COMMUNE",
-    shapefile_format="geojson",
+    vectorfile_format="geojson",
     decoupage="region",
     year=2022,
     bucket=BUCKET,
@@ -227,7 +227,7 @@ def write_shapefile_s3_all(
     # IMPORT SHAPEFILES ------------------
 
     territories = {
-        f: get_shapefile_ign(level=level, year=year, field=f)
+        f: get_vectorfile_ign(level=level, year=year, field=f)
         for f in ["metropole", "martinique", "reunion", "guadeloupe", "guyane"]
     }
 
@@ -235,29 +235,29 @@ def write_shapefile_s3_all(
 
     for territory in territories:
         print(f"Writing {territory}")
-        write_shapefile_all_levels(
+        write_vectorfile_all_levels(
             object=territories[territory],
             level=level,
             level_var=var_decoupage,
-            shapefile_format=shapefile_format,
+            vectorfile_format=vectorfile_format,
             decoupage=decoupage,
             year=year,
         )
 
 
-def open_shapefile_from_s3(shapefile_format, decoupage, year, value):
+def open_vectorfile_from_s3(vectorfile_format, decoupage, year, value):
     read_path = create_path_bucket(
-        shapefile_format=shapefile_format, decoupage=decoupage, year=year, value=value
+        vectorfile_format=vectorfile_format, decoupage=decoupage, year=year, value=value
     )
     return fs.open(read_path, mode="r")
 
 
-def write_shapefile_from_s3(
+def write_vectorfile_from_s3(
     filename: str,
     decoupage: str,
     year: int,
     value: str,
-    shapefile_format: str = "geojson",
+    vectorfile_format: str = "geojson",
 ):
     """Retrieve shapefiles stored in S3
 
@@ -266,11 +266,11 @@ def write_shapefile_from_s3(
         decoupage (str): _description_
         year (int): Year that should be used
         value (str): Which value should be retrieved
-        shapefile_format (str, optional): Shapefile format needed. Defaults to "geojson".
+        vectorfile_format (str, optional): vectorfile format needed. Defaults to "geojson".
     """
 
     read_path = create_path_bucket(
-        shapefile_format=shapefile_format,
+        vectorfile_format=vectorfile_format,
         decoupage=decoupage,
         year=year,
         value=value

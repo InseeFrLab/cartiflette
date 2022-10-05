@@ -170,13 +170,13 @@ def download_store_admin_express(
     return path_cache_ign
 
 
-def import_ign_shapefile(
+def import_ign_vectorfile(
     source: typing.Union[list, str] = ["EXPRESS-COG"],
     year: typing.Optional[str] = None,
     field: str = "metropole",
 ) -> str:
     """
-    Function to download raw IGN shapefile and store them unzipped in filesystem
+    Function to download raw IGN shapefiles and store them unzipped in filesystem
 
     Args:
         source (typing.Union[list, str], optional): IGN data product. Defaults to ['EXPRESS-COG'].
@@ -262,7 +262,7 @@ def get_administrative_level_available_ign(
     if isinstance(field, list):
         field = field[0]
 
-    shp_location = import_ign_shapefile(source=source, year=year, field=field)
+    shp_location = import_ign_vectorfile(source=source, year=year, field=field)
 
     list_levels = [
         os.path.basename(i).replace(".shp", "")
@@ -273,7 +273,7 @@ def get_administrative_level_available_ign(
     return list_levels
 
 
-def get_shapefile_ign(
+def get_vectorfile_ign(
     source: typing.Union[list, str] = ["EXPRESS-COG"],
     year: typing.Optional[str] = None,
     field: typing.Union[list, str] = [
@@ -319,7 +319,7 @@ def get_shapefile_ign(
     if year == 2019:
         field = "metropole"
 
-    shp_location = import_ign_shapefile(source=source, year=year, field=field)
+    shp_location = import_ign_vectorfile(source=source, year=year, field=field)
 
     data_ign = gpd.read_file(f"{shp_location}/{level}.shp")
 
