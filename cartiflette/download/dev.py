@@ -324,7 +324,6 @@ def get_vectorfile_ign(
     data_ign = gpd.read_file(f"{shp_location}/{level}.shp")
 
     if level == "ARRONDISSEMENT_MUNICIPAL":
-        if level == "departement"
         data_ign["INSEE_DEP"] = data_ign['INSEE_COM'].str[:2]
 
     return data_ign
