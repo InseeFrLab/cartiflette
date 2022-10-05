@@ -20,7 +20,7 @@ jobs:
         pip install .
     - name: Test import
       run: |
-        python -m 
+        python example/download.py 
 #    - name: Test with pytest
 #      run: |
 #        conda install pytest
