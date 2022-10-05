@@ -3,7 +3,9 @@
 
 import os
 import tempfile
+import typing
 import s3fs
+import pandas as pd
 import geopandas as gpd
 
 from cartiflette.utils import (
@@ -39,6 +41,30 @@ def create_path_bucket(
     if shapefile_format == "shp":
         write_path = write_path.rsplit("/", maxsplit=1)[0] + "/"
     return write_path
+
+def download_shapefile_s3_all(
+    values: typing.Union[list, str, int, float] = "28",
+    level="COMMUNE",
+    shapefile_format="geojson",
+    decoupage="region",
+    year=2022):
+
+    if isinstance(values, (str, int, float)):
+        values = [str(values)]
+
+    vectors = [
+        download_shapefile_s3_single(
+            value=val,
+            level=level,
+            shapefile_format=shapefile_format,
+            decoupage=decoupage,
+            year=year) for val in values
+    ]
+
+    vectors = pd.concat(vectors)
+
+    return vectors
+
 
 
 def download_shapefile_s3_single(
