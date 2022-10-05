@@ -20,6 +20,12 @@ for format, decoup, lev in itertools.product(formats, decoupage, level):
 
 # OLD --------------
 
+s3.write_vectorfile_s3_all(
+        level="ARRONDISSEMENT_MUNICIPAL",
+        vectorfile_format="geojson",
+        decoupage="departement",
+        year=2022)
+
 
 obj = s3.download_vectorfile_s3_all(
     level="COMMUNE",

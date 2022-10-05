@@ -226,9 +226,17 @@ def write_vectorfile_s3_all(
 
     # IMPORT SHAPEFILES ------------------
 
+    territories_available = [
+        "metropole", "martinique",
+        "reunion", "guadeloupe", "guyane"
+        ]
+    
+    if level == "ARRONDISSEMENT_MUNICIPAL":
+        territories_available = [territories_available[0]]
+
     territories = {
         f: get_vectorfile_ign(level=level, year=year, field=f)
-        for f in ["metropole", "martinique", "reunion", "guadeloupe", "guyane"]
+        for f in territories_available
     }
 
     # WRITE ALL
