@@ -18,20 +18,20 @@ obj = cartiflette.s3.download_vectorfile_s3_all(
 
 print(obj.head())
 
-obj2 = cartiflette.s3.download_vectorfile_url_all(
+normandie = cartiflette.s3.download_vectorfile_url_all(
     values = "11",
     level="COMMUNE",
     vectorfile_format="geojson",
     decoupage="region",
     year=2022)
 
-print(obj2.head())
+print(normandie.head())
 
-obj = cartiflette.s3.download_vectorfile_url_all(
+regions = cartiflette.s3.download_vectorfile_url_all(
     values = ["11","27","28"],
     level="COMMUNE",
     vectorfile_format="geojson",
     decoupage="region",
     year=2022)
 
-print(obj.head())
+print(regions.head())
