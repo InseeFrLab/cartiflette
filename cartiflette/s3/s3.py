@@ -22,6 +22,27 @@ ENDPOINT_URL = "https://minio.lab.sspcloud.fr"
 
 fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL})
 
+def create_url_s3(
+    bucket=BUCKET,
+    path_within_bucket=PATH_WITHIN_BUCKET,
+    vectorfile_format="geojson",
+    level="COMMUNE",
+    decoupage="region",
+    year="2022",
+    value="28"    
+):
+
+    path_within = create_path_bucket(
+        bucket=bucket,
+        path_within_bucket=path_within_bucket,
+        vectorfile_format=vectorfile_format,
+        level=level,
+        decoupage=decoupage,
+        year=year,
+        value=value    
+    )
+    return f"{ENDPOINT_URL}/{path_within}"
+
 
 def create_path_bucket(
     bucket=BUCKET,
@@ -65,6 +86,29 @@ def download_vectorfile_s3_all(
 
     return vectors
 
+
+def download_vectorfile_url_all(
+    values: typing.Union[list, str, int, float] = "28",
+    level="COMMUNE",
+    vectorfile_format="geojson",
+    decoupage="region",
+    year=2022):
+
+    if isinstance(values, (str, int, float)):
+        values = [str(values)]
+
+    vectors = [
+        download_vectorfile_url_single(
+            value=val,
+            level=level,
+            vectorfile_format=vectorfile_format,
+            decoupage=decoupage,
+            year=year) for val in values
+    ]
+
+    vectors = pd.concat(vectors)
+
+    return vectors
 
 
 def download_vectorfile_s3_single(
@@ -117,6 +161,42 @@ def download_vectorfile_s3_single(
             object = gpd.read_file(
                 f, driver=driver
                 )
+
+    return object
+
+def download_vectorfile_url_single(
+    value="28",
+    level="COMMUNE",
+    vectorfile_format="geojson",
+    decoupage="region",
+    year=2022,
+    bucket=BUCKET,
+    path_within_bucket=PATH_WITHIN_BUCKET
+):
+
+    format_standardized = create_format_standardized()
+    gpd_driver = create_format_driver()
+    format_read = format_standardized[vectorfile_format.lower()]
+    driver = gpd_driver[format_read]
+
+    url = create_url_s3(
+        value=value,
+        level=level,
+        vectorfile_format=vectorfile_format,
+        decoupage=decoupage,
+        year=year,
+        bucket=bucket,
+        path_within_bucket=path_within_bucket
+    )
+
+    if format_read == "shp":
+        print("Not yet implemented")
+    elif format_read == "parquet":
+        object = gpd.read_parquet(url)
+    else:
+        object = gpd.read_file(
+            url, driver=driver
+            )
 
     return object
 
