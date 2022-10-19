@@ -358,30 +358,58 @@ Eurostat: # Voir https://ropengov.github.io/giscoR/ ou directeeent API Gisco si 
       2021: #URL : https://www.observatoire-des-territoires.gouv.fr/classement-des-communes-en-zone-de-revitalisation-rurale-zrr
         file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=typo_zrr&indic=zrr_simp
     communes_éligibles_zonage_aide_regionale: #Communes éligibles au zonage d'aide à finalité régionale (AFR), période 2014-2021
-      2021: #URL : TBA
-        file: #TBA
-
-
+      2021: #URL : https://www.observatoire-des-territoires.gouv.fr/communes-eligibles-au-zonage-daide-finalite-regionale-afr-periode-2014-2021
+        file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=typo_afr&indic=zonage_afr
+    classement_commune_zone_revitalisation_commerces: #Classement des communes en zone de revitalisation des commerces en milieu rural
+      2021: #URL : https://www.observatoire-des-territoires.gouv.fr/kiosque/zonage-les-zones-de-revitalisation-des-commerces-en-milieu-rural-zorcomir
+        file: https://www.observatoire-des-territoires.gouv.fr/sites/default/files/2021-09/Diffusion-zonages-ZoRCoMiR-cog2021.xls
+    communes_classees_montagne_agriculture: #Communes classées en zone de montagne (zonage agriculture) attention extension xlsx à restaurer
+      2021: #URL : https://www.observatoire-des-territoires.gouv.fr/kiosque/zonage-les-zones-de-montagne
+        file: blob:https://www.observatoire-des-territoires.gouv.fr/c2419b47-496a-4957-930f-0336b69a6147
+    communes_classees_monagne_urbanisme: #Communes classées en zone de montagne (zonage urbanisme)
+      2021: #URL : https://www.observatoire-des-territoires.gouv.fr/communes-classees-en-zone-de-montagne-zonage-urbanisme
+        file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=zone_mont_urb&indic=mont_urb
+    modalites_classement_communes_loi_littoral: #Modalités du classement des communes en loi littoral
+      2021: #URL: https://www.observatoire-des-territoires.gouv.fr/modalites-du-classement-des-communes-en-loi-littoral
+        file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=typo_loilitt&indic=zonage_loilitt
+    part_population_QPV: #Part de la population municipale vivant dans un quartier prioritaire de la politique de la ville (QPV) 
+                         #NB: d'autres maillages géographiques dispo à l'URL
+      2021: #URL: https://www.observatoire-des-territoires.gouv.fr/part-de-la-population-municipale-vivant-dans-un-quartier-prioritaire-de-la-politique-de-la-ville
+        file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=qpv_pop&indic=part_pop_qpv
+    nombre_QPV: #Nombre de quartiers prioritaires de la politique de la ville (QPV)
+                #NB: d'autres maillages géographiques dispo à l'URL
+      2021: #URL : https://www.observatoire-des-territoires.gouv.fr/nombre-de-quartiers-prioritaires-de-la-politique-de-la-ville-qpv
+        file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=qpv&indic=nb_qpv
+    villes_beneficianires_programme_ACV: #Villes bénéficiaires du programme Action Coeur de Ville (ACV)
+      2021: #URL : https://www.observatoire-des-territoires.gouv.fr/villes-beneficiaires-du-programme-action-coeur-de-ville-acv
+        file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=_zon_&indic=acv
+    perimetre_territoires_industrie: #Périmètre des territoires d'industrie
+      2021: #URL : https://www.observatoire-des-territoires.gouv.fr/perimetre-des-territoires-dindustrie-0
+        file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=_zon_&indic=ti
+    perimetre_CRTE: #Périmètre des contrats de relance et de transition écologique (CRTE)    
+      2021: #URL : https://www.observatoire-des-territoires.gouv.fr/perimetre-des-contrats-de-relance-et-de-transition-ecologique-crte
+        file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=_zon_&indic=crte
+    communes_PNR: #Communes des parcs naturels régionaux (PNR)
+      2021: #URL : https://www.observatoire-des-territoires.gouv.fr/communes-des-parcs-naturels-regionaux-pnr
+        file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=_zon_&indic=pnr
+    communes_parcs_nationaux: #Communes des parcs nationaux
+      2021: #URL : https://www.observatoire-des-territoires.gouv.fr/communes-des-parcs-nationaux
+        file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=_zon_&indic=pn
+    perimetre_massifs: #Périmètre des massifs
+      2021: #URL : https://www.observatoire-des-territoires.gouv.fr/perimetre-des-massifs
+        file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=_zon_&indic=massif
+    villes_beneficiaires_programme_PVD : 
+      2021: #URL : https://www.observatoire-des-territoires.gouv.fr/villes-beneficiaires-du-programme-petites-villes-de-demain-pvd
+        file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=_zon_&indic=pn
+        
+      
+        
 #POTENTIELLEMENT INTERESSANT 
 #mais à sourcer sur plusieurs milésimes (uniquement en geo communale 2021 sur Observatoire des territoires)
 #et probablement directement auprès des producteurs. Question de qualité des bases compilées par l'ANCT/ODT. 
 #https://www.observatoire-des-territoires.gouv.fr/ 
 #https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/#view=map36&c=indicator
 #les compositions communales sont soir dans fichiers communes_2021 du site web soit via tableau de données du site carto
+
 #Zonages:
-#Communes éligibles au zonage d'aide à finalité régionale (AFR), période 2014-2021
-#Classement des communes en zone de revitalisation des commerces en milieu rural - ZoRCoMiR
-#Communes classées en zone de montagne (zonage agriculture)
-#Communes classées en zone de montagne (zonage urbanisme)
-#Modalités du classement des communes en loi littoral
-#Classement des communes en loi littoral
-#Part de la population municipale vivant dans un quartier prioritaire de la politique de la ville (QPV)
-#Nombre de quartiers prioritaires de la politique de la ville (QPV)
-#Population municipale vivant dans un quartier prioritaire de la politique de la ville (QPV)
-#Villes bénéficiaires du programme Action Coeur de Ville (ACV)
-#Périmètre des territoires d'industrie
-#Périmètre des contrats de relance et de transition écologique (CRTE)
-#Communes des parcs naturels régionaux (PNR)
-#Communes des parcs nationaux
-#Périmètre des massifs
-#Villes bénéficiaire du programme Petites villes de demain (PVD)
+    # /!\ URL introuvable : Population municipale vivant dans un quartier prioritaire de la politique de la ville (QPV)
