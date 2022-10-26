@@ -1,6 +1,13 @@
 import os
 import pandas as pd
-os.chdir("cartogether/")
+os.chdir("cartiflette/")
+
+from cartiflette.download import get_vectorfile_ign
+
+france = get_vectorfile_ign(level = "COMMUNE", field = "metropole",
+source = "COG", provider="opendatarchives").to_crs(2154)
+
+### OLD
 
 import dev
 levels_year = [[y, dev.get_administrative_level_available_ign(year=y, verbose=False)] for y in range(2017,2023)]

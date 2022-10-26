@@ -86,6 +86,11 @@ def download_admin_express(
         str: Complete path where the IGN source has been unzipped.
     """
 
+    if isinstance(provider, list):
+        provider: str = provider[0]
+    if isinstance(source, list):
+        source: str = source[0]
+
     dict_open_data = import_yaml_config()
     dict_source = dict_open_data[provider]["ADMINEXPRESS"][source]
 
@@ -119,7 +124,7 @@ def download_admin_express(
 
     subdir = url.rsplit("/", maxsplit=1)[-1]
     subdir = subdir.replace(".7z", "")
-    if (url.startswith(("http", "https")) and provider == "IGN" is False) or (provider == "opendatarchives"):
+    if url.startswith(("http", "https")) and provider == "IGN" is False :
         subdir = subdir.replace("_L93", "")  # 2021: L93 en trop
         subdir = subdir.replace("_WGS84G", "")  # 2019: WGS84 en trop
         subdir = subdir.replace(".001", "")
@@ -153,9 +158,10 @@ def download_admin_express(
 
 
 def download_store_admin_express(
-    source: typing.Union[list, str] = ["EXPRESS-COG"],
+    source: typing.Union[list, str] = ["EXPRESS-COG", "COG"],
     year: typing.Optional[str] = None,
     location: str = None,
+    provider: typing.Union[list, str] = ['IGN', 'opendatarchives']
 ) -> str:
     """
     Download, unzip and store AdminExpress data
@@ -170,11 +176,16 @@ def download_store_admin_express(
     """
 
     if isinstance(source, list):
-        source = source[0]
+        source: str = source[0]
+    if isinstance(provider, list):
+        provider: str = provider[0]
 
     dict_open_data = import_yaml_config()
 
-    dict_source = dict_open_data["IGN"]["ADMINEXPRESS"][source]
+    print(provider)
+    print(source)
+
+    dict_source = dict_open_data[provider]["ADMINEXPRESS"][source]
 
     if year is None:
         year = max(dict_source.keys())
@@ -183,15 +194,21 @@ def download_store_admin_express(
         location = tempfile.gettempdir()
         location = f"{location}/{source}-{year}"
 
-    path_cache_ign = download_admin_express(source=source, year=year, location=location)
+    path_cache_ign = download_admin_express(
+        source=source,
+        year=year,
+        location=location,
+        provider=provider
+        )
 
     return path_cache_ign
 
 
 def import_ign_vectorfile(
-    source: typing.Union[list, str] = ["EXPRESS-COG"],
+    source: typing.Union[list, str] = ["EXPRESS-COG","COG"],
     year: typing.Optional[str] = None,
     field: str = "metropole",
+    provider: typing.Union[list, str] = ['IGN', 'opendatarchives']
 ) -> str:
     """
     Function to download raw IGN shapefiles and store them unzipped in filesystem
@@ -206,9 +223,12 @@ def import_ign_vectorfile(
     """
 
     dict_open_data = import_yaml_config()
-    path_cache_ign = download_store_admin_express(source, year)
+    path_cache_ign = download_store_admin_express(
+        source=source,
+        year=year,
+        provider=provider)
 
-    ign_code_level = dict_open_data["IGN"]["ADMINEXPRESS"][source]["field"]
+    ign_code_level = dict_open_data[provider]["ADMINEXPRESS"][source]["field"]
 
     ign_version = re.search("/ADMIN-EXPRESS-COG_(.*)__SHP", path_cache_ign).group(1)
 
@@ -303,6 +323,7 @@ def get_vectorfile_ign(
         "mayotte",
     ],
     level: typing.Union[list, str] = ["COMMUNE"],
+    provider: typing.Union[list, str] = ['IGN', 'opendatarchives']
 ) -> gpd.GeoDataFrame:
     """
     User-level function to get shapefiles from IGN
@@ -321,12 +342,15 @@ def get_vectorfile_ign(
     dict_open_data = import_yaml_config()
 
     if isinstance(source, list):
-        source = source[0]
+        source: str = source[0]
 
     if isinstance(level, list):
-        level = level[0]
+        level: str = level[0]
 
-    dict_source = dict_open_data["IGN"]["ADMINEXPRESS"][source]
+    if isinstance(provider, list):
+        provider: str = provider[0]
+
+    dict_source = dict_open_data[provider]["ADMINEXPRESS"][source]
 
     if year is None:
         year = max([i for i in dict_source.keys() if i not in ("field", "FTP")])
@@ -337,7 +361,7 @@ def get_vectorfile_ign(
     if year == 2019:
         field = "metropole"
 
-    shp_location = import_ign_vectorfile(source=source, year=year, field=field)
+    shp_location = import_ign_vectorfile(source=source, year=year, field=field, provider=provider)
 
     data_ign = gpd.read_file(f"{shp_location}/{level}.shp")
 
