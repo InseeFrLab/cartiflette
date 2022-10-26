@@ -51,6 +51,20 @@ def safe_download_write(
 
     return location
 
+def create_url_adminexpress(
+    provider: typing.Union[list, str] = ['IGN','opendatarchives'],
+    source: typing.Union[list, str] = ["EXPRESS-COG"],
+    year: typing.Optional[str] = None
+):
+    if isinstance(provider, list):
+        provider = provider[0]
+    if isinstance(source, list):
+        source = source[0]
+    dict_open_data = import_yaml_config()
+    dict_source = dict_open_data[provider]["ADMINEXPRESS"][source]
+    url = dict_source[year]["file"]
+    return url
+
 
 def download_admin_express(
     source: typing.Union[list, str] = ["EXPRESS-COG"],
