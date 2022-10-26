@@ -67,6 +67,7 @@ def create_url_adminexpress(
 
 
 def download_admin_express(
+    provider: typing.Union[list, str] = ['IGN','opendatarchives'],
     source: typing.Union[list, str] = ["EXPRESS-COG"],
     year: typing.Optional[str] = None,
     location: str = None,
@@ -85,13 +86,13 @@ def download_admin_express(
         str: Complete path where the IGN source has been unzipped.
     """
 
-    dict_open_data = import_yaml_config()
+    url = create_url_adminexpress(
+        provider=provider,
+        year=year,
+        source=source
+    )
 
-    dict_source = dict_open_data["IGN"]["ADMINEXPRESS"][source]
-
-    url = dict_source[year]["file"]
-
-    if url.startswith("http"):
+    if url.startswith(("http", "https")):
         param_ftp = None
     else:
         param_ftp = dict_source["FTP"]
