@@ -86,6 +86,9 @@ def download_admin_express(
         str: Complete path where the IGN source has been unzipped.
     """
 
+    dict_open_data = import_yaml_config()
+    dict_source = dict_open_data[provider]["ADMINEXPRESS"][source]
+
     url = create_url_adminexpress(
         provider=provider,
         year=year,
@@ -116,7 +119,7 @@ def download_admin_express(
 
     subdir = url.rsplit("/", maxsplit=1)[-1]
     subdir = subdir.replace(".7z", "")
-    if url.startswith("http") is False:
+    if (url.startswith(("http", "https")) and provider == "IGN" is False) or (provider == "opendatarchives"):
         subdir = subdir.replace("_L93", "")  # 2021: L93 en trop
         subdir = subdir.replace("_WGS84G", "")  # 2019: WGS84 en trop
         subdir = subdir.replace(".001", "")
