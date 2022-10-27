@@ -44,15 +44,50 @@ def safe_download_write(
         location = location + ext
 
     if param_ftp is not None:
-        ftp = ftplib.FTP(param_ftp["hostname"], param_ftp["username"], param_ftp["pwd"])
+        ftp = ftplib.FTP(
+            param_ftp["hostname"],
+            param_ftp["username"],
+            param_ftp["pwd"]
+            )
         download_pb_ftp(ftp, url, fname=location)
     else:
         download_pb(url, location)
 
     return location
 
+def create_url_adminexpress(
+    provider: typing.Union[list, str] = ['IGN','opendatarchives'],
+    source: typing.Union[list, str] = ["EXPRESS-COG"],
+    year: typing.Optional[str] = None
+):
+    """Create a standardized url to find the relevent IGN
+      source
+
+    Args:
+        provider (typing.Union[list, str], optional): IGN data provider.
+            Defaults to 'IGN' but can be 'opendatarchives'
+            (contributive back-up).
+        source (typing.Union[list, str], optional): Sources used.
+         Can either be a string or a list. Defaults to ['EXPRESS-COG'].
+        year (typing.Optional[str], optional): Year to use. Defaults to None.
+
+    Returns:
+        _type_: _description_
+    """
+
+
+    if isinstance(provider, list):
+        provider = provider[0]
+    if isinstance(source, list):
+        source = source[0]
+    dict_open_data = import_yaml_config()
+    dict_source = dict_open_data[provider]["ADMINEXPRESS"][source]
+    url = dict_source[year]["file"]
+    return url
+
 
 def download_admin_express(
+    provider: typing.Union[list, str] = ['IGN','opendatarchives'],
     source: typing.Union[list, str] = ["EXPRESS-COG"],
     year: typing.Optional[str] = None,
     location: str = None,
@@ -66,18 +101,29 @@ def download_admin_express(
          year (typing.Optional[str], optional): Year to use. Defaults to None.
         location (str, optional): Location where file should be written.
           Defaults to None.
+        provider (typing.Union[list, str], optional): IGN data provider.
+            Defaults to 'IGN' but can be 'opendatarchives'
+            (contributive back-up).
 
     Returns:
         str: Complete path where the IGN source has been unzipped.
     """
 
+    if isinstance(provider, list):
+        provider: str = provider[0]
+    if isinstance(source, list):
+        source: str = source[0]
+
     dict_open_data = import_yaml_config()
+    dict_source = dict_open_data[provider]["ADMINEXPRESS"][source]
 
-    dict_source = dict_open_data["IGN"]["ADMINEXPRESS"][source]
+    url = create_url_adminexpress(
+        provider=provider,
+        year=year,
+        source=source
+    )
 
-    url = dict_source[year]["file"]
-
-    if url.startswith("http"):
+    if url.startswith(("http", "https")):
         param_ftp = None
     else:
         param_ftp = dict_source["FTP"]
@@ -90,7 +136,10 @@ def download_admin_express(
         # download 7z file
         temp_file = tempfile.NamedTemporaryFile()
         temp_file_raw = temp_file.name + ".7z"
-        out_name = safe_download_write(url, location=temp_file_raw, param_ftp=param_ftp)
+        out_name = safe_download_write(
+            url,
+            location=temp_file_raw,
+            param_ftp=param_ftp)
         if location is None:
             tmp = tempfile.TemporaryDirectory()
             location = tmp.name
@@ -101,7 +150,7 @@ def download_admin_express(
 
     subdir = url.rsplit("/", maxsplit=1)[-1]
     subdir = subdir.replace(".7z", "")
-    if url.startswith("http") is False:
+    if url.startswith(("http", "https")) and provider == "IGN" is False :
         subdir = subdir.replace("_L93", "")  # 2021: L93 en trop
         subdir = subdir.replace("_WGS84G", "")  # 2019: WGS84 en trop
         subdir = subdir.replace(".001", "")
@@ -135,9 +184,10 @@ def download_admin_express(
 
 
 def download_store_admin_express(
-    source: typing.Union[list, str] = ["EXPRESS-COG"],
+    source: typing.Union[list, str] = ["EXPRESS-COG", "COG"],
     year: typing.Optional[str] = None,
     location: str = None,
+    provider: typing.Union[list, str] = ['IGN', 'opendatarchives']
 ) -> str:
     """
     Download, unzip and store AdminExpress data
@@ -146,17 +196,24 @@ def download_store_admin_express(
         source (typing.Union[list, str], optional): IGN data product. Defaults to ['EXPRESS-COG'].
         year (typing.Optional[str], optional): Year used. Defaults to None.
         location (str, optional): File location. Defaults to None.
+        provider (typing.Union[list, str], optional): IGN data provider. Defaults to 'IGN' but can be 'opendatarchives'
+            (contributive back-up).
 
     Returns:
         str: _description_
     """
 
     if isinstance(source, list):
-        source = source[0]
+        source: str = source[0]
+    if isinstance(provider, list):
+        provider: str = provider[0]
 
     dict_open_data = import_yaml_config()
 
-    dict_source = dict_open_data["IGN"]["ADMINEXPRESS"][source]
+    print(provider)
+    print(source)
+
+    dict_source = dict_open_data[provider]["ADMINEXPRESS"][source]
 
     if year is None:
         year = max(dict_source.keys())
@@ -165,15 +222,21 @@ def download_store_admin_express(
         location = tempfile.gettempdir()
         location = f"{location}/{source}-{year}"
 
-    path_cache_ign = download_admin_express(source=source, year=year, location=location)
+    path_cache_ign = download_admin_express(
+        source=source,
+        year=year,
+        location=location,
+        provider=provider
+        )
 
     return path_cache_ign
 
 
 def import_ign_vectorfile(
-    source: typing.Union[list, str] = ["EXPRESS-COG"],
+    source: typing.Union[list, str] = ["EXPRESS-COG","COG"],
     year: typing.Optional[str] = None,
     field: str = "metropole",
+    provider: typing.Union[list, str] = ['IGN', 'opendatarchives']
 ) -> str:
     """
     Function to download raw IGN shapefiles and store them unzipped in filesystem
@@ -182,15 +245,20 @@ def import_ign_vectorfile(
         source (typing.Union[list, str], optional): IGN data product. Defaults to ['EXPRESS-COG'].
         year (typing.Optional[str], optional): Year used. Defaults to None.
         field (str, optional): Geographic level to use. Defaults to "metropole".
+        provider (typing.Union[list, str], optional): IGN data provider. Defaults to 'IGN' but can be 'opendatarchives'
+            (contributive back-up).
 
     Returns:
         str: Returns where file is stored on filesystem.
     """
 
     dict_open_data = import_yaml_config()
-    path_cache_ign = download_store_admin_express(source, year)
+    path_cache_ign = download_store_admin_express(
+        source=source,
+        year=year,
+        provider=provider)
 
-    ign_code_level = dict_open_data["IGN"]["ADMINEXPRESS"][source]["field"]
+    ign_code_level = dict_open_data[provider]["ADMINEXPRESS"][source]["field"]
 
     ign_version = re.search("/ADMIN-EXPRESS-COG_(.*)__SHP", path_cache_ign).group(1)
 
@@ -285,6 +353,7 @@ def get_vectorfile_ign(
         "mayotte",
     ],
     level: typing.Union[list, str] = ["COMMUNE"],
+    provider: typing.Union[list, str] = ['IGN', 'opendatarchives']
 ) -> gpd.GeoDataFrame:
     """
     User-level function to get shapefiles from IGN
@@ -303,12 +372,15 @@ def get_vectorfile_ign(
     dict_open_data = import_yaml_config()
 
     if isinstance(source, list):
-        source = source[0]
+        source: str = source[0]
 
     if isinstance(level, list):
-        level = level[0]
+        level: str = level[0]
 
-    dict_source = dict_open_data["IGN"]["ADMINEXPRESS"][source]
+    if isinstance(provider, list):
+        provider: str = provider[0]
+
+    dict_source = dict_open_data[provider]["ADMINEXPRESS"][source]
 
     if year is None:
         year = max([i for i in dict_source.keys() if i not in ("field", "FTP")])
@@ -319,7 +391,7 @@ def get_vectorfile_ign(
     if year == 2019:
         field = "metropole"
 
-    shp_location = import_ign_vectorfile(source=source, year=year, field=field)
+    shp_location = import_ign_vectorfile(source=source, year=year, field=field, provider=provider)
 
     data_ign = gpd.read_file(f"{shp_location}/{level}.shp")
 
