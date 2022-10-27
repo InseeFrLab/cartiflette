@@ -44,7 +44,11 @@ def safe_download_write(
         location = location + ext
 
     if param_ftp is not None:
-        ftp = ftplib.FTP(param_ftp["hostname"], param_ftp["username"], param_ftp["pwd"])
+        ftp = ftplib.FTP(
+            param_ftp["hostname"],
+            param_ftp["username"],
+            param_ftp["pwd"]
+            )
         download_pb_ftp(ftp, url, fname=location)
     else:
         download_pb(url, location)
@@ -56,6 +60,22 @@ def create_url_adminexpress(
     source: typing.Union[list, str] = ["EXPRESS-COG"],
     year: typing.Optional[str] = None
 ):
+    """Create a standardized url to find the relevent IGN
+      source
+
+    Args:
+        provider (typing.Union[list, str], optional): IGN data provider.
+            Defaults to 'IGN' but can be 'opendatarchives'
+            (contributive back-up).
+        source (typing.Union[list, str], optional): Sources used.
+         Can either be a string or a list. Defaults to ['EXPRESS-COG'].
+        year (typing.Optional[str], optional): Year to use. Defaults to None.
+
+    Returns:
+        _type_: _description_
+    """
+
+
     if isinstance(provider, list):
         provider = provider[0]
     if isinstance(source, list):
@@ -81,6 +101,9 @@ def download_admin_express(
          year (typing.Optional[str], optional): Year to use. Defaults to None.
         location (str, optional): Location where file should be written.
           Defaults to None.
+        provider (typing.Union[list, str], optional): IGN data provider.
+            Defaults to 'IGN' but can be 'opendatarchives'
+            (contributive back-up).
 
     Returns:
         str: Complete path where the IGN source has been unzipped.
@@ -113,7 +136,10 @@ def download_admin_express(
         # download 7z file
         temp_file = tempfile.NamedTemporaryFile()
         temp_file_raw = temp_file.name + ".7z"
-        out_name = safe_download_write(url, location=temp_file_raw, param_ftp=param_ftp)
+        out_name = safe_download_write(
+            url,
+            location=temp_file_raw,
+            param_ftp=param_ftp)
         if location is None:
             tmp = tempfile.TemporaryDirectory()
             location = tmp.name
@@ -170,6 +196,8 @@ def download_store_admin_express(
         source (typing.Union[list, str], optional): IGN data product. Defaults to ['EXPRESS-COG'].
         year (typing.Optional[str], optional): Year used. Defaults to None.
         location (str, optional): File location. Defaults to None.
+        provider (typing.Union[list, str], optional): IGN data provider. Defaults to 'IGN' but can be 'opendatarchives'
+            (contributive back-up).
 
     Returns:
         str: _description_
@@ -217,6 +245,8 @@ def import_ign_vectorfile(
         source (typing.Union[list, str], optional): IGN data product. Defaults to ['EXPRESS-COG'].
         year (typing.Optional[str], optional): Year used. Defaults to None.
         field (str, optional): Geographic level to use. Defaults to "metropole".
+        provider (typing.Union[list, str], optional): IGN data provider. Defaults to 'IGN' but can be 'opendatarchives'
+            (contributive back-up).
 
     Returns:
         str: Returns where file is stored on filesystem.
