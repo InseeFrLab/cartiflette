@@ -45,3 +45,11 @@ france = get_vectorfile_ign(
   #source = "COG_EXPRESS",
   #provider="IGN"
   )
+
+from cartiflette.download import get_vectorfile_ign
+france = get_vectorfile_ign(
+  level = "COMMUNE",
+  field = "reunion"#,
+  #source = "COG_EXPRESS",
+  #provider="IGN"
+  )
