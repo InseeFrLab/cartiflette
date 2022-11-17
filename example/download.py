@@ -35,3 +35,13 @@ regions = cartiflette.s3.download_vectorfile_url_all(
     year=2022)
 
 print(regions.head())
+
+
+
+from cartiflette.download import get_vectorfile_ign
+france = get_vectorfile_ign(
+  level = "COMMUNE",
+  field = "metropole"#,
+  #source = "COG_EXPRESS",
+  #provider="IGN"
+  )
