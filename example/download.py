@@ -62,3 +62,39 @@ france = get_vectorfile_ign(
   #source = "COG_EXPRESS",
   #provider="IGN"
   )
+
+from cartiflette.download import get_vectorfile_ign
+france = get_vectorfile_ign(
+  level = "COMMUNE",
+  field = "metropole",
+  year=2020
+  #source = "COG_EXPRESS",
+  #provider="IGN"
+  )
+
+from cartiflette.download import get_vectorfile_ign
+france = get_vectorfile_ign(
+  level = "COMMUNE",
+  field = "metropole",
+  year=2019
+  #source = "COG_EXPRESS",
+  #provider="IGN"
+  )
+
+from cartiflette.download import get_vectorfile_ign
+france = get_vectorfile_ign(
+  level = "COMMUNE",
+  field = "metropole",
+  year=2018
+  #source = "COG_EXPRESS",
+  #provider="IGN"
+  )
+
+from cartiflette.download import get_vectorfile_ign
+france = get_vectorfile_ign(
+  level = "COMMUNE",
+  field = "metropole",
+  year=2017
+  #source = "COG_EXPRESS",
+  #provider="IGN"
+  )
