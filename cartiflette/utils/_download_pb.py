@@ -29,7 +29,11 @@ def _download_pb(
     except KeyError:
         proxies = {"http": "", "https": ""}
 
-    resp = requests.get(url, proxies=proxies, stream=True, verify=verify)
+    resp = requests.get(
+        url,
+        proxies=proxies,
+        stream=True,
+        verify=verify)
 
     if total is None and force is False:
         total = int(resp.headers.get("content-length", 0))
