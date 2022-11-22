@@ -7,7 +7,9 @@ import glob
 import re
 import typing
 import tempfile
+import zipfile
 import py7zr
+import pandas as pd
 import geopandas as gpd
 
 
@@ -15,8 +17,11 @@ from cartiflette.utils import download_pb, download_pb_ftp, import_yaml_config
 
 
 def safe_download_write(
-    url: str, location: str = None, param_ftp: dict = None, ext: str = "7z"
-) -> str:
+    url: str,
+    location: str = None,
+    param_ftp: dict = None,
+    ext: str = "7z",
+    verify: bool = True, force = True) -> str :
     """
     Download data given URL and additional parameters.
 
@@ -51,7 +56,7 @@ def safe_download_write(
             )
         download_pb_ftp(ftp, url, fname=location)
     else:
-        download_pb(url, location)
+        download_pb(url, location, verify = verify, force = force)
 
     return location
 
@@ -413,6 +418,47 @@ def get_vectorfile_ign(
         data_ign["INSEE_DEP"] = data_ign['INSEE_COM'].str[:2]
 
     return data_ign
+
+
+
+def get_BV(
+    year: int = 2022):
+    """
+    Import and Unzip Bassins de vie (Insee, format 2012)
+    
+    Args:
+        year
+    
+    Returns:
+        A DataFrame
+    """
+    
+    dict_open_data = import_yaml_config()
+    
+    url = dict_open_data['Insee']\
+        ['BV2012'][year]["file"]
+    
+    #from dev import safe_download_write
+    out_name = safe_download_write(
+        url,
+        location=None,
+        param_ftp=None,
+        ext = ".zip", verify = False, force = True)
+    
+    tmp = tempfile.TemporaryDirectory()
+    location = tmp.name
+    # unzip in location directory
+
+    archive = zipfile.ZipFile(out_name, 'r')
+    archive.extractall(path=location)
+    archive.close()
+    
+    df=pd.read_excel(location+"/"+dict_open_data['Insee']['BV2012'][year]["excel_name"],
+                     sheet_name="Composition_communale",skiprows=5)
+    df=df.loc[df['BV2012'] != "ZZZZZ"][['CODGEO','BV2012']]
+    #ZZZZZ à Mayotte
+    
+    return df
 
 
 # def get_bv(location):
