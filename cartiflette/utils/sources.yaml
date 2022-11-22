@@ -173,26 +173,31 @@ Insee:
       file: https://www.insee.fr/fr/statistiques/fichier/2028028/table-appartenance-geo-communes-08.zip
       documentation: https://www.insee.fr/fr/information/2028028 
   BV2012:  
-    2022: #Pour appariement sur code commune : au sein du zip, fichier XLSX "BV2012_au_01-01-2022.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO BV2012 LIBBV2012 DEP REG (début du tab, ligne 6)  
-     id: 2115016-2022
+    2022:
+     id: 2115016
      file: https://www.insee.fr/fr/statistiques/fichier/2115016/BV2012_au_01-01-2022.zip
      documentation: https://www.insee.fr/fr/information/2115016
-    2021: #Pour appariement sur code commune : au sein du zip, fichier XLSX "BV2012_au_01-01-2021.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO BV2012 LIBBV2012 DEP REG (début du tab, ligne 6)
-      id: 2115016-2021
-      file: https://www.insee.fr/fr/statistiques/fichier/2115016/BV2012_au_01-01-2021.zip
-      documentation: https://www.insee.fr/fr/information/2115016
-    2020: #Pour appariement sur code commune : au sein du zip, fichier XLSX "BV2012_au_01-01-2020_v1.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO BV2012 LIBBV2012 DEP REG (début du tab, ligne 6)
-      id: 2115016-2020
-      file: https://www.insee.fr/fr/statistiques/fichier/2115016/BV2012_au_01-01-2020_v1.zip
-      documentation: https://www.insee.fr/fr/information/2115016  
-    2019: #Pour appariement sur code commune : au sein du zip, fichier XLS "BV2012_au_01-01-2019.xls", onglet "Composition_communale", variables CODGEO LIBGEO BV2012 LIBBV2012 DEP REG (début du tab, ligne 6)
-      id: 2115016-2019
-      file: https://www.insee.fr/fr/statistiques/fichier/2115016/BV2012_au_01-01-2019.zip
-      documentation: https://www.insee.fr/fr/information/2115016
-    2018: #Pour appariement sur code commune : au sein du zip, fichier XLS "BV2012_au_01-01-2018_V2.xls", onglet "Composition_communale", variables CODGEO LIBGEO BV2012 LIBBV2012 DEP REG (début du tab, ligne 6)
-      id: 2115016-2018
-      file: https://www.insee.fr/fr/statistiques/fichier/2115016/BV2012_au_01-01-2018_V2.zip
-      documentation: https://www.insee.fr/fr/information/2115016
+     excel_name: BV2012_au_01-01-2022.xlsx
+    2021:
+     id: 2115016
+     file: https://www.insee.fr/fr/statistiques/fichier/2115016/BV2012_au_01-01-2021.zip
+     documentation: https://www.insee.fr/fr/information/2115016
+     excel_name: BV2012_au_01-01-2021.xlsx
+    2020:
+     id: 2115016
+     file: https://www.insee.fr/fr/statistiques/fichier/2115016/BV2012_au_01-01-2020_v1.zip
+     documentation: https://www.insee.fr/fr/information/2115016
+     excel_name: BV2012_au_01-01-2020_v1.xlsx
+    2019:
+     id: 2115016
+     file: https://www.insee.fr/fr/statistiques/fichier/2115016/BV2012_au_01-01-2019.zip
+     documentation: https://www.insee.fr/fr/information/2115016
+     excel_name: BV2012_au_01-01-2019.xls
+    2018:
+     id: 2115016
+     file: https://www.insee.fr/fr/statistiques/fichier/2115016/BV2012_au_01-01-2018_V2.zip
+     documentation: https://www.insee.fr/fr/information/2115016
+     excel_name: BV2012_au_01-01-2018_V2.xls
   UU2020:
     2022: #Pour appariement sur code commune : au sein du zip, fichier XLSX "UU2020_au_01-01-2022_v2022-09-27.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO UU2020 LIBUU2020 TYPE_COM STATUT_2017 DEP REG (début du tab, ligne 6)  
       id: 4802589-2022
