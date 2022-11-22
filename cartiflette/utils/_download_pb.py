@@ -6,7 +6,7 @@ import requests
 from tqdm import tqdm
 
 
-def _download_pb(
+def download_pb(
     url: str,
     fname: str,
     total: int = None,
