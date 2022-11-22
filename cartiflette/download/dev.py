@@ -87,7 +87,7 @@ def create_url_adminexpress(
 
 
 def download_admin_express(
-    provider: typing.Union[list, str] = ['IGN','opendatarchives'],
+    provider: typing.Union[list, str] = ['IGN', 'opendatarchives'],
     source: typing.Union[list, str] = ["EXPRESS-COG"],
     year: typing.Optional[str] = None,
     location: str = None,
@@ -159,11 +159,14 @@ def download_admin_express(
     arbo = f"{location}/{subdir}/ADMIN-EXPRESS-COG"
 
     if os.path.exists(arbo) is False:
+        path_to_check = glob.glob(f"{location}/**/ADMIN-EXPRESS-COG*")
+        if not path_to_check:
+            path_to_check = glob.glob(f"{location}/**/ADMIN-EXPRESS*")
         # if we don't find arbo, we use the bulldozer
         subdirs = set(
             [
                 x.replace(".md5", "")
-                for x in glob.glob(f"{location}/**/ADMIN-EXPRESS-COG*")
+                for x in path_to_check
             ]
         )
         arbo = list(subdirs)[0]
@@ -260,7 +263,13 @@ def import_ign_vectorfile(
 
     ign_code_level = dict_open_data[provider]["ADMINEXPRESS"][source]["field"]
 
-    ign_version = re.search("/ADMIN-EXPRESS-COG_(.*)__SHP", path_cache_ign).group(1)
+    matching_pattern_group = re.search(
+        "/ADMIN-EXPRESS-COG_(.*)__SHP", path_cache_ign)
+    if matching_pattern_group is None:
+        matching_pattern_group = re.search(
+            "/ADMIN-EXPRESS_(.*)__SHP", path_cache_ign)
+
+    ign_version = matching_pattern_group.group(1)
 
     if year < 2022:
         ign_code_level["prefix"] = ign_code_level["prefix"].replace(
@@ -271,12 +280,17 @@ def import_ign_vectorfile(
         ign_code_level[field] = ign_code_level[field].replace("LAMB93", "WGS84")
 
     shp_location = f"{path_cache_ign}/{ign_code_level['prefix']}"
-
     shp_location = f"{shp_location}{ign_code_level[field]}"
 
     if os.path.isdir(shp_location) is False:
         # sometimes, ADECOG is spelled ADE-COG
         shp_location = shp_location.replace("ADECOG", "ADE-COG")
+
+    if not os.path.exists(shp_location):
+        # sometimes it is not even ADECOG
+        subdirs = os.listdir(path_cache_ign)
+        subdirs = [s for s in subdirs if not s.endswith("md5")][0]
+        shp_location = f"{path_cache_ign}/{subdirs}"
 
     if os.path.isdir(shp_location) is False:
         # for some years, geographic codes were not the same
