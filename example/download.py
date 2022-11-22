@@ -53,3 +53,12 @@ france = get_vectorfile_ign(
   #source = "COG_EXPRESS",
   #provider="IGN"
   )
+
+from cartiflette.download import get_vectorfile_ign
+france = get_vectorfile_ign(
+  level = "COMMUNE",
+  field = "metropole",
+  year=2021
+  #source = "COG_EXPRESS",
+  #provider="IGN"
+  )
