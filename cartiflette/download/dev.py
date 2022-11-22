@@ -436,7 +436,7 @@ def get_BV(
     dict_open_data = import_yaml_config()
     
     url = dict_open_data['Insee']\
-        ['BV'][year]["file"]
+        ['BV2012'][year]["file"]
     
     #from dev import safe_download_write
     out_name = safe_download_write(
@@ -453,7 +453,7 @@ def get_BV(
     archive.extractall(path=location)
     archive.close()
     
-    df=pd.read_excel(location+"/"+dict_open_data['Insee']['BV'][year]["excel_name"],
+    df=pd.read_excel(location+"/"+dict_open_data['Insee']['BV2012'][year]["excel_name"],
                      sheet_name="Composition_communale",skiprows=5)
     df=df.loc[df['BV2012'] != "ZZZZZ"][['CODGEO','BV2012']]
     #ZZZZZ à Mayotte
