@@ -29,11 +29,7 @@ def _download_pb(
     except KeyError:
         proxies = {"http": "", "https": ""}
 
-    resp = requests.get(
-        url,
-        proxies=proxies,
-        stream=True,
-        verify = verify)
+    resp = requests.get(url, proxies=proxies, stream=True, verify=verify)
 
     if total is None and force is False:
         total = int(resp.headers.get("content-length", 0))
@@ -50,7 +46,7 @@ def _download_pb(
             obj.update(size)
 
 
-def _download_pb_ftp(ftp, url: str, fname: str):
+def download_pb_ftp(ftp, url: str, fname: str):
     """Useful function to get request with a progress bar
 
     Borrowed from
@@ -61,15 +57,14 @@ def _download_pb_ftp(ftp, url: str, fname: str):
         fname {str} -- Destination where data will be written
         ftp -- ftplib object
     """
-    with open(fname, 'wb') as file:
+    with open(fname, "wb") as file:
         total = ftp.size(url)
-        with tqdm(total=total,
-                unit_scale=True,
-                desc=url,
-                miniters=1,
-                leave=False
-                ) as pbar:
+        with tqdm(
+            total=total, unit_scale=True, desc=url, miniters=1, leave=False
+        ) as pbar:
+
             def dowload_write(data):
                 pbar.update(len(data))
                 file.write(data)
-            ftp.retrbinary(f'RETR {url}', dowload_write)
+
+            ftp.retrbinary(f"RETR {url}", dowload_write)

@@ -1,0 +1,29 @@
+name: Test Python package
+
+on: [push]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 5
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.10"
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install .
+    - name: Test import
+      run: |
+        export AWS_ACCESS_KEY_ID=${{ secrets.S3_ACCESS_KEY }}
+        export AWS_SECRET_ACCESS_KEY=${{ secrets.S3_SECRET_KEY }}
+        python example/download.py 
+#    - name: Test with pytest
+#      run: |
+#        conda install pytest
+#        pytest
