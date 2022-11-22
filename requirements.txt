@@ -5,3 +5,4 @@ openpyxl
 tqdm
 s3fs
 PyYAML
+xlrd
