@@ -13,7 +13,8 @@ import pandas as pd
 import geopandas as gpd
 
 
-from cartiflette.utils import download_pb, download_pb_ftp, import_yaml_config
+from cartiflette.utils import download_pb, download_pb_ftp,\
+    import_yaml_config, url_express_COG_territoire
 
 
 def safe_download_write(
@@ -62,8 +63,9 @@ def safe_download_write(
 
 def create_url_adminexpress(
     provider: typing.Union[list, str] = ['IGN','opendatarchives'],
-    source: typing.Union[list, str] = ["EXPRESS-COG"],
-    year: typing.Optional[str] = None
+    source: typing.Union[list, str] = ["EXPRESS-COG", "EXPRESS-COG-TERRITOIRE"],
+    year: typing.Optional[str] = None,
+    field: str = "metropole"
 ):
     """Create a standardized url to find the relevent IGN
       source
@@ -80,14 +82,24 @@ def create_url_adminexpress(
         _type_: _description_
     """
 
-
     if isinstance(provider, list):
         provider = provider[0]
     if isinstance(source, list):
         source = source[0]
+    if year is None:
+        year = 2022
+    
     dict_open_data = import_yaml_config()
     dict_source = dict_open_data[provider]["ADMINEXPRESS"][source]
-    url = dict_source[year]["file"]
+
+    if provider == "EXPRESS-COG-TERRITOIRE":
+        url = url_express_COG_territoire(
+            year=2022,
+            provider=provider,
+            territoire=field)
+    else:
+        url = dict_source[year]["file"]
+    
     return url
 
 
