@@ -19,6 +19,21 @@ IGN:
   ADMINEXPRESS:
     documentation: https://geoservices.ign.fr/documentation/donnees/vecteur/adminexpress
     metadata: https://geoservices.ign.fr/sites/default/files/2021-11/IGNF_ADMIN_EXPRESS_3-1.html
+    EXPRESS-COG-TERRITOIRE:
+      field:
+        metropole: LAMB93_FXX
+        guadeloupe: RGAF09UTM20_GLP
+        martinique: RGAF09UTM20_MTQ
+        guyane: UTM22RGFG95_GUF
+        reunion: RGR92UTM40S_REU
+        st-pierre-miquelon: 
+        mayotte: RGM04UTM38S_MYT
+      2022:
+        prefix: ADMIN-EXPRESS-COG
+        date: "2022-04-15"
+        version: "3-1"
+        url_prefix: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG_SHP_TERRITOIRES_PACK
+        structure: "{url_prefix}_{date}${prefix}_{version}__SHP_{field}_{date}/file/{prefix}_{version}__SHP_{field}_{date}.7z"
     EXPRESS-COG:
       field:
         prefix: ADECOG_3-1_SHP_
