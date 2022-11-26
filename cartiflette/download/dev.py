@@ -4,7 +4,6 @@ Request data from IGN and other tile providers
 import os
 import ftplib
 import glob
-import re
 import typing
 import tempfile
 import zipfile
@@ -170,7 +169,11 @@ def download_admin_express(
 
     arbo = glob.glob(
         f"{location}/**/1_DONNEES_LIVRAISON_*",
-        recursive=True)[0]
+        recursive=True)
+        
+    # For some years, md5 also uses pattern DONNEES_LIVRAISON
+    arbo = [s for s in arbo if not s.endswith(".md5")]
+    arbo = arbo[0]
 
     return arbo
 
@@ -217,8 +220,9 @@ def download_store_admin_express(
     if location is None:
         location = tempfile.gettempdir()
         location = f"{location}/{source}-{year}"
-        if source == "EXPRESS-COG-TERRITOIRE":
-            location = f"{location}/{field}"
+        if year > 2020 :
+            if source == "EXPRESS-COG-TERRITOIRE":
+                location = f"{location}/{field}"
 
     path_cache_ign = download_admin_express(
         source=source,
