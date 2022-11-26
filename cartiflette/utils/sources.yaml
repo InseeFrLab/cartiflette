@@ -39,7 +39,13 @@ IGN:
         date: "2021-05-19"
         version: "3-0"
         url_prefix: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG_SHP_TERRITOIRES_PACK
-        structure: "{url_prefix}_{date}${prefix}_{version}__SHP_{field}_{date}/file/{prefix}_{version}__SHP_{field}_{date}.7z"      
+        structure: "{url_prefix}_{date}${prefix}_{version}__SHP_{field}_{date}/file/{prefix}_{version}__SHP_{field}_{date}.7z"
+      2020:
+        prefix: ADMIN-EXPRESS-COG
+        date: "2020-11-20"
+        version: "2-1"
+        url_prefix: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG_SHP_TERRITOIRES_PACK_11-2020
+        structure: "{url_prefix}${prefix}_{version}__SHP__FRA_{date}/file/{prefix}_{version}__SHP__FRA_{date}.7z"
     EXPRESS-COG:
       field:
         prefix: ADECOG_3-1_SHP_

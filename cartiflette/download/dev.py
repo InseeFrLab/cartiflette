@@ -94,7 +94,7 @@ def create_url_adminexpress(
 
     if source == "EXPRESS-COG-TERRITOIRE":
         url = url_express_COG_territoire(
-            year=2022,
+            year=year,
             provider=provider,
             territoire=field)
     else:
@@ -141,6 +141,7 @@ def download_admin_express(
         source=source,
         field=field
     )
+    print(url)
 
     if url.startswith(("http", "https")):
         param_ftp = None
