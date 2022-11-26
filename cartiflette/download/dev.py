@@ -4,7 +4,6 @@ Request data from IGN and other tile providers
 import os
 import ftplib
 import glob
-import re
 import typing
 import tempfile
 import zipfile
@@ -13,7 +12,8 @@ import pandas as pd
 import geopandas as gpd
 
 
-from cartiflette.utils import download_pb, download_pb_ftp, import_yaml_config
+from cartiflette.utils import download_pb, download_pb_ftp,\
+    import_yaml_config, url_express_COG_territoire
 
 
 def safe_download_write(
@@ -62,8 +62,9 @@ def safe_download_write(
 
 def create_url_adminexpress(
     provider: typing.Union[list, str] = ['IGN','opendatarchives'],
-    source: typing.Union[list, str] = ["EXPRESS-COG"],
-    year: typing.Optional[str] = None
+    source: typing.Union[list, str] = ["EXPRESS-COG", "EXPRESS-COG-TERRITOIRE"],
+    year: typing.Optional[str] = None,
+    field: str = "metropole"
 ):
     """Create a standardized url to find the relevent IGN
       source
@@ -80,22 +81,33 @@ def create_url_adminexpress(
         _type_: _description_
     """
 
-
     if isinstance(provider, list):
         provider = provider[0]
     if isinstance(source, list):
         source = source[0]
+    if year is None:
+        year = 2022
+    
     dict_open_data = import_yaml_config()
     dict_source = dict_open_data[provider]["ADMINEXPRESS"][source]
-    url = dict_source[year]["file"]
+
+    if source == "EXPRESS-COG-TERRITOIRE":
+        url = url_express_COG_territoire(
+            year=year,
+            provider=provider,
+            territoire=field)
+    else:
+        url = dict_source[year]["file"]
+    
     return url
 
 
 def download_admin_express(
     provider: typing.Union[list, str] = ['IGN', 'opendatarchives'],
-    source: typing.Union[list, str] = ["EXPRESS-COG"],
+    source: typing.Union[list, str] = ["EXPRESS-COG", "EXPRESS-COG-TERRITOIRE"],
     year: typing.Optional[str] = None,
     location: str = None,
+    field: str = "metropole"
 ) -> str:
     """
     Download AdminExpress data for a given type of source and year
@@ -125,8 +137,10 @@ def download_admin_express(
     url = create_url_adminexpress(
         provider=provider,
         year=year,
-        source=source
+        source=source,
+        field=field
     )
+    print(url)
 
     if url.startswith(("http", "https")):
         param_ftp = None
@@ -153,50 +167,23 @@ def download_admin_express(
         archive.extractall(path=location)
         archive.close()
 
-    subdir = url.rsplit("/", maxsplit=1)[-1]
-    subdir = subdir.replace(".7z", "")
-    if url.startswith(("http", "https")) and provider == "IGN" is False :
-        subdir = subdir.replace("_L93", "")  # 2021: L93 en trop
-        subdir = subdir.replace("_WGS84G", "")  # 2019: WGS84 en trop
-        subdir = subdir.replace(".001", "")
-
-    date_livraison = subdir.rsplit("_", maxsplit=1)[-1]
-    arbo = f"{location}/{subdir}/ADMIN-EXPRESS-COG"
-
-    if os.path.exists(arbo) is False:
-        path_to_check = glob.glob(f"{location}/**/ADMIN-EXPRESS-COG*")
-        if not path_to_check:
-            path_to_check = glob.glob(f"{location}/**/ADMIN-EXPRESS*")
-        # if we don't find arbo, we use the bulldozer
-        subdirs = set(
-            [
-                x.replace(".md5", "")
-                for x in path_to_check
-            ]
-        )
-        arbo = list(subdirs)[0]
-
-    arbo_complete = f"{arbo}/1_DONNEES_LIVRAISON_{date_livraison}"
-
-    if os.path.exists(arbo_complete) is False:
-        # sometimes we have a different livraison date
-        subdirs = [
-            os.path.basename(x).replace(".md5", "")
-            for x in glob.glob(f"{arbo}/1_DONNEES_LIVRAISON_*")
-        ]
-        date_livraison_subdir = [i for i in set(subdirs)][0]
-        date_livraison_subdir = date_livraison_subdir.rsplit("_", maxsplit=1)[-1]
-        arbo_complete = f"{arbo}/1_DONNEES_LIVRAISON_{date_livraison_subdir}"
-
-    return arbo_complete
+    arbo = glob.glob(
+        f"{location}/**/1_DONNEES_LIVRAISON_*",
+        recursive=True)
+        
+    return arbo
 
 
 def download_store_admin_express(
-    source: typing.Union[list, str] = ["EXPRESS-COG", "COG"],
+    source: typing.Union[list, str] = [
+        "EXPRESS-COG",
+        "COG",
+        "EXPRESS-COG-TERRITOIRE"
+        ],
     year: typing.Optional[str] = None,
     location: str = None,
-    provider: typing.Union[list, str] = ['IGN', 'opendatarchives']
-) -> str:
+    provider: typing.Union[list, str] = ['IGN', 'opendatarchives'],
+    field: str = "metropole") -> str:
     """
     Download, unzip and store AdminExpress data
 
@@ -218,8 +205,8 @@ def download_store_admin_express(
 
     dict_open_data = import_yaml_config()
 
-    print(provider)
-    print(source)
+    #print(provider)
+    #print(source)
 
     dict_source = dict_open_data[provider]["ADMINEXPRESS"][source]
 
@@ -229,85 +216,75 @@ def download_store_admin_express(
     if location is None:
         location = tempfile.gettempdir()
         location = f"{location}/{source}-{year}"
+        if year > 2020 :
+            if source == "EXPRESS-COG-TERRITOIRE":
+                location = f"{location}/{field}"
 
     path_cache_ign = download_admin_express(
         source=source,
         year=year,
         location=location,
-        provider=provider
+        provider=provider,
+        field=field
         )
+
+    # For some years, md5 also validate pattern DONNEES_LIVRAISON
+    path_cache_ign = [s for s in path_cache_ign if not s.endswith(".md5")]
+    path_cache_ign = path_cache_ign[0]
+
+    if year <= 2020 and source == "EXPRESS-COG-TERRITOIRE":
+        field_code = dict_source['field'][field].split("_")[0]
+        path_cache_ign = glob.glob(f"{path_cache_ign}/*{field_code}_*")
+        # For some years, md5 also validate pattern DONNEES_LIVRAISON
+        path_cache_ign = [s for s in path_cache_ign if not s.endswith(".md5")]
+        path_cache_ign = path_cache_ign[0]
 
     return path_cache_ign
 
 
-def import_ign_vectorfile(
-    source: typing.Union[list, str] = ["EXPRESS-COG","COG"],
+def store_vectorfile_ign(
+    source: typing.Union[list, str] = [
+        "EXPRESS-COG",
+        "COG",
+        "EXPRESS-COG-TERRITOIRE"
+        ],
     year: typing.Optional[str] = None,
     field: str = "metropole",
     provider: typing.Union[list, str] = ['IGN', 'opendatarchives']
 ) -> str:
     """
-    Function to download raw IGN shapefiles and store them unzipped in filesystem
+    Function to download raw IGN shapefiles and
+    store them unzipped in filesystem
 
     Args:
-        source (typing.Union[list, str], optional): IGN data product. Defaults to ['EXPRESS-COG'].
+        source (typing.Union[list, str], optional): IGN data product.
+            Defaults to ['EXPRESS-COG'].
         year (typing.Optional[str], optional): Year used. Defaults to None.
         field (str, optional): Geographic level to use. Defaults to "metropole".
-        provider (typing.Union[list, str], optional): IGN data provider. Defaults to 'IGN' but can be 'opendatarchives'
+        provider (typing.Union[list, str], optional): IGN data provider.
+            Defaults to 'IGN' but can be 'opendatarchives'
             (contributive back-up).
 
     Returns:
         str: Returns where file is stored on filesystem.
     """
 
-    dict_open_data = import_yaml_config()
     path_cache_ign = download_store_admin_express(
         source=source,
         year=year,
-        provider=provider)
-
-    ign_code_level = dict_open_data[provider]["ADMINEXPRESS"][source]["field"]
-
-    matching_pattern_group = re.search(
-        "/ADMIN-EXPRESS-COG_(.*)__SHP", path_cache_ign)
-    if matching_pattern_group is None:
-        matching_pattern_group = re.search(
-            "/ADMIN-EXPRESS_(.*)__SHP", path_cache_ign)
-
-    ign_version = matching_pattern_group.group(1)
-
-    if year < 2022:
-        ign_code_level["prefix"] = ign_code_level["prefix"].replace(
-            "3-1_", f"{ign_version}_"
+        provider=provider,
+        field=field) #returns path where datasets are stored
+    
+    full_path_shp = glob.glob(
+        f"{path_cache_ign}/**/*.shp", recursive=True
         )
-
-    if year == 2019:
-        ign_code_level[field] = ign_code_level[field].replace("LAMB93", "WGS84")
-
-    shp_location = f"{path_cache_ign}/{ign_code_level['prefix']}"
-    shp_location = f"{shp_location}{ign_code_level[field]}"
-
-    if os.path.isdir(shp_location) is False:
-        # sometimes, ADECOG is spelled ADE-COG
-        shp_location = shp_location.replace("ADECOG", "ADE-COG")
-
-    if not os.path.exists(shp_location):
-        # sometimes it is not even ADECOG
-        subdirs = os.listdir(path_cache_ign)
-        subdirs = [s for s in subdirs if not s.endswith("md5")][0]
-        shp_location = f"{path_cache_ign}/{subdirs}"
-
-    if os.path.isdir(shp_location) is False:
-        # for some years, geographic codes were not the same
-        dep_code = ign_code_level[field].rsplit("_", maxsplit=1)[-1]
-        filename = glob.glob(f"{os.path.dirname(shp_location)}/*_{dep_code}")
-        shp_location = filename[0]
+    shp_location = os.path.dirname(full_path_shp[0])
 
     return shp_location
 
 
 def get_administrative_level_available_ign(
-    source: typing.Union[list, str] = ["EXPRESS-COG"],
+    source: typing.Union[list, str] = ["EXPRESS-COG", "EXPRESS-COG-TERRITOIRE"],
     year: typing.Optional[str] = None,
     field: typing.Union[list, str] = [
         "metropole",
@@ -349,14 +326,16 @@ def get_administrative_level_available_ign(
     if isinstance(field, list):
         field = field[0]
 
-    shp_location = import_ign_vectorfile(source=source, year=year, field=field)
+    shp_location = store_vectorfile_ign(source=source, year=year, field=field)
 
     list_levels = [
         os.path.basename(i).replace(".shp", "")
         for i in glob.glob(shp_location + "/*.shp")
     ]
     if verbose:
-        print("\n  - ".join(["Available administrative levels are :"] + list_levels))
+        print("\n  - ".join(
+            ["Available administrative levels are :"] + list_levels)
+            )
     return list_levels
 
 
@@ -388,7 +367,6 @@ def get_vectorfile_ign(
     Returns:
         gpd.GeoDataFrame : _description_
     """
-    dict_open_data = import_yaml_config()
 
     if isinstance(source, list):
         source: str = source[0]
@@ -399,18 +377,15 @@ def get_vectorfile_ign(
     if isinstance(provider, list):
         provider: str = provider[0]
 
-    dict_source = dict_open_data[provider]["ADMINEXPRESS"][source]
-
-    if year is None:
-        year = max([i for i in dict_source.keys() if i not in ("field", "FTP")])
-
     if isinstance(field, list):
         field = field[0]
 
     if year == 2019:
         field = "metropole"
 
-    shp_location = import_ign_vectorfile(source=source, year=year, field=field, provider=provider)
+    shp_location = store_vectorfile_ign(
+        source=source, year=year,
+        field=field, provider=provider)
 
     data_ign = gpd.read_file(f"{shp_location}/{level}.shp")
 
