@@ -47,11 +47,11 @@ def url_express_COG_territoire(
     
     # REFORMATING
     url = structure.format(
-        url_prefix = url_prefix,
-        date = date,
-        prefix = prefix,
-        version = version,
-        field = field
+        url_prefix=url_prefix,
+        date=date,
+        prefix=prefix,
+        version=version,
+        field=field
     )
 
     return url
