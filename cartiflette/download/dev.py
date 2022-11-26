@@ -230,7 +230,7 @@ def download_store_admin_express(
     return path_cache_ign
 
 
-def store_ign_vectorfile(
+def store_vectorfile_ign(
     source: typing.Union[list, str] = [
         "EXPRESS-COG",
         "COG",
@@ -257,7 +257,6 @@ def store_ign_vectorfile(
         str: Returns where file is stored on filesystem.
     """
 
-    dict_open_data = import_yaml_config()
     path_cache_ign = download_store_admin_express(
         source=source,
         year=year,
@@ -313,14 +312,16 @@ def get_administrative_level_available_ign(
     if isinstance(field, list):
         field = field[0]
 
-    shp_location = store_ign_vectorfile(source=source, year=year, field=field)
+    shp_location = store_vectorfile_ign(source=source, year=year, field=field)
 
     list_levels = [
         os.path.basename(i).replace(".shp", "")
         for i in glob.glob(shp_location + "/*.shp")
     ]
     if verbose:
-        print("\n  - ".join(["Available administrative levels are :"] + list_levels))
+        print("\n  - ".join(
+            ["Available administrative levels are :"] + list_levels)
+            )
     return list_levels
 
 
@@ -352,7 +353,6 @@ def get_vectorfile_ign(
     Returns:
         gpd.GeoDataFrame : _description_
     """
-    dict_open_data = import_yaml_config()
 
     if isinstance(source, list):
         source: str = source[0]
@@ -363,18 +363,15 @@ def get_vectorfile_ign(
     if isinstance(provider, list):
         provider: str = provider[0]
 
-    dict_source = dict_open_data[provider]["ADMINEXPRESS"][source]
-
-    if year is None:
-        year = max([i for i in dict_source.keys() if i not in ("field", "FTP")])
-
     if isinstance(field, list):
         field = field[0]
 
     if year == 2019:
         field = "metropole"
 
-    shp_location = import_ign_vectorfile(source=source, year=year, field=field, provider=provider)
+    shp_location = store_vectorfile_ign(
+        source=source, year=year,
+        field=field, provider=provider)
 
     data_ign = gpd.read_file(f"{shp_location}/{level}.shp")
 
