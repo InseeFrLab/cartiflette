@@ -171,10 +171,6 @@ def download_admin_express(
         f"{location}/**/1_DONNEES_LIVRAISON_*",
         recursive=True)
         
-    # For some years, md5 also uses pattern DONNEES_LIVRAISON
-    arbo = [s for s in arbo if not s.endswith(".md5")]
-    arbo = arbo[0]
-
     return arbo
 
 
@@ -232,6 +228,17 @@ def download_store_admin_express(
         field=field
         )
 
+    # For some years, md5 also validate pattern DONNEES_LIVRAISON
+    path_cache_ign = [s for s in path_cache_ign if not s.endswith(".md5")]
+    path_cache_ign = path_cache_ign[0]
+
+    if year <= 2020 and source == "EXPRESS-COG-TERRITOIRE":
+        field_code = dict_source['field'][field].split("_")[0]
+        path_cache_ign = glob.glob(f"{path_cache_ign}/*{field_code}_*")
+        # For some years, md5 also validate pattern DONNEES_LIVRAISON
+        path_cache_ign = [s for s in path_cache_ign if not s.endswith(".md5")]
+        path_cache_ign = path_cache_ign[0]
+
     return path_cache_ign
 
 
@@ -266,9 +273,11 @@ def store_vectorfile_ign(
         source=source,
         year=year,
         provider=provider,
-        field=field)
+        field=field) #returns path where datasets are stored
     
-    full_path_shp = glob.glob(f"{path_cache_ign}/**/*.shp", recursive=True)
+    full_path_shp = glob.glob(
+        f"{path_cache_ign}/**/*.shp", recursive=True
+        )
     shp_location = os.path.dirname(full_path_shp[0])
 
     return shp_location
