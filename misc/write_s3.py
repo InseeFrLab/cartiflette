@@ -30,7 +30,7 @@ for format, decoup, year in itertools.product(
     s3.write_vectorfile_s3_custom(
             vectorfile_format="geojson",
             decoupage="departement",
-            year=2022)
+            year=year)
 
 
 # OLD --------------
