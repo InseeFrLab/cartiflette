@@ -7,23 +7,34 @@ import cartiflette.s3 as s3
 from cartiflette.download import get_administrative_level_available_ign
 
 
-formats=["geoparquet", "shp", "gpkg", "geojson"]
-decoupage=["region", "departement"]
-level=["COMMUNE", "ARRONDISSEMENT"]
-for format, decoup, lev in itertools.product(formats, decoupage, level):
+formats = ["geoparquet", "shp", "gpkg", "geojson"]
+decoupage = ["region", "departement"]
+level = ["COMMUNE", "ARRONDISSEMENT"]
+years = [y for y in range(2020, 2023)]
+for format, decoup, lev, year in itertools.product(
+    formats, decoupage, level, years
+    ):
     s3.write_vectorfile_s3_all(
         level=lev,
         vectorfile_format=format,
         decoupage=decoup,
-        year=2022)
+        year=year)
+
+
+formats = ["geoparquet", "shp", "gpkg", "geojson"]
+decoupage = ["region", "departement"]
+years = [y for y in range(2020, 2023)]
+for format, decoup, year in itertools.product(
+    formats, decoupage, years
+    ):
+    s3.write_vectorfile_s3_custom(
+            vectorfile_format="geojson",
+            decoupage="departement",
+            year=2022)
 
 
 # OLD --------------
 
-s3.write_vectorfile_s3_custom(
-        vectorfile_format="geojson",
-        decoupage="departement",
-        year=2022)
 
 s3.write_vectorfile_s3_all(
         level="ARRONDISSEMENT_MUNICIPAL",
