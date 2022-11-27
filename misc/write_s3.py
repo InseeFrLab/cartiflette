@@ -2,11 +2,11 @@ import os
 
 os.chdir("cartiflette")
 
+import itertools
 import cartiflette.s3 as s3
 from cartiflette.download import get_administrative_level_available_ign
 
 
-import itertools
 formats=["geoparquet", "shp", "gpkg", "geojson"]
 decoupage=["region", "departement"]
 level=["COMMUNE", "ARRONDISSEMENT"]
@@ -19,6 +19,11 @@ for format, decoup, lev in itertools.product(formats, decoupage, level):
 
 
 # OLD --------------
+
+s3.write_vectorfile_s3_custom(
+        vectorfile_format="geojson",
+        decoupage="departement",
+        year=2022)
 
 s3.write_vectorfile_s3_all(
         level="ARRONDISSEMENT_MUNICIPAL",

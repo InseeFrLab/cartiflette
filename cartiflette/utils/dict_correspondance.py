@@ -14,6 +14,9 @@ def dict_corresp_decoupage() -> dict:
         "region": "INSEE_REG",
         "departement": "INSEE_DEP",
         "commune": "INSEE_COM",
+        "commune_arrondissement": "INSEE_COM",
+        "region_arrondissement": "INSEE_REG",
+        "departement_arrondissement": "INSEE_DEP"
     }
     return corresp_decoupage_columns
 

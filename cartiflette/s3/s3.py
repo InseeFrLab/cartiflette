@@ -14,7 +14,8 @@ from cartiflette.utils import (
     create_format_standardized,
     create_format_driver,
 )
-from cartiflette.download import get_vectorfile_ign
+from cartiflette.download import get_vectorfile_ign, \
+    get_vectorfile_communes_arrondissement
 
 BUCKET = "projet-cartiflette"
 PATH_WITHIN_BUCKET = "diffusion/shapefiles-test"
@@ -291,6 +292,32 @@ def write_vectorfile_s3_shp(object, fs, write_path, driver=None):
         for file_name in list_files_shp
     ]
 
+def write_vectorfile_s3_custom(
+    vectorfile_format="geojson",
+    year: int = 2022,
+    provider: str = "IGN",
+    decoupage="region",
+    source: str = "EXPRESS-COG-TERRITOIRE",
+    bucket=BUCKET,
+    path_within_bucket=PATH_WITHIN_BUCKET
+    ):
+
+    corresp_decoupage_columns = dict_corresp_decoupage()
+    var_decoupage = corresp_decoupage_columns[decoupage]
+
+    object = get_vectorfile_communes_arrondissement(
+        year=year,
+        provider=provider,
+        source=source
+    )
+    write_vectorfile_all_levels(
+            object=object,
+            level="COMMUNE_ARRONDISSEMENT",
+            level_var=var_decoupage,
+            vectorfile_format=vectorfile_format,
+            decoupage=decoupage,
+            year=year,
+        )
 
 def write_vectorfile_s3_all(
     level="COMMUNE",
@@ -299,7 +326,7 @@ def write_vectorfile_s3_all(
     year=2022,
     source="EXPRESS-COG-TERRITOIRE",
     bucket=BUCKET,
-    path_within_bucket=PATH_WITHIN_BUCKET,
+    path_within_bucket=PATH_WITHIN_BUCKET
 ):
 
     corresp_decoupage_columns = dict_corresp_decoupage()
@@ -338,7 +365,9 @@ def write_vectorfile_s3_all(
 
 def open_vectorfile_from_s3(vectorfile_format, decoupage, year, value):
     read_path = create_path_bucket(
-        vectorfile_format=vectorfile_format, decoupage=decoupage, year=year, value=value
+        vectorfile_format=vectorfile_format,
+        decoupage=decoupage, year=year,
+        value=value
     )
     return fs.open(read_path, mode="r")
 
