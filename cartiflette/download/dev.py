@@ -395,6 +395,40 @@ def get_vectorfile_ign(
     return data_ign
 
 
+def get_vectorfile_communes_arrondissement(
+    year = 2022,
+    provider = "IGN",
+    source = "EXPRESS-COG-TERRITOIRE"
+):
+    arrondissement = get_vectorfile_ign(
+        level="ARRONDISSEMENT_MUNICIPAL",
+        year=year,
+        field="metropole",
+        provider=provider,
+        source=source)
+    communes = get_vectorfile_ign(
+        level="COMMUNE",
+        year=year,
+        field="metropole",
+        provider=provider,
+        source=source)
+    communes_sans_grandes_villes = communes.loc[~communes['NOM'].isin(["Marseille", "Lyon", "Paris"])]
+    communes_grandes_villes = communes.loc[communes['NOM'].isin(["Marseille", "Lyon", "Paris"])]
+
+    arrondissement_extra_info = arrondissement.merge(
+        communes_grandes_villes, on = "INSEE_DEP",
+        suffixes=('', '_y')
+    )
+    arrondissement_extra_info = arrondissement_extra_info.loc[:,~arrondissement_extra_info.columns.str.endswith("_y")]
+
+    df_enrichi = pd.concat([
+        communes_sans_grandes_villes, arrondissement_extra_info
+    ])
+
+    return df_enrichi
+
+
+
 
 def get_BV(
     year: int = 2022):
