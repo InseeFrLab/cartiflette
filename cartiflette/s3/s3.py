@@ -297,6 +297,7 @@ def write_vectorfile_s3_all(
     vectorfile_format="geojson",
     decoupage="region",
     year=2022,
+    source="EXPRESS-COG-TERRITOIRE",
     bucket=BUCKET,
     path_within_bucket=PATH_WITHIN_BUCKET,
 ):
@@ -315,7 +316,9 @@ def write_vectorfile_s3_all(
         territories_available = [territories_available[0]]
 
     territories = {
-        f: get_vectorfile_ign(level=level, year=year, field=f)
+        f: get_vectorfile_ign(
+            level=level, year=year, field=f,
+            source=source)
         for f in territories_available
     }
 

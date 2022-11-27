@@ -1,6 +1,6 @@
 import os
 
-os.chdir("cartogether")
+os.chdir("cartiflette")
 
 import cartiflette.s3 as s3
 from cartiflette.download import get_administrative_level_available_ign
