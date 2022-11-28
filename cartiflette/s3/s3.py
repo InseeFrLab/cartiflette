@@ -5,6 +5,7 @@ import os
 import tempfile
 import typing
 import s3fs
+import tempfile
 import pandas as pd
 import geopandas as gpd
 
@@ -13,8 +14,10 @@ from cartiflette.utils import (
     dict_corresp_decoupage,
     create_format_standardized,
     create_format_driver,
+    download_pb
 )
-from cartiflette.download import get_vectorfile_ign
+from cartiflette.download import get_vectorfile_ign, \
+    get_vectorfile_communes_arrondissement
 
 BUCKET = "projet-cartiflette"
 PATH_WITHIN_BUCKET = "diffusion/shapefiles-test"
@@ -118,7 +121,7 @@ def download_vectorfile_s3_single(
     decoupage="region",
     year=2022,
     bucket=BUCKET,
-    path_within_bucket=PATH_WITHIN_BUCKET,
+    path_within_bucket=PATH_WITHIN_BUCKET
 ):
     # corresp_decoupage_columns = dict_corresp_decoupage()
     format_standardized = create_format_standardized()
@@ -133,7 +136,7 @@ def download_vectorfile_s3_single(
         level=level,
         decoupage=decoupage,
         year=year,
-        value=value,
+        value=value
     )
 
     try:
@@ -192,8 +195,12 @@ def download_vectorfile_url_single(
     if format_read == "shp":
         print("Not yet implemented")
     elif format_read == "parquet":
-        object = gpd.read_parquet(url)
+        tmp = tempfile.NamedTemporaryFile(delete=False)
+        download_pb(url, tmp.name)
+        object = gpd.read_parquet(tmp.name)
     else:
+        tmp = tempfile.NamedTemporaryFile(delete=False)
+        download_pb(url, tmp.name)
         object = gpd.read_file(
             url, driver=driver
             )
@@ -291,20 +298,38 @@ def write_vectorfile_s3_shp(object, fs, write_path, driver=None):
         for file_name in list_files_shp
     ]
 
-
-def write_vectorfile_s3_all(
-    level="COMMUNE",
+def write_vectorfile_s3_custom_arrondissement(
     vectorfile_format="geojson",
+    year: int = 2022,
+    provider: str = "IGN",
     decoupage="region",
-    year=2022,
+    source: str = "EXPRESS-COG-TERRITOIRE",
     bucket=BUCKET,
-    path_within_bucket=PATH_WITHIN_BUCKET,
-):
+    path_within_bucket=PATH_WITHIN_BUCKET
+    ):
 
     corresp_decoupage_columns = dict_corresp_decoupage()
     var_decoupage = corresp_decoupage_columns[decoupage]
 
-    # IMPORT SHAPEFILES ------------------
+    object = get_vectorfile_communes_arrondissement(
+        year=year,
+        provider=provider,
+        source=source
+    )
+    write_vectorfile_all_levels(
+            object=object,
+            level="COMMUNE_ARRONDISSEMENT",
+            level_var=var_decoupage,
+            vectorfile_format=vectorfile_format,
+            decoupage=decoupage,
+            year=year,
+        )
+
+
+def create_dict_all_territories(
+    source="EXPRESS-COG-TERRITOIRE", year=2022, 
+    level="COMMUNE"
+):
 
     territories_available = [
         "metropole", "martinique",
@@ -315,9 +340,37 @@ def write_vectorfile_s3_all(
         territories_available = [territories_available[0]]
 
     territories = {
-        f: get_vectorfile_ign(level=level, year=year, field=f)
+        f: get_vectorfile_ign(
+            level=level, year=year, field=f,
+            source=source)
         for f in territories_available
     }
+
+    return territories
+
+
+def write_vectorfile_s3_all(
+    level="COMMUNE",
+    vectorfile_format="geojson",
+    decoupage="region",
+    year=2022,
+    source="EXPRESS-COG-TERRITOIRE",
+    bucket=BUCKET,
+    path_within_bucket=PATH_WITHIN_BUCKET
+):
+
+    corresp_decoupage_columns = dict_corresp_decoupage()
+    var_decoupage = corresp_decoupage_columns[decoupage]
+
+    # IMPORT SHAPEFILES ------------------
+
+    territories = create_dict_all_territories(
+        source=source, year=year, level=level
+    )
+
+    if decoupage.upper() == "FRANCE_ENTIERE":
+        for key, val in territories.items():
+            val["territoire"] = key
 
     # WRITE ALL
 
@@ -335,7 +388,9 @@ def write_vectorfile_s3_all(
 
 def open_vectorfile_from_s3(vectorfile_format, decoupage, year, value):
     read_path = create_path_bucket(
-        vectorfile_format=vectorfile_format, decoupage=decoupage, year=year, value=value
+        vectorfile_format=vectorfile_format,
+        decoupage=decoupage, year=year,
+        value=value
     )
     return fs.open(read_path, mode="r")
 
