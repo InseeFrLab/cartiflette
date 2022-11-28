@@ -31,13 +31,11 @@ normandie = cartiflette.s3.download_vectorfile_url_all(
     vectorfile_format="geojson",
     decoupage="region",
     year=2022)
-
-normandie.plot()
+ax = normandie.plot()
+ax.set_axis_off()
 ```
 
-    <AxesSubplot: >
-
-![](README_files/figure-commonmark/cell-2-output-2.png)
+![](README_files/figure-commonmark/cell-2-output-1.png)
 
 ou des régions Ile de France, Normandie et Bourgogne
 
@@ -48,13 +46,11 @@ regions = cartiflette.s3.download_vectorfile_url_all(
     vectorfile_format="GPKG",
     decoupage="region",
     year=2022)
-
-regions.plot()
+ax = regions.plot()
+ax.set_axis_off()
 ```
 
-    <AxesSubplot: >
-
-![](README_files/figure-commonmark/cell-3-output-2.png)
+![](README_files/figure-commonmark/cell-3-output-1.png)
 
 ``` python
 regions = cartiflette.s3.download_vectorfile_url_all(
@@ -63,12 +59,11 @@ regions = cartiflette.s3.download_vectorfile_url_all(
     vectorfile_format="geojson",
     decoupage="departement",
     year=2022)
-regions.plot()
+ax = regions.plot()
+ax.set_axis_off()
 ```
 
-    <AxesSubplot: >
-
-![](README_files/figure-commonmark/cell-4-output-2.png)
+![](README_files/figure-commonmark/cell-4-output-1.png)
 
 ## Plus de détails
 

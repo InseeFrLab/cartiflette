@@ -36,8 +36,8 @@ normandie = cartiflette.s3.download_vectorfile_url_all(
     vectorfile_format="geojson",
     decoupage="region",
     year=2022)
-normandie.set_axis_off()
-normandie.plot()
+ax = normandie.plot()
+ax.set_axis_off()
 ```
 
 ou des régions Ile de France, Normandie et Bourgogne
@@ -50,8 +50,8 @@ regions = cartiflette.s3.download_vectorfile_url_all(
     vectorfile_format="GPKG",
     decoupage="region",
     year=2022)
-regions.set_axis_off()
-regions.plot()
+ax = regions.plot()
+ax.set_axis_off()
 ```
 
 ```{python}
@@ -61,8 +61,8 @@ regions = cartiflette.s3.download_vectorfile_url_all(
     vectorfile_format="geojson",
     decoupage="departement",
     year=2022)
-regions.set_axis_off()
-regions.plot()
+ax = regions.plot()
+ax.set_axis_off()
 ```
 
 ## Plus de détails
