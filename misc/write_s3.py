@@ -27,16 +27,26 @@ years = [y for y in range(2021, 2023)]
 for format, decoup, year in itertools.product(
     formats, decoupage, years
     ):
-    s3.write_vectorfile_s3_custom(
+    s3.write_vectorfile_s3_custom_arrondissement(
             vectorfile_format="geojson",
             decoupage="departement",
             year=year)
 
-path = store_vectorfile_ign(source="EXPRESS-COG-TERRITOIRE", year=2022, field="metropole")
 
-france = get_vectorfile_ign(
-    source="EXPRESS-COG-TERRITOIRE", year=2022, field="metropole",
-    level = "COMMUNE")
+formats = ["geoparquet", "shp", "gpkg", "geojson"]
+decoupage = ["france_entiere"]
+level = ["COMMUNE", "ARRONDISSEMENT"]
+years = [y for y in range(2021, 2023)]
+for format, decoup, lev, year in itertools.product(
+    formats, decoupage, level, years
+    ):
+    s3.write_vectorfile_s3_all(
+        level=lev,
+        vectorfile_format=format,
+        decoupage=decoup,
+        year=year)
+
+
 
 
 # OLD --------------

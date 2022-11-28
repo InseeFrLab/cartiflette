@@ -362,8 +362,8 @@ def write_vectorfile_s3_all(
         source=source, year=year, level=level
     )
 
-    if level == "FRANCE_ENTIERE":
-        for key, val in object.items():
+    if decoupage.upper() == "FRANCE_ENTIERE":
+        for key, val in territories.items():
             val["territoire"] = key
 
     # WRITE ALL
