@@ -45,7 +45,7 @@ ou des régions Ile de France, Normandie et Bourgogne
 regions = cartiflette.s3.download_vectorfile_url_all(
     values = ["11","27","28"],
     level="COMMUNE",
-    vectorfile_format="geojson",
+    vectorfile_format="GPKG",
     decoupage="region",
     year=2022)
 
@@ -55,6 +55,20 @@ regions.plot()
     <AxesSubplot: >
 
 ![](README_files/figure-commonmark/cell-3-output-2.png)
+
+``` python
+regions = cartiflette.s3.download_vectorfile_url_all(
+    values = ["75", "92", "93", "94"],
+    level="COMMUNE_ARRONDISSEMENT",
+    vectorfile_format="geojson",
+    decoupage="departement",
+    year=2022)
+regions.plot()
+```
+
+    <AxesSubplot: >
+
+![](README_files/figure-commonmark/cell-4-output-2.png)
 
 ## Plus de détails
 
