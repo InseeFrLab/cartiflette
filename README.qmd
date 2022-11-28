@@ -1,6 +1,8 @@
 ---
 title: "cartiflette"
 format: gfm
+message: false
+warning: false
 ---
 
 `cartiflette` est un projet pour faciliter l'association de sources
