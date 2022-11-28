@@ -5,6 +5,7 @@ import os
 import tempfile
 import typing
 import s3fs
+import tempfile
 import pandas as pd
 import geopandas as gpd
 
@@ -13,6 +14,7 @@ from cartiflette.utils import (
     dict_corresp_decoupage,
     create_format_standardized,
     create_format_driver,
+    download_pb
 )
 from cartiflette.download import get_vectorfile_ign, \
     get_vectorfile_communes_arrondissement
@@ -119,7 +121,7 @@ def download_vectorfile_s3_single(
     decoupage="region",
     year=2022,
     bucket=BUCKET,
-    path_within_bucket=PATH_WITHIN_BUCKET,
+    path_within_bucket=PATH_WITHIN_BUCKET
 ):
     # corresp_decoupage_columns = dict_corresp_decoupage()
     format_standardized = create_format_standardized()
@@ -134,7 +136,7 @@ def download_vectorfile_s3_single(
         level=level,
         decoupage=decoupage,
         year=year,
-        value=value,
+        value=value
     )
 
     try:
@@ -193,8 +195,12 @@ def download_vectorfile_url_single(
     if format_read == "shp":
         print("Not yet implemented")
     elif format_read == "parquet":
-        object = gpd.read_parquet(url)
+        tmp = tempfile.NamedTemporaryFile(delete=False)
+        download_pb(url, tmp.name)
+        object = gpd.read_parquet(tmp.name)
     else:
+        tmp = tempfile.NamedTemporaryFile(delete=False)
+        download_pb(url, tmp.name)
         object = gpd.read_file(
             url, driver=driver
             )
