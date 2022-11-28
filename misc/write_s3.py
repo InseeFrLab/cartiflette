@@ -32,6 +32,12 @@ for format, decoup, year in itertools.product(
             decoupage="departement",
             year=year)
 
+path = store_vectorfile_ign(source="EXPRESS-COG-TERRITOIRE", year=2022, field="metropole")
+
+france = get_vectorfile_ign(
+    source="EXPRESS-COG-TERRITOIRE", year=2022, field="metropole",
+    level = "COMMUNE")
+
 
 # OLD --------------
 

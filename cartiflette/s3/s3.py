@@ -292,7 +292,7 @@ def write_vectorfile_s3_shp(object, fs, write_path, driver=None):
         for file_name in list_files_shp
     ]
 
-def write_vectorfile_s3_custom(
+def write_vectorfile_s3_custom_arrondissement(
     vectorfile_format="geojson",
     year: int = 2022,
     provider: str = "IGN",
@@ -319,20 +319,11 @@ def write_vectorfile_s3_custom(
             year=year,
         )
 
-def write_vectorfile_s3_all(
-    level="COMMUNE",
-    vectorfile_format="geojson",
-    decoupage="region",
-    year=2022,
-    source="EXPRESS-COG-TERRITOIRE",
-    bucket=BUCKET,
-    path_within_bucket=PATH_WITHIN_BUCKET
+
+def create_dict_all_territories(
+    source="EXPRESS-COG-TERRITOIRE", year=2022, 
+    level="COMMUNE"
 ):
-
-    corresp_decoupage_columns = dict_corresp_decoupage()
-    var_decoupage = corresp_decoupage_columns[decoupage]
-
-    # IMPORT SHAPEFILES ------------------
 
     territories_available = [
         "metropole", "martinique",
@@ -348,6 +339,32 @@ def write_vectorfile_s3_all(
             source=source)
         for f in territories_available
     }
+
+    return territories
+
+
+def write_vectorfile_s3_all(
+    level="COMMUNE",
+    vectorfile_format="geojson",
+    decoupage="region",
+    year=2022,
+    source="EXPRESS-COG-TERRITOIRE",
+    bucket=BUCKET,
+    path_within_bucket=PATH_WITHIN_BUCKET
+):
+
+    corresp_decoupage_columns = dict_corresp_decoupage()
+    var_decoupage = corresp_decoupage_columns[decoupage]
+
+    # IMPORT SHAPEFILES ------------------
+
+    territories = create_dict_all_territories(
+        source=source, year=year, level=level
+    )
+
+    if level == "FRANCE_ENTIERE":
+        for key, val in object.items():
+            val["territoire"] = key
 
     # WRITE ALL
 
