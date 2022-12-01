@@ -8,6 +8,7 @@ import typing
 import tempfile
 import zipfile
 import py7zr
+import numpy as np
 import pandas as pd
 import geopandas as gpd
 
@@ -424,6 +425,12 @@ def get_vectorfile_communes_arrondissement(
     df_enrichi = pd.concat([
         communes_sans_grandes_villes, arrondissement_extra_info
     ])
+
+    df_enrichi['INSEE_COG'] = np.where(
+        df_enrichi['INSEE_ARM'].isnull(),
+        df_enrichi["INSEE_COM"],
+        df_enrichi['INSEE_ARM'] 
+    )
 
     return df_enrichi
 
