@@ -212,7 +212,7 @@ def download_store_admin_express(
     dict_source = dict_open_data[provider]["ADMINEXPRESS"][source]
 
     if year is None:
-        year = max(dict_source.keys())
+        year = max([i for i in dict_source.keys() if i not in ("field", "FTP")])
 
     if location is None:
         location = tempfile.gettempdir()
