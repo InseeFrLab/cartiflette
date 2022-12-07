@@ -1,5 +1,5 @@
-cartiflette
-================
+
+# `cartiflette` <img src="cartiflette.png" align="right" height="139" />
 
 `cartiflette` est un projet pour faciliter l’association de sources
 géographiques en proposant des récupérations facilitées de coutours de
