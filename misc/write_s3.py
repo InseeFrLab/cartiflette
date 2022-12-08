@@ -21,7 +21,8 @@ for format, decoup, lev, year in itertools.product(
         year=year)
 
 
-formats = ["geoparquet", "shp", "gpkg", "geojson"]
+#formats = ["geoparquet", "shp", "gpkg", "geojson"]
+formats = "geojson"
 decoupage = ["region", "departement"]
 years = [y for y in range(2021, 2023)]
 for format, decoup, year in itertools.product(
