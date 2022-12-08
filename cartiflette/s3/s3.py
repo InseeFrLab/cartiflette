@@ -253,6 +253,10 @@ def write_vectorfile_subset(
     elif format_write == "parquet":
         with fs.open(write_path, "wb") as f:
             object_subset.to_parquet(f)
+    elif format_write == "geojson":
+        object_subset = object_subset.to_crs(4326)
+        with fs.open(write_path, "wb") as f:
+            object_subset.to_parquet(f)
     else:
         with fs.open(write_path, "wb") as f:
             object_subset.to_file(f, driver=driver)
