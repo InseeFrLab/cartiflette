@@ -246,15 +246,14 @@ def write_vectorfile_subset(
         object, corresp_decoupage_columns[decoupage], value
     )
 
+    if format_write == "geojson":
+        object_subset = object_subset.to_crs(4326)
+        
     if format_write == "shp":
         write_vectorfile_s3_shp(
             object=object_subset, fs=fs, write_path=write_path, driver=driver
         )
     elif format_write == "parquet":
-        with fs.open(write_path, "wb") as f:
-            object_subset.to_parquet(f)
-    elif format_write == "geojson":
-        object_subset = object_subset.to_crs(4326)
         with fs.open(write_path, "wb") as f:
             object_subset.to_parquet(f)
     else:
