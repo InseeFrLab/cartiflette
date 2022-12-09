@@ -269,17 +269,15 @@ def store_vectorfile_ign(
     Returns:
         str: Returns where file is stored on filesystem.
     """
-
     path_cache_ign = download_store_admin_express(
         source=source,
         year=year,
         provider=provider,
         field=field) #returns path where datasets are stored
     
-    full_path_shp = glob.glob(
-        f"{path_cache_ign}/**/*.shp", recursive=True
-        )
-    shp_location = os.path.dirname(full_path_shp[0])
+    dict_open_data = import_yaml_config()
+    dict_source = dict_open_data[provider]["ADMINEXPRESS"][source]
+    shp_location = f"{path_cache_ign[0]}/{dict_source['field']['prefix']}{dict_source['field'][field]}"
 
     return shp_location
 
