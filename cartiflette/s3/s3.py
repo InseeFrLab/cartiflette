@@ -32,7 +32,8 @@ def create_url_s3(
     level="COMMUNE",
     decoupage="region",
     year="2022",
-    value="28"    
+    value="28",
+    crs = 2154  
 ):
 
     path_within = create_path_bucket(
@@ -42,7 +43,8 @@ def create_url_s3(
         level=level,
         decoupage=decoupage,
         year=year,
-        value=value    
+        crs=crs,
+        value=value
     )
     return f"{ENDPOINT_URL}/{path_within}"
 
@@ -55,10 +57,12 @@ def create_path_bucket(
     decoupage="region",
     year="2022",
     value="28",
+    crs=2154
 ):
 
     write_path = f"{bucket}/{path_within_bucket}/{year}"
     write_path = f"{write_path}/{level}"
+    write_path = f"{write_path}/crs{crs}"
     write_path = f"{write_path}/{decoupage}/{value}/{vectorfile_format}"
     write_path = f"{write_path}/raw.{vectorfile_format}"
 
@@ -121,7 +125,8 @@ def download_vectorfile_s3_single(
     decoupage="region",
     year=2022,
     bucket=BUCKET,
-    path_within_bucket=PATH_WITHIN_BUCKET
+    path_within_bucket=PATH_WITHIN_BUCKET,
+    crs=2154
 ):
     # corresp_decoupage_columns = dict_corresp_decoupage()
     format_standardized = create_format_standardized()
@@ -136,7 +141,8 @@ def download_vectorfile_s3_single(
         level=level,
         decoupage=decoupage,
         year=year,
-        value=value
+        value=value,
+        crs=crs
     )
 
     try:
@@ -217,6 +223,7 @@ def write_vectorfile_subset(
     year=2022,
     bucket=BUCKET,
     path_within_bucket=PATH_WITHIN_BUCKET,
+    crs=2154
 ):
 
     corresp_decoupage_columns = dict_corresp_decoupage()
@@ -233,6 +240,7 @@ def write_vectorfile_subset(
         decoupage=decoupage,
         year=year,
         value=value,
+        crs=crs
     )
 
     if fs.exists(write_path):
@@ -247,11 +255,18 @@ def write_vectorfile_subset(
     )
 
     if format_write == "geojson":
-        object_subset = object_subset.to_crs(4326)
+        if crs != 4326:
+            print("geojson are supposed to adopt EPSG 4326\
+                Forcing the projection used")
+            crs = 4326
+    
+    if object_subset.crs != crs:
+        object_subset = object_subset.to_crs(crs)
         
     if format_write == "shp":
         write_vectorfile_s3_shp(
-            object=object_subset, fs=fs, write_path=write_path, driver=driver
+            object=object_subset, fs=fs,
+            write_path=write_path, driver=driver
         )
     elif format_write == "parquet":
         with fs.open(write_path, "wb") as f:
@@ -270,6 +285,7 @@ def write_vectorfile_all_levels(
     year=2022,
     bucket=BUCKET,
     path_within_bucket=PATH_WITHIN_BUCKET,
+    crs=2154
 ):
 
     [
@@ -281,7 +297,8 @@ def write_vectorfile_all_levels(
             bucket=bucket,
             path_within_bucket=path_within_bucket,
             value=obs,
-            level=level
+            level=level,
+            crs=crs
         )
         for obs in object[level_var].unique()
     ]
@@ -308,7 +325,8 @@ def write_vectorfile_s3_custom_arrondissement(
     decoupage="region",
     source: str = "EXPRESS-COG-TERRITOIRE",
     bucket=BUCKET,
-    path_within_bucket=PATH_WITHIN_BUCKET
+    path_within_bucket=PATH_WITHIN_BUCKET,
+    crs=2154
     ):
 
     corresp_decoupage_columns = dict_corresp_decoupage()
@@ -326,6 +344,7 @@ def write_vectorfile_s3_custom_arrondissement(
             vectorfile_format=vectorfile_format,
             decoupage=decoupage,
             year=year,
+            crs=crs
         )
 
 
@@ -359,8 +378,15 @@ def write_vectorfile_s3_all(
     year=2022,
     source="EXPRESS-COG-TERRITOIRE",
     bucket=BUCKET,
-    path_within_bucket=PATH_WITHIN_BUCKET
+    path_within_bucket=PATH_WITHIN_BUCKET,
+    crs: int = None
 ):
+
+    if crs is None:
+        if vectorfile_format == "geojson":
+            crs = 4326
+        else:
+            crs = 2154
 
     corresp_decoupage_columns = dict_corresp_decoupage()
     var_decoupage = corresp_decoupage_columns[decoupage]
@@ -386,6 +412,7 @@ def write_vectorfile_s3_all(
             vectorfile_format=vectorfile_format,
             decoupage=decoupage,
             year=year,
+            crs=crs
         )
 
 
@@ -393,7 +420,8 @@ def open_vectorfile_from_s3(vectorfile_format, decoupage, year, value):
     read_path = create_path_bucket(
         vectorfile_format=vectorfile_format,
         decoupage=decoupage, year=year,
-        value=value
+        value=value,
+        crs=crs
     )
     return fs.open(read_path, mode="r")
 
@@ -419,7 +447,8 @@ def write_vectorfile_from_s3(
         vectorfile_format=vectorfile_format,
         decoupage=decoupage,
         year=year,
-        value=value
+        value=value,
+        crs=crs
     )
 
     fs.download(read_path, filename)
