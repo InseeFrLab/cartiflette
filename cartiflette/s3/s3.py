@@ -5,9 +5,9 @@ import os
 import tempfile
 import typing
 import s3fs
-import tempfile
 import pandas as pd
 import geopandas as gpd
+from topojson import Topology
 
 from cartiflette.utils import (
     keep_subset_geopandas,
@@ -297,7 +297,7 @@ def write_vectorfile_subset(
         object, corresp_decoupage_columns[decoupage], value
     )
 
-    if format_write.lower() == "geojson":
+    if format_write.lower() in ["geojson", "topojson"]:
         if crs != 4326:
             print("geojson are supposed to adopt EPSG 4326\
                 Forcing the projection used")
@@ -314,6 +314,11 @@ def write_vectorfile_subset(
     elif format_write == "parquet":
         with fs.open(write_path, "wb") as f:
             object_subset.to_parquet(f)
+    elif format_write == "topojson":
+        tdir = tempfile.TemporaryDirectory()
+        object_topo = Topology(object_subset)
+        object_topo.to_json(tdir.name)
+        fs.put(tdir.name, write_path)
     else:
         with fs.open(write_path, "wb") as f:
             object_subset.to_file(f, driver=driver)
