@@ -8,10 +8,11 @@ from cartiflette.download import get_administrative_level_available_ign
 
 
 #formats = ["geoparquet", "shp", "gpkg", "geojson"]
-formats = ["geojson"]
+formats = ["gpkg"]
 decoupage = ["region", "departement"]
 level = ["COMMUNE", "ARRONDISSEMENT"]
-years = [y for y in range(2021, 2023)]
+#years = [y for y in range(2021, 2023)]
+years = [2021]
 for format, decoup, lev, year in itertools.product(
     formats, decoupage, level, years
     ):

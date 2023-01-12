@@ -25,6 +25,20 @@ ENDPOINT_URL = "https://minio.lab.sspcloud.fr"
 
 fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL})
 
+# UTILITIES --------------------------------
+
+def standardize_inputs(vectorfile_format):
+    corresp_decoupage_columns = dict_corresp_decoupage()
+    format_standardized = create_format_standardized()
+    gpd_driver = create_format_driver()
+    format_write = format_standardized[vectorfile_format.lower()]
+    driver = gpd_driver[format_write]
+    return corresp_decoupage_columns, format_write, driver
+
+
+
+# CREATE STANDARDIZED PATHS ------------------------
+
 def create_url_s3(
     bucket=BUCKET,
     path_within_bucket=PATH_WITHIN_BUCKET,
@@ -69,6 +83,9 @@ def create_path_bucket(
     if vectorfile_format == "shp":
         write_path = write_path.rsplit("/", maxsplit=1)[0] + "/"
     return write_path
+
+
+# DOWNLOAD FROM S3 --------------------------
 
 def download_vectorfile_s3_all(
     values: typing.Union[list, str, int, float] = "28",
@@ -128,11 +145,10 @@ def download_vectorfile_s3_single(
     path_within_bucket=PATH_WITHIN_BUCKET,
     crs=2154
 ):
-    # corresp_decoupage_columns = dict_corresp_decoupage()
-    format_standardized = create_format_standardized()
-    gpd_driver = create_format_driver()
-    format_read = format_standardized[vectorfile_format.lower()]
-    driver = gpd_driver[format_read]
+
+    corresp_decoupage_columns, \
+        format_read, \
+        driver = standardize_inputs(vectorfile_format)
 
     read_path = create_path_bucket(
         bucket=bucket,
@@ -183,15 +199,14 @@ def download_vectorfile_url_single(
     path_within_bucket=PATH_WITHIN_BUCKET
 ):
 
-    format_standardized = create_format_standardized()
-    gpd_driver = create_format_driver()
-    format_read = format_standardized[vectorfile_format.lower()]
-    driver = gpd_driver[format_read]
+    corresp_decoupage_columns, \
+        format_read, \
+        driver = standardize_inputs(vectorfile_format)
 
     url = create_url_s3(
         value=value,
         level=level,
-        vectorfile_format=vectorfile_format,
+        vectorfile_format=format_read,
         decoupage=decoupage,
         year=year,
         bucket=bucket,
@@ -214,6 +229,8 @@ def download_vectorfile_url_single(
     return object
 
 
+# UPLOAD S3 -------------------------------
+
 def write_vectorfile_subset(
     object,
     value="28",
@@ -226,11 +243,9 @@ def write_vectorfile_subset(
     crs=2154
 ):
 
-    corresp_decoupage_columns = dict_corresp_decoupage()
-    format_standardized = create_format_standardized()
-    gpd_driver = create_format_driver()
-    format_write = format_standardized[vectorfile_format.lower()]
-    driver = gpd_driver[format_write]
+    corresp_decoupage_columns, \
+        format_write, \
+        driver = standardize_inputs(vectorfile_format)
 
     write_path = create_path_bucket(
         bucket=bucket,
