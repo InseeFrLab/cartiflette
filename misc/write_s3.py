@@ -10,17 +10,28 @@ from cartiflette.download import get_administrative_level_available_ign
 formats = ["geoparquet", "shp", "gpkg", "geojson"]
 #formats = ["gpkg"]
 decoupage = ["region", "departement"]
-level = ["COMMUNE", "ARRONDISSEMENT", "COMMUNE_ARRONDISSEMENT"]
+level = ["COMMUNE", "ARRONDISSEMENT"]
+#level = ["COMMUNE_ARRONDISSEMENT"]
 years = [y for y in range(2021, 2023)]
+crs_list = [4326, 2154, "official"]
+
 #years = [2021]
-for format, decoup, lev, year in itertools.product(
-    formats, decoupage, level, years
+for format, decoup, lev, year, epsg in itertools.product(
+    formats, decoupage, level, years, crs_list
     ):
+    print(80*'==' + "\n" \
+        f"level={lev}\nvectorfile_format={format}\n" \
+        f"decoupage={decoup}\nyear={year}\n" \
+        f"crs={epsg}"
+        )
     s3.write_vectorfile_s3_all(
         level=lev,
         vectorfile_format=format,
         decoupage=decoup,
-        year=year)
+        year=year,
+        crs=epsg,
+        provider="IGN")
+
 
 
 formats = ["geoparquet", "shp", "gpkg", "geojson"]

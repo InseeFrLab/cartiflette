@@ -14,7 +14,8 @@ from cartiflette.utils import (
     dict_corresp_decoupage,
     create_format_standardized,
     create_format_driver,
-    download_pb
+    download_pb,
+    official_epsg_codes
 )
 from cartiflette.download import get_vectorfile_ign, \
     get_vectorfile_communes_arrondissement
@@ -28,13 +29,40 @@ fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL})
 # UTILITIES --------------------------------
 
 def standardize_inputs(vectorfile_format):
+    
     corresp_decoupage_columns = dict_corresp_decoupage()
     format_standardized = create_format_standardized()
     gpd_driver = create_format_driver()
     format_write = format_standardized[vectorfile_format.lower()]
     driver = gpd_driver[format_write]
+
     return corresp_decoupage_columns, format_write, driver
 
+
+def create_dict_all_territories(
+    provider="IGN",
+    source="EXPRESS-COG-TERRITOIRE",
+    year=2022, 
+    level="COMMUNE"
+):
+
+    territories_available = [
+        "metropole", "martinique",
+        "reunion", "guadeloupe", "guyane"
+        ]
+    
+    if level == "ARRONDISSEMENT_MUNICIPAL":
+        territories_available = [territories_available[0]]
+
+    territories = {
+        f: get_vectorfile_ign(
+            provider=provider,
+            level=level, year=year, field=f,
+            source=source)
+        for f in territories_available
+    }
+
+    return territories
 
 
 # CREATE STANDARDIZED PATHS ------------------------
@@ -269,7 +297,7 @@ def write_vectorfile_subset(
         object, corresp_decoupage_columns[decoupage], value
     )
 
-    if format_write == "geojson":
+    if format_write.lower() == "geojson":
         if crs != 4326:
             print("geojson are supposed to adopt EPSG 4326\
                 Forcing the projection used")
@@ -363,27 +391,7 @@ def write_vectorfile_s3_custom_arrondissement(
         )
 
 
-def create_dict_all_territories(
-    source="EXPRESS-COG-TERRITOIRE", year=2022, 
-    level="COMMUNE"
-):
 
-    territories_available = [
-        "metropole", "martinique",
-        "reunion", "guadeloupe", "guyane"
-        ]
-    
-    if level == "ARRONDISSEMENT_MUNICIPAL":
-        territories_available = [territories_available[0]]
-
-    territories = {
-        f: get_vectorfile_ign(
-            level=level, year=year, field=f,
-            source=source)
-        for f in territories_available
-    }
-
-    return territories
 
 
 def write_vectorfile_s3_all(
@@ -391,6 +399,7 @@ def write_vectorfile_s3_all(
     vectorfile_format="geojson",
     decoupage="region",
     year=2022,
+    provider="IGN",
     source="EXPRESS-COG-TERRITOIRE",
     bucket=BUCKET,
     path_within_bucket=PATH_WITHIN_BUCKET,
@@ -398,10 +407,11 @@ def write_vectorfile_s3_all(
 ):
 
     if crs is None:
-        if vectorfile_format == "geojson":
+        if vectorfile_format.lower() == "geojson":
             crs = 4326
         else:
             crs = 2154
+
 
     corresp_decoupage_columns = dict_corresp_decoupage()
     var_decoupage = corresp_decoupage_columns[decoupage]
@@ -409,8 +419,11 @@ def write_vectorfile_s3_all(
     # IMPORT SHAPEFILES ------------------
 
     territories = create_dict_all_territories(
+        provider=provider,
         source=source, year=year, level=level
     )
+
+
 
     if decoupage.upper() == "FRANCE_ENTIERE":
         for key, val in territories.items():
@@ -419,7 +432,14 @@ def write_vectorfile_s3_all(
     # WRITE ALL
 
     for territory in territories:
+        
         print(f"Writing {territory}")
+        
+        if crs == "official":
+            epsg = official_epsg_codes()[territory]
+        else:
+            epsg = crs
+        
         write_vectorfile_all_levels(
             object=territories[territory],
             level=level,
@@ -427,11 +447,11 @@ def write_vectorfile_s3_all(
             vectorfile_format=vectorfile_format,
             decoupage=decoupage,
             year=year,
-            crs=crs
+            crs=epsg
         )
 
 
-def open_vectorfile_from_s3(vectorfile_format, decoupage, year, value):
+def open_vectorfile_from_s3(vectorfile_format, decoupage, year, value, crs):
     read_path = create_path_bucket(
         vectorfile_format=vectorfile_format,
         decoupage=decoupage, year=year,
@@ -447,6 +467,7 @@ def write_vectorfile_from_s3(
     year: int,
     value: str,
     vectorfile_format: str = "geojson",
+    crs: int = 2154
 ):
     """Retrieve shapefiles stored in S3
 
