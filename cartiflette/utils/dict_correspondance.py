@@ -37,6 +37,7 @@ def create_format_standardized() -> dict:
         "shapefile": "shp",
         "geoparquet": "parquet",
         "parquet": "parquet",
+        "topojson": "topojson"
     }
     return format_standardized
 
@@ -48,7 +49,11 @@ def create_format_driver() -> dict:
         dict: Geopandas driver as well as user-prompted
          format
     """
-    gpd_driver = {"geojson": "GeoJSON", "GPKG": "GPKG", "shp": None, "parquet": None}
+    gpd_driver = {
+        "geojson": "GeoJSON",
+        "GPKG": "GPKG", "shp": None,
+        "parquet": None,
+        "topojson": None}
     return gpd_driver
 
 

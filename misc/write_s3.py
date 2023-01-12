@@ -7,11 +7,11 @@ import cartiflette.s3 as s3
 from cartiflette.download import get_administrative_level_available_ign
 
 
-formats = ["geoparquet", "shp", "gpkg", "geojson"]
-#formats = ["gpkg"]
+#formats = ["geoparquet", "shp", "gpkg", "geojson"]
+formats = ["topojson"]
 decoupage = ["region", "departement"]
-level = ["COMMUNE", "ARRONDISSEMENT"]
-#level = ["COMMUNE_ARRONDISSEMENT"]
+#level = ["COMMUNE", "ARRONDISSEMENT"]
+level = ["ARRONDISSEMENT"]
 years = [y for y in range(2021, 2023)]
 crs_list = [4326, 2154, "official"]
 
