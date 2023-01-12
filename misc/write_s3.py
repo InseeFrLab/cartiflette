@@ -7,12 +7,12 @@ import cartiflette.s3 as s3
 from cartiflette.download import get_administrative_level_available_ign
 
 
-#formats = ["geoparquet", "shp", "gpkg", "geojson"]
-formats = ["gpkg"]
+formats = ["geoparquet", "shp", "gpkg", "geojson"]
+#formats = ["gpkg"]
 decoupage = ["region", "departement"]
-level = ["COMMUNE", "ARRONDISSEMENT"]
-#years = [y for y in range(2021, 2023)]
-years = [2021]
+level = ["COMMUNE", "ARRONDISSEMENT", "COMMUNE_ARRONDISSEMENT"]
+years = [y for y in range(2021, 2023)]
+#years = [2021]
 for format, decoup, lev, year in itertools.product(
     formats, decoupage, level, years
     ):
