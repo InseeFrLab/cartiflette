@@ -50,3 +50,14 @@ def create_format_driver() -> dict:
     """
     gpd_driver = {"geojson": "GeoJSON", "GPKG": "GPKG", "shp": None, "parquet": None}
     return gpd_driver
+
+
+def official_epsg_codes() -> dict:
+    crs_list = {
+        "metropole": 2154,
+        "martinique": 5490,
+        "reunion": 2975,
+        "guadeloupe": 5490,
+        "guyane": 2972
+        }
+    return crs_list
