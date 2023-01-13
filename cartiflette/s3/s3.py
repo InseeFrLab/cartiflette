@@ -68,15 +68,31 @@ def create_dict_all_territories(
 # CREATE STANDARDIZED PATHS ------------------------
 
 def create_url_s3(
-    bucket=BUCKET,
-    path_within_bucket=PATH_WITHIN_BUCKET,
-    vectorfile_format="geojson",
-    level="COMMUNE",
-    decoupage="region",
-    year="2022",
-    value="28",
-    crs = 2154  
-):
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
+    vectorfile_format: str = "geojson",
+    level: str = "COMMUNE",
+    decoupage: str = "region",
+    year: typing.Union[str, int, float] = "2022",
+    value: typing.Union[str, int, float] = "28",
+    crs: typing.Union[list, str, int, float] = 2154  
+) -> str :
+    """
+    This function creates a URL for a vector file stored in an S3 bucket.
+
+    Parameters:
+    bucket (str): The name of the bucket where the file is stored. Default is BUCKET.
+    path_within_bucket (str): The path within the bucket where the file is stored. Default is PATH_WITHIN_BUCKET.
+    vectorfile_format (str): The format of the vector file, can be "geojson", "topojson", "gpkg" or "shp". Default is "geojson".
+    level (str): The administrative level of the tiles within the vector file. Can be any administrative level provided by IGN, e.g. "COMMUNE", "DEPARTEMENT" or "REGION". Default is "COMMUNE".
+    decoupage (str): The administrative level (supra to 'level') that will be used to cut the vector file in pieces when writing to S3. For instance, if level is "DEPARTEMENT", decoupage can be "REGION" or "FRANCE_ENTIERE". Default is "region".
+    year (typing.Union[str, int, float]): The year of the vector file. Default is "2022".
+    value (typing.Union[str, int, float]): The value of the vector file. Default is "28".
+    crs (typing.Union[list, str, int, float]): The coordinate reference system of the vector file. Default is 2154.
+
+    Returns:
+    str: The URL of the vector file stored in S3
+    """
 
     path_within = create_path_bucket(
         bucket=bucket,
@@ -92,15 +108,38 @@ def create_url_s3(
 
 
 def create_path_bucket(
-    bucket=BUCKET,
-    path_within_bucket=PATH_WITHIN_BUCKET,
-    vectorfile_format="geojson",
-    level="COMMUNE",
-    decoupage="region",
-    year="2022",
-    value="28",
-    crs=2154
-):
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
+    vectorfile_format: str ="geojson",
+    level: str = "COMMUNE",
+    decoupage: str = "region",
+    year: typing.Union[str, int, float] = "2022",
+    value: typing.Union[str, int, float] = "28",
+    crs: typing.Union[str, int, float] = 2154
+) -> str :
+    """
+    This function creates a file path for a vector file within a specified bucket.
+
+    Parameters:
+    bucket (str): The name of the bucket where the file will be stored.
+    path_within_bucket (str): The path within the bucket where the file will be stored.
+    vectorfile_format (str): The format of the vector file,
+        can be "geojson", "topojson", "gpkg" or "shp". Default is "geojson".
+    level (str): The administrative level of the tiles within the vector file.
+        Can be any administrative
+        level provided by IGN, e.g. "COMMUNE", "DEPARTEMENT" or "REGION". Default is "COMMUNE".
+    decoupage (str): The administrative level (supra to 'level') that will be
+        used to cut the vector file in pieces when writing to S3. For instance, if
+        level is "DEPARTEMENT", decoupage can be "REGION" or "FRANCE_ENTIERE".
+        Default is "region".        
+    year (str): The year of the vector file. Default is "2022".
+    value (str): The value of the vector file. Default is "28".
+    crs (int): The coordinate reference system of the vector file. Default is 2154.
+
+    Returns:
+    str: The complete file path for the vector file that will be used to read
+    or write when interacting with S3 storage
+    """
 
     write_path = f"{bucket}/{path_within_bucket}/{year}"
     write_path = f"{write_path}/{level}"
@@ -218,14 +257,32 @@ def download_vectorfile_s3_single(
     return object
 
 def download_vectorfile_url_single(
-    value="28",
-    level="COMMUNE",
-    vectorfile_format="geojson",
-    decoupage="region",
-    year=2022,
-    bucket=BUCKET,
-    path_within_bucket=PATH_WITHIN_BUCKET
+    value: str = "28",
+    level: str = "COMMUNE",
+    vectorfile_format: str = "geojson",
+    decoupage: str = "region",
+    year: typing.Union[str, int, float] = 2022,
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET
 ):
+    """
+    This function downloads a vector file from a specified S3 bucket and returns it as a GeoPandas object.
+
+    Parameters:
+    value (str or int): The value of the vector file. Default is "28".
+    level (str): The administrative level of the tiles within the vector file.
+        Can be any administrative level provided by IGN, e.g. "COMMUNE", "DEPARTEMENT" or "REGION". Default is "COMMUNE".
+    vectorfile_format (str): The format of the vector file,
+        can be "geojson", "topojson", "gpkg" or "shp". Default is "geojson".
+    decoupage (str): The administrative level (supra to 'level') that will be used to cut the vector file in pieces when writing to S3.
+        For instance, if level is "DEPARTEMENT", decoupage can be "REGION" or "FRANCE_ENTIERE". Default is "region".
+    year (int or float): The year of the vector file. Default is 2022.
+    bucket (str): The name of the bucket where the file is stored. Default is inherited from package configuration.
+    path_within_bucket (str): The path within the bucket where the file is stored. Default is PATH_WITHIN_BUCKET.
+
+    Returns:
+    gpd.GeoDataFrame: The vector file as a GeoPandas object
+    """
 
     corresp_decoupage_columns, \
         format_read, \
@@ -286,6 +343,10 @@ def write_vectorfile_subset(
         crs=crs
     )
 
+    print(
+        f'Writing file at {write_path} location'
+    )
+
     if fs.exists(write_path):
         if format_write == "shp":
             dir_s3 = write_path
@@ -294,7 +355,7 @@ def write_vectorfile_subset(
             fs.rm(write_path)  # single file
 
     object_subset = keep_subset_geopandas(
-        object, corresp_decoupage_columns[decoupage], value
+        object, corresp_decoupage_columns[decoupage.lower()], value
     )
 
     if format_write.lower() in ["geojson", "topojson"]:
@@ -407,7 +468,7 @@ def write_vectorfile_s3_all(
     provider="IGN",
     source="EXPRESS-COG-TERRITOIRE",
     bucket=BUCKET,
-    £µ,
+    path_within_bucket=PATH_WITHIN_BUCKET,
     crs: int = None
 ):
 
@@ -417,24 +478,41 @@ def write_vectorfile_s3_all(
         else:
             crs = "official"
 
-
     corresp_decoupage_columns = dict_corresp_decoupage()
-    var_decoupage = corresp_decoupage_columns[decoupage]
+
+    #if decoupage.upper() == "FRANCE_ENTIERE":
+    #    import_file = level.upper()
+    #else:
+    #    import_file = decoupage.upper()
+
+    var_decoupage_s3 = corresp_decoupage_columns[decoupage.lower()]
+    level_read = level.upper()
+
+    #if level.upper() == "FRANCE_ENTIERE":
+        #level_read = decoupage.upper()
+        #var_decoupage_s3 = "territoire"
 
     # IMPORT SHAPEFILES ------------------
 
     territories = create_dict_all_territories(
         provider=provider,
-        source=source, year=year, level=level
+        source=source, year=year, level=level_read
     )
 
 
-
+    # For whole France, we need to combine everything together
+    # into new key "territoire"
     if decoupage.upper() == "FRANCE_ENTIERE":
         for key, val in territories.items():
             val["territoire"] = key
 
     # WRITE ALL
+    #if level.upper() == "FRANCE_ENTIERE":
+        #level_to_write = decoupage
+        #decoupage_name = level
+    #else:
+        #level_to_write = level
+        #decoupage_name = decoupage
 
     for territory in territories:
         
@@ -445,10 +523,11 @@ def write_vectorfile_s3_all(
         else:
             epsg = crs
         
+
         write_vectorfile_all_levels(
             object=territories[territory],
             level=level,
-            level_var=var_decoupage,
+            level_var=var_decoupage_s3,
             vectorfile_format=vectorfile_format,
             decoupage=decoupage,
             year=year,

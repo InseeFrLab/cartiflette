@@ -13,6 +13,27 @@ france = get_vectorfile_ign(
 
 ### OLD
 
+
+
+territories = create_dict_all_territories(
+    provider=provider,
+    source=source, year=year, level="REGION"
+)
+
+    if decoupage.upper() == "FRANCE_ENTIERE":
+        for key, val in territories.items():
+            val["territoire"] = key
+
+
+
+
+print(
+    os.listdir("/tmp/EXPRESS-COG-TERRITOIRE-2022/metropole/ADMIN-EXPRESS-COG_3-1__SHP_LAMB93_FXX_2022-04-15/ADMIN-EXPRESS-COG/1_DONNEES_LIVRAISON_2022-04-15/ADECOG_3-1_SHP_LAMB93_FXX")
+)
+
+
+
+
 import dev
 levels_year = [[y, dev.get_administrative_level_available_ign(year=y, verbose=False)] for y in range(2017,2023)]
 

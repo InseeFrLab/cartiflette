@@ -9,22 +9,23 @@ from cartiflette.download import get_administrative_level_available_ign
 
 #formats = ["geoparquet", "shp", "gpkg", "geojson"]
 formats = ["topojson"]
-#decoupage = ["region", "departement"]
-decoupage = ["departement"]
-level = ["COMMUNE", "ARRONDISSEMENT"]
 #level = ["ARRONDISSEMENT"]
 years = [y for y in range(2021, 2023)]
 #crs_list = [4326, 2154, "official"]
 crs_list = [4326]
 
 croisement_decoupage_level = {
-    # structure -> level: [decoupages]
-    "region": ['COMMUNE', 'ARRONDISSEMENT', 'DEPARTEMENT'],
-    "departement": ['COMMUNE', 'ARRONDISSEMENT']
+    ## structure -> niveau geo: [niveau decoupage macro],
+    "REGION": ["FRANCE_ENTIERE"]
+    #"DEPARTEMENT":["REGION", "FRANCE_ENTIERE"],
+    #"france_entiere": ['COMMUNE', 'ARRONDISSEMENT', 'DEPARTEMENT', "REGION"],
+    #"departement": ['COMMUNE', 'ARRONDISSEMENT']
 }
 
 croisement_decoupage_level_flat = [
-    [key, inner_value] for key, values in croisement_decoupage_level.items() for inner_value in values
+    [key, inner_value] \
+        for key, values in croisement_decoupage_level.items() \
+            for inner_value in values
     ]
 
 #years = [2021]
