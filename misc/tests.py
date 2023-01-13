@@ -23,68 +23,6 @@ import itertools
 import cartiflette.s3 as s3
 from cartiflette.download import get_administrative_level_available_ign
 
-croisement_decoupage_level = {
-    ## structure -> niveau geo: [niveau decoupage macro],
-    "REGION": ["FRANCE_ENTIERE"],
-    "DEPARTEMENT": ["FRANCE_ENTIERE"]
-    #"DEPARTEMENT":["REGION", "FRANCE_ENTIERE"],
-    #"france_entiere": ['COMMUNE', 'ARRONDISSEMENT', 'DEPARTEMENT', "REGION"],
-    #"departement": ['COMMUNE', 'ARRONDISSEMENT']
-}
-
-croisement_decoupage_level_flat = [
-    [key, inner_value] \
-        for key, values in croisement_decoupage_level.items() \
-            for inner_value in values
-    ]
-
-topo = tp.Topology(data=[gdf_1, gdf_2], object_name=['geom_1', 'geom_2'], prequantize=False)
-
-
-def create_territories(
-    level="COMMUNE",
-    decoupage="region",
-    vectorfile_format="geojson",
-    year=2022,
-    provider="IGN",
-    source="EXPRESS-COG-TERRITOIRE",
-    crs: int = None
-    ):
-
-    if crs is None:
-        if vectorfile_format.lower() == "geojson":
-            crs = 4326
-        else:
-            crs = "official"
-
-    corresp_decoupage_columns = dict_corresp_decoupage()
-
-    var_decoupage_s3 = corresp_decoupage_columns[decoupage.lower()]
-    level_read = level.upper()
-
-    # IMPORT SHAPEFILES ------------------
-
-    territories = create_dict_all_territories(
-        provider=provider, source=source, year=year, level=level_read
-    )
-
-    return territories
-
-
-list_output = {}
-for couple in croisement_decoupage_level_flat:
-    level = couple[0]
-    decoupage = couple[1]
-    list_output[level] = create_territories(
-        level = lev,
-        decoupage = decoup
-    )
-
-from topojson import Topology
-topo = Topology(
-    data=[list_output["REGION"]["metropole"], list_output["DEPARTEMENT"]["metropole"]],
-    object_name=['region', 'departement'], prequantize=False)
-topo.to_json("essai.json")
 
 
 import dev

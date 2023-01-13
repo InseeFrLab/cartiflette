@@ -635,3 +635,65 @@ def write_vectorfile_from_s3(
     fs.download(read_path, filename)
 
     print(f"Requested file has been saved at location {filename}")
+
+
+
+def create_territories(
+    level: str = "COMMUNE",
+    decoupage: str = "region",
+    vectorfile_format: str = "geojson",
+    year: int = 2022,
+    provider: str = "IGN",
+    source: str = "EXPRESS-COG-TERRITOIRE",
+    crs: int = None
+    ):
+
+    if crs is None:
+        if vectorfile_format.lower() == "geojson":
+            crs = 4326
+        else:
+            crs = "official"
+
+    corresp_decoupage_columns = dict_corresp_decoupage()
+
+    var_decoupage_s3 = corresp_decoupage_columns[decoupage.lower()]
+    level_read = level.upper()
+
+    # IMPORT SHAPEFILES ------------------
+
+    territories = create_dict_all_territories(
+        provider=provider, source=source, year=year, level=level_read
+    )
+
+    return territories
+
+def create_nested_topojson(path):
+    
+    croisement_decoupage_level = {
+        ## structure -> niveau geo: [niveau decoupage macro],
+        "REGION": ["FRANCE_ENTIERE"],
+        "DEPARTEMENT": ["FRANCE_ENTIERE"]
+    }
+
+    croisement_decoupage_level_flat = [
+        [key, inner_value] \
+            for key, values in croisement_decoupage_level.items() \
+                for inner_value in values
+        ]
+
+
+    list_output = {}
+    for couple in croisement_decoupage_level_flat:
+        level = couple[0]
+        decoupage = couple[1]
+        list_output[level] = create_territories(
+            level = lev,
+            decoupage = decoup
+        )
+
+    topo = Topology(
+        data=[list_output["REGION"]["metropole"], list_output["DEPARTEMENT"]["metropole"]],
+        object_name=['region', 'departement'], prequantize=False)
+
+    return topo
+    #topo.to_json(path)
