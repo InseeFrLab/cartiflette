@@ -156,10 +156,29 @@ def create_path_bucket(
 
 def download_vectorfile_s3_all(
     values: typing.Union[list, str, int, float] = "28",
-    level="COMMUNE",
-    vectorfile_format="geojson",
-    decoupage="region",
-    year=2022):
+    level: str = "COMMUNE",
+    vectorfile_format: str = "geojson",
+    decoupage: str = "region",
+    year: typing.Union[str, int, float] = 2022):
+
+    """
+    This function downloads multiple vector files from a specified S3 bucket and returns them as a GeoPandas object.
+
+    Parameters:
+    values (list or str or int or float): The values of the vector files. Default is "28".
+    level (str): The administrative level of the tiles within the vector file.
+         Can be any administrative level provided by IGN, e.g. "COMMUNE", "DEPARTEMENT" or "REGION". Default is "COMMUNE".
+    vectorfile_format (str):
+         The format of the vector file, can be "geojson", "topojson", "gpkg" or "shp". Default is "geojson".
+    decoupage (str): The administrative level (supra to 'level') that will be used to cut the
+          vector file in pieces when writing to S3.
+          For instance, if level is "DEPARTEMENT", decoupage can be "REGION" or "FRANCE_ENTIERE". Default is "region".
+    year (int or float): The year of the vector file. Default is 2022
+
+    Returns:
+    gpd.GeoDataFrame: The vector files as a GeoPandas object
+    """
+
 
     if isinstance(values, (str, int, float)):
         values = [str(values)]
@@ -179,11 +198,12 @@ def download_vectorfile_s3_all(
 
 
 def download_vectorfile_url_all(
-    values: typing.Union[list, str, int, float] = "28",
+    values: typing.Union[str, int, float] = "28",
     level="COMMUNE",
     vectorfile_format="geojson",
     decoupage="region",
-    year=2022):
+    year=2022
+    ):
 
     if isinstance(values, (str, int, float)):
         values = [str(values)]
@@ -203,15 +223,32 @@ def download_vectorfile_url_all(
 
 
 def download_vectorfile_s3_single(
-    value="28",
-    level="COMMUNE",
-    vectorfile_format="geojson",
-    decoupage="region",
-    year=2022,
-    bucket=BUCKET,
-    path_within_bucket=PATH_WITHIN_BUCKET,
-    crs=2154
+    value: str = "28",
+    level: str = "COMMUNE",
+    vectorfile_format: str = "geojson",
+    decoupage: str = "region",
+    year: typing.Union[str, int, float] = 2022,
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
+    crs: typing.Union[str, int, float] = 2154
 ):
+    """
+    This function downloads a vector file from a specified S3 bucket and returns it
+
+    Parameters:
+    value (str): The value of the vector file. Default is "28".
+    level (str): The administrative level of the tiles within the vector file. Can be any administrative level provided by IGN, e.g. "COMMUNE", "DEPARTEMENT" or "REGION". Default is "COMMUNE".
+    vectorfile_format (str): The format of the vector file, can be "geojson", "topojson", "gpkg" or "shp". Default is "geojson".
+    decoupage (str): The administrative level (supra to 'level') that will be used to cut the vector file in pieces when writing to S3. For instance, if level is "DEPARTEMENT", decoupage can be "REGION" or "FRANCE_ENTIERE". Default is "region".
+    year (int): The year of the vector file. Default is 2022
+    bucket (str): The name of the bucket where the file will be stored. Default is BUCKET
+    path_within_bucket (str): The path within the bucket where the file will be stored. Default is PATH_WITHIN_BUCKET
+    crs (int): The coordinate reference system of the vector file. Default is 2154.
+
+    Returns:
+    GeoPandas.GeoDataFrame: The vector file as a GeoPandas object
+
+    """
 
     corresp_decoupage_columns, \
         format_read, \
@@ -317,16 +354,44 @@ def download_vectorfile_url_single(
 # UPLOAD S3 -------------------------------
 
 def write_vectorfile_subset(
-    object,
-    value="28",
-    vectorfile_format="geojson",
-    level="COMMUNE",
-    decoupage="region",
-    year=2022,
-    bucket=BUCKET,
-    path_within_bucket=PATH_WITHIN_BUCKET,
-    crs=2154
+    object: gpd.GeoDataFrame,
+    value: str = "28",
+    vectorfile_format: str = "geojson",
+    level: str = "COMMUNE",
+    decoupage: str = "region",
+    year: int = 2022,
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
+    crs: typing.Union[str, int, float] = 2154
 ):
+    """
+    This function writes a subset of a given vector file to a specified bucket in S3.
+
+    Parameters
+    ----------
+    object : gpd.GeoDataFrame
+        The input vector file as a GeoPandas DataFrame.
+    value : str, optional
+        The value of the subset of the vector file to be written, by default "28".
+    vectorfile_format : str, optional
+        The format of the vector file to be written, by default "geojson".
+    level : str, optional
+        The level of the vector file to be written, by default "COMMUNE".
+    decoupage : str, optional
+        The decoupage of the vector file to be written, by default "region".
+    year : int, optional
+        The year of the vector file to be written, by default 2022.
+    bucket : str, optional
+        The S3 bucket where the vector file will be written, by default BUCKET.
+    path_within_bucket : str, optional
+        The path within the specified S3 bucket where the vector file will be written, by default PATH_WITHIN_BUCKET.
+    crs : typing.Union[str, int, float], optional
+        The coordinate reference system to be used, by default 2154.
+
+    Returns
+    -------
+    None
+    """
 
     corresp_decoupage_columns, \
         format_write, \
@@ -386,15 +451,15 @@ def write_vectorfile_subset(
 
 
 def write_vectorfile_all_levels(
-    object,
-    level_var,
-    level="COMMUNE",
-    vectorfile_format="geojson",
-    decoupage="region",
-    year=2022,
-    bucket=BUCKET,
-    path_within_bucket=PATH_WITHIN_BUCKET,
-    crs=2154
+    object: gpd.GeoDataFrame,
+    level_var: str,
+    level: str = "COMMUNE",
+    vectorfile_format: str = "geojson",
+    decoupage: str = "region",
+    year: typing.Union[str, int, float] = 2022,
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
+    crs: typing.Union[str, int, float] = 2154
 ):
 
     [
