@@ -9,11 +9,13 @@ from cartiflette.download import get_administrative_level_available_ign
 
 #formats = ["geoparquet", "shp", "gpkg", "geojson"]
 formats = ["topojson"]
-decoupage = ["region", "departement"]
-#level = ["COMMUNE", "ARRONDISSEMENT"]
-level = ["ARRONDISSEMENT"]
+#decoupage = ["region", "departement"]
+decoupage = ["departement"]
+level = ["COMMUNE", "ARRONDISSEMENT"]
+#level = ["ARRONDISSEMENT"]
 years = [y for y in range(2021, 2023)]
-crs_list = [4326, 2154, "official"]
+#crs_list = [4326, 2154, "official"]
+crs_list = [4326]
 
 #years = [2021]
 for format, decoup, lev, year, epsg in itertools.product(
@@ -34,9 +36,10 @@ for format, decoup, lev, year, epsg in itertools.product(
 
 
 
-formats = ["geoparquet", "shp", "gpkg", "geojson"]
-#formats = "geojson"
-decoupage = ["region", "departement"]
+#formats = ["geoparquet", "shp", "gpkg", "geojson"]
+formats = "geojson"
+#decoupage = ["region", "departement"]
+decoupage = ["departement"]
 years = [y for y in range(2021, 2023)]
 for format, decoup, year in itertools.product(
     formats, decoupage, years
@@ -44,6 +47,7 @@ for format, decoup, year in itertools.product(
     s3.write_vectorfile_s3_custom_arrondissement(
             vectorfile_format="geojson",
             decoupage="departement",
+            crs = 4326,
             year=year)
 
 

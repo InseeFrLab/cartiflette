@@ -317,8 +317,8 @@ def write_vectorfile_subset(
     elif format_write == "topojson":
         tdir = tempfile.TemporaryDirectory()
         object_topo = Topology(object_subset)
-        object_topo.to_json(tdir.name)
-        fs.put(tdir.name, write_path)
+        object_topo.to_json(tdir.name + "temp.json")
+        fs.put(tdir.name + "temp.json", write_path)
     else:
         with fs.open(write_path, "wb") as f:
             object_subset.to_file(f, driver=driver)
