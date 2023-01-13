@@ -407,7 +407,7 @@ def write_vectorfile_s3_all(
     provider="IGN",
     source="EXPRESS-COG-TERRITOIRE",
     bucket=BUCKET,
-    path_within_bucket=PATH_WITHIN_BUCKET,
+    £µ,
     crs: int = None
 ):
 
@@ -415,7 +415,7 @@ def write_vectorfile_s3_all(
         if vectorfile_format.lower() == "geojson":
             crs = 4326
         else:
-            crs = 2154
+            crs = "official"
 
 
     corresp_decoupage_columns = dict_corresp_decoupage()
