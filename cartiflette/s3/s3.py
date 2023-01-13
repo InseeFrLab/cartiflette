@@ -559,17 +559,9 @@ def write_vectorfile_s3_all(
 
     corresp_decoupage_columns = dict_corresp_decoupage()
 
-    # if decoupage.upper() == "FRANCE_ENTIERE":
-    #    import_file = level.upper()
-    # else:
-    #    import_file = decoupage.upper()
-
     var_decoupage_s3 = corresp_decoupage_columns[decoupage.lower()]
     level_read = level.upper()
 
-    # if level.upper() == "FRANCE_ENTIERE":
-    # level_read = decoupage.upper()
-    # var_decoupage_s3 = "territoire"
 
     # IMPORT SHAPEFILES ------------------
 
@@ -582,14 +574,6 @@ def write_vectorfile_s3_all(
     if decoupage.upper() == "FRANCE_ENTIERE":
         for key, val in territories.items():
             val["territoire"] = key
-
-    # WRITE ALL
-    # if level.upper() == "FRANCE_ENTIERE":
-    # level_to_write = decoupage
-    # decoupage_name = level
-    # else:
-    # level_to_write = level
-    # decoupage_name = decoupage
 
     for territory in territories:
 
