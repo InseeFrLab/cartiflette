@@ -687,8 +687,8 @@ def create_nested_topojson(path):
         level = couple[0]
         decoupage = couple[1]
         list_output[level] = create_territories(
-            level = lev,
-            decoupage = decoup
+            level = level,
+            decoupage = decoupage
         )
 
     topo = Topology(
