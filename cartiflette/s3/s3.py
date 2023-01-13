@@ -462,6 +462,24 @@ def write_vectorfile_all_levels(
     crs: typing.Union[str, int, float] = 2154
 ):
 
+    """Write all levels of a GeoDataFrame to a specified format on S3.
+    
+    This function takes a GeoDataFrame object, the variable name on which to create
+    the levels and other parameters like format, decoupage, year, bucket and path
+    within the bucket, crs and level for the vector file to be written on S3.
+    
+    Args:
+        object (gpd.GeoDataFrame): The GeoDataFrame object to write.
+        level_var (str): The variable name on which to create the levels.
+        level (str, optional): The level of the vector file. Defaults to "COMMUNE".
+        vectorfile_format (str, optional): The format of the vector file. Defaults to "geojson".
+        decoupage (str, optional): The decoupage of the vector file. Defaults to "region".
+        year (typing.Union[str, int, float], optional): The year of the vector file. Defaults to 2022.
+        bucket (str, optional): The S3 bucket where to write the vector file. Defaults to BUCKET.
+        path_within_bucket (str, optional): The path within the bucket where to write the vector file. Defaults to PATH_WITHIN_BUCKET.
+        crs (typing.Union[str, int, float], optional): The Coordinate Reference System of the vector file. Defaults to 2154.
+    """
+
     [
         write_vectorfile_subset(
             object,
