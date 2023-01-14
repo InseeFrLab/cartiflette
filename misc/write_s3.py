@@ -13,6 +13,8 @@ years = [y for y in range(2021, 2023)]
 #crs_list = [4326, 2154, "official"]
 crs_list = [4326]
 
+source="EXPRESS-COG-CARTO"
+
 croisement_decoupage_level = {
     ## structure -> niveau geo: [niveau decoupage macro],
     "COMMUNE": ["REGION", "DEPARTEMENT", "FRANCE_ENTIERE"]
@@ -26,7 +28,7 @@ croisement_decoupage_level_flat = [
             for inner_value in values
     ]
 
-#years = [2021]
+years = [2022]
 for format, couple_decoupage_level, year, epsg in itertools.product(
     formats, croisement_decoupage_level_flat, years, crs_list
     ):
@@ -43,7 +45,8 @@ for format, couple_decoupage_level, year, epsg in itertools.product(
         decoupage=decoup,
         year=year,
         crs=epsg,
-        provider="IGN")
+        provider="IGN",
+        source=source)
 
 
 

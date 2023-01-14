@@ -23,7 +23,7 @@ from cartiflette.download import (
 )
 
 BUCKET = "projet-cartiflette"
-PATH_WITHIN_BUCKET = "diffusion/shapefiles-test"
+PATH_WITHIN_BUCKET = "diffusion/shapefiles-test1"
 ENDPOINT_URL = "https://minio.lab.sspcloud.fr"
 
 fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL})
@@ -151,10 +151,10 @@ def create_path_bucket(
     """
 
     write_path = f"{bucket}/{path_within_bucket}"
-    write_path = f"{write_path}/{year}"
-    write_path = f"{write_path}/{level}"
-    write_path = f"{write_path}/crs{crs}"
-    write_path = f"{write_path}/{decoupage}/{value}/{vectorfile_format}"
+    write_path = f"{write_path}/year={year}"
+    write_path = f"{write_path}/administrative_level={level}"
+    write_path = f"{write_path}/crs={crs}"
+    write_path = f"{write_path}/{decoupage}={value}/format={vectorfile_format}"
     write_path = f"{write_path}/provider={provider}/source={source}"
     write_path = f"{write_path}/raw.{vectorfile_format}"
 
@@ -288,7 +288,7 @@ def download_vectorfile_s3_single(
         decoupage=decoupage,
         year=year,
         value=value,
-        crs=crs
+        crs=crs,
         provider=provider,
         source=source
     )
@@ -546,9 +546,7 @@ def write_vectorfile_s3_shp(object, fs, write_path, driver=None):
 def write_vectorfile_s3_custom_arrondissement(
     vectorfile_format="geojson",
     year: int = 2022,
-    provider: str = "IGN",
     decoupage="region",
-    source: str = "EXPRESS-COG-TERRITOIRE",
     bucket=BUCKET,
     path_within_bucket=PATH_WITHIN_BUCKET,
     provider: str = "IGN",
