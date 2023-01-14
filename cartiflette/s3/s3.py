@@ -776,7 +776,7 @@ def production_cartiflette(
         source = row['source']
         print(80*'==' + "\n" \
             f"{level=}\n{format=}\n" \
-            f"{decoupage=}\{year=}\n" \
+            f"{decoupage=}\n{year=}\n" \
             f"{crs=}\n" \
             f"{source=}"
             )
