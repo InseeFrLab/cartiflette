@@ -6,7 +6,6 @@ import itertools
 import cartiflette.s3 as s3
 from cartiflette.download import get_administrative_level_available_ign
 
-
 #formats = ["geoparquet", "shp", "gpkg", "geojson"]
 formats = ["topojson"]
 #level = ["ARRONDISSEMENT"]
@@ -16,10 +15,9 @@ crs_list = [4326]
 
 croisement_decoupage_level = {
     ## structure -> niveau geo: [niveau decoupage macro],
-    "REGION": ["FRANCE_ENTIERE"]
+    "COMMUNE": ["REGION", "DEPARTEMENT", "FRANCE_ENTIERE"]
+    #"REGION": ["FRANCE_ENTIERE"]
     #"DEPARTEMENT":["REGION", "FRANCE_ENTIERE"],
-    #"france_entiere": ['COMMUNE', 'ARRONDISSEMENT', 'DEPARTEMENT', "REGION"],
-    #"departement": ['COMMUNE', 'ARRONDISSEMENT']
 }
 
 croisement_decoupage_level_flat = [
