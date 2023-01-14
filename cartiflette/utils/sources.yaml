@@ -81,6 +81,8 @@ IGN:
     EXPRESS-COG-CARTO:
       2022:
         file: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG-CARTO_SHP_TERRITOIRES_PACK_2022-04-15$ADMIN-EXPRESS-COG-CARTO_3-1__SHP_LAMB93_FXX_2022-04-15/file/ADMIN-EXPRESS-COG-CARTO_3-1__SHP_LAMB93_FXX_2022-04-15.7z
+      2021:
+        file: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG-CARTO_SHP_TERRITOIRES_PACK_2021-05-19$ADMIN-EXPRESS-COG-CARTO_3-0__SHP_LAMB93_FXX_2021-05-19/file/ADMIN-EXPRESS-COG-CARTO_3-0__SHP_LAMB93_FXX_2021-05-19.7z
   CONTOUR-IRIS: #variables INSEE_COM NOM_COM IRIS CODE_IRIS NOM_IRIS TYP_IRIS ; manque la var Grand-Quartier (GRD_QUART) présente sur les tables insee https://www.insee.fr/fr/information/2017499
     documentation: https://geoservices.ign.fr/documentation/donnees/vecteur/contoursiris
     metadata: https://geoservices.ign.fr/sites/default/files/2022-03/IGNF_Contours-IRISr_2-1.html

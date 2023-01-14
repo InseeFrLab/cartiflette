@@ -10,10 +10,10 @@ from cartiflette.download import get_administrative_level_available_ign
 formats = ["topojson"]
 
 #years = [y for y in range(2021, 2023)]
-years = [2022]
+#years = [2022]
 
 #crs_list = [4326, 2154, "official"]
-crs_list = [4326]
+crs_list = [4326, "official"]
 
 sources=["EXPRESS-COG-CARTO"]
 
