@@ -5,8 +5,9 @@ os.chdir("cartiflette/")
 from cartiflette.download import get_vectorfile_ign
 
 france = get_vectorfile_ign(
+    year = 2022,
     level = "COMMUNE", field = "metropole",
-    source = "COG", provider="opendatarchives").to_crs(2154)
+    source = "EXPRESS-COG-CARTO", provider="IGN").to_crs(2154)
 
 
 

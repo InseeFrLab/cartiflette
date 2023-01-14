@@ -73,6 +73,8 @@ def create_dict_all_territories(
 def create_url_s3(
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
+    provider: str = "IGN",
+    source: str = "EXPRESS-COG-TERRITOIRE",
     vectorfile_format: str = "geojson",
     level: str = "COMMUNE",
     decoupage: str = "region",
@@ -100,6 +102,8 @@ def create_url_s3(
     path_within = create_path_bucket(
         bucket=bucket,
         path_within_bucket=path_within_bucket,
+        provider=provider,
+        source=source,
         vectorfile_format=vectorfile_format,
         level=level,
         decoupage=decoupage,
@@ -113,6 +117,8 @@ def create_url_s3(
 def create_path_bucket(
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
+    provider: str = "IGN",
+    source: str = "EXPRESS-COG-TERRITOIRE",
     vectorfile_format: str = "geojson",
     level: str = "COMMUNE",
     decoupage: str = "region",
@@ -144,10 +150,12 @@ def create_path_bucket(
     or write when interacting with S3 storage
     """
 
-    write_path = f"{bucket}/{path_within_bucket}/{year}"
+    write_path = f"{bucket}/{path_within_bucket}"
+    write_path = f"{write_path}/{year}"
     write_path = f"{write_path}/{level}"
     write_path = f"{write_path}/crs{crs}"
     write_path = f"{write_path}/{decoupage}/{value}/{vectorfile_format}"
+    write_path = f"{write_path}/provider={provider}/source={source}"
     write_path = f"{write_path}/raw.{vectorfile_format}"
 
     if vectorfile_format == "shp":
@@ -164,6 +172,8 @@ def download_vectorfile_s3_all(
     vectorfile_format: str = "geojson",
     decoupage: str = "region",
     year: typing.Union[str, int, float] = 2022,
+    provider: str = "IGN",
+    source: str = "EXPRESS-COG-TERRITOIRE"
 ):
 
     """
@@ -194,6 +204,8 @@ def download_vectorfile_s3_all(
             vectorfile_format=vectorfile_format,
             decoupage=decoupage,
             year=year,
+            provider=provider,
+            source=source
         )
         for val in values
     ]
@@ -209,6 +221,8 @@ def download_vectorfile_url_all(
     vectorfile_format="geojson",
     decoupage="region",
     year=2022,
+    provider: str = "IGN",
+    source: str = "EXPRESS-COG-TERRITOIRE"
 ):
 
     if isinstance(values, (str, int, float)):
@@ -221,6 +235,8 @@ def download_vectorfile_url_all(
             vectorfile_format=vectorfile_format,
             decoupage=decoupage,
             year=year,
+            provider=provider,
+            source=source,
         )
         for val in values
     ]
@@ -236,9 +252,11 @@ def download_vectorfile_s3_single(
     vectorfile_format: str = "geojson",
     decoupage: str = "region",
     year: typing.Union[str, int, float] = 2022,
+    crs: typing.Union[str, int, float] = 2154,
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
-    crs: typing.Union[str, int, float] = 2154,
+    provider: str = "IGN",
+    source: str = "EXPRESS-COG-TERRITOIRE",
 ):
     """
     This function downloads a vector file from a specified S3 bucket and returns it
@@ -270,7 +288,9 @@ def download_vectorfile_s3_single(
         decoupage=decoupage,
         year=year,
         value=value,
-        crs=crs,
+        crs=crs
+        provider=provider,
+        source=source
     )
 
     try:
@@ -303,6 +323,8 @@ def download_vectorfile_url_single(
     year: typing.Union[str, int, float] = 2022,
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
+    provider: str = "IGN",
+    source: str = "EXPRESS-COG-TERRITOIRE",
 ):
     """
     This function downloads a vector file from a specified S3 bucket and returns it as a GeoPandas object.
@@ -335,6 +357,8 @@ def download_vectorfile_url_single(
         year=year,
         bucket=bucket,
         path_within_bucket=path_within_bucket,
+        provider = provider,
+        source = source,
     )
 
     if format_read == "shp":
@@ -361,9 +385,11 @@ def write_vectorfile_subset(
     level: str = "COMMUNE",
     decoupage: str = "region",
     year: int = 2022,
+    crs: typing.Union[str, int, float] = 2154,
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
-    crs: typing.Union[str, int, float] = 2154,
+    provider: str = "IGN",
+    source: str = "EXPRESS-COG-TERRITOIRE",
 ):
     """
     This function writes a subset of a given vector file to a specified bucket in S3.
@@ -401,6 +427,8 @@ def write_vectorfile_subset(
     write_path = create_path_bucket(
         bucket=bucket,
         path_within_bucket=path_within_bucket,
+        provider = provider,
+        source = source,
         vectorfile_format=format_write,
         level=level,
         decoupage=decoupage,
@@ -457,9 +485,11 @@ def write_vectorfile_all_levels(
     vectorfile_format: str = "geojson",
     decoupage: str = "region",
     year: typing.Union[str, int, float] = 2022,
+    crs: typing.Union[str, int, float] = 2154,
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
-    crs: typing.Union[str, int, float] = 2154,
+    provider: str = "IGN",
+    source: str = "EXPRESS-COG-TERRITOIRE",
 ):
 
     """Write all levels of a GeoDataFrame to a specified format on S3.
@@ -486,11 +516,13 @@ def write_vectorfile_all_levels(
             vectorfile_format=vectorfile_format,
             decoupage=decoupage,
             year=year,
-            bucket=bucket,
-            path_within_bucket=path_within_bucket,
             value=obs,
             level=level,
             crs=crs,
+            bucket=bucket,
+            path_within_bucket=path_within_bucket,
+            provider = provider,
+            source = source
         )
         for obs in object[level_var].unique()
     ]
@@ -519,6 +551,8 @@ def write_vectorfile_s3_custom_arrondissement(
     source: str = "EXPRESS-COG-TERRITOIRE",
     bucket=BUCKET,
     path_within_bucket=PATH_WITHIN_BUCKET,
+    provider: str = "IGN",
+    source: str = "EXPRESS-COG-TERRITOIRE",
     crs=2154,
 ):
 
@@ -536,6 +570,8 @@ def write_vectorfile_s3_custom_arrondissement(
         decoupage=decoupage,
         year=year,
         crs=crs,
+        provider=provider,
+        source=source,
     )
 
 
@@ -544,11 +580,11 @@ def write_vectorfile_s3_all(
     vectorfile_format="geojson",
     decoupage="region",
     year=2022,
-    provider="IGN",
-    source="EXPRESS-COG-TERRITOIRE",
+    crs: int = None,
     bucket=BUCKET,
     path_within_bucket=PATH_WITHIN_BUCKET,
-    crs: int = None,
+    provider="IGN",
+    source="EXPRESS-COG-TERRITOIRE",
 ):
 
     if crs is None:
@@ -592,6 +628,8 @@ def write_vectorfile_s3_all(
             decoupage=decoupage,
             year=year,
             crs=epsg,
+            provider=provider,
+            source=source
         )
 
 
@@ -613,6 +651,8 @@ def write_vectorfile_from_s3(
     value: str,
     vectorfile_format: str = "geojson",
     crs: int = 2154,
+    provider="IGN",
+    source="EXPRESS-COG-TERRITOIRE"
 ):
     """Retrieve shapefiles stored in S3
 
@@ -630,6 +670,8 @@ def write_vectorfile_from_s3(
         year=year,
         value=value,
         crs=crs,
+        provider=provider,
+        source=source
     )
 
     fs.download(read_path, filename)
