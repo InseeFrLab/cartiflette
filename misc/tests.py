@@ -13,6 +13,18 @@ france = get_vectorfile_ign(
 
 ### OLD
 
+
+
+import os
+
+os.chdir("cartiflette")
+
+import itertools
+import cartiflette.s3 as s3
+from cartiflette.download import get_administrative_level_available_ign
+
+
+
 import dev
 levels_year = [[y, dev.get_administrative_level_available_ign(year=y, verbose=False)] for y in range(2017,2023)]
 
