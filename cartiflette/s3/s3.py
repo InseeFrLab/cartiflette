@@ -555,6 +555,7 @@ def write_vectorfile_s3_custom_arrondissement(
     provider: str = "IGN",
     source: str = "EXPRESS-COG-TERRITOIRE",
     crs=2154,
+    level = None #ignored, here for consistency
 ):
 
     corresp_decoupage_columns = dict_corresp_decoupage()
@@ -748,6 +749,53 @@ def crossproduct_parameters_production(
     tempdf.drop('nested', axis = "columns", inplace = True)
 
     return tempdf
+
+
+def production_cartiflette(
+    croisement_decoupage_level,
+    formats,
+    years,
+    crs_list,
+    sources
+):
+
+    tempdf = crossproduct_parameters_production(
+        croisement_decoupage_level = croisement_decoupage_level,
+        list_format = formats,
+        years = years,
+        crs_list = crs_list,
+        sources = sources
+    )
+
+    for index, row in tempdf.iterrows():
+        format = row['format']
+        level = row['level']
+        decoupage = row['decoupage']
+        year = row['year']
+        crs = row['crs']
+        source = row['source']
+        print(80*'==' + "\n" \
+            f"{level=}\n{format=}\n" \
+            f"{decoupage=}\{year=}\n" \
+            f"{crs=}\n" \
+            f"{source=}"
+            )
+        if level == "COMMUNE_ARRONDISSEMENT":
+            production_func = write_vectorfile_s3_custom_arrondissement
+        else:
+            production_func = write_vectorfile_s3_all
+        production_func(
+            level=level,
+            vectorfile_format=format,
+            decoupage=decoupage,
+            year=year,
+            crs=crs,
+            provider="IGN",
+            source=source)
+
+    print(80*"-" + "\nProduction finished :)")
+
+
 
 
 def create_nested_topojson(path):

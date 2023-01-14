@@ -8,8 +8,10 @@ from cartiflette.download import get_administrative_level_available_ign
 
 #formats = ["geoparquet", "shp", "gpkg", "geojson"]
 formats = ["topojson"]
-#level = ["ARRONDISSEMENT"]
-years = [y for y in range(2021, 2023)]
+
+#years = [y for y in range(2021, 2023)]
+years = [2022]
+
 #crs_list = [4326, 2154, "official"]
 crs_list = [4326]
 
@@ -17,39 +19,20 @@ sources=["EXPRESS-COG-CARTO"]
 
 croisement_decoupage_level = {
     ## structure -> niveau geo: [niveau decoupage macro],
-    "COMMUNE": ["REGION", "DEPARTEMENT", "FRANCE_ENTIERE"]
-    #"REGION": ["FRANCE_ENTIERE"]
+    "REGION": ["FRANCE_ENTIERE"],
+    "COMMUNE_ARRONDISSEMENT": ["DEPARTEMENT"],
+    #"COMMUNE": ["DEPARTEMENT", "REGION", "FRANCE_ENTIERE"],
     #"DEPARTEMENT":["REGION", "FRANCE_ENTIERE"],
 }
 
-tempdf = crossproduct_parameters_production(
-    croisement_decoupage_level = croisement_decoupage_level,
-    list_format = formats,
-    years = years,
-    crs_list = crs_list,
-    sources = sources
+
+s3.production_cartiflette(
+    croisement_decoupage_level,
+    formats,
+    years,
+    crs_list,
+    sources
 )
-
-
-for index, row in tempdf.iterrows():
-    format = row['format']
-    level = row['level']
-    decoupage = row['decoupage']
-    year = row['year']
-    crs = row['crs']
-    print(80*'==' + "\n" \
-        f"level={level}\nvectorfile_format={format}\n" \
-        f"decoupage={decoupage}\nyear={year}\n" \
-        f"crs={crs}"
-        )
-    s3.write_vectorfile_s3_all(
-        level=level,
-        vectorfile_format=format,
-        decoupage=decoupage,
-        year=year,
-        crs=crs,
-        provider="IGN",
-        source=source)
 
 
 for format, couple_decoupage_level, year, epsg in itertools.product(
