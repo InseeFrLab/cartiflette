@@ -50,7 +50,7 @@ for format, couple_decoupage_level, year, epsg in itertools.product(
 
 
 #formats = ["geoparquet", "shp", "gpkg", "geojson"]
-formats = "geojson"
+formats = ["geojson", "topojson"]
 #decoupage = ["region", "departement"]
 decoupage = ["departement"]
 years = [y for y in range(2021, 2023)]
