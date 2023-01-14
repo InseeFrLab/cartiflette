@@ -1,6 +1,7 @@
 """Module for communication with Minio S3 Storage
 """
 
+import itertools
 import os
 import tempfile
 import typing
@@ -175,7 +176,6 @@ def download_vectorfile_s3_all(
     provider: str = "IGN",
     source: str = "EXPRESS-COG-TERRITOIRE"
 ):
-
     """
     This function downloads multiple vector files from a specified S3 bucket and returns them as a GeoPandas object.
 
@@ -386,10 +386,11 @@ def write_vectorfile_subset(
     decoupage: str = "region",
     year: int = 2022,
     crs: typing.Union[str, int, float] = 2154,
+    force_crs: bool = False,
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
     provider: str = "IGN",
-    source: str = "EXPRESS-COG-TERRITOIRE",
+    source: str = "EXPRESS-COG-TERRITOIRE"
 ):
     """
     This function writes a subset of a given vector file to a specified bucket in S3.
@@ -427,8 +428,8 @@ def write_vectorfile_subset(
     write_path = create_path_bucket(
         bucket=bucket,
         path_within_bucket=path_within_bucket,
-        provider = provider,
-        source = source,
+        provider=provider,
+        source=source,
         vectorfile_format=format_write,
         level=level,
         decoupage=decoupage,
@@ -456,6 +457,8 @@ def write_vectorfile_subset(
                 "geojson are supposed to adopt EPSG 4326\
                 Forcing the projection used"
             )
+            if force_crs is False:
+                return None
             crs = 4326
 
     if object_subset.crs != crs:
@@ -706,6 +709,46 @@ def create_territories(
     )
 
     return territories
+
+def restructure_nested_dict_levels(
+    dict_with_list: dict
+    ):
+
+    croisement_decoupage_level_flat = [
+        [key, inner_value] \
+            for key, values in dict_with_list.items() \
+                for inner_value in values
+        ]
+
+    return croisement_decoupage_level_flat
+
+
+def crossproduct_parameters_production(
+    croisement_decoupage_level,
+    list_format,
+    years,
+    crs_list,
+    sources
+):
+
+    croisement_decoupage_level_flat = restructure_nested_dict_levels(
+        croisement_decoupage_level
+    )
+
+    combinations = list(
+        itertools.product(
+            list_format, croisement_decoupage_level_flat,
+            years, crs_list, sources
+        )
+    )
+
+    tempdf = pd.DataFrame(combinations, columns = ["format","nested","year","crs","source"])
+    tempdf['level'] = tempdf['nested'].apply(lambda l: l[0])
+    tempdf['decoupage'] = tempdf['nested'].apply(lambda l: l[1])
+    tempdf.drop('nested', axis = "columns", inplace = True)
+
+    return tempdf
+
 
 def create_nested_topojson(path):
     

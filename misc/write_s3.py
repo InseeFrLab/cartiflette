@@ -13,7 +13,7 @@ years = [y for y in range(2021, 2023)]
 #crs_list = [4326, 2154, "official"]
 crs_list = [4326]
 
-source="EXPRESS-COG-CARTO"
+sources=["EXPRESS-COG-CARTO"]
 
 croisement_decoupage_level = {
     ## structure -> niveau geo: [niveau decoupage macro],
@@ -22,13 +22,36 @@ croisement_decoupage_level = {
     #"DEPARTEMENT":["REGION", "FRANCE_ENTIERE"],
 }
 
-croisement_decoupage_level_flat = [
-    [key, inner_value] \
-        for key, values in croisement_decoupage_level.items() \
-            for inner_value in values
-    ]
+tempdf = crossproduct_parameters_production(
+    croisement_decoupage_level = croisement_decoupage_level,
+    list_format = formats,
+    years = years,
+    crs_list = crs_list,
+    sources = sources
+)
 
-years = [2022]
+
+for index, row in tempdf.iterrows():
+    format = row['format']
+    level = row['level']
+    decoupage = row['decoupage']
+    year = row['year']
+    crs = row['crs']
+    print(80*'==' + "\n" \
+        f"level={level}\nvectorfile_format={format}\n" \
+        f"decoupage={decoupage}\nyear={year}\n" \
+        f"crs={crs}"
+        )
+    s3.write_vectorfile_s3_all(
+        level=level,
+        vectorfile_format=format,
+        decoupage=decoupage,
+        year=year,
+        crs=crs,
+        provider="IGN",
+        source=source)
+
+
 for format, couple_decoupage_level, year, epsg in itertools.product(
     formats, croisement_decoupage_level_flat, years, crs_list
     ):
