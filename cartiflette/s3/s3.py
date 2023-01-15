@@ -174,7 +174,7 @@ def download_vectorfile_s3_all(
     decoupage: str = "region",
     year: typing.Union[str, int, float] = 2022,
     provider: str = "IGN",
-    source: str = "EXPRESS-COG-TERRITOIRE"
+    source: str = "EXPRESS-COG-TERRITOIRE",
 ):
     """
     This function downloads multiple vector files from a specified S3 bucket and returns them as a GeoPandas object.
@@ -205,7 +205,7 @@ def download_vectorfile_s3_all(
             decoupage=decoupage,
             year=year,
             provider=provider,
-            source=source
+            source=source,
         )
         for val in values
     ]
@@ -222,7 +222,7 @@ def download_vectorfile_url_all(
     decoupage="region",
     year=2022,
     provider: str = "IGN",
-    source: str = "EXPRESS-COG-TERRITOIRE"
+    source: str = "EXPRESS-COG-TERRITOIRE",
 ):
 
     if isinstance(values, (str, int, float)):
@@ -290,7 +290,7 @@ def download_vectorfile_s3_single(
         value=value,
         crs=crs,
         provider=provider,
-        source=source
+        source=source,
     )
 
     try:
@@ -357,8 +357,8 @@ def download_vectorfile_url_single(
         year=year,
         bucket=bucket,
         path_within_bucket=path_within_bucket,
-        provider = provider,
-        source = source,
+        provider=provider,
+        source=source,
     )
 
     if format_read == "shp":
@@ -390,7 +390,7 @@ def write_vectorfile_subset(
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
     provider: str = "IGN",
-    source: str = "EXPRESS-COG-TERRITOIRE"
+    source: str = "EXPRESS-COG-TERRITOIRE",
 ):
     """
     This function writes a subset of a given vector file to a specified bucket in S3.
@@ -525,7 +525,7 @@ def write_vectorfile_all_levels(
             bucket=bucket,
             path_within_bucket=path_within_bucket,
             provider=provider,
-            source=source
+            source=source,
         )
         for obs in object[level_var].unique()
     ]
@@ -555,9 +555,8 @@ def write_vectorfile_s3_custom_arrondissement(
     provider: str = "IGN",
     source: str = "EXPRESS-COG-TERRITOIRE",
     crs=2154,
-    level = None #ignored, here for consistency
+    level=None,  # ignored, here for consistency
 ):
-
 
     corresp_decoupage_columns = dict_corresp_decoupage()
     var_decoupage = corresp_decoupage_columns[decoupage.lower()]
@@ -565,7 +564,6 @@ def write_vectorfile_s3_custom_arrondissement(
     object = get_vectorfile_communes_arrondissement(
         year=year, provider=provider, source=source
     )
-
 
     write_vectorfile_all_levels(
         object=object,
@@ -581,6 +579,7 @@ def write_vectorfile_s3_custom_arrondissement(
 
 
 # main function
+
 
 def write_vectorfile_s3_all(
     level="COMMUNE",
@@ -605,7 +604,6 @@ def write_vectorfile_s3_all(
     var_decoupage_s3 = corresp_decoupage_columns[decoupage.lower()]
     level_read = level.upper()
     decoupage = decoupage.upper()
-
 
     # IMPORT SHAPEFILES ------------------
 
@@ -637,7 +635,7 @@ def write_vectorfile_s3_all(
             year=year,
             crs=epsg,
             provider=provider,
-            source=source
+            source=source,
         )
 
 
@@ -660,7 +658,7 @@ def write_vectorfile_from_s3(
     vectorfile_format: str = "geojson",
     crs: int = 2154,
     provider="IGN",
-    source="EXPRESS-COG-TERRITOIRE"
+    source="EXPRESS-COG-TERRITOIRE",
 ):
     """Retrieve shapefiles stored in S3
 
@@ -679,13 +677,12 @@ def write_vectorfile_from_s3(
         value=value,
         crs=crs,
         provider=provider,
-        source=source
+        source=source,
     )
 
     fs.download(read_path, filename)
 
     print(f"Requested file has been saved at location {filename}")
-
 
 
 def create_territories(
@@ -695,8 +692,8 @@ def create_territories(
     year: int = 2022,
     provider: str = "IGN",
     source: str = "EXPRESS-COG-TERRITOIRE",
-    crs: int = None
-    ):
+    crs: int = None,
+):
 
     if crs is None:
         if vectorfile_format.lower() == "geojson":
@@ -717,25 +714,20 @@ def create_territories(
 
     return territories
 
-def restructure_nested_dict_levels(
-    dict_with_list: dict
-    ):
+
+def restructure_nested_dict_levels(dict_with_list: dict):
 
     croisement_decoupage_level_flat = [
-        [key, inner_value] \
-            for key, values in dict_with_list.items() \
-                for inner_value in values
-        ]
+        [key, inner_value]
+        for key, values in dict_with_list.items()
+        for inner_value in values
+    ]
 
     return croisement_decoupage_level_flat
 
 
 def crossproduct_parameters_production(
-    croisement_decoupage_level,
-    list_format,
-    years,
-    crs_list,
-    sources
+    croisement_decoupage_level, list_format, years, crs_list, sources
 ):
 
     croisement_decoupage_level_flat = restructure_nested_dict_levels(
@@ -744,48 +736,46 @@ def crossproduct_parameters_production(
 
     combinations = list(
         itertools.product(
-            list_format, croisement_decoupage_level_flat,
-            years, crs_list, sources
+            list_format, croisement_decoupage_level_flat, years, crs_list, sources
         )
     )
 
-    tempdf = pd.DataFrame(combinations, columns = ["format","nested","year","crs","source"])
-    tempdf['level'] = tempdf['nested'].apply(lambda l: l[0])
-    tempdf['decoupage'] = tempdf['nested'].apply(lambda l: l[1])
-    tempdf.drop('nested', axis = "columns", inplace = True)
+    tempdf = pd.DataFrame(
+        combinations, columns=["format", "nested", "year", "crs", "source"]
+    )
+    tempdf["level"] = tempdf["nested"].apply(lambda l: l[0])
+    tempdf["decoupage"] = tempdf["nested"].apply(lambda l: l[1])
+    tempdf.drop("nested", axis="columns", inplace=True)
 
     return tempdf
 
 
 def production_cartiflette(
-    croisement_decoupage_level,
-    formats,
-    years,
-    crs_list,
-    sources
+    croisement_decoupage_level, formats, years, crs_list, sources
 ):
 
     tempdf = crossproduct_parameters_production(
-        croisement_decoupage_level = croisement_decoupage_level,
-        list_format = formats,
-        years = years,
-        crs_list = crs_list,
-        sources = sources
+        croisement_decoupage_level=croisement_decoupage_level,
+        list_format=formats,
+        years=years,
+        crs_list=crs_list,
+        sources=sources,
     )
 
     for index, row in tempdf.iterrows():
-        format = row['format']
-        level = row['level']
-        decoupage = row['decoupage']
-        year = row['year']
-        crs = row['crs']
-        source = row['source']
-        print(80*'==' + "\n" \
-            f"{level=}\n{format=}\n" \
-            f"{decoupage=}\n{year=}\n" \
-            f"{crs=}\n" \
+        format = row["format"]
+        level = row["level"]
+        decoupage = row["decoupage"]
+        year = row["year"]
+        crs = row["crs"]
+        source = row["source"]
+        print(
+            80 * "==" + "\n"
+            f"{level=}\n{format=}\n"
+            f"{decoupage=}\n{year=}\n"
+            f"{crs=}\n"
             f"{source=}"
-            )
+        )
         if level == "COMMUNE_ARRONDISSEMENT":
             production_func = write_vectorfile_s3_custom_arrondissement
         else:
@@ -797,40 +787,40 @@ def production_cartiflette(
             year=year,
             crs=crs,
             provider="IGN",
-            source=source)
+            source=source,
+        )
 
-    print(80*"-" + "\nProduction finished :)")
-
-
+    print(80 * "-" + "\nProduction finished :)")
 
 
 def create_nested_topojson(path):
-    
+
     croisement_decoupage_level = {
         ## structure -> niveau geo: [niveau decoupage macro],
         "REGION": ["FRANCE_ENTIERE"],
-        "DEPARTEMENT": ["FRANCE_ENTIERE"]
+        "DEPARTEMENT": ["FRANCE_ENTIERE"],
     }
 
     croisement_decoupage_level_flat = [
-        [key, inner_value] \
-            for key, values in croisement_decoupage_level.items() \
-                for inner_value in values
-        ]
-
+        [key, inner_value]
+        for key, values in croisement_decoupage_level.items()
+        for inner_value in values
+    ]
 
     list_output = {}
     for couple in croisement_decoupage_level_flat:
         level = couple[0]
         decoupage = couple[1]
-        list_output[level] = create_territories(
-            level = level,
-            decoupage = decoupage
-        )
+        list_output[level] = create_territories(level=level, decoupage=decoupage)
 
     topo = Topology(
-        data=[list_output["REGION"]["metropole"], list_output["DEPARTEMENT"]["metropole"]],
-        object_name=['region', 'departement'], prequantize=False)
+        data=[
+            list_output["REGION"]["metropole"],
+            list_output["DEPARTEMENT"]["metropole"],
+        ],
+        object_name=["region", "departement"],
+        prequantize=False,
+    )
 
     return topo
-    #topo.to_json(path)
+    # topo.to_json(path)

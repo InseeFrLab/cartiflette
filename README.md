@@ -1,6 +1,8 @@
 
 # `cartiflette` <img src="cartiflette.png" align="right" height="139" />
 
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 `cartiflette` est un projet pour faciliter l’association de sources
 géographiques en proposant des récupérations facilitées de coutours de
 cartes officiels.
