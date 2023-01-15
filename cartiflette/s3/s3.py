@@ -555,20 +555,34 @@ def write_vectorfile_s3_custom_arrondissement(
     provider: str = "IGN",
     source: str = "EXPRESS-COG-TERRITOIRE",
     crs=2154,
-    level=None,  # ignored, here for consistency
+    level=None,  # used to ensure we produce for "metropole" only
 ):
 
+    if crs is None:
+        if vectorfile_format.lower() == "geojson":
+            crs = 4326
+        else:
+            crs = "official"
+
     corresp_decoupage_columns = dict_corresp_decoupage()
-    var_decoupage = corresp_decoupage_columns[decoupage.lower()]
+
+    var_decoupage_s3 = corresp_decoupage_columns[decoupage.lower()]
+    decoupage = decoupage.upper()
+
+    # CREATING CUSTOM
 
     object = get_vectorfile_communes_arrondissement(
         year=year, provider=provider, source=source
-    )
+    )    
+
+    if decoupage.upper() == "FRANCE_ENTIERE":
+        object["territoire"] = "metropole"
+
 
     write_vectorfile_all_levels(
         object=object,
         level="COMMUNE_ARRONDISSEMENT",
-        level_var=var_decoupage,
+        level_var=var_decoupage_s3,
         vectorfile_format=vectorfile_format,
         decoupage=decoupage,
         year=year,
@@ -625,6 +639,7 @@ def write_vectorfile_s3_all(
             epsg = official_epsg_codes()[territory]
         else:
             epsg = crs
+
 
         write_vectorfile_all_levels(
             object=territories[territory],
@@ -776,10 +791,12 @@ def production_cartiflette(
             f"{crs=}\n"
             f"{source=}"
         )
+        
         if level == "COMMUNE_ARRONDISSEMENT":
             production_func = write_vectorfile_s3_custom_arrondissement
         else:
             production_func = write_vectorfile_s3_all
+        
         production_func(
             level=level,
             vectorfile_format=format,
