@@ -15,14 +15,14 @@ years = [2022]
 #crs_list = [4326, 2154, "official"]
 crs_list = [4326, "official"]
 
-sources=["EXPRESS-COG-CARTO"]
+sources = ["EXPRESS-COG-CARTO-TERRITOIRE"]
 
 croisement_decoupage_level = {
     ## structure -> niveau geo: [niveau decoupage macro],
     "REGION": ["FRANCE_ENTIERE"],
-    "COMMUNE_ARRONDISSEMENT": ["DEPARTEMENT"],
+    #"COMMUNE_ARRONDISSEMENT": ["DEPARTEMENT"],
     #"COMMUNE": ["DEPARTEMENT", "REGION", "FRANCE_ENTIERE"],
-    #"DEPARTEMENT":["REGION", "FRANCE_ENTIERE"],
+    "DEPARTEMENT": ["REGION", "FRANCE_ENTIERE"],
 }
 
 
