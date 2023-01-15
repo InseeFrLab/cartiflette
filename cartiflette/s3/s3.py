@@ -152,11 +152,11 @@ def create_path_bucket(
     """
 
     write_path = f"{bucket}/{path_within_bucket}"
-    write_path = f"{write_path}/year={year}"
+    write_path = f"{write_path}/{year=}"
     write_path = f"{write_path}/administrative_level={level}"
-    write_path = f"{write_path}/crs={crs}"
-    write_path = f"{write_path}/{decoupage}={value}/format={vectorfile_format}"
-    write_path = f"{write_path}/provider={provider}/source={source}"
+    write_path = f"{write_path}/{crs=}"
+    write_path = f"{write_path}/{decoupage}={value}/{vectorfile_format=}"
+    write_path = f"{write_path}/{provider=}/{source=}"
     write_path = f"{write_path}/raw.{vectorfile_format}"
 
     if vectorfile_format == "shp":
@@ -577,6 +577,8 @@ def write_vectorfile_s3_custom_arrondissement(
     )
 
 
+# main function
+
 def write_vectorfile_s3_all(
     level="COMMUNE",
     vectorfile_format="geojson",
@@ -599,6 +601,7 @@ def write_vectorfile_s3_all(
 
     var_decoupage_s3 = corresp_decoupage_columns[decoupage.lower()]
     level_read = level.upper()
+    decoupage = decoupage.upper()
 
 
     # IMPORT SHAPEFILES ------------------

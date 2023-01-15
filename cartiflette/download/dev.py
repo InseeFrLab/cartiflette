@@ -92,7 +92,7 @@ def create_url_adminexpress(
     dict_open_data = import_yaml_config()
     dict_source = dict_open_data[provider]["ADMINEXPRESS"][source]
 
-    if source == "EXPRESS-COG-TERRITOIRE":
+    if source.endswith("-TERRITOIRE"):
         url = url_express_COG_territoire(
             year=year,
             provider=provider,
@@ -218,7 +218,7 @@ def download_store_admin_express(
         location = tempfile.gettempdir()
         location = f"{location}/{source}-{year}"
         if year > 2020 :
-            if source == "EXPRESS-COG-TERRITOIRE":
+            if source.endswith("-TERRITOIRE"):
                 location = f"{location}/{field}"
 
     path_cache_ign = download_admin_express(
@@ -233,7 +233,7 @@ def download_store_admin_express(
     path_cache_ign = [s for s in path_cache_ign if not s.endswith(".md5")]
     path_cache_ign = path_cache_ign[0]
 
-    if year <= 2020 and source == "EXPRESS-COG-TERRITOIRE":
+    if year <= 2020 and source.endswith("-TERRITOIRE") :
         field_code = dict_source['field'][field].split("_")[0]
         path_cache_ign = glob.glob(f"{path_cache_ign}/*{field_code}_*")
         # For some years, md5 also validate pattern DONNEES_LIVRAISON
@@ -274,7 +274,8 @@ def store_vectorfile_ign(
         source=source,
         year=year,
         provider=provider,
-        field=field) #returns path where datasets are stored
+        field=field)
+    #returns path where datasets are stored
     
     full_path_shp = glob.glob(
         f"{path_cache_ign}/**/*.shp", recursive=True
@@ -392,6 +393,8 @@ def get_vectorfile_ign(
 
     if level == "ARRONDISSEMENT_MUNICIPAL":
         data_ign["INSEE_DEP"] = data_ign['INSEE_COM'].str[:2]
+
+    data_ign['source'] = f"{provider}:{source}"
 
     return data_ign
 
