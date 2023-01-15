@@ -524,8 +524,8 @@ def write_vectorfile_all_levels(
             crs=crs,
             bucket=bucket,
             path_within_bucket=path_within_bucket,
-            provider = provider,
-            source = source
+            provider=provider,
+            source=source
         )
         for obs in object[level_var].unique()
     ]
@@ -558,12 +558,15 @@ def write_vectorfile_s3_custom_arrondissement(
     level = None #ignored, here for consistency
 ):
 
+
     corresp_decoupage_columns = dict_corresp_decoupage()
-    var_decoupage = corresp_decoupage_columns[decoupage]
+    var_decoupage = corresp_decoupage_columns[decoupage.lower()]
 
     object = get_vectorfile_communes_arrondissement(
         year=year, provider=provider, source=source
     )
+
+
     write_vectorfile_all_levels(
         object=object,
         level="COMMUNE_ARRONDISSEMENT",

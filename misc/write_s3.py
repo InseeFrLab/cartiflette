@@ -10,7 +10,7 @@ from cartiflette.download import get_administrative_level_available_ign
 formats = ["topojson"]
 
 #years = [y for y in range(2021, 2023)]
-years = [2022]
+years = [2021]
 
 #crs_list = [4326, 2154, "official"]
 crs_list = [4326, "official"]
@@ -19,10 +19,10 @@ sources = ["EXPRESS-COG-CARTO-TERRITOIRE"]
 
 croisement_decoupage_level = {
     ## structure -> niveau geo: [niveau decoupage macro],
-    "REGION": ["FRANCE_ENTIERE"],
-    #"COMMUNE_ARRONDISSEMENT": ["DEPARTEMENT"],
+    #"REGION": ["FRANCE_ENTIERE"],
+    "COMMUNE_ARRONDISSEMENT": ["DEPARTEMENT"],
     #"COMMUNE": ["DEPARTEMENT", "REGION", "FRANCE_ENTIERE"],
-    "DEPARTEMENT": ["REGION", "FRANCE_ENTIERE"],
+    #"DEPARTEMENT": ["REGION", "FRANCE_ENTIERE"],
 }
 
 

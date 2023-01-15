@@ -79,6 +79,20 @@ IGN:
       2017:
         file: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG-PACK_2017-07-07$ADMIN-EXPRESS-COG_1-0__SHP__FRA_2017-06-19/file/ADMIN-EXPRESS-COG_1-0__SHP__FRA_2017-06-19.7z
     EXPRESS-COG-CARTO-TERRITOIRE:
+      2021:
+        prefix: ADMINEXPRESS-COG-CARTO
+        date: "2021-05-19"
+        version: "3-0"
+        url_prefix: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG-CARTO_SHP_TERRITOIRES_PACK_2021-05-19
+        structure: "{url_prefix}_{date}${prefix}_{version}__SHP_{field}_{date}/file/{prefix}_{version}__SHP_{field}_{date}.7z"                
+      field:
+        metropole: LAMB93_FXX
+        guadeloupe: RGAF09UTM20_GLP
+        martinique: RGAF09UTM20_MTQ
+        guyane: UTM22RGFG95_GUF
+        reunion: RGR92UTM40S_REU
+        st-pierre-miquelon: 
+        mayotte: RGM04UTM38S_MYT
       2022:
         prefix: ADMINEXPRESS-COG-CARTO
         date: "2022-04-15"
