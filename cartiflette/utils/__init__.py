@@ -6,7 +6,7 @@ from .dict_correspondance import (
     dict_corresp_decoupage,
     create_format_standardized,
     create_format_driver,
-    official_epsg_codes
+    official_epsg_codes,
 )
 from .keep_subset_geopandas import keep_subset_geopandas
 
