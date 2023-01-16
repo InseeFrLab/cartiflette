@@ -765,6 +765,27 @@ def crossproduct_parameters_production(
     return tempdf
 
 
+def list_produced_cartiflette(
+    bucket: str = BUCKET,
+    path_within_bucket: PATH_WITHIN_BUCKET
+):
+    written_levels = fs.glob(f"{bucket}/{path_within_bucket}/**/provider*")
+    df = pd.DataFrame(written_levels, columns=['paths'])
+
+    df[
+        ['year', 'administrative_level', 'crs', 'decoupage', 'format']
+        ] = df['paths'].str.extract(
+            r'year=(\d+)/administrative_level=(\w+)/crs=(\d+)/(.*)=.*/vectorfile_format=\'(\w+)\''
+            )
+
+    df = df.filter(['year', 'administrative_level', 'crs', 'decoupage', 'format'], axis = 'columns')
+    df = df.drop_duplicates()
+
+    with fs.open(f"{bucket}/{path_within_bucket}/available.json", "wb") as f:
+        df.to_json(f, orient="records")
+
+
+
 def production_cartiflette(
     croisement_decoupage_level, formats, years, crs_list, sources
 ):
