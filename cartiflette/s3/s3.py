@@ -767,7 +767,7 @@ def crossproduct_parameters_production(
 
 def list_produced_cartiflette(
     bucket: str = BUCKET,
-    path_within_bucket: PATH_WITHIN_BUCKET
+    path_within_bucket: str = PATH_WITHIN_BUCKET
 ):
     written_levels = fs.glob(f"{bucket}/{path_within_bucket}/**/provider*")
     df = pd.DataFrame(written_levels, columns=['paths'])

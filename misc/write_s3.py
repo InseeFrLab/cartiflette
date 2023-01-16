@@ -35,7 +35,7 @@ s3.production_cartiflette(
     sources
 )
 
-
+s3.list_produced_cartiflette()
 
 # OLD --------------
 
