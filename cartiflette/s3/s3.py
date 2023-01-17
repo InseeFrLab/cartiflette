@@ -112,7 +112,12 @@ def create_url_s3(
         crs=crs,
         value=value,
     )
-    return f"{ENDPOINT_URL}/{path_within}"
+
+    url = f"{ENDPOINT_URL}/{path_within}"
+
+    print(url)
+
+    return url
 
 
 def create_path_bucket(
@@ -223,6 +228,7 @@ def download_vectorfile_url_all(
     year=2022,
     provider: str = "IGN",
     source: str = "EXPRESS-COG-TERRITOIRE",
+    crs = None
 ):
 
     if isinstance(values, (str, int, float)):
@@ -237,6 +243,7 @@ def download_vectorfile_url_all(
             year=year,
             provider=provider,
             source=source,
+            crs=crs
         )
         for val in values
     ]
@@ -325,6 +332,7 @@ def download_vectorfile_url_single(
     path_within_bucket: str = PATH_WITHIN_BUCKET,
     provider: str = "IGN",
     source: str = "EXPRESS-COG-TERRITOIRE",
+    crs = None
 ):
     """
     This function downloads a vector file from a specified S3 bucket and returns it as a GeoPandas object.
@@ -359,6 +367,7 @@ def download_vectorfile_url_single(
         path_within_bucket=path_within_bucket,
         provider=provider,
         source=source,
+        crs=crs
     )
 
     if format_read == "shp":
