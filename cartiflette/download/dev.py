@@ -409,6 +409,8 @@ def get_vectorfile_communes_arrondissement(
         df_enrichi["INSEE_ARM"],
     )
 
+    df_enrichi = df_enrichi.drop('INSEE_ARM', axis="columns")
+
     return df_enrichi
 
 
