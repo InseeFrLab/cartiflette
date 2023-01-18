@@ -3,7 +3,7 @@ Collection of utils to reformat inputs
 """
 
 
-def dict_corresp_decoupage() -> dict:
+def dict_corresp_filter_by() -> dict:
     """Transforms explicit administrative borders into relevant column
 
     Returns:
