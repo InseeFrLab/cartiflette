@@ -1,6 +1,7 @@
 """Module for communication with Minio S3 Storage
 """
 
+import itertools
 import os
 import tempfile
 import typing
@@ -11,7 +12,7 @@ from topojson import Topology
 
 from cartiflette.utils import (
     keep_subset_geopandas,
-    dict_corresp_decoupage,
+    dict_corresp_filter_by,
     create_format_standardized,
     create_format_driver,
     download_pb,
@@ -23,7 +24,7 @@ from cartiflette.download import (
 )
 
 BUCKET = "projet-cartiflette"
-PATH_WITHIN_BUCKET = "diffusion/shapefiles-test"
+PATH_WITHIN_BUCKET = "diffusion/shapefiles-test1"
 ENDPOINT_URL = "https://minio.lab.sspcloud.fr"
 
 fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL})
@@ -33,17 +34,17 @@ fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL})
 
 def standardize_inputs(vectorfile_format):
 
-    corresp_decoupage_columns = dict_corresp_decoupage()
+    corresp_filter_by_columns = dict_corresp_filter_by()
     format_standardized = create_format_standardized()
     gpd_driver = create_format_driver()
     format_write = format_standardized[vectorfile_format.lower()]
     driver = gpd_driver[format_write]
 
-    return corresp_decoupage_columns, format_write, driver
+    return corresp_filter_by_columns, format_write, driver
 
 
 def create_dict_all_territories(
-    provider="IGN", source="EXPRESS-COG-TERRITOIRE", year=2022, level="COMMUNE"
+    provider="IGN", source="EXPRESS-COG-TERRITOIRE", year=2022, borders="COMMUNE"
 ):
 
     territories_available = [
@@ -54,12 +55,12 @@ def create_dict_all_territories(
         "guyane",
     ]
 
-    if level == "ARRONDISSEMENT_MUNICIPAL":
+    if borders == "ARRONDISSEMENT_MUNICIPAL":
         territories_available = [territories_available[0]]
 
     territories = {
         f: get_vectorfile_ign(
-            provider=provider, level=level, year=year, field=f, source=source
+            provider=provider, borders=borders, year=year, field=f, source=source
         )
         for f in territories_available
     }
@@ -73,9 +74,11 @@ def create_dict_all_territories(
 def create_url_s3(
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
+    provider: str = "IGN",
+    source: str = "EXPRESS-COG-TERRITOIRE",
     vectorfile_format: str = "geojson",
-    level: str = "COMMUNE",
-    decoupage: str = "region",
+    borders: str = "COMMUNE",
+    filter_by: str = "region",
     year: typing.Union[str, int, float] = "2022",
     value: typing.Union[str, int, float] = "28",
     crs: typing.Union[list, str, int, float] = 2154,
@@ -87,8 +90,8 @@ def create_url_s3(
     bucket (str): The name of the bucket where the file is stored. Default is BUCKET.
     path_within_bucket (str): The path within the bucket where the file is stored. Default is PATH_WITHIN_BUCKET.
     vectorfile_format (str): The format of the vector file, can be "geojson", "topojson", "gpkg" or "shp". Default is "geojson".
-    level (str): The administrative level of the tiles within the vector file. Can be any administrative level provided by IGN, e.g. "COMMUNE", "DEPARTEMENT" or "REGION". Default is "COMMUNE".
-    decoupage (str): The administrative level (supra to 'level') that will be used to cut the vector file in pieces when writing to S3. For instance, if level is "DEPARTEMENT", decoupage can be "REGION" or "FRANCE_ENTIERE". Default is "region".
+    borders (str): The administrative borders of the tiles within the vector file. Can be any administrative borders provided by IGN, e.g. "COMMUNE", "DEPARTEMENT" or "REGION". Default is "COMMUNE".
+    filter_by (str): The administrative borders (supra to 'borders') that will be used to cut the vector file in pieces when writing to S3. For instance, if borders is "DEPARTEMENT", filter_by can be "REGION" or "FRANCE_ENTIERE". Default is "region".
     year (typing.Union[str, int, float]): The year of the vector file. Default is "2022".
     value (typing.Union[str, int, float]): The value of the vector file. Default is "28".
     crs (typing.Union[list, str, int, float]): The coordinate reference system of the vector file. Default is 2154.
@@ -100,22 +103,31 @@ def create_url_s3(
     path_within = create_path_bucket(
         bucket=bucket,
         path_within_bucket=path_within_bucket,
+        provider=provider,
+        source=source,
         vectorfile_format=vectorfile_format,
-        level=level,
-        decoupage=decoupage,
+        borders=borders,
+        filter_by=filter_by,
         year=year,
         crs=crs,
         value=value,
     )
-    return f"{ENDPOINT_URL}/{path_within}"
+
+    url = f"{ENDPOINT_URL}/{path_within}"
+
+    print(url)
+
+    return url
 
 
 def create_path_bucket(
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
+    provider: str = "IGN",
+    source: str = "EXPRESS-COG-TERRITOIRE",
     vectorfile_format: str = "geojson",
-    level: str = "COMMUNE",
-    decoupage: str = "region",
+    borders: str = "COMMUNE",
+    filter_by: str = "region",
     year: typing.Union[str, int, float] = "2022",
     value: typing.Union[str, int, float] = "28",
     crs: typing.Union[str, int, float] = 2154,
@@ -128,12 +140,12 @@ def create_path_bucket(
     path_within_bucket (str): The path within the bucket where the file will be stored.
     vectorfile_format (str): The format of the vector file,
         can be "geojson", "topojson", "gpkg" or "shp". Default is "geojson".
-    level (str): The administrative level of the tiles within the vector file.
+    borders (str): The administrative borders of the tiles within the vector file.
         Can be any administrative
-        level provided by IGN, e.g. "COMMUNE", "DEPARTEMENT" or "REGION". Default is "COMMUNE".
-    decoupage (str): The administrative level (supra to 'level') that will be
+        borders provided by IGN, e.g. "COMMUNE", "DEPARTEMENT" or "REGION". Default is "COMMUNE".
+    filter_by (str): The administrative borders (supra to 'borders') that will be
         used to cut the vector file in pieces when writing to S3. For instance, if
-        level is "DEPARTEMENT", decoupage can be "REGION" or "FRANCE_ENTIERE".
+        borders is "DEPARTEMENT", filter_by can be "REGION" or "FRANCE_ENTIERE".
         Default is "region".
     year (str): The year of the vector file. Default is "2022".
     value (str): The value of the vector file. Default is "28".
@@ -144,10 +156,12 @@ def create_path_bucket(
     or write when interacting with S3 storage
     """
 
-    write_path = f"{bucket}/{path_within_bucket}/{year}"
-    write_path = f"{write_path}/{level}"
-    write_path = f"{write_path}/crs{crs}"
-    write_path = f"{write_path}/{decoupage}/{value}/{vectorfile_format}"
+    write_path = f"{bucket}/{path_within_bucket}"
+    write_path = f"{write_path}/{year=}"
+    write_path = f"{write_path}/administrative_level={borders}"
+    write_path = f"{write_path}/{crs=}"
+    write_path = f"{write_path}/{filter_by}={value}/{vectorfile_format=}"
+    write_path = f"{write_path}/{provider=}/{source=}"
     write_path = f"{write_path}/raw.{vectorfile_format}"
 
     if vectorfile_format == "shp":
@@ -160,24 +174,25 @@ def create_path_bucket(
 
 def download_vectorfile_s3_all(
     values: typing.Union[list, str, int, float] = "28",
-    level: str = "COMMUNE",
+    borders: str = "COMMUNE",
     vectorfile_format: str = "geojson",
-    decoupage: str = "region",
+    filter_by: str = "region",
     year: typing.Union[str, int, float] = 2022,
+    provider: str = "IGN",
+    source: str = "EXPRESS-COG-TERRITOIRE",
 ):
-
     """
     This function downloads multiple vector files from a specified S3 bucket and returns them as a GeoPandas object.
 
     Parameters:
     values (list or str or int or float): The values of the vector files. Default is "28".
-    level (str): The administrative level of the tiles within the vector file.
-         Can be any administrative level provided by IGN, e.g. "COMMUNE", "DEPARTEMENT" or "REGION". Default is "COMMUNE".
+    borders (str): The administrative borders of the tiles within the vector file.
+         Can be any administrative borders provided by IGN, e.g. "COMMUNE", "DEPARTEMENT" or "REGION". Default is "COMMUNE".
     vectorfile_format (str):
          The format of the vector file, can be "geojson", "topojson", "gpkg" or "shp". Default is "geojson".
-    decoupage (str): The administrative level (supra to 'level') that will be used to cut the
+    filter_by (str): The administrative borders (supra to 'borders') that will be used to cut the
           vector file in pieces when writing to S3.
-          For instance, if level is "DEPARTEMENT", decoupage can be "REGION" or "FRANCE_ENTIERE". Default is "region".
+          For instance, if borders is "DEPARTEMENT", filter_by can be "REGION" or "FRANCE_ENTIERE". Default is "region".
     year (int or float): The year of the vector file. Default is 2022
 
     Returns:
@@ -190,10 +205,12 @@ def download_vectorfile_s3_all(
     vectors = [
         download_vectorfile_s3_single(
             value=val,
-            level=level,
+            borders=borders,
             vectorfile_format=vectorfile_format,
-            decoupage=decoupage,
+            filter_by=filter_by,
             year=year,
+            provider=provider,
+            source=source,
         )
         for val in values
     ]
@@ -205,10 +222,13 @@ def download_vectorfile_s3_all(
 
 def download_vectorfile_url_all(
     values: typing.Union[str, int, float] = "28",
-    level="COMMUNE",
+    borders="COMMUNE",
     vectorfile_format="geojson",
-    decoupage="region",
+    filter_by="region",
     year=2022,
+    provider: str = "IGN",
+    source: str = "EXPRESS-COG-TERRITOIRE",
+    crs = None
 ):
 
     if isinstance(values, (str, int, float)):
@@ -217,10 +237,13 @@ def download_vectorfile_url_all(
     vectors = [
         download_vectorfile_url_single(
             value=val,
-            level=level,
+            borders=borders,
             vectorfile_format=vectorfile_format,
-            decoupage=decoupage,
+            filter_by=filter_by,
             year=year,
+            provider=provider,
+            source=source,
+            crs=crs
         )
         for val in values
     ]
@@ -232,22 +255,24 @@ def download_vectorfile_url_all(
 
 def download_vectorfile_s3_single(
     value: str = "28",
-    level: str = "COMMUNE",
+    borders: str = "COMMUNE",
     vectorfile_format: str = "geojson",
-    decoupage: str = "region",
+    filter_by: str = "region",
     year: typing.Union[str, int, float] = 2022,
+    crs: typing.Union[str, int, float] = 2154,
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
-    crs: typing.Union[str, int, float] = 2154,
+    provider: str = "IGN",
+    source: str = "EXPRESS-COG-TERRITOIRE",
 ):
     """
     This function downloads a vector file from a specified S3 bucket and returns it
 
     Parameters:
     value (str): The value of the vector file. Default is "28".
-    level (str): The administrative level of the tiles within the vector file. Can be any administrative level provided by IGN, e.g. "COMMUNE", "DEPARTEMENT" or "REGION". Default is "COMMUNE".
+    borders (str): The administrative borders of the tiles within the vector file. Can be any administrative borders provided by IGN, e.g. "COMMUNE", "DEPARTEMENT" or "REGION". Default is "COMMUNE".
     vectorfile_format (str): The format of the vector file, can be "geojson", "topojson", "gpkg" or "shp". Default is "geojson".
-    decoupage (str): The administrative level (supra to 'level') that will be used to cut the vector file in pieces when writing to S3. For instance, if level is "DEPARTEMENT", decoupage can be "REGION" or "FRANCE_ENTIERE". Default is "region".
+    filter_by (str): The administrative borders (supra to 'borders') that will be used to cut the vector file in pieces when writing to S3. For instance, if borders is "DEPARTEMENT", filter_by can be "REGION" or "FRANCE_ENTIERE". Default is "region".
     year (int): The year of the vector file. Default is 2022
     bucket (str): The name of the bucket where the file will be stored. Default is BUCKET
     path_within_bucket (str): The path within the bucket where the file will be stored. Default is PATH_WITHIN_BUCKET
@@ -258,7 +283,7 @@ def download_vectorfile_s3_single(
 
     """
 
-    corresp_decoupage_columns, format_read, driver = standardize_inputs(
+    corresp_filter_by_columns, format_read, driver = standardize_inputs(
         vectorfile_format
     )
 
@@ -266,11 +291,13 @@ def download_vectorfile_s3_single(
         bucket=bucket,
         path_within_bucket=path_within_bucket,
         vectorfile_format=format_read,
-        level=level,
-        decoupage=decoupage,
+        borders=borders,
+        filter_by=filter_by,
         year=year,
         value=value,
         crs=crs,
+        provider=provider,
+        source=source,
     )
 
     try:
@@ -297,24 +324,27 @@ def download_vectorfile_s3_single(
 
 def download_vectorfile_url_single(
     value: str = "28",
-    level: str = "COMMUNE",
+    borders: str = "COMMUNE",
     vectorfile_format: str = "geojson",
-    decoupage: str = "region",
+    filter_by: str = "region",
     year: typing.Union[str, int, float] = 2022,
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
+    provider: str = "IGN",
+    source: str = "EXPRESS-COG-TERRITOIRE",
+    crs = None
 ):
     """
     This function downloads a vector file from a specified S3 bucket and returns it as a GeoPandas object.
 
     Parameters:
     value (str or int): The value of the vector file. Default is "28".
-    level (str): The administrative level of the tiles within the vector file.
-        Can be any administrative level provided by IGN, e.g. "COMMUNE", "DEPARTEMENT" or "REGION". Default is "COMMUNE".
+    borders (str): The administrative borders of the tiles within the vector file.
+        Can be any administrative borders provided by IGN, e.g. "COMMUNE", "DEPARTEMENT" or "REGION". Default is "COMMUNE".
     vectorfile_format (str): The format of the vector file,
         can be "geojson", "topojson", "gpkg" or "shp". Default is "geojson".
-    decoupage (str): The administrative level (supra to 'level') that will be used to cut the vector file in pieces when writing to S3.
-        For instance, if level is "DEPARTEMENT", decoupage can be "REGION" or "FRANCE_ENTIERE". Default is "region".
+    filter_by (str): The administrative borders (supra to 'borders') that will be used to cut the vector file in pieces when writing to S3.
+        For instance, if borders is "DEPARTEMENT", filter_by can be "REGION" or "FRANCE_ENTIERE". Default is "region".
     year (int or float): The year of the vector file. Default is 2022.
     bucket (str): The name of the bucket where the file is stored. Default is inherited from package configuration.
     path_within_bucket (str): The path within the bucket where the file is stored. Default is PATH_WITHIN_BUCKET.
@@ -323,18 +353,21 @@ def download_vectorfile_url_single(
     gpd.GeoDataFrame: The vector file as a GeoPandas object
     """
 
-    corresp_decoupage_columns, format_read, driver = standardize_inputs(
+    corresp_filter_by_columns, format_read, driver = standardize_inputs(
         vectorfile_format
     )
 
     url = create_url_s3(
         value=value,
-        level=level,
+        borders=borders,
         vectorfile_format=format_read,
-        decoupage=decoupage,
+        filter_by=filter_by,
         year=year,
         bucket=bucket,
         path_within_bucket=path_within_bucket,
+        provider=provider,
+        source=source,
+        crs=crs
     )
 
     if format_read == "shp":
@@ -358,12 +391,15 @@ def write_vectorfile_subset(
     object: gpd.GeoDataFrame,
     value: str = "28",
     vectorfile_format: str = "geojson",
-    level: str = "COMMUNE",
-    decoupage: str = "region",
+    borders: str = "COMMUNE",
+    filter_by: str = "region",
     year: int = 2022,
+    crs: typing.Union[str, int, float] = 2154,
+    force_crs: bool = False,
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
-    crs: typing.Union[str, int, float] = 2154,
+    provider: str = "IGN",
+    source: str = "EXPRESS-COG-TERRITOIRE",
 ):
     """
     This function writes a subset of a given vector file to a specified bucket in S3.
@@ -376,10 +412,10 @@ def write_vectorfile_subset(
         The value of the subset of the vector file to be written, by default "28".
     vectorfile_format : str, optional
         The format of the vector file to be written, by default "geojson".
-    level : str, optional
-        The level of the vector file to be written, by default "COMMUNE".
-    decoupage : str, optional
-        The decoupage of the vector file to be written, by default "region".
+    borders : str, optional
+        The borders of the vector file to be written, by default "COMMUNE".
+    filter_by : str, optional
+        The filter_by of the vector file to be written, by default "region".
     year : int, optional
         The year of the vector file to be written, by default 2022.
     bucket : str, optional
@@ -394,16 +430,18 @@ def write_vectorfile_subset(
     None
     """
 
-    corresp_decoupage_columns, format_write, driver = standardize_inputs(
+    corresp_filter_by_columns, format_write, driver = standardize_inputs(
         vectorfile_format
     )
 
     write_path = create_path_bucket(
         bucket=bucket,
         path_within_bucket=path_within_bucket,
+        provider=provider,
+        source=source,
         vectorfile_format=format_write,
-        level=level,
-        decoupage=decoupage,
+        borders=borders,
+        filter_by=filter_by,
         year=year,
         value=value,
         crs=crs,
@@ -419,7 +457,7 @@ def write_vectorfile_subset(
             fs.rm(write_path)  # single file
 
     object_subset = keep_subset_geopandas(
-        object, corresp_decoupage_columns[decoupage.lower()], value
+        object, corresp_filter_by_columns[filter_by.lower()], value
     )
 
     if format_write.lower() in ["geojson", "topojson"]:
@@ -428,6 +466,8 @@ def write_vectorfile_subset(
                 "geojson are supposed to adopt EPSG 4326\
                 Forcing the projection used"
             )
+            if force_crs is False:
+                return None
             crs = 4326
 
     if object_subset.crs != crs:
@@ -450,30 +490,32 @@ def write_vectorfile_subset(
             object_subset.to_file(f, driver=driver)
 
 
-def write_vectorfile_all_levels(
+def write_vectorfile_all_borderss(
     object: gpd.GeoDataFrame,
-    level_var: str,
-    level: str = "COMMUNE",
+    borders_var: str,
+    borders: str = "COMMUNE",
     vectorfile_format: str = "geojson",
-    decoupage: str = "region",
+    filter_by: str = "region",
     year: typing.Union[str, int, float] = 2022,
+    crs: typing.Union[str, int, float] = 2154,
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
-    crs: typing.Union[str, int, float] = 2154,
+    provider: str = "IGN",
+    source: str = "EXPRESS-COG-TERRITOIRE",
 ):
 
-    """Write all levels of a GeoDataFrame to a specified format on S3.
+    """Write all borderss of a GeoDataFrame to a specified format on S3.
 
     This function takes a GeoDataFrame object, the variable name on which to create
-    the levels and other parameters like format, decoupage, year, bucket and path
-    within the bucket, crs and level for the vector file to be written on S3.
+    the borderss and other parameters like format, filter_by, year, bucket and path
+    within the bucket, crs and borders for the vector file to be written on S3.
 
     Args:
         object (gpd.GeoDataFrame): The GeoDataFrame object to write.
-        level_var (str): The variable name on which to create the levels.
-        level (str, optional): The level of the vector file. Defaults to "COMMUNE".
+        borders_var (str): The variable name on which to create the borderss.
+        borders (str, optional): The borders of the vector file. Defaults to "COMMUNE".
         vectorfile_format (str, optional): The format of the vector file. Defaults to "geojson".
-        decoupage (str, optional): The decoupage of the vector file. Defaults to "region".
+        filter_by (str, optional): The filter_by of the vector file. Defaults to "region".
         year (typing.Union[str, int, float], optional): The year of the vector file. Defaults to 2022.
         bucket (str, optional): The S3 bucket where to write the vector file. Defaults to BUCKET.
         path_within_bucket (str, optional): The path within the bucket where to write the vector file. Defaults to PATH_WITHIN_BUCKET.
@@ -484,15 +526,17 @@ def write_vectorfile_all_levels(
         write_vectorfile_subset(
             object,
             vectorfile_format=vectorfile_format,
-            decoupage=decoupage,
+            filter_by=filter_by,
             year=year,
+            value=obs,
+            borders=borders,
+            crs=crs,
             bucket=bucket,
             path_within_bucket=path_within_bucket,
-            value=obs,
-            level=level,
-            crs=crs,
+            provider=provider,
+            source=source,
         )
-        for obs in object[level_var].unique()
+        for obs in object[borders_var].unique()
     ]
 
 
@@ -514,41 +558,13 @@ def write_vectorfile_s3_shp(object, fs, write_path, driver=None):
 def write_vectorfile_s3_custom_arrondissement(
     vectorfile_format="geojson",
     year: int = 2022,
+    filter_by="region",
+    bucket=BUCKET,
+    path_within_bucket=PATH_WITHIN_BUCKET,
     provider: str = "IGN",
-    decoupage="region",
     source: str = "EXPRESS-COG-TERRITOIRE",
-    bucket=BUCKET,
-    path_within_bucket=PATH_WITHIN_BUCKET,
     crs=2154,
-):
-
-    corresp_decoupage_columns = dict_corresp_decoupage()
-    var_decoupage = corresp_decoupage_columns[decoupage]
-
-    object = get_vectorfile_communes_arrondissement(
-        year=year, provider=provider, source=source
-    )
-    write_vectorfile_all_levels(
-        object=object,
-        level="COMMUNE_ARRONDISSEMENT",
-        level_var=var_decoupage,
-        vectorfile_format=vectorfile_format,
-        decoupage=decoupage,
-        year=year,
-        crs=crs,
-    )
-
-
-def write_vectorfile_s3_all(
-    level="COMMUNE",
-    vectorfile_format="geojson",
-    decoupage="region",
-    year=2022,
-    provider="IGN",
-    source="EXPRESS-COG-TERRITOIRE",
-    bucket=BUCKET,
-    path_within_bucket=PATH_WITHIN_BUCKET,
-    crs: int = None,
+    borders=None,  # used to ensure we produce for "metropole" only
 ):
 
     if crs is None:
@@ -557,21 +573,70 @@ def write_vectorfile_s3_all(
         else:
             crs = "official"
 
-    corresp_decoupage_columns = dict_corresp_decoupage()
+    corresp_filter_by_columns = dict_corresp_filter_by()
 
-    var_decoupage_s3 = corresp_decoupage_columns[decoupage.lower()]
-    level_read = level.upper()
+    var_filter_by_s3 = corresp_filter_by_columns[filter_by.lower()]
+    filter_by = filter_by.upper()
 
+    # CREATING CUSTOM
+
+    object = get_vectorfile_communes_arrondissement(
+        year=year, provider=provider, source=source
+    )    
+
+    if filter_by.upper() == "FRANCE_ENTIERE":
+        object["territoire"] = "metropole"
+
+
+    write_vectorfile_all_borderss(
+        object=object,
+        borders="COMMUNE_ARRONDISSEMENT",
+        borders_var=var_filter_by_s3,
+        vectorfile_format=vectorfile_format,
+        filter_by=filter_by,
+        year=year,
+        crs=crs,
+        provider=provider,
+        source=source,
+    )
+
+
+# main function
+
+
+def write_vectorfile_s3_all(
+    borders="COMMUNE",
+    vectorfile_format="geojson",
+    filter_by="region",
+    year=2022,
+    crs: int = None,
+    bucket=BUCKET,
+    path_within_bucket=PATH_WITHIN_BUCKET,
+    provider="IGN",
+    source="EXPRESS-COG-TERRITOIRE",
+):
+
+    if crs is None:
+        if vectorfile_format.lower() == "geojson":
+            crs = 4326
+        else:
+            crs = "official"
+
+    corresp_filter_by_columns = dict_corresp_filter_by()
+
+    var_filter_by_s3 = corresp_filter_by_columns[filter_by.lower()]
+    borders_read = borders.upper()
+    filter_by = filter_by.upper()
 
     # IMPORT SHAPEFILES ------------------
 
     territories = create_dict_all_territories(
-        provider=provider, source=source, year=year, level=level_read
+        provider=provider, source=source, year=year, borders=borders_read
     )
 
     # For whole France, we need to combine everything together
     # into new key "territoire"
-    if decoupage.upper() == "FRANCE_ENTIERE":
+    if filter_by.upper() == "FRANCE_ENTIERE":
         for key, val in territories.items():
             val["territoire"] = key
 
@@ -584,21 +649,24 @@ def write_vectorfile_s3_all(
         else:
             epsg = crs
 
-        write_vectorfile_all_levels(
+
+        write_vectorfile_all_borderss(
             object=territories[territory],
-            level=level,
-            level_var=var_decoupage_s3,
+            borders=borders,
+            borders_var=var_filter_by_s3,
             vectorfile_format=vectorfile_format,
-            decoupage=decoupage,
+            filter_by=filter_by,
             year=year,
             crs=epsg,
+            provider=provider,
+            source=source,
         )
 
 
-def open_vectorfile_from_s3(vectorfile_format, decoupage, year, value, crs):
+def open_vectorfile_from_s3(vectorfile_format, filter_by, year, value, crs):
     read_path = create_path_bucket(
         vectorfile_format=vectorfile_format,
-        decoupage=decoupage,
+        filter_by=filter_by,
         year=year,
         value=value,
         crs=crs,
@@ -608,17 +676,19 @@ def open_vectorfile_from_s3(vectorfile_format, decoupage, year, value, crs):
 
 def write_vectorfile_from_s3(
     filename: str,
-    decoupage: str,
+    filter_by: str,
     year: int,
     value: str,
     vectorfile_format: str = "geojson",
     crs: int = 2154,
+    provider="IGN",
+    source="EXPRESS-COG-TERRITOIRE",
 ):
     """Retrieve shapefiles stored in S3
 
     Args:
         filename (str): Filename
-        decoupage (str): _description_
+        filter_by (str): _description_
         year (int): Year that should be used
         value (str): Which value should be retrieved
         vectorfile_format (str, optional): vectorfile format needed. Defaults to "geojson".
@@ -626,10 +696,12 @@ def write_vectorfile_from_s3(
 
     read_path = create_path_bucket(
         vectorfile_format=vectorfile_format,
-        decoupage=decoupage,
+        filter_by=filter_by,
         year=year,
         value=value,
         crs=crs,
+        provider=provider,
+        source=source,
     )
 
     fs.download(read_path, filename)
@@ -637,16 +709,15 @@ def write_vectorfile_from_s3(
     print(f"Requested file has been saved at location {filename}")
 
 
-
 def create_territories(
-    level: str = "COMMUNE",
-    decoupage: str = "region",
+    borders: str = "COMMUNE",
+    filter_by: str = "region",
     vectorfile_format: str = "geojson",
     year: int = 2022,
     provider: str = "IGN",
     source: str = "EXPRESS-COG-TERRITOIRE",
-    crs: int = None
-    ):
+    crs: int = None,
+):
 
     if crs is None:
         if vectorfile_format.lower() == "geojson":
@@ -654,46 +725,149 @@ def create_territories(
         else:
             crs = "official"
 
-    corresp_decoupage_columns = dict_corresp_decoupage()
+    corresp_filter_by_columns = dict_corresp_filter_by()
 
-    var_decoupage_s3 = corresp_decoupage_columns[decoupage.lower()]
-    level_read = level.upper()
+    var_filter_by_s3 = corresp_filter_by_columns[filter_by.lower()]
+    borders_read = borders.upper()
 
     # IMPORT SHAPEFILES ------------------
 
     territories = create_dict_all_territories(
-        provider=provider, source=source, year=year, level=level_read
+        provider=provider, source=source, year=year, borders=borders_read
     )
 
     return territories
 
-def create_nested_topojson(path):
-    
-    croisement_decoupage_level = {
-        ## structure -> niveau geo: [niveau decoupage macro],
-        "REGION": ["FRANCE_ENTIERE"],
-        "DEPARTEMENT": ["FRANCE_ENTIERE"]
-    }
 
-    croisement_decoupage_level_flat = [
-        [key, inner_value] \
-            for key, values in croisement_decoupage_level.items() \
-                for inner_value in values
-        ]
+def restructure_nested_dict_borderss(dict_with_list: dict):
+
+    croisement_filter_by_borders_flat = [
+        [key, inner_value]
+        for key, values in dict_with_list.items()
+        for inner_value in values
+    ]
+
+    return croisement_filter_by_borders_flat
 
 
-    list_output = {}
-    for couple in croisement_decoupage_level_flat:
-        level = couple[0]
-        decoupage = couple[1]
-        list_output[level] = create_territories(
-            level = level,
-            decoupage = decoupage
+def crossproduct_parameters_production(
+    croisement_filter_by_borders, list_format, years, crs_list, sources
+):
+
+    croisement_filter_by_borders_flat = restructure_nested_dict_borderss(
+        croisement_filter_by_borders
+    )
+
+    combinations = list(
+        itertools.product(
+            list_format, croisement_filter_by_borders_flat, years, crs_list, sources
+        )
+    )
+
+    tempdf = pd.DataFrame(
+        combinations, columns=["format", "nested", "year", "crs", "source"]
+    )
+    tempdf["borders"] = tempdf["nested"].apply(lambda l: l[0])
+    tempdf["filter_by"] = tempdf["nested"].apply(lambda l: l[1])
+    tempdf.drop("nested", axis="columns", inplace=True)
+
+    return tempdf
+
+
+def list_produced_cartiflette(
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET
+):
+    written_borderss = fs.glob(f"{bucket}/{path_within_bucket}/**/provider*")
+    df = pd.DataFrame(written_borderss, columns=['paths'])
+
+    df[
+        ['year', 'administrative_level', 'crs', 'filter_by', 'format']
+        ] = df['paths'].str.extract(
+            r'year=(\d+)/administrative_level=(\w+)/crs=(\d+)/(.*)=.*/vectorfile_format=\'(\w+)\''
+            )
+
+    df = df.filter(['year', 'administrative_level', 'crs', 'filter_by', 'format'], axis = 'columns')
+    df = df.drop_duplicates()
+
+    with fs.open(f"{bucket}/{path_within_bucket}/available.json", "wb") as f:
+        df.to_json(f, orient="records")
+
+
+
+def production_cartiflette(
+    croisement_filter_by_borders, formats, years, crs_list, sources
+):
+
+    tempdf = crossproduct_parameters_production(
+        croisement_filter_by_borders=croisement_filter_by_borders,
+        list_format=formats,
+        years=years,
+        crs_list=crs_list,
+        sources=sources,
+    )
+
+    for index, row in tempdf.iterrows():
+        format = row["format"]
+        borders = row["borders"]
+        filter_by = row["filter_by"]
+        year = row["year"]
+        crs = row["crs"]
+        source = row["source"]
+        print(
+            80 * "==" + "\n"
+            f"{borders=}\n{format=}\n"
+            f"{filter_by=}\n{year=}\n"
+            f"{crs=}\n"
+            f"{source=}"
+        )
+        
+        if borders == "COMMUNE_ARRONDISSEMENT":
+            production_func = write_vectorfile_s3_custom_arrondissement
+        else:
+            production_func = write_vectorfile_s3_all
+        
+        production_func(
+            borders=borders,
+            vectorfile_format=format,
+            filter_by=filter_by,
+            year=year,
+            crs=crs,
+            provider="IGN",
+            source=source,
         )
 
+    print(80 * "-" + "\nProduction finished :)")
+
+
+def create_nested_topojson(path):
+
+    croisement_filter_by_borders = {
+        ## structure -> niveau geo: [niveau filter_by macro],
+        "REGION": ["FRANCE_ENTIERE"],
+        "DEPARTEMENT": ["FRANCE_ENTIERE"],
+    }
+
+    croisement_filter_by_borders_flat = [
+        [key, inner_value]
+        for key, values in croisement_filter_by_borders.items()
+        for inner_value in values
+    ]
+
+    list_output = {}
+    for couple in croisement_filter_by_borders_flat:
+        borders = couple[0]
+        filter_by = couple[1]
+        list_output[borders] = create_territories(borders=borders, filter_by=filter_by)
+
     topo = Topology(
-        data=[list_output["REGION"]["metropole"], list_output["DEPARTEMENT"]["metropole"]],
-        object_name=['region', 'departement'], prequantize=False)
+        data=[
+            list_output["REGION"]["metropole"],
+            list_output["DEPARTEMENT"]["metropole"],
+        ],
+        object_name=["region", "departement"],
+        prequantize=False,
+    )
 
     return topo
-    #topo.to_json(path)
+    # topo.to_json(path)

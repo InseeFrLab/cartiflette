@@ -4,6 +4,9 @@ message: false
 warning: false
 ---
 
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
+
 # `cartiflette` <img src="cartiflette.png" align="right" height="139" />
 
 `cartiflette` est un projet pour faciliter l'association de sources

@@ -6,83 +6,45 @@ import itertools
 import cartiflette.s3 as s3
 from cartiflette.download import get_administrative_level_available_ign
 
-
 #formats = ["geoparquet", "shp", "gpkg", "geojson"]
 formats = ["topojson"]
-#level = ["ARRONDISSEMENT"]
-years = [y for y in range(2021, 2023)]
+#formats = ["geojson"]
+
+#years = [y for y in range(2021, 2023)]
+years = [2021, 2022]
+
 #crs_list = [4326, 2154, "official"]
-crs_list = [4326]
+crs_list = [4326, "official"]
+
+sources = ["EXPRESS-COG-CARTO-TERRITOIRE"]
 
 croisement_decoupage_level = {
     ## structure -> niveau geo: [niveau decoupage macro],
-    "REGION": ["FRANCE_ENTIERE"]
-    #"DEPARTEMENT":["REGION", "FRANCE_ENTIERE"],
-    #"france_entiere": ['COMMUNE', 'ARRONDISSEMENT', 'DEPARTEMENT', "REGION"],
-    #"departement": ['COMMUNE', 'ARRONDISSEMENT']
+    #"REGION": ["FRANCE_ENTIERE"],
+    "COMMUNE_ARRONDISSEMENT": ["REGION", "FRANCE_ENTIERE"]#["DEPARTEMENT", "REGION", "FRANCE_ENTIERE"],
+    #"COMMUNE": ["DEPARTEMENT", "REGION", "FRANCE_ENTIERE"],
+    #"DEPARTEMENT": ["REGION", "FRANCE_ENTIERE"]
 }
 
-croisement_decoupage_level_flat = [
-    [key, inner_value] \
-        for key, values in croisement_decoupage_level.items() \
-            for inner_value in values
-    ]
 
-#years = [2021]
-for format, couple_decoupage_level, year, epsg in itertools.product(
-    formats, croisement_decoupage_level_flat, years, crs_list
-    ):
-    lev = couple_decoupage_level[0]
-    decoup = couple_decoupage_level[1]
-    print(80*'==' + "\n" \
-        f"level={lev}\nvectorfile_format={format}\n" \
-        f"decoupage={decoup}\nyear={year}\n" \
-        f"crs={epsg}"
-        )
-    s3.write_vectorfile_s3_all(
-        level=lev,
-        vectorfile_format=format,
-        decoupage=decoup,
-        year=year,
-        crs=epsg,
-        provider="IGN")
+s3.production_cartiflette(
+    croisement_decoupage_level,
+    formats,
+    years,
+    crs_list,
+    sources
+)
 
-
-
-#formats = ["geoparquet", "shp", "gpkg", "geojson"]
-formats = ["geojson", "topojson"]
-#decoupage = ["region", "departement"]
-decoupage = ["departement"]
-years = [y for y in range(2021, 2023)]
-for format, decoup, year in itertools.product(
-    formats, decoupage, years
-    ):
-    s3.write_vectorfile_s3_custom_arrondissement(
-            vectorfile_format="geojson",
-            decoupage="departement",
-            crs=4326,
-            year=year)
-
-
-#formats = ["geoparquet", "shp", "gpkg", "geojson"]
-formats = "geojson"
-decoupage = ["france_entiere"]
-level = ["COMMUNE", "ARRONDISSEMENT"]
-years = [y for y in range(2021, 2023)]
-for format, decoup, lev, year in itertools.product(
-    formats, decoupage, level, years
-    ):
-    s3.write_vectorfile_s3_all(
-        level=lev,
-        vectorfile_format=format,
-        decoupage=decoup,
-        year=year)
-
-
-
+s3.list_produced_cartiflette()
 
 # OLD --------------
 
+s3.download_vectorfile_url_all(
+    values="metropole",
+    level="REGION",
+    vectorfile_format="geojson",
+    decoupage="france_entiere",
+    year=2022)
 
 s3.write_vectorfile_s3_all(
         level="ARRONDISSEMENT_MUNICIPAL",

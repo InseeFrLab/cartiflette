@@ -7,11 +7,8 @@ from tqdm import tqdm
 
 
 def download_pb(
-    url: str,
-    fname: str,
-    total: int = None,
-    force: bool = True,
-    verify: bool = True):
+    url: str, fname: str, total: int = None, force: bool = True, verify: bool = True
+):
     """Useful function to get request with a progress bar
 
     Borrowed from
@@ -29,11 +26,7 @@ def download_pb(
     except KeyError:
         proxies = {"http": "", "https": ""}
 
-    resp = requests.get(
-        url,
-        proxies=proxies,
-        stream=True,
-        verify=verify)
+    resp = requests.get(url, proxies=proxies, stream=True, verify=verify)
 
     if total is None and force is False:
         total = int(resp.headers.get("content-length", 0))

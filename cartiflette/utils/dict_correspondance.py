@@ -3,7 +3,7 @@ Collection of utils to reformat inputs
 """
 
 
-def dict_corresp_decoupage() -> dict:
+def dict_corresp_filter_by() -> dict:
     """Transforms explicit administrative borders into relevant column
 
     Returns:
@@ -17,7 +17,7 @@ def dict_corresp_decoupage() -> dict:
         "commune_arrondissement": "INSEE_COM",
         "region_arrondissement": "INSEE_REG",
         "departement_arrondissement": "INSEE_DEP",
-        "france_entiere": "territoire"
+        "france_entiere": "territoire",
     }
     return corresp_decoupage_columns
 
@@ -37,7 +37,7 @@ def create_format_standardized() -> dict:
         "shapefile": "shp",
         "geoparquet": "parquet",
         "parquet": "parquet",
-        "topojson": "topojson"
+        "topojson": "topojson",
     }
     return format_standardized
 
@@ -51,9 +51,11 @@ def create_format_driver() -> dict:
     """
     gpd_driver = {
         "geojson": "GeoJSON",
-        "GPKG": "GPKG", "shp": None,
+        "GPKG": "GPKG",
+        "shp": None,
         "parquet": None,
-        "topojson": None}
+        "topojson": None,
+    }
     return gpd_driver
 
 
@@ -63,6 +65,6 @@ def official_epsg_codes() -> dict:
         "martinique": 5490,
         "reunion": 2975,
         "guadeloupe": 5490,
-        "guyane": 2972
-        }
+        "guyane": 2972,
+    }
     return crs_list

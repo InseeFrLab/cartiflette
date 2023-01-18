@@ -26,13 +26,11 @@ def import_yaml_config(location: str = config_file) -> dict:
     return dict_open_data
 
 
-
 def url_express_COG_territoire(
-    year: int = 2022,
-    provider: str = "IGN",
-    territoire: str = "metropole"):
+    year: int = 2022, provider: str = "IGN", territoire: str = "metropole"
+):
 
-    #from cartiflette.utils import import_yaml_config
+    # from cartiflette.utils import import_yaml_config
 
     yaml = import_yaml_config()
     source = yaml[provider]["ADMINEXPRESS"]["EXPRESS-COG-TERRITOIRE"]
@@ -44,15 +42,10 @@ def url_express_COG_territoire(
     version = source[year]["version"]
     structure = source[year]["structure"]
     url_prefix = source[year]["url_prefix"]
-    
+
     # REFORMATING
     url = structure.format(
-        url_prefix=url_prefix,
-        date=date,
-        prefix=prefix,
-        version=version,
-        field=field
+        url_prefix=url_prefix, date=date, prefix=prefix, version=version, field=field
     )
 
     return url
-

@@ -78,6 +78,40 @@ IGN:
         file: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG-PACK_2018-04-01$ADMIN-EXPRESS-COG_1-1__SHP__FRA_2018-04-03/file/ADMIN-EXPRESS-COG_1-1__SHP__FRA_2018-04-03.7z
       2017:
         file: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG-PACK_2017-07-07$ADMIN-EXPRESS-COG_1-0__SHP__FRA_2017-06-19/file/ADMIN-EXPRESS-COG_1-0__SHP__FRA_2017-06-19.7z
+    EXPRESS-COG-CARTO-TERRITOIRE:
+      2021:
+        prefix: ADMINEXPRESS-COG-CARTO
+        date: "2021-05-19"
+        version: "3-0"
+        url_prefix: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG-CARTO_SHP_TERRITOIRES_PACK_2021-05-19
+        structure: "{url_prefix}_{date}${prefix}_{version}__SHP_{field}_{date}/file/{prefix}_{version}__SHP_{field}_{date}.7z"                
+      field:
+        metropole: LAMB93_FXX
+        guadeloupe: RGAF09UTM20_GLP
+        martinique: RGAF09UTM20_MTQ
+        guyane: UTM22RGFG95_GUF
+        reunion: RGR92UTM40S_REU
+        st-pierre-miquelon: 
+        mayotte: RGM04UTM38S_MYT
+      2022:
+        prefix: ADMINEXPRESS-COG-CARTO
+        date: "2022-04-15"
+        version: "3-1"
+        url_prefix: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG-CARTO_SHP_TERRITOIRES_PACK_2022-04-15
+        structure: "{url_prefix}_{date}${prefix}_{version}__SHP_{field}_{date}/file/{prefix}_{version}__SHP_{field}_{date}.7z"                
+      field:
+        metropole: LAMB93_FXX
+        guadeloupe: RGAF09UTM20_GLP
+        martinique: RGAF09UTM20_MTQ
+        guyane: UTM22RGFG95_GUF
+        reunion: RGR92UTM40S_REU
+        st-pierre-miquelon: 
+        mayotte: RGM04UTM38S_MYT
+    EXPRESS-COG-CARTO:
+      2022:
+        file: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG-CARTO_SHP_WGS84G_PACK_2022-04-15$ADMIN-EXPRESS-COG-CARTO_3-1__SHP_WGS84G_FRA_2022-04-15/file/ADMIN-EXPRESS-COG-CARTO_3-1__SHP_WGS84G_FRA_2022-04-15.7z
+      2021:
+        file: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG-CARTO_SHP_WGS84G_PACK_2021-05-19$ADMIN-EXPRESS-COG-CARTO_3-0__SHP_WGS84G_FRA_2021-05-19/file/ADMIN-EXPRESS-COG-CARTO_3-0__SHP_WGS84G_FRA_2021-05-19.7z
   CONTOUR-IRIS: #variables INSEE_COM NOM_COM IRIS CODE_IRIS NOM_IRIS TYP_IRIS ; manque la var Grand-Quartier (GRD_QUART) présente sur les tables insee https://www.insee.fr/fr/information/2017499
     documentation: https://geoservices.ign.fr/documentation/donnees/vecteur/contoursiris
     metadata: https://geoservices.ign.fr/sites/default/files/2022-03/IGNF_Contours-IRISr_2-1.html
