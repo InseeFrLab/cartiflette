@@ -327,7 +327,7 @@ def get_vectorfile_ign(
         "guyane",
         "mayotte",
     ],
-    level: typing.Union[list, str] = ["COMMUNE"],
+    borders: typing.Union[list, str] = ["COMMUNE"],
     provider: typing.Union[list, str] = ["IGN", "opendatarchives"],
 ) -> gpd.GeoDataFrame:
     """
@@ -348,8 +348,8 @@ def get_vectorfile_ign(
     if isinstance(source, list):
         source: str = source[0]
 
-    if isinstance(level, list):
-        level: str = level[0]
+    if isinstance(borders, list):
+        level: str = borders[0]
 
     if isinstance(provider, list):
         provider: str = provider[0]
@@ -364,9 +364,9 @@ def get_vectorfile_ign(
         source=source, year=year, field=field, provider=provider
     )
 
-    data_ign = gpd.read_file(f"{shp_location}/{level}.shp")
+    data_ign = gpd.read_file(f"{shp_location}/{borders}.shp")
 
-    if level == "ARRONDISSEMENT_MUNICIPAL":
+    if borders == "ARRONDISSEMENT_MUNICIPAL":
         data_ign["INSEE_DEP"] = data_ign["INSEE_COM"].str[:2]
 
     data_ign["source"] = f"{provider}:{source}"
@@ -378,14 +378,14 @@ def get_vectorfile_communes_arrondissement(
     year=2022, provider="IGN", source="EXPRESS-COG-TERRITOIRE"
 ):
     arrondissement = get_vectorfile_ign(
-        level="ARRONDISSEMENT_MUNICIPAL",
+        borders="ARRONDISSEMENT_MUNICIPAL",
         year=year,
         field="metropole",
         provider=provider,
         source=source,
     )
     communes = get_vectorfile_ign(
-        level="COMMUNE", year=year, field="metropole", provider=provider, source=source
+        borders="COMMUNE", year=year, field="metropole", provider=provider, source=source
     )
     communes_sans_grandes_villes = communes.loc[
         ~communes["NOM"].isin(["Marseille", "Lyon", "Paris"])
@@ -401,7 +401,12 @@ def get_vectorfile_communes_arrondissement(
         :, ~arrondissement_extra_info.columns.str.endswith("_y")
     ]
 
-    df_enrichi = pd.concat([communes_sans_grandes_villes, arrondissement_extra_info])
+    df_enrichi = pd.concat(
+        [
+            communes_sans_grandes_villes,
+            arrondissement_extra_info
+        ]
+        )
 
     df_enrichi["INSEE_COG"] = np.where(
         df_enrichi["INSEE_ARM"].isnull(),

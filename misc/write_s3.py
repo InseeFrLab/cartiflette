@@ -11,7 +11,7 @@ formats = ["topojson"]
 #formats = ["geojson"]
 
 #years = [y for y in range(2021, 2023)]
-years = [2021, 2022]
+years = [2022]
 
 #crs_list = [4326, 2154, "official"]
 crs_list = [4326, "official"]
@@ -21,8 +21,8 @@ sources = ["EXPRESS-COG-CARTO-TERRITOIRE"]
 croisement_decoupage_level = {
     ## structure -> niveau geo: [niveau decoupage macro],
     #"REGION": ["FRANCE_ENTIERE"],
-    "COMMUNE_ARRONDISSEMENT": ["REGION", "FRANCE_ENTIERE"]#["DEPARTEMENT", "REGION", "FRANCE_ENTIERE"],
-    #"COMMUNE": ["DEPARTEMENT", "REGION", "FRANCE_ENTIERE"],
+    #"COMMUNE_ARRONDISSEMENT": ["REGION", "FRANCE_ENTIERE"]#["DEPARTEMENT", "REGION", "FRANCE_ENTIERE"],
+    "COMMUNE": ["DEPARTEMENT", "REGION", "FRANCE_ENTIERE"],
     #"DEPARTEMENT": ["REGION", "FRANCE_ENTIERE"]
 }
 
