@@ -332,7 +332,7 @@ def download_vectorfile_url_single(
     path_within_bucket: str = PATH_WITHIN_BUCKET,
     provider: str = "IGN",
     source: str = "EXPRESS-COG-TERRITOIRE",
-    crs = None
+    crs=None
 ):
     """
     This function downloads a vector file from a specified S3 bucket and returns it as a GeoPandas object.
@@ -380,6 +380,9 @@ def download_vectorfile_url_single(
         tmp = tempfile.NamedTemporaryFile(delete=False)
         download_pb(url, tmp.name)
         object = gpd.read_file(url, driver=driver)
+
+    if format_read == "topojson":
+        object.crs = crs
 
     return object
 
