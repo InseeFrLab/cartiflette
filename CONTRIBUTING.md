@@ -1,10 +1,12 @@
-# Guide pour devenir développeur du package <img height="18" width="18" src="https://cdn.simpleicons.org/python/00ccff99" /> `cartiflette`
+# Guide pour aider les développeurs du package <img height="18" width="18" src="https://cdn.simpleicons.org/python/00ccff99" /> `cartiflette`
 
 Le _package_ <img height="18" width="18" src="https://cdn.simpleicons.org/python/00ccff99" /> `cartiflette` 
 est une boite à outil qui répond principalement à deux objectifs:
 
 - récupérer et restructurer les données diffusées par l'IGN pour produire des fonds de carte prêts à l'emploi
 - interagir en écriture (mainteneurs du package) et en lecture (tous les utilisateurs) avec l'espace de stockage des fonds de carte proposés par `cartiflette`
+
+## Structuration du package
 
 Le package `cartiflette` est organisé en sous-packages thématiques:
 
