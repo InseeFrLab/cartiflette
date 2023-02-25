@@ -2,6 +2,7 @@
 """
 
 import itertools
+from collections import ChainMap
 import os
 import tempfile
 import typing
@@ -19,6 +20,7 @@ from cartiflette.utils import (
     official_epsg_codes,
 )
 from cartiflette.download import (
+    store_vectorfile_ign,
     get_vectorfile_ign,
     get_vectorfile_communes_arrondissement,
 )
@@ -30,6 +32,16 @@ ENDPOINT_URL = "https://minio.lab.sspcloud.fr"
 fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL})
 
 # UTILITIES --------------------------------
+
+def structure_path_raw_ign(c):
+    source, field, year, provider = c
+    path = store_vectorfile_ign(
+        source=source, year=year,
+        field=field, provider=provider
+        )
+    return(
+        {f"{year=}/raw/{provider=}/{source=}/{field=}": path}
+    )    
 
 
 def standardize_inputs(vectorfile_format):
@@ -44,7 +56,8 @@ def standardize_inputs(vectorfile_format):
 
 
 def create_dict_all_territories(
-    provider="IGN", source="EXPRESS-COG-TERRITOIRE", year=2022, borders="COMMUNE"
+    provider="IGN", source="EXPRESS-COG-TERRITOIRE",
+    year=2022, borders="COMMUNE"
 ):
 
     territories_available = [
@@ -60,7 +73,8 @@ def create_dict_all_territories(
 
     territories = {
         f: get_vectorfile_ign(
-            provider=provider, borders=borders, year=year, field=f, source=source
+            provider=provider, borders=borders,
+            year=year, field=f, source=source
         )
         for f in territories_available
     }
@@ -491,6 +505,53 @@ def write_vectorfile_subset(
     else:
         with fs.open(write_path, "wb") as f:
             object_subset.to_file(f, driver=driver)
+
+
+def duplicate_vectorfile_ign(
+    sources: list,
+    territories: list,
+    years: list,
+    providers: list,
+    BUCKET=BUCKET,
+    PATH_WITHIN_BUCKET=PATH_WITHIN_BUCKET,
+    ENDPOINT_URL=ENDPOINT_URL
+    ):
+    """
+    Duplicates a list of vector files to a specified Amazon S3 bucket using s3fs.
+
+    Args:
+    - sources (list): A list of source names (strings) to combine with other parameters to form file paths.
+    - territories (list): A list of territory names (strings) to combine with other parameters to form file paths.
+    - years (list): A list of year values (strings or integers) to combine with other parameters to form file paths.
+    - providers (list): A list of provider names (strings) to combine with other parameters to form file paths.
+    - BUCKET (string): The name of the Amazon S3 bucket to write the duplicated files to (default: "projet-cartiflette").
+    - PATH_WITHIN_BUCKET (string): The prefix within the bucket to write the duplicated files to (default: "diffusion/shapefiles-test1").
+    - ENDPOINT_URL (string): The endpoint URL of the S3-compatible object storage service (default: "https://minio.lab.sspcloud.fr").
+
+    Returns:
+    - None: The function has no explicit return value.
+
+    Raises:
+    - None: The function does not raise any exceptions explicitly.
+    """
+
+    combinations = list(
+            itertools.product(
+                sources, territories, years, providers
+            )
+        )
+
+    paths = dict(
+        ChainMap(*[
+            structure_path_raw_ign(c) for c in combinations
+            ])
+        )
+
+    fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL})
+
+    for path_s3fs, path_local_fs in paths.items():
+        print(f"Iterating over {path_s3fs}")
+        fs.put(path_local_fs, f'{BUCKET}/{PATH_WITHIN_BUCKET}/{path_s3fs}', recursive = True)
 
 
 def write_vectorfile_all_borderss(

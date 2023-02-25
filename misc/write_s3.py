@@ -6,6 +6,29 @@ import itertools
 import cartiflette.s3 as s3
 from cartiflette.download import get_administrative_level_available_ign
 
+
+
+# RECUPERATION SHAPEFILES IGN -----------------------------
+
+sources = ["EXPRESS-COG-TERRITOIRE"]
+territories = [
+    "metropole", "reunion", "guadeloupe",
+    "martinique", "mayotte", "guyane"]
+years = [2022, 2021]
+providers = ["IGN"]
+
+
+s3.duplicate_vectorfile_ign(
+    sources=sources,
+    territories=territories,
+    years=years,
+    providers=providers
+)
+
+
+# PRODUCTION SHAPEFILES CARTIFLETTE ----------------------
+
+
 #formats = ["geoparquet", "shp", "gpkg", "geojson"]
 formats = ["topojson"]
 #formats = ["geojson"]
