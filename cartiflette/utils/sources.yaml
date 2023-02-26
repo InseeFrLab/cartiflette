@@ -154,9 +154,9 @@ IGN:
 
 Insee:
   COG: #Penser à filtrer sur TYPECOM=COM pour les communes (sans les déléguées) et TYPECOM=ARM pour les arrondissements municipaux PLM
+    root: https://www.insee.fr/fr/statistiques/fichier
     2022:
       id: 6051727
-      root: https://www.insee.fr/fr/information/
       filenames:
         communes: commune_2022.csv
         cantons: canton_2022.csv
