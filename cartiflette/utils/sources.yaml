@@ -156,7 +156,16 @@ Insee:
   COG: #Penser à filtrer sur TYPECOM=COM pour les communes (sans les déléguées) et TYPECOM=ARM pour les arrondissements municipaux PLM
     2022:
       id: 6051727
-      file: https://www.insee.fr/fr/statistiques/fichier/6051727/commune_2022.csv
+      root: https://www.insee.fr/fr/information/
+      filenames:
+        communes: commune_2022.csv
+        cantons: canton_2022.csv
+        arrondissements: arrondissement_2022.csv
+        departements: departement_2022.csv
+        regions: region_2022.csv
+        collectivites: CTCD_2022.csv
+        pays: pays_2022.csv
+      file: https://www.insee.fr/fr/statistiques/fichier/$id/
       documentation: https://www.insee.fr/fr/information/6051727
     2021:
       id: 5057840
