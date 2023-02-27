@@ -428,9 +428,10 @@ def get_cog_year(year: int = 2022):
     url_root = f"{config_root}/{config_cog_year['id']}"
 
     urls = {
-        key: f"{url_root}/{filename}" for \
-            key, filename in \
-                config_cog_year['filenames'].items()
+        cog['alias']: f"{url_root}/{cog['filename']}" for \
+            key, cog in \
+                config_cog_year["content"].items()
+
             }
 
     dict_cog = {

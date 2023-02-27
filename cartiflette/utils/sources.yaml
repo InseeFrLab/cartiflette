@@ -157,14 +157,28 @@ Insee:
     root: https://www.insee.fr/fr/statistiques/fichier
     2022:
       id: 6051727
-      filenames:
-        communes: commune_2022.csv
-        cantons: canton_2022.csv
-        arrondissements: arrondissement_2022.csv
-        departements: departement_2022.csv
-        regions: region_2022.csv
-        collectivites: CTCD_2022.csv
-        pays: pays_2022.csv
+      content:
+        communes:
+          filename: commune_2022.csv
+          alias: COMMUNE
+        cantons:
+          filename: canton_2022.csv
+          alias: CANTON
+        arrondissements:
+          filename: arrondissement_2022.csv
+          alias: ARRONDISSEMENT
+        departements:
+          filename: departement_2022.csv
+          alias: DEPARTEMENT
+        regions:
+          filename: region_2022.csv
+          alias: REGION
+        collectivites:
+          filename: CTCD_2022.csv
+          alias: COLLECTIVITE
+        pays:
+          filename: pays_2022.csv
+          alias: PAYS
       file: https://www.insee.fr/fr/statistiques/fichier/$id/
       documentation: https://www.insee.fr/fr/information/6051727
     2021:
