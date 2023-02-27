@@ -441,8 +441,7 @@ def get_cog_year(year: int = 2022):
 
     return dict_cog
 
-    # for key, data in dict_cog.items():
-    #     data.to_json(f"{key}{year}.json", orient="records")
+
 
 
 def get_BV(year: int = 2022):

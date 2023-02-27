@@ -17,12 +17,14 @@ from cartiflette.utils import (
     create_format_standardized,
     create_format_driver,
     download_pb,
-    official_epsg_codes,
+    official_epsg_codes
 )
+
 from cartiflette.download import (
     store_vectorfile_ign,
     get_vectorfile_ign,
     get_vectorfile_communes_arrondissement,
+    get_cog_year
 )
 
 BUCKET = "projet-cartiflette"
@@ -402,6 +404,33 @@ def download_vectorfile_url_single(
 
 
 # UPLOAD S3 -------------------------------
+
+def write_cog_s3(
+    year: int = 2022
+):
+
+    list_cog = get_cog_year(year)
+
+    dict_path_data = {
+        create_path_bucket(
+            bucket = BUCKET,
+            path_within_bucket = PATH_WITHIN_BUCKET,
+            provider = "INSEE",
+            source = "COG",
+            vectorfile_format = "json",
+            borders = level,
+            filter_by = "france_entiere",
+            year = str(year),
+            value = "raw",
+            crs = None): value for level, value in list_cog.items()
+    }
+
+    for path, data in dict_path_data.items():
+        with fs.open(path, "wb") as f:
+            data.to_json(f, orient="records")
+    
+
+
 
 
 def write_vectorfile_subset(
