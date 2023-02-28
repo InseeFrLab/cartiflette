@@ -418,12 +418,12 @@ def write_cog_s3(
             path_within_bucket = PATH_WITHIN_BUCKET,
             provider = "INSEE",
             source = "COG",
-            vectorfile_format = "json",
+            vectorfile_format = vectorfile_format,
             borders = level,
             filter_by = "france_entiere",
             year = year,
             value = "raw",
-            crs = None): value for level, value in list_cog.items()
+            crs = None).replace("\'", ""): value for level, value in list_cog.items()
     }
 
     for path, data in dict_path_data.items():
