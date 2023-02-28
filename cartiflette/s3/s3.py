@@ -406,7 +406,8 @@ def download_vectorfile_url_single(
 # UPLOAD S3 -------------------------------
 
 def write_cog_s3(
-    year: int = 2022
+    year: int = 2022,
+    vectorfile_format = "json"
 ):
 
     list_cog = get_cog_year(year)
@@ -420,14 +421,22 @@ def write_cog_s3(
             vectorfile_format = "json",
             borders = level,
             filter_by = "france_entiere",
-            year = str(year),
+            year = year,
             value = "raw",
             crs = None): value for level, value in list_cog.items()
     }
 
     for path, data in dict_path_data.items():
         with fs.open(path, "wb") as f:
-            data.to_json(f, orient="records")
+            if vectorfile_format == "json":
+                data.to_json(f, orient="records")
+            elif vectorfile_format == "parquet":
+                data.to_parquet(f)
+            elif vectorfile_format == "csv":
+                data.to_csv(f)
+            else:
+                print("Unsupported format")
+
     
 
 
