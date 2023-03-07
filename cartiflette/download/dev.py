@@ -201,8 +201,6 @@ def download_admin_express(
         files = glob.glob(os.path.join(location, "**", "*.shp"), recursive=True)
         for file in files:
             success = sanitize_geoms(file)
-        
-        gpkg_archive = out_name
 
     arbo = glob.glob(f"{location}/**/1_DONNEES_LIVRAISON_*", recursive=True)
 
