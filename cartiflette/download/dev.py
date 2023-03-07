@@ -11,6 +11,7 @@ import py7zr
 import numpy as np
 import pandas as pd
 import geopandas as gpd
+from shapely.validation import make_valid
 
 
 from cartiflette.utils import (
@@ -103,6 +104,43 @@ def create_url_adminexpress(
     return url
 
 
+def sanitize_geoms(url: str) -> str:
+    """
+    Sanitizes geometries of geodataframe from file (if needed)
+
+    Parameters
+    ----------
+    url : str
+        path to the source file
+
+    Raises
+    ------
+    ValueError
+        The GeoDataFrame contains missing geometries and is not "valid".
+
+    Returns
+    -------
+    str
+        DESCRIPTION.
+
+    """
+
+    gdf = gpd.read_file(url)
+    geom = gdf.geometry
+    ix = geom[(geom.is_empty | geom.isna())].index
+    if len(ix) > 0:
+        raise ValueError('Geometries are missing')
+
+    ix = geom[
+        ~(geom.is_empty | geom.isna())
+        & ~geom.is_valid
+        ].index
+    gdf.loc[ix, "geometry"] = gdf.loc[ix, "geometry"].apply(make_valid)
+
+    gdf.to_file(url)
+    return url
+
+
 def download_admin_express(
     provider: typing.Union[list, str] = ["IGN", "opendatarchives"],
     source: typing.Union[list, str] = ["EXPRESS-COG", "EXPRESS-COG-TERRITOIRE"],
@@ -158,9 +196,13 @@ def download_admin_express(
             tmp = tempfile.TemporaryDirectory()
             location = tmp.name
         # unzip in location directory
-        archive = py7zr.SevenZipFile(out_name, mode="r")
-        archive.extractall(path=location)
-        archive.close()
+        with py7zr.SevenZipFile(out_name, mode="r") as archive:
+            archive.extractall(path=location)
+        files = glob.glob(os.path.join(location, "**", "*.shp"), recursive=True)
+        for file in files:
+            success = sanitize_geoms(file)
+        
+        gpkg_archive = out_name
 
     arbo = glob.glob(f"{location}/**/1_DONNEES_LIVRAISON_*", recursive=True)
 

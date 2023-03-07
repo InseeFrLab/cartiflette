@@ -7,3 +7,4 @@ s3fs
 PyYAML
 xlrd
 topojson
+shapely >= 1.8a3
