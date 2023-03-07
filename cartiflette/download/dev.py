@@ -104,9 +104,10 @@ def create_url_adminexpress(
     return url
 
 
-def sanitize_geoms(url: str) -> str:
+def sanitize_geoms_in_file(url: str) -> None:
     """
-    Sanitizes geometries of geodataframe from file (if needed)
+    Sanitizes geometries of geodataframe from file (if needed).
+    Overwrites the file in place if unvalid geometries are detected.
 
     Parameters
     ----------
@@ -116,12 +117,12 @@ def sanitize_geoms(url: str) -> str:
     Raises
     ------
     ValueError
-        The GeoDataFrame contains missing geometries and is not "valid".
+        If the GeoDataFrame contains missing geometries of if the sanitation
+        fails
 
     Returns
     -------
-    str
-        DESCRIPTION.
+    None
 
     """
 
@@ -135,10 +136,16 @@ def sanitize_geoms(url: str) -> str:
         ~(geom.is_empty | geom.isna())
         & ~geom.is_valid
         ].index
-    gdf.loc[ix, "geometry"] = gdf.loc[ix, "geometry"].apply(make_valid)
+    if len(ix) > 0:
+        gdf.loc[ix, "geometry"] = gdf.loc[ix, "geometry"].apply(make_valid)
+        gdf.to_file(url)
 
-    gdf.to_file(url)
-    return url
+    ix = geom[
+        ~(geom.is_empty | geom.isna())
+        & ~geom.is_valid
+        ].index
+    if len(ix) > 0:
+        raise ValueError("Unvalid geometries are still present in the file")
 
 
 def download_admin_express(
@@ -198,9 +205,10 @@ def download_admin_express(
         # unzip in location directory
         with py7zr.SevenZipFile(out_name, mode="r") as archive:
             archive.extractall(path=location)
-        files = glob.glob(os.path.join(location, "**", "*.shp"), recursive=True)
+        pattern = os.path.join(location, "**", "*.shp")
+        files = glob.glob(pattern, recursive=True)
         for file in files:
-            success = sanitize_geoms(file)
+            sanitize_geoms_in_file(file)
 
     arbo = glob.glob(f"{location}/**/1_DONNEES_LIVRAISON_*", recursive=True)
 
