@@ -59,6 +59,9 @@ s3.production_cartiflette(
     sources
 )
 
+s3.write_cog_s3(year = 2022, vectorfile_format = "parquet")
+s3.write_cog_s3(year = 2021, vectorfile_format = "parquet")
+
 s3.list_produced_cartiflette()
 
 # OLD --------------

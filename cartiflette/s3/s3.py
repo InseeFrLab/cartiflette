@@ -179,9 +179,11 @@ def create_path_bucket(
     write_path = f"{write_path}/{filter_by}={value}/{vectorfile_format=}"
     write_path = f"{write_path}/{provider=}/{source=}"
     write_path = f"{write_path}/raw.{vectorfile_format}"
+    write_path = write_path.replace("\'", "")
 
     if vectorfile_format == "shp":
         write_path = write_path.rsplit("/", maxsplit=1)[0] + "/"
+    
     return write_path
 
 
@@ -423,7 +425,7 @@ def write_cog_s3(
             filter_by = "france_entiere",
             year = year,
             value = "raw",
-            crs = None).replace("\'", ""): value for level, value in list_cog.items()
+            crs = None): value for level, value in list_cog.items()
     }
 
     for path, data in dict_path_data.items():
