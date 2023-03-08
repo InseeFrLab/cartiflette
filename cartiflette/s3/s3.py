@@ -17,12 +17,14 @@ from cartiflette.utils import (
     create_format_standardized,
     create_format_driver,
     download_pb,
-    official_epsg_codes,
+    official_epsg_codes
 )
+
 from cartiflette.download import (
     store_vectorfile_ign,
     get_vectorfile_ign,
     get_vectorfile_communes_arrondissement,
+    get_cog_year
 )
 
 BUCKET = "projet-cartiflette"
@@ -177,9 +179,11 @@ def create_path_bucket(
     write_path = f"{write_path}/{filter_by}={value}/{vectorfile_format=}"
     write_path = f"{write_path}/{provider=}/{source=}"
     write_path = f"{write_path}/raw.{vectorfile_format}"
+    write_path = write_path.replace("\'", "")
 
     if vectorfile_format == "shp":
         write_path = write_path.rsplit("/", maxsplit=1)[0] + "/"
+    
     return write_path
 
 
@@ -402,6 +406,42 @@ def download_vectorfile_url_single(
 
 
 # UPLOAD S3 -------------------------------
+
+def write_cog_s3(
+    year: int = 2022,
+    vectorfile_format = "json"
+):
+
+    list_cog = get_cog_year(year)
+
+    dict_path_data = {
+        create_path_bucket(
+            bucket = BUCKET,
+            path_within_bucket = PATH_WITHIN_BUCKET,
+            provider = "INSEE",
+            source = "COG",
+            vectorfile_format = vectorfile_format,
+            borders = level,
+            filter_by = "france_entiere",
+            year = year,
+            value = "raw",
+            crs = None): value for level, value in list_cog.items()
+    }
+
+    for path, data in dict_path_data.items():
+        with fs.open(path, "wb") as f:
+            if vectorfile_format == "json":
+                data.to_json(f, orient="records")
+            elif vectorfile_format == "parquet":
+                data.to_parquet(f)
+            elif vectorfile_format == "csv":
+                data.to_csv(f)
+            else:
+                print("Unsupported format")
+
+    
+
+
 
 
 def write_vectorfile_subset(

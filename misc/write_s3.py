@@ -43,11 +43,11 @@ sources = ["EXPRESS-COG-CARTO-TERRITOIRE"]
 
 croisement_decoupage_level = {
     ## structure -> niveau geo: [niveau decoupage macro],
-    #"REGION": ["FRANCE_ENTIERE"],
+    "REGION": ["FRANCE_ENTIERE"],
     "ARRONDISSEMENT_MUNICIPAL" : ['DEPARTEMENT'], 
-    #"COMMUNE_ARRONDISSEMENT": #["DEPARTEMENT", "REGION", "FRANCE_ENTIERE"],
-    #"COMMUNE": ["DEPARTEMENT", "REGION", "FRANCE_ENTIERE"],
-    #"DEPARTEMENT": ["REGION", "FRANCE_ENTIERE"]
+    "COMMUNE_ARRONDISSEMENT": ["DEPARTEMENT", "REGION", "FRANCE_ENTIERE"],
+    "COMMUNE": ["DEPARTEMENT", "REGION", "FRANCE_ENTIERE"],
+    "DEPARTEMENT": ["REGION", "FRANCE_ENTIERE"]
 }
 
 
@@ -58,6 +58,9 @@ s3.production_cartiflette(
     crs_list,
     sources
 )
+
+s3.write_cog_s3(year = 2022, vectorfile_format = "parquet")
+s3.write_cog_s3(year = 2021, vectorfile_format = "parquet")
 
 s3.list_produced_cartiflette()
 

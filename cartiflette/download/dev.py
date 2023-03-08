@@ -419,6 +419,31 @@ def get_vectorfile_communes_arrondissement(
     return df_enrichi
 
 
+def get_cog_year(year: int = 2022):
+
+    config = import_yaml_config()
+
+    config_cog_year = config['Insee']['COG'][year]
+    config_root = config['Insee']['COG']['root']
+    url_root = f"{config_root}/{config_cog_year['id']}"
+
+    urls = {
+        cog['alias']: f"{url_root}/{cog['filename']}" for \
+            key, cog in \
+                config_cog_year["content"].items()
+
+            }
+
+    dict_cog = {
+        level: pd.read_csv(url)\
+            for level, url in urls.items()
+    }
+
+    return dict_cog
+
+
+
+
 def get_BV(year: int = 2022):
     """
     Import and Unzip Bassins de vie (Insee, format 2012)

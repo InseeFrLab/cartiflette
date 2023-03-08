@@ -154,12 +154,57 @@ IGN:
 
 Insee:
   COG: #Penser à filtrer sur TYPECOM=COM pour les communes (sans les déléguées) et TYPECOM=ARM pour les arrondissements municipaux PLM
+    root: https://www.insee.fr/fr/statistiques/fichier
     2022:
       id: 6051727
-      file: https://www.insee.fr/fr/statistiques/fichier/6051727/commune_2022.csv
+      content:
+        communes:
+          filename: commune_2022.csv
+          alias: COMMUNE
+        cantons:
+          filename: canton_2022.csv
+          alias: CANTON
+        arrondissements:
+          filename: arrondissement_2022.csv
+          alias: ARRONDISSEMENT
+        departements:
+          filename: departement_2022.csv
+          alias: DEPARTEMENT
+        regions:
+          filename: region_2022.csv
+          alias: REGION
+        collectivites:
+          filename: CTCD_2022.csv
+          alias: COLLECTIVITE
+        pays:
+          filename: pays_2022.csv
+          alias: PAYS
+      file: https://www.insee.fr/fr/statistiques/fichier/$id/
       documentation: https://www.insee.fr/fr/information/6051727
-    2021:
+    2021: 
       id: 5057840
+      content:
+        communes:
+          filename: commune2021-csv.zip
+          alias: COMMUNE
+        cantons:
+          filename: canton2021-csv.zip
+          alias: CANTON
+        arrondissements:
+          filename: arrondissement2021-csv.zip
+          alias: ARRONDISSEMENT
+        departements:
+          filename: departement2021-csv.zip
+          alias: DEPARTEMENT
+        regions:
+          filename: region2021-csv.zip
+          alias: REGION
+        collectivites:
+          filename: CTCD2021-csv.zip
+          alias: COLLECTIVITE
+        pays:
+          filename: pays2021-csv.zip
+          alias: PAYS
       file: https://www.insee.fr/fr/statistiques/fichier/5057840/commune2021-csv.zip
       documentation: https://www.insee.fr/fr/information/5057840
     2020:
