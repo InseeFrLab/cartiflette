@@ -37,7 +37,7 @@ spec:
 #                value: "{{item.borders}}"
 #              - name: filter_by
 #                value: "{{item.filter_by}}"
-              - name: item
+              - name: seconds
                 value: "{{item}}"
             withParam: "{{dag.crossproduct.outputs.result}}"
 
@@ -68,8 +68,8 @@ spec:
     - name: print
       inputs:
         parameters:
-        - name: item
+        - name: seconds
       container:
         image: alpine:latest
         command: [sh, -c]
-        args: ["echo {{inputs.parameters.item}}"]
+        args: ["echo {{inputs.parameters.seconds}}"]
