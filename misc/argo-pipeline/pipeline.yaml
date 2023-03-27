@@ -25,7 +25,7 @@ spec:
             dependencies: [ crossproduct ]
             arguments:
               parameters:
-              - name: item
+              - name: item-production
                 value: "{{item}}"
             withParam: "{{tasks.crossproduct.outputs.result}}"
 
@@ -54,15 +54,15 @@ spec:
     - name: print
       inputs:
         parameters:
-        - name: item
+        - name: item-production
       container:
         image: alpine:latest
         command: [sh, -c]
         args: ["echo 
-                {{inputs.parameters.item.format}} 
-                {{inputs.parameters.item.year}}
-                {{inputs.parameters.item.crs}}
-                {{inputs.parameters.item.source}}
-                {{inputs.parameters.item.official}}
-                {{inputs.parameters.item.borders}}
-                {{inputs.parameters.item.filter_by}}"]
+                {{inputs.parameters.item-production.format}} 
+                {{inputs.parameters.item-production.year}}
+                {{inputs.parameters.item-production.crs}}
+                {{inputs.parameters.item-production.source}}
+                {{inputs.parameters.item-production.official}}
+                {{inputs.parameters.item-production.borders}}
+                {{inputs.parameters.item-production.filter_by}}"]
