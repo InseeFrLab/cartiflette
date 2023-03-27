@@ -1,9 +1,6 @@
-#import os
-#os.chdir("cartiflette")
-#import sys
-#sys.path.append("/home/onyxia/work/cartiflette")
-
 import cartiflette.s3 as s3
+import json
+import sys
 
 # parameters
 formats = ["topojson"]
@@ -29,7 +26,9 @@ def main():
         crs_list=crs_list,
         sources=sources,
     )
-    print(tempdf)
+    # print(tempdf)
+    outupt  = tempdf.to_json(orient="records")
+    print(outupt)
 
 
 if __name__ == "__main__":

@@ -3,13 +3,13 @@
 - j'ai du ajouté la fonction 'crossproduct_parameters_production' 
 à la liste des fonctions exportées du package s3
 
-- j'ai du ajouté :
-import os
-os.chdir("cartiflette")
-import sys
-sys.path.append("/home/onyxia/work/cartiflette")
+- j'ai du ajouté
 pour importer le package 'cartiflette' local (avec mes modifications)
-sans import depuis pip install git+https://github.com/inseefrlab/cartogether
+        env:
+          - name: PYTHONPATH
+            value: "${PYTHONPATH}:/mnt/bin"
+ou en local : export PYTHONPATH=/home/onyxia/work/cartiflette
+
 
 - dans le yaml du workflow, j'ai du référencer le repo git 
 par https://github.com/inseefrlab/cartogether
