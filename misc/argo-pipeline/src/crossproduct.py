@@ -1,5 +1,6 @@
 import cartiflette.s3 as s3
 import json
+import sys
 
 # parameters
 formats = ["topojson"]
@@ -26,7 +27,7 @@ def main():
         sources=sources)
     output  = tempdf.to_json(orient="records")
     parsed = json.loads(output)
-    print(json.dumps(parsed))
+    json.dump(parsed, sys.stdout)
 
 if __name__ == "__main__":
     main()
