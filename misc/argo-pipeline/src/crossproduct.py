@@ -1,6 +1,5 @@
 import cartiflette.s3 as s3
 import json
-import sys
 
 # parameters
 formats = ["topojson"]
@@ -24,12 +23,10 @@ def main():
         list_format=formats,
         years=years,
         crs_list=crs_list,
-        sources=sources,
-    )
-    # print(tempdf)
-    outupt  = tempdf.to_json(orient="records")
-    print(outupt)
-
+        sources=sources)
+    output  = tempdf.to_json(orient="records")
+    parsed = json.loads(output)
+    print(json.dumps(parsed))
 
 if __name__ == "__main__":
     main()
