@@ -25,21 +25,19 @@ spec:
             dependencies: [ crossproduct ]
             arguments:
               parameters:
-#              - name: format
-#                value: "{{item.format}}"
-#              - name: year
-#                value: "{{item.year}}"
-#              - name: crs
-#                value: "{{item.crs}}"
-#              - name: source
-#                value: "{{item.source}}"
-#              - name: borders
-#                value: "{{item.borders}}"
-#              - name: filter_by
-#                value: "{{item.filter_by}}"
-              - name: seconds
-                value: "{{item}}"
-            withParam: "{{dag.crossproduct.outputs.result}}"
+              - name: format
+                value: "{{item.format}}"
+              - name: year
+                value: "{{item.year}}"
+              - name: crs
+                value: "{{item.crs}}"
+              - name: source
+                value: "{{item.source}}"
+              - name: borders
+                value: "{{item.borders}}"
+              - name: filter_by
+                value: "{{item.filter_by}}"
+            withParam: "{{tasks.crossproduct.outputs.result}}"
 
     - name: crossproduct
       inputs:
@@ -68,8 +66,8 @@ spec:
     - name: print
       inputs:
         parameters:
-        - name: seconds
+        - name: year
       container:
         image: alpine:latest
         command: [sh, -c]
-        args: ["echo {{inputs.parameters.seconds}}"]
+        args: ["echo {{inputs.parameters.year}}"]
