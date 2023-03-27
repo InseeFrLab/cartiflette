@@ -41,12 +41,15 @@ spec:
         image: python:alpine3.6
         command: [sh, -c]
         args: ["mkdir -p /mnt/data ; mkdir -p /mnt/bin/src ; 
-
+                mv /mnt/bin/misc/argo-pipeline/src/* /mnt/bin/src ;
                 pip install -r /mnt/bin/requirements.txt ;
-                python "]
+                python src/crossproduct.py"]
         volumeMounts:
           - name: volume-workflow-tmp
             mountPath: /mnt
+        env:
+          - name: PYTHONPATH
+            value: "${PYTHONPATH}:/mnt/bin"
 
     - name: print
       inputs:

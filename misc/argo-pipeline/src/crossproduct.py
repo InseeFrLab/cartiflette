@@ -1,3 +1,8 @@
+#import os
+#os.chdir("cartiflette")
+#import sys
+#sys.path.append("/home/onyxia/work/cartiflette")
+
 import cartiflette.s3 as s3
 
 # parameters
