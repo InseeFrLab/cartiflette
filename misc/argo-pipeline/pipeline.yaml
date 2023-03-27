@@ -35,15 +35,17 @@ spec:
           - name: code
             path: /mnt/bin
             git:
-              repo: https://github.com/InseeFrLab/cartiflette.git
+              repo: https://github.com/inseefrlab/cartogether
               revision: "argo-pipeline"
       container:
-        image: python:alpine3.6
+        image: python:3.9-slim
         command: [sh, -c]
         args: ["mkdir -p /mnt/data ; mkdir -p /mnt/bin/src ; 
                 mv /mnt/bin/misc/argo-pipeline/src/* /mnt/bin/src ;
+                ls /mnt/bin/src/ ;
+                pip install requests ;
                 pip install -r /mnt/bin/requirements.txt ;
-                python src/crossproduct.py"]
+                python /mnt/bin/src/crossproduct.py"]
         volumeMounts:
           - name: volume-workflow-tmp
             mountPath: /mnt
