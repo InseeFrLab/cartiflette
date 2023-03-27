@@ -41,8 +41,9 @@ spec:
         image: python:alpine3.6
         command: [sh, -c]
         args: ["mkdir -p /mnt/data ; mkdir -p /mnt/bin/src ; 
+
                 pip install -r /mnt/bin/requirements.txt ;
-                python -c 'print('hello')'"]
+                python "]
         volumeMounts:
           - name: volume-workflow-tmp
             mountPath: /mnt
