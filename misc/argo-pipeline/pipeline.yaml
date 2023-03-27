@@ -1,0 +1,57 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: cartiflette-pipeline-
+spec:
+  entrypoint: main
+  serviceAccountName: workflow
+  volumeClaimTemplates:
+    - metadata:
+        name: volume-workflow-tmp
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 10Gi
+  templates:
+    - name: main
+      dag:
+        tasks:
+          - name: crossproduct
+            template: crossproduct
+
+          - name: print
+            template: print
+            dependencies: [ crossproduct ]
+            arguments:
+              parameters:
+              - name: seconds
+                value: "{{item}}"
+            withParam: "{{dag.crossproduct.outputs.result}}"
+
+    - name: crossproduct
+      inputs:
+        artifacts:
+          - name: code
+            path: /mnt/bin
+            git:
+              repo: https://github.com/InseeFrLab/cartiflette.git
+              revision: "argo-pipeline"
+      container:
+        image: python:alpine3.6
+        command: [sh, -c]
+        args: ["mkdir -p /mnt/data ; mkdir -p /mnt/bin/src ; 
+                pip install -r /mnt/bin/requirements.txt ;
+                python -c 'print('hello')'"]
+        volumeMounts:
+          - name: volume-workflow-tmp
+            mountPath: /mnt
+
+    - name: print
+      inputs:
+        parameters:
+        - name: seconds
+      container:
+        image: alpine:latest
+        command: [sh, -c]
+        args: ["echo sleeping for {{inputs.parameters.seconds}} seconds"]
