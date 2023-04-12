@@ -594,7 +594,7 @@ def duplicate_vectorfile_ign(
         fs.put(path_local_fs, f'{BUCKET}/{PATH_WITHIN_BUCKET}/{path_s3fs}', recursive = True)
 
 
-def write_vectorfile_all_borderss(
+def write_vectorfile_all_borders(
     object: gpd.GeoDataFrame,
     borders_var: str,
     borders: str = "COMMUNE",
@@ -608,15 +608,15 @@ def write_vectorfile_all_borderss(
     source: str = "EXPRESS-COG-TERRITOIRE",
 ):
 
-    """Write all borderss of a GeoDataFrame to a specified format on S3.
+    """Write all borders of a GeoDataFrame to a specified format on S3.
 
     This function takes a GeoDataFrame object, the variable name on which to create
-    the borderss and other parameters like format, filter_by, year, bucket and path
+    the borders and other parameters like format, filter_by, year, bucket and path
     within the bucket, crs and borders for the vector file to be written on S3.
 
     Args:
         object (gpd.GeoDataFrame): The GeoDataFrame object to write.
-        borders_var (str): The variable name on which to create the borderss.
+        borders_var (str): The variable name on which to create the borders.
         borders (str, optional): The borders of the vector file. Defaults to "COMMUNE".
         vectorfile_format (str, optional): The format of the vector file. Defaults to "geojson".
         filter_by (str, optional): The filter_by of the vector file. Defaults to "region".
@@ -692,7 +692,7 @@ def write_vectorfile_s3_custom_arrondissement(
         object["territoire"] = "metropole"
 
 
-    write_vectorfile_all_borderss(
+    write_vectorfile_all_borders(
         object=object,
         borders="COMMUNE_ARRONDISSEMENT",
         borders_var=var_filter_by_s3,
@@ -754,7 +754,7 @@ def write_vectorfile_s3_all(
             epsg = crs
 
 
-        write_vectorfile_all_borderss(
+        write_vectorfile_all_borders(
             object=territories[territory],
             borders=borders,
             borders_var=var_filter_by_s3,
@@ -843,7 +843,7 @@ def create_territories(
     return territories
 
 
-def restructure_nested_dict_borderss(dict_with_list: dict):
+def restructure_nested_dict_borders(dict_with_list: dict):
 
     croisement_filter_by_borders_flat = [
         [key, inner_value]
@@ -858,7 +858,7 @@ def crossproduct_parameters_production(
     croisement_filter_by_borders, list_format, years, crs_list, sources
 ):
 
-    croisement_filter_by_borders_flat = restructure_nested_dict_borderss(
+    croisement_filter_by_borders_flat = restructure_nested_dict_borders(
         croisement_filter_by_borders
     )
 
@@ -882,8 +882,8 @@ def list_produced_cartiflette(
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET
 ):
-    written_borderss = fs.glob(f"{bucket}/{path_within_bucket}/**/provider*")
-    df = pd.DataFrame(written_borderss, columns=['paths'])
+    written_borders = fs.glob(f"{bucket}/{path_within_bucket}/**/provider*")
+    df = pd.DataFrame(written_borders, columns=['paths'])
 
     df[
         ['year', 'administrative_level', 'crs', 'filter_by', 'format']
