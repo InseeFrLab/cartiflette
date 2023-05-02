@@ -13,6 +13,9 @@ warning: false
 géographiques en proposant des récupérations facilitées de coutours
 de cartes officiels. 
 
+Une documentation interactive est en préfiguration sur la
+plateforme observable: https://observablehq.com/@linogaliana/cartiflette-demo
+
 ## Installation
 
 A l'heure actuelle, `cartiflette` est structuré sous
@@ -35,10 +38,12 @@ le contour des communes de la région Normandie:
 import cartiflette.s3
 
 normandie = cartiflette.s3.download_vectorfile_url_all(
+    crs = 4326,
     values = "11",
-    level="COMMUNE",
-    vectorfile_format="geojson",
-    decoupage="region",
+    borders="COMMUNE",
+    vectorfile_format="topojson",
+    filter_by="REGION",
+    source="EXPRESS-COG-CARTO-TERRITOIRE",
     year=2022)
 ax = normandie.plot()
 ax.set_axis_off()
@@ -49,21 +54,26 @@ ou des régions Ile de France, Normandie et Bourgogne
 
 ```{python}
 regions = cartiflette.s3.download_vectorfile_url_all(
+    crs = 4326,
     values = ["11","27","28"],
-    level="COMMUNE",
-    vectorfile_format="GPKG",
-    decoupage="region",
+    borders="COMMUNE",
+    vectorfile_format="topojson",
+    filter_by="REGION",
+    source="EXPRESS-COG-CARTO-TERRITOIRE",
     year=2022)
+
 ax = regions.plot()
 ax.set_axis_off()
 ```
 
 ```{python}
-regions = cartiflette.s3.download_vectorfile_url_all(
-    values = ["75", "92", "93", "94"],
-    level="COMMUNE_ARRONDISSEMENT",
-    vectorfile_format="geojson",
-    decoupage="departement",
+regions =  cartiflette.s3.download_vectorfile_url_all(
+    crs = 4326,
+    values = ["11","27","28"],
+    borders="COMMUNE_ARRONDISSEMENT",
+    vectorfile_format="topojson",
+    filter_by="DEPARTEMENT",
+    source="EXPRESS-COG-CARTO-TERRITOIRE",
     year=2022)
 ax = regions.plot()
 ax.set_axis_off()
