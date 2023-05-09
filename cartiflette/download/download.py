@@ -202,6 +202,7 @@ class Dataset:
             version = sources[year]["version"]
             structure = sources[year]["structure"]
             url_prefix = sources[year]["url_prefix"]
+            france_entiere = sources[year]["france_entiere"]
 
             url = structure.format(
                 url_prefix=url_prefix,
@@ -209,6 +210,8 @@ class Dataset:
                 prefix=prefix,
                 version=version,
                 field=field,
+                year=str(self.year)[-2:],
+                france_entiere=france_entiere,
             )
 
         logger.info(f"using {url}")
@@ -596,7 +599,7 @@ if __name__ == "__main__":
     providers = ["IGN"]
     dataset_family = ["BDTOPO"]
     sources = ["REMOVE"]
-    territories = ["bonjour"]  # "guadeloupe", "martinique"]
+    territories = ["france_entiere"]  # "guadeloupe", "martinique"]
     years = [2017]
 
     results = download_sources(
