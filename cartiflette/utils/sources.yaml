@@ -109,6 +109,8 @@ IGN:
     documentation: https://geoservices.ign.fr/documentation/donnees/vecteur/bdtopo
     metadata: https://geoservices.ign.fr/sites/default/files/2023-01/IGNF_BDTOPOr_3-3.html
     REMOVE:
+      field:
+        france_entiere: WGS84G_FRA
       2018:
           prefix: BDTOPO
           year: "18"
