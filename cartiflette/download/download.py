@@ -539,12 +539,13 @@ class MasterScraper(HttpScraper, FtpScraper):
         return {"downloaded": True, "hash": hash, "path": shp_location}
 
 
-def download_sources():
-    providers = ["IGN"]
-    dataset_family = ["ADMINEXPRESS"]
-    sources = ["EXPRESS-COG-TERRITOIRE"]
-    territories = ["guadeloupe", "martinique"]
+def download_sources(
+    providers = ["IGN"],
+    dataset_family = ["ADMINEXPRESS"],
+    sources = ["EXPRESS-COG-TERRITOIRE"],
+    territories = ["guadeloupe", "martinique"],
     years = [2021]
+):
 
     combinations = list(
         product(sources, territories, years, providers, dataset_family)
