@@ -192,7 +192,10 @@ class Dataset:
             )
             raise ValueError(msg)
 
-        if self.source.endswith("-TERRITOIRE"):
+        try:
+            url = sources[year]["file"]
+
+        except KeyError:
             field = sources["field"][self.territory]
             date = sources[year]["date"]
             prefix = sources[year]["prefix"]
@@ -207,9 +210,6 @@ class Dataset:
                 version=version,
                 field=field,
             )
-
-        else:
-            url = sources[year]["file"]
 
         logger.info(f"using {url}")
 
@@ -593,10 +593,10 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     providers = ["IGN"]
-    dataset_family = ["ADMINEXPRESS"]
-    sources = ["EXPRESS-COG-TERRITOIRE"]
-    territories = ["guadeloupe", "martinique"]
-    years = [2019]
+    dataset_family = ["BDTOPO"]
+    sources = ["REMOVE"]
+    territories = ["bonjour"]  # "guadeloupe", "martinique"]
+    years = [2017]
 
     results = download_sources(
         providers, dataset_family, sources, territories, years
