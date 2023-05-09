@@ -1,7 +1,12 @@
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-
 # `cartiflette` <img src="cartiflette.png" align="right" height="139" />
 
+<div>
+
+[![](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
+Code style: black
+
+</div>
 
 `cartiflette` est un projet pour faciliter l’association de sources
 géographiques en proposant des récupérations facilitées de coutours de
@@ -31,44 +36,61 @@ communes de la région Normandie :
 import cartiflette.s3
 
 normandie = cartiflette.s3.download_vectorfile_url_all(
+    crs = 4326,
     values = "11",
-    level="COMMUNE",
-    vectorfile_format="geojson",
-    decoupage="region",
+    borders="COMMUNE",
+    vectorfile_format="topojson",
+    filter_by="REGION",
+    source="EXPRESS-COG-CARTO-TERRITOIRE",
     year=2022)
 ax = normandie.plot()
 ax.set_axis_off()
 ```
 
-![](README_files/figure-commonmark/cell-2-output-1.png)
+    https://minio.lab.sspcloud.fr/projet-cartiflette/diffusion/shapefiles-test1/year=2022/administrative_level=COMMUNE/crs=4326/REGION=11/vectorfile_format=topojson/provider=IGN/source=EXPRESS-COG-CARTO-TERRITOIRE/raw.topojson
+
+![](README_files/figure-commonmark/cell-2-output-2.png)
 
 ou des régions Ile de France, Normandie et Bourgogne
 
 ``` python
 regions = cartiflette.s3.download_vectorfile_url_all(
+    crs = 4326,
     values = ["11","27","28"],
-    level="COMMUNE",
-    vectorfile_format="GPKG",
-    decoupage="region",
+    borders="COMMUNE",
+    vectorfile_format="topojson",
+    filter_by="REGION",
+    source="EXPRESS-COG-CARTO-TERRITOIRE",
     year=2022)
+
 ax = regions.plot()
 ax.set_axis_off()
 ```
 
-![](README_files/figure-commonmark/cell-3-output-1.png)
+    https://minio.lab.sspcloud.fr/projet-cartiflette/diffusion/shapefiles-test1/year=2022/administrative_level=COMMUNE/crs=4326/REGION=11/vectorfile_format=topojson/provider=IGN/source=EXPRESS-COG-CARTO-TERRITOIRE/raw.topojson
+    https://minio.lab.sspcloud.fr/projet-cartiflette/diffusion/shapefiles-test1/year=2022/administrative_level=COMMUNE/crs=4326/REGION=27/vectorfile_format=topojson/provider=IGN/source=EXPRESS-COG-CARTO-TERRITOIRE/raw.topojson
+    https://minio.lab.sspcloud.fr/projet-cartiflette/diffusion/shapefiles-test1/year=2022/administrative_level=COMMUNE/crs=4326/REGION=28/vectorfile_format=topojson/provider=IGN/source=EXPRESS-COG-CARTO-TERRITOIRE/raw.topojson
+
+![](README_files/figure-commonmark/cell-3-output-2.png)
 
 ``` python
-regions = cartiflette.s3.download_vectorfile_url_all(
-    values = ["75", "92", "93", "94"],
-    level="COMMUNE_ARRONDISSEMENT",
-    vectorfile_format="geojson",
-    decoupage="departement",
+regions =  cartiflette.s3.download_vectorfile_url_all(
+    crs = 4326,
+    values = ["11","27","28"],
+    borders="COMMUNE_ARRONDISSEMENT",
+    vectorfile_format="topojson",
+    filter_by="DEPARTEMENT",
+    source="EXPRESS-COG-CARTO-TERRITOIRE",
     year=2022)
 ax = regions.plot()
 ax.set_axis_off()
 ```
 
-![](README_files/figure-commonmark/cell-4-output-1.png)
+    https://minio.lab.sspcloud.fr/projet-cartiflette/diffusion/shapefiles-test1/year=2022/administrative_level=COMMUNE_ARRONDISSEMENT/crs=4326/DEPARTEMENT=11/vectorfile_format=topojson/provider=IGN/source=EXPRESS-COG-CARTO-TERRITOIRE/raw.topojson
+    https://minio.lab.sspcloud.fr/projet-cartiflette/diffusion/shapefiles-test1/year=2022/administrative_level=COMMUNE_ARRONDISSEMENT/crs=4326/DEPARTEMENT=27/vectorfile_format=topojson/provider=IGN/source=EXPRESS-COG-CARTO-TERRITOIRE/raw.topojson
+    https://minio.lab.sspcloud.fr/projet-cartiflette/diffusion/shapefiles-test1/year=2022/administrative_level=COMMUNE_ARRONDISSEMENT/crs=4326/DEPARTEMENT=28/vectorfile_format=topojson/provider=IGN/source=EXPRESS-COG-CARTO-TERRITOIRE/raw.topojson
+
+![](README_files/figure-commonmark/cell-4-output-2.png)
 
 ## Plus de détails
 
