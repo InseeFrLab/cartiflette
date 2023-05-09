@@ -21,6 +21,7 @@ import ftplib
 from typing import Dict, Any, TypedDict
 from glob import glob
 import tempfile
+import numpy as np
 
 from cartiflette.utils import import_yaml_config
 
@@ -34,6 +35,8 @@ fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL})
 
 
 logger = logging.getLogger(__name__)
+
+# TODO : docstrings
 
 # =============================================================================
 # A placer dans utils :
@@ -143,7 +146,7 @@ class Dataset:
 
     def update_json_md5(self, md5: str) -> bool:
         "Mise à jour du json des md5"
-        # TODO : à basculer dans utils
+        # TODO : à basculer dans utils pour réutilisation dans pipeline s3
         md5 = {
             self.provider: {
                 self.dataset_family: {
@@ -237,6 +240,7 @@ class Dataset:
         None
 
         """
+        logger.debug(f"sanitizing geometries of {file_path}")
 
         if preserve not in ["shape", "topology"]:
             msg = (
@@ -270,14 +274,25 @@ class Dataset:
         self.temp_archive_path = path
 
     def unzip(
-        self, pattern: str = BASE_CACHE_PATTERN, preserve: str = "shape"
+        self,
+        pattern: str = BASE_CACHE_PATTERN,
+        preserve: str = "shape"
+        # TODO : ajouter un argument qui spécifie l'extension recherchée :
+        # .shp, .gpkg, etc.
     ) -> str:
         # unzip in temp directory
         tmp = tempfile.TemporaryDirectory()
         location = tmp.name
         logger.debug(f"Extracting to {location}")
 
-        # TODO : py7zr semble très lent !
+        year = self.year
+        source = self.source
+        territory = self.territory
+        sources = self.sources
+
+        # TODO : tester le type de fichier au préalable ?
+        # (-> choix py7zr, zipfile, etc.)
+
         with py7zr.SevenZipFile(self.temp_archive_path, mode="r") as archive:
             files = archive.getnames()
             shapefiles = {
@@ -285,39 +300,37 @@ class Dataset:
                 for x in files
                 if x.lower().endswith(".shp")
             }
+
+            if year <= 2020 and source.endswith("-TERRITOIRE"):
+                field_code = sources["field"][territory].split("_")[0]
+                shapefiles = {x for x in shapefiles if field_code in x}
+
             logger.debug(shapefiles)
             targets = [
                 x for x in files if os.path.splitext(x)[0] in shapefiles
             ]
             logger.debug(targets)
-            logger.info(len(targets))
+            logger.debug(len(targets))
             archive.extract(path=location, targets=targets)
 
-        year = self.year
-        source = self.source
-        territory = self.territory
-        sources = self.sources
-
         # note that glob is case sensitive on linux
-        combinations_patterns = [[pattern.lower(), pattern.upper()]]
-
-        if year <= 2020 and source.endswith("-TERRITOIRE"):
-            field_code = sources["field"][territory].split("_")[0]
-            pattern = os.path.join(f"*{field_code}*", "**")
-            combinations_patterns.append([pattern.lower(), pattern.upper()])
-
-        combinations_patterns.append(["*.shp", "*.SHP"])
-
+        combinations_patterns = [
+            [pattern.lower(), pattern.upper()],
+            ["*.shp", "*.SHP"],
+        ]
         patterns = list(product(*combinations_patterns))
         paths = []
         for list_pattern in patterns:
             pattern = os.path.join(*list_pattern)
             paths += glob(os.path.join(location, pattern), recursive=True)
+        logger.debug(paths)
 
+        # TODO : envisager un multiprocessing ?
         for file in paths:
             self.__sanitize_file__(file, preserve=preserve)
 
-        shp_location = os.path.dirname(paths[0])
+        paths = {os.path.dirname(x) for x in paths}
+        shp_location = tuple(paths)
         return shp_location
 
 
@@ -415,9 +428,6 @@ class HttpScraper(BaseScraper, requests.Session):
                 msg = f"Content-Length not found in header at url {url}"
                 logger.warning(msg)
 
-        # TODO : faire une recherche dans le header pour confirmer qu'on
-        # est bien sur un 7z
-
         with tempfile.NamedTemporaryFile("wb", delete=False) as temp_file:
             file_path = temp_file.name
             logger.debug(f"Downloading to {file_path}")
@@ -426,7 +436,7 @@ class HttpScraper(BaseScraper, requests.Session):
             r = super().get(url, stream=True, **kwargs)
             with tqdm(
                 desc="Downloading: ",
-                total=expected_file_size / block_size,
+                total=int(np.ceil(expected_file_size / block_size)),
                 unit="iB",
                 unit_scale=True,
                 unit_divisor=1024,
@@ -540,13 +550,13 @@ class MasterScraper(HttpScraper, FtpScraper):
 
 
 def download_sources(
-    providers = ["IGN"],
-    dataset_family = ["ADMINEXPRESS"],
-    sources = ["EXPRESS-COG-TERRITOIRE"],
-    territories = ["guadeloupe", "martinique"],
-    years = [2021]
-):
 
+    providers: list,
+    dataset_family: list,
+    sources: list,
+    territories: list,
+    years: list,
+):
     combinations = list(
         product(sources, territories, years, providers, dataset_family)
     )
@@ -561,6 +571,10 @@ def download_sources(
             datafile = Dataset(
                 dataset_family, source, year, provider, territory
             )
+
+            # TODO : certains fichiers sont téléchargés plusieurs fois, par ex.
+            # les EXPRESS-COG-TERRITOIRE d'avant 2020... -> à optimiser au cas
+            # où ça se produirait avec des jeux de données plus récents ?
 
             result = s.download_unzip(
                 datafile, preserve="shape", pattern=BASE_CACHE_PATTERN
@@ -578,4 +592,14 @@ def download_sources(
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    print(download_sources())
+
+    providers = ["IGN"]
+    dataset_family = ["ADMINEXPRESS"]
+    sources = ["EXPRESS-COG-TERRITOIRE"]
+    territories = ["guadeloupe", "martinique"]
+    years = [2019]
+
+    results = download_sources(
+        providers, dataset_family, sources, territories, years
+    )
+    print(results)
