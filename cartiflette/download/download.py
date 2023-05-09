@@ -197,9 +197,10 @@ class Dataset:
 
         except KeyError:
             field = sources["field"][self.territory]
-
             structure = sources[year]["structure"]
-            kwargs = sources[year]
+
+            kwargs = sources[year].copy()
+            kwargs["field"] = field
             del kwargs["structure"]
 
             url = structure.format(**kwargs)
