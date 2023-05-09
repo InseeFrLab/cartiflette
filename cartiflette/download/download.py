@@ -197,22 +197,12 @@ class Dataset:
 
         except KeyError:
             field = sources["field"][self.territory]
-            date = sources[year]["date"]
-            prefix = sources[year]["prefix"]
-            version = sources[year]["version"]
-            structure = sources[year]["structure"]
-            url_prefix = sources[year]["url_prefix"]
-            france_entiere = sources[year]["france_entiere"]
 
-            url = structure.format(
-                url_prefix=url_prefix,
-                date=date,
-                prefix=prefix,
-                version=version,
-                field=field,
-                year=str(self.year)[-2:],
-                france_entiere=france_entiere,
-            )
+            structure = sources[year]["structure"]
+            kwargs = sources[year]
+            del kwargs["structure"]
+
+            url = structure.format(**kwargs)
 
         logger.info(f"using {url}")
 
