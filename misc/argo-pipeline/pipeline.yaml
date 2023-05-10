@@ -52,7 +52,6 @@ spec:
         command: [sh, -c]
         args: ["mkdir -p /mnt/data ; mkdir -p /mnt/bin/src ; 
                 mv /mnt/bin/misc/argo-pipeline/src/* /mnt/bin/src ;
-                pip install --quiet -r /mnt/bin/requirements.txt ;
                 python /mnt/bin/src/crossproduct.py"]
         volumeMounts:
           - name: volume-workflow-tmp
