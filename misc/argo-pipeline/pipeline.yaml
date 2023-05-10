@@ -48,7 +48,7 @@ spec:
               repo: https://github.com/inseefrlab/cartogether
               revision: "argo-pipeline"
       container:
-        image: python:3.9-slim
+        image: inseefrlab/cartiflette
         command: [sh, -c]
         args: ["mkdir -p /mnt/data ; mkdir -p /mnt/bin/src ; 
                 mv /mnt/bin/misc/argo-pipeline/src/* /mnt/bin/src ;
