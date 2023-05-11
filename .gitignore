@@ -129,5 +129,5 @@ dmypy.json
 .pyre/
 
 # Setuptools vs. poetry
-.lock
+*.lock
 .toml
