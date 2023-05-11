@@ -29,7 +29,6 @@ def import_yaml_config(location: str = config_file) -> dict:
 def url_express_COG_territoire(
     year: int = 2022, provider: str = "IGN", territoire: str = "metropole"
 ):
-
     # from cartiflette.utils import import_yaml_config
 
     yaml = import_yaml_config()

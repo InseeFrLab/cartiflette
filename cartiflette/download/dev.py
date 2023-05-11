@@ -385,7 +385,11 @@ def get_vectorfile_communes_arrondissement(
         source=source,
     )
     communes = get_vectorfile_ign(
-        borders="COMMUNE", year=year, field="metropole", provider=provider, source=source
+        borders="COMMUNE",
+        year=year,
+        field="metropole",
+        provider=provider,
+        source=source,
     )
     communes_sans_grandes_villes = communes.loc[
         ~communes["NOM"].isin(["Marseille", "Lyon", "Paris"])
@@ -414,25 +418,22 @@ def get_vectorfile_communes_arrondissement(
         df_enrichi["INSEE_ARM"],
     )
 
-    df_enrichi = df_enrichi.drop('INSEE_ARM', axis="columns")
+    df_enrichi = df_enrichi.drop("INSEE_ARM", axis="columns")
 
     return df_enrichi
 
 
 def get_cog_year(year: int = 2022):
-
     config = import_yaml_config()
 
-    config_cog_year = config['Insee']['COG'][year]
-    config_root = config['Insee']['COG']['root']
+    config_cog_year = config["Insee"]["COG"][year]
+    config_root = config["Insee"]["COG"]["root"]
     url_root = f"{config_root}/{config_cog_year['id']}"
 
     urls = {
-        cog['alias']: f"{url_root}/{cog['filename']}" for \
-            key, cog in \
-                config_cog_year["content"].items()
-
-            }
+        cog["alias"]: f"{url_root}/{cog['filename']}"
+        for key, cog in config_cog_year["content"].items()
+    }
 
     dict_cog = {
         level: pd.read_csv(url)\
@@ -440,8 +441,6 @@ def get_cog_year(year: int = 2022):
     }
 
     return dict_cog
-
-
 
 
 def get_BV(year: int = 2022):

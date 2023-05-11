@@ -139,9 +139,9 @@ class Dataset:
             logger.warning("md5 not found")
             return
 
-        md5 = all_md5[self.provider][self.dataset_family][self.source][
-            self.territory
-        ][self.year]
+        md5 = all_md5[self.provider][self.dataset_family][self.source][self.territory][
+            self.year
+        ]
         self.md5 = md5
 
     def update_json_md5(self, md5: str) -> bool:
@@ -149,9 +149,7 @@ class Dataset:
         # TODO : à basculer dans utils pour réutilisation dans pipeline s3
         md5 = {
             self.provider: {
-                self.dataset_family: {
-                    self.source: {self.territory: {self.year: md5}}
-                }
+                self.dataset_family: {self.source: {self.territory: {self.year: md5}}}
             }
         }
         try:
@@ -544,7 +542,6 @@ class MasterScraper(HttpScraper, FtpScraper):
 
 
 def download_sources(
-
     providers: list,
     dataset_family: list,
     sources: list,

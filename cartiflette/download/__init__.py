@@ -5,7 +5,7 @@ from .dev import (
     store_vectorfile_ign,
     get_vectorfile_communes_arrondissement,
     get_BV,
-    get_cog_year
+    get_cog_year,
 )
 
 __all__ = [
@@ -15,5 +15,5 @@ __all__ = [
     "store_vectorfile_ign",
     "get_vectorfile_communes_arrondissement",
     "get_BV",
-    "get_cog_year"
+    "get_cog_year",
 ]

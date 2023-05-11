@@ -6,7 +6,7 @@ from .s3 import (
     production_cartiflette,
     list_produced_cartiflette,
     duplicate_vectorfile_ign,
-    write_cog_s3
+    write_cog_s3,
 )
 
 __all__ = [
@@ -17,5 +17,5 @@ __all__ = [
     "production_cartiflette",
     "list_produced_cartiflette",
     "duplicate_vectorfile_ign",
-    "write_cog_s3"
+    "write_cog_s3",
 ]
