@@ -7,7 +7,6 @@ Created on Tue Mar 21 20:52:51 2023
 
 import requests
 from tqdm import tqdm
-import hashlib
 import os
 import geopandas as gpd
 import logging
@@ -23,7 +22,7 @@ from glob import glob
 import tempfile
 import numpy as np
 
-from cartiflette.utils import import_yaml_config
+from cartiflette.utils import import_yaml_config, hash_file, deep_dict_update
 
 BUCKET = "projet-cartiflette"
 PATH_WITHIN_BUCKET = "diffusion/shapefiles-test1"
@@ -35,68 +34,6 @@ fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL})
 
 
 logger = logging.getLogger(__name__)
-
-# TODO : docstrings
-
-# =============================================================================
-# A placer dans utils :
-# =============================================================================
-
-
-def hash_file(file_path):
-    """
-    https://gist.github.com/mjohnsullivan/9322154
-    Get the MD5 hsah value of a file
-    :param file_path: path to the file for hash validation
-    :type file_path:  string
-    :param hash:      expected hash value of the file
-    """
-    m = hashlib.md5()
-    with open(file_path, "rb") as f:
-        while True:
-            chunk = f.read(1000 * 1000)  # 1MB
-            if not chunk:
-                break
-            m.update(chunk)
-    return m.hexdigest()
-
-
-def deep_update(
-    mapping: Dict[Any, Any], *updating_mappings: Dict[Any, Any]
-) -> Dict[Any, Any]:
-    """
-    https://stackoverflow.com/questions/3232943/#answer-68557484
-    Recursive update of a nested dictionary
-
-    Parameters
-    ----------
-    mapping : Dict[KeyType, Any]
-        initial dictionary
-    *updating_mappings : Dict[KeyType, Any]
-        update to set into mapping
-
-    Returns
-    -------
-    Dict[KeyType, Any]
-        new (udpated) dictionary
-
-    """
-
-    updated_mapping = mapping.copy()
-    for updating_mapping in updating_mappings:
-        for k, v in updating_mapping.items():
-            if (
-                k in updated_mapping
-                and isinstance(updated_mapping[k], dict)
-                and isinstance(v, dict)
-            ):
-                updated_mapping[k] = deep_update(updated_mapping[k], v)
-            else:
-                updated_mapping[k] = v
-    return updated_mapping
-
-
-# =============================================================================
 
 
 class Dataset:
@@ -157,7 +94,7 @@ class Dataset:
         try:
             with fs.open(self.JSON_MD5, "r+") as f:
                 all_md5 = json.load(f)
-                all_md5 = deep_update(all_md5, md5)
+                all_md5 = deep_dict_update(all_md5, md5)
                 fs.write(json.dump(all_md5, f))
             return True
 
@@ -428,6 +365,8 @@ class HttpScraper(BaseScraper, requests.Session):
 
             logger.debug(f"starting download at {url}")
             r = super().get(url, stream=True, **kwargs)
+            if not r.ok:
+                raise IOError(f"download failed with {r.status_code} code")
             with tqdm(
                 desc="Downloading: ",
                 total=int(np.ceil(expected_file_size / block_size)),
@@ -453,6 +392,7 @@ class HttpScraper(BaseScraper, requests.Session):
         # if there's a hash value, check if there are any changes
         if hash and self.__validate_file__(file_path, hash):
             # unchanged file -> exit (after deleting the downloaded file)
+            logger.info(f"md5 matched at {url} after download")
             os.unlink(file_path)
             return False, None
 
@@ -578,7 +518,7 @@ def download_sources(
                     dataset_family: {source: {territory: {year: result}}}
                 }
             }
-            files = deep_update(files, this_result)
+            files = deep_dict_update(files, this_result)
 
     return files
 
