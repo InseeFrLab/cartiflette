@@ -232,21 +232,16 @@ def test_sources_yaml(mock_Dataset_without_s3):
                                 continue
 
                             try:
-                                r = scraper.head(url)
-                                r_type = "head"
+                                r = scraper.get(url, stream=True)
                             except Exception:
-                                # head non supporté
-                                try:
-                                    r = scraper.get(url, stream=True)
-                                except Exception:
-                                    logger.error(
-                                        f"error on yaml {str_yaml} : "
-                                        f"https get request failed"
-                                    )
-                                    continue
-                                r_type = "get"
+                                logger.error(
+                                    f"error on yaml {str_yaml} : "
+                                    f"https get request failed on {url}"
+                                )
+                                continue
                             if not r.ok:
                                 logger.error(
                                     f"error on yaml {str_yaml} : "
-                                    f"https {r_type} request failed"
+                                    "https get request "
+                                    f"got code {r.status_code} on {url}"
                                 )
