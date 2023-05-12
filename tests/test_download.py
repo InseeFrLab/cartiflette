@@ -5,6 +5,7 @@ Created on Thu May 11 19:54:04 2023
 @author: thomas.grandjean
 """
 
+import pytest
 import os
 import requests
 from tests.mockups import *
@@ -21,7 +22,11 @@ from tests.conftest import (
     DUMMY_FILE_2,
     HASH_DUMMY,
 )
-from tests.mockups import mock_httpscraper_download_success
+from tests.mockups import (
+    mock_httpscraper_download_success,
+    mock_httpscraper_download_success_corrupt_hash,
+    mock_httpscraper_download_success_corrupt_length,
+)
 
 
 def test_Dataset():
@@ -34,7 +39,7 @@ def test_Dataset():
     set_temp_file_path
     unzip
     """
-
+    # TODO
     pass
 
 
@@ -103,21 +108,59 @@ def test_HttpScraper_download(mock_httpscraper_download_success):
     assert downloaded
     assert path
 
-    # with pytest.raises(Exception) as e_info:
-    #     pass
+
+def test_HttpScraper_download_ko_length(
+    mock_httpscraper_download_success_corrupt_length,
+):
+    """
+    test avec un mockup qui ne retourne aucun md5 dans le header et dont
+    le Content-length ne correspond pas au contenu (simule un fichier corrompu)
+    -> doit déclencher un IOError
+    """
+    dummy_scraper = HttpScraper()
+    with pytest.raises(IOError):
+        result = dummy_scraper.download_to_tempfile_http("dummy")
+
+
+def test_HttpScraper_download_ko_md5(
+    mock_httpscraper_download_success_corrupt_hash,
+):
+    """
+    test avec un mockup qui retourne un md5 dans le header incohérent
+    avec son contenu (simule un fichier corrompu)
+    -> doit déclencher un IOError
+    """
+    dummy_scraper = HttpScraper()
+    with pytest.raises(IOError):
+        result = dummy_scraper.download_to_tempfile_http("dummy")
 
 
 def test_FtpScraper():
     """
     download_to_tempfile_ftp
     """
+    # TODO
     pass
 
 
-def test_MasterScraper():
+def test_MasterScraper_ko():
     """
     download_unzip
+    * Tester que si échec du téléchargement, le fichier temporaire est supprimé
+    * contrôler que le retour est un dictionnaire avec les bonnes clefs
     """
+    # TODO
+    pass
+
+
+def test_MasterScraper_ok():
+    """
+    download_unzip
+    * Si succès, contrôle de la présence du fichier temporaire (puis le
+      supprimer)
+    * contrôler que le retour est un dictionnaire avec les bonnes clefs
+    """
+    # TODO
     pass
 
 

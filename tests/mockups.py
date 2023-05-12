@@ -69,3 +69,42 @@ def mock_httpscraper_download_success(monkeypatch):
 
     monkeypatch.setattr(requests.Session, "head", mock_head)
     monkeypatch.setattr(requests.Session, "get", mock_get)
+
+
+@pytest.fixture
+def mock_httpscraper_download_success_corrupt_hash(monkeypatch):
+    dict_header = {
+        "content-md5": HASH_DUMMY,
+        "Content-length": FILESIZE_DUMMY,
+    }
+    success = True
+    content = b"Blah Blah"
+    mocked_session = MockHttpScraper(dict_header, success, content)
+
+    def mock_head(self, url, *args, **kwargs):
+        return mocked_session.head(url, *args, **kwargs)
+
+    def mock_get(self, url, *args, **kwargs):
+        return mocked_session.get(url, *args, **kwargs)
+
+    monkeypatch.setattr(requests.Session, "head", mock_head)
+    monkeypatch.setattr(requests.Session, "get", mock_get)
+
+
+@pytest.fixture
+def mock_httpscraper_download_success_corrupt_length(monkeypatch):
+    dict_header = {
+        "Content-length": FILESIZE_DUMMY,
+    }
+    success = True
+    content = b"Blah Blah"
+    mocked_session = MockHttpScraper(dict_header, success, content)
+
+    def mock_head(self, url, *args, **kwargs):
+        return mocked_session.head(url, *args, **kwargs)
+
+    def mock_get(self, url, *args, **kwargs):
+        return mocked_session.get(url, *args, **kwargs)
+
+    monkeypatch.setattr(requests.Session, "head", mock_head)
+    monkeypatch.setattr(requests.Session, "get", mock_get)
