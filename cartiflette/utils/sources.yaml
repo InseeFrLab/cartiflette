@@ -2,18 +2,19 @@ opendatarchives:
   url: http://files.opendatarchives.fr/professionnels.ign.fr
   ADMINEXPRESS:
     suburl: "adminexpress"
+    field:
+      prefix: ADECOG_3-1_SHP_
+      metropole: LAMB93_FR
+      guadeloupe: RGAF09UTM20_D971
+      martinique: RGAF09UTM20_D972
+      guyane: UTM22RGFG95_D973
+      reunion: RGR92UTM40S_D974
+      st-pierre-miquelon: 
+      mayotte: RGM04UTM38S_D976
     COG:
       2022:
         file: http://files.opendatarchives.fr/professionnels.ign.fr/adminexpress/ADMIN-EXPRESS-COG_3-1__SHP__FRA_L93_2022-04-15.7z
-      field:
-        prefix: ADECOG_3-1_SHP_
-        metropole: LAMB93_FR
-        guadeloupe: RGAF09UTM20_D971
-        martinique: RGAF09UTM20_D972
-        guyane: UTM22RGFG95_D973
-        reunion: RGR92UTM40S_D974
-        st-pierre-miquelon: 
-        mayotte: RGM04UTM38S_D976
+
 
 IGN:
   ADMINEXPRESS:
@@ -79,12 +80,6 @@ IGN:
       2017:
         file: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG-PACK_2017-07-07$ADMIN-EXPRESS-COG_1-0__SHP__FRA_2017-06-19/file/ADMIN-EXPRESS-COG_1-0__SHP__FRA_2017-06-19.7z
     EXPRESS-COG-CARTO-TERRITOIRE:
-      2021:
-        prefix: ADMINEXPRESS-COG-CARTO
-        date: "2021-05-19"
-        version: "3-0"
-        url_prefix: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG-CARTO_SHP_TERRITOIRES_PACK_2021-05-19
-        structure: "{url_prefix}_{date}${prefix}_{version}__SHP_{field}_{date}/file/{prefix}_{version}__SHP_{field}_{date}.7z"                
       field:
         metropole: LAMB93_FXX
         guadeloupe: RGAF09UTM20_GLP
@@ -98,25 +93,99 @@ IGN:
         date: "2022-04-15"
         version: "3-1"
         url_prefix: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG-CARTO_SHP_TERRITOIRES_PACK_2022-04-15
-        structure: "{url_prefix}_{date}${prefix}_{version}__SHP_{field}_{date}/file/{prefix}_{version}__SHP_{field}_{date}.7z"                
-      field:
-        metropole: LAMB93_FXX
-        guadeloupe: RGAF09UTM20_GLP
-        martinique: RGAF09UTM20_MTQ
-        guyane: UTM22RGFG95_GUF
-        reunion: RGR92UTM40S_REU
-        st-pierre-miquelon: 
-        mayotte: RGM04UTM38S_MYT
+        structure: "{url_prefix}_{date}${prefix}_{version}__SHP_{field}_{date}/file/{prefix}_{version}__SHP_{field}_{date}.7z"
+      2021:
+        prefix: ADMINEXPRESS-COG-CARTO
+        date: "2021-05-19"
+        version: "3-0"
+        url_prefix: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG-CARTO_SHP_TERRITOIRES_PACK_2021-05-19
+        structure: "{url_prefix}_{date}${prefix}_{version}__SHP_{field}_{date}/file/{prefix}_{version}__SHP_{field}_{date}.7z"
     EXPRESS-COG-CARTO:
       2022:
         file: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG-CARTO_SHP_WGS84G_PACK_2022-04-15$ADMIN-EXPRESS-COG-CARTO_3-1__SHP_WGS84G_FRA_2022-04-15/file/ADMIN-EXPRESS-COG-CARTO_3-1__SHP_WGS84G_FRA_2022-04-15.7z
       2021:
         file: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG-CARTO_SHP_WGS84G_PACK_2021-05-19$ADMIN-EXPRESS-COG-CARTO_3-0__SHP_WGS84G_FRA_2021-05-19/file/ADMIN-EXPRESS-COG-CARTO_3-0__SHP_WGS84G_FRA_2021-05-19.7z
+  BDTOPO:
+    documentation: https://geoservices.ign.fr/documentation/donnees/vecteur/bdtopo
+    metadata: https://geoservices.ign.fr/sites/default/files/2023-01/IGNF_BDTOPOr_3-3.html
+    REMOVE:
+      field:
+        france_entiere: WGS84G_FRA
+      2018:
+          prefix: BDTOPO
+          year: "18"
+          date: "2018-01-01"
+          version: "2-2"
+          france_entiere: WGS84G_FRA
+          url_prefix: https://wxs.ign.fr/859x8t863h6a09o9o6fy4v60/telechargement/inspire/BDTOPO-FRANCE-ADMIN-SSDOUBLON-PACK
+          structure: "{url_prefix}_{year}.1${prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}/file/{prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}.7z"
+      2017:
+          prefix: BDTOPO
+          year: "17"
+          date: "2017-01-01"
+          version: "2-2"
+          france_entiere: WGS84G_FRA
+          url_prefix: https://wxs.ign.fr/859x8t863h6a09o9o6fy4v60/telechargement/inspire/BDTOPO-FRANCE-ADMIN-SSDOUBLON-PACK
+          structure: "{url_prefix}_{year}.1${prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}/file/{prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}.7z"
+      2016:
+          prefix: BDTOPO
+          year: "16"
+          date: "2016-01-01"
+          version: "2-1"
+          france_entiere: WGS84G_FRA
+          url_prefix: https://wxs.ign.fr/859x8t863h6a09o9o6fy4v60/telechargement/inspire/BDTOPO-FRANCE-ADMIN-SSDOUBLON-PACK
+          structure: "{url_prefix}_{year}.1${prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}/file/{prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}.7z"
+      2015:
+          prefix: BDTOPO
+          year: "15"
+          date: "2015-01-01"
+          version: "2-1"
+          france_entiere: WGS84G_FRA
+          url_prefix: https://wxs.ign.fr/859x8t863h6a09o9o6fy4v60/telechargement/inspire/BDTOPO-FRANCE-ADMIN-SSDOUBLON-PACK
+          structure: "{url_prefix}_{year}.1${prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}/file/{prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}.7z"
+      2014:
+          prefix: BDTOPO
+          year: "14"
+          date: "2014-01-01"
+          version: "2-1"
+          france_entiere: WGS84G_FRA
+          url_prefix: https://wxs.ign.fr/859x8t863h6a09o9o6fy4v60/telechargement/inspire/BDTOPO-FRANCE-ADMIN-SSDOUBLON-PACK
+          structure: "{url_prefix}_{year}.1${prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}/file/{prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}.7z"
+      2013:
+          prefix: BDTOPO
+          year: "13"
+          date: "2013-01-01"
+          version: "2-1"
+          france_entiere: WGS84G_FRA
+          url_prefix: https://wxs.ign.fr/859x8t863h6a09o9o6fy4v60/telechargement/inspire/BDTOPO-FRANCE-ADMIN-SSDOUBLON-PACK
+          structure: "{url_prefix}_{year}.1${prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}/file/{prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}.7z"
+      2011:
+          prefix: BDTOPO
+          year: "11"
+          date: "2011-01-01"
+          version: "2-0"
+          france_entiere: WGS84G_FRA
+          url_prefix: https://wxs.ign.fr/859x8t863h6a09o9o6fy4v60/telechargement/inspire/BDTOPO-FRANCE-ADMIN-SSDOUBLON-PACK
+          structure: "{url_prefix}_{year}.1${prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}/file/{prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}.7z"
+      2010:
+          prefix: BDTOPO
+          year: "10"
+          date: "2010-01-01"
+          version: "2-0"
+          france_entiere: WGS84G_FRA
+          url_prefix: https://wxs.ign.fr/859x8t863h6a09o9o6fy4v60/telechargement/inspire/BDTOPO-FRANCE-ADMIN-SSDOUBLON-PACK
+          structure: "{url_prefix}_{year}.1${prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}/file/{prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}.7z"
+      2009:
+          prefix: BDTOPO
+          year: "09"
+          date: "2009-01-01"
+          version: "2-0"
+          france_entiere: WGS84G_FRA
+          url_prefix: https://wxs.ign.fr/859x8t863h6a09o9o6fy4v60/telechargement/inspire/BDTOPO-FRANCE-ADMIN-SSDOUBLON-PACK
+          structure: "{url_prefix}_{year}.1${prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}/file/{prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}.7z"
   CONTOUR-IRIS: #variables INSEE_COM NOM_COM IRIS CODE_IRIS NOM_IRIS TYP_IRIS ; manque la var Grand-Quartier (GRD_QUART) présente sur les tables insee https://www.insee.fr/fr/information/2017499
     documentation: https://geoservices.ign.fr/documentation/donnees/vecteur/contoursiris
     metadata: https://geoservices.ign.fr/sites/default/files/2022-03/IGNF_Contours-IRISr_2-1.html
-    2022: #absence du fichier sur le FTP verifiee
-      file: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/CONTOURS-IRIS-PACK_2022-01$CONTOURS-IRIS_2-1__SHP__FRA_2022-01-01/file/CONTOURS-IRIS_2-1__SHP__FRA_2022-01-01.7z
     field:
       prefix: CONTOURS-IRIS_2-1_SHP_
       metropole: LAMB93_FXX-
@@ -129,7 +198,9 @@ IGN:
     FTP:
       hostname: "ftp3.ign.fr"
       username: "Contours_IRIS_ext"
-      pwd: "ao6Phu5ohJ4jaeji"     
+      pwd: "ao6Phu5ohJ4jaeji"
+    2022: #absence du fichier sur le FTP verifiee
+      file: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/CONTOURS-IRIS-PACK_2022-01$CONTOURS-IRIS_2-1__SHP__FRA_2022-01-01/file/CONTOURS-IRIS_2-1__SHP__FRA_2022-01-01.7z
     2021:
       file: CONTOURS-IRIS_2-1__SHP__FRA_2021-01-01.7z
     2020:
@@ -547,12 +618,12 @@ Eurostat: # Voir https://ropengov.github.io/giscoR/ ou directeeent API Gisco si 
         
       
         
-#POTENTIELLEMENT INTERESSANT 
-#mais à sourcer sur plusieurs milésimes (uniquement en geo communale 2021 sur Observatoire des territoires)
-#et probablement directement auprès des producteurs. Question de qualité des bases compilées par l'ANCT/ODT. 
-#https://www.observatoire-des-territoires.gouv.fr/ 
-#https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/#view=map36&c=indicator
-#les compositions communales sont soir dans fichiers communes_2021 du site web soit via tableau de données du site carto
+# POTENTIELLEMENT INTERESSANT 
+# mais à sourcer sur plusieurs millésimes (uniquement en geo communale 2021 sur Observatoire des territoires)
+# et probablement directement auprès des producteurs. Question de qualité des bases compilées par l'ANCT/ODT. 
+# https://www.observatoire-des-territoires.gouv.fr/ 
+# https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/#view=map36&c=indicator
+# les compositions communales sont soir dans fichiers communes_2021 du site web soit via tableau de données du site carto
 
-#Zonages:
+# Zonages:
     # /!\ URL introuvable : Population municipale vivant dans un quartier prioritaire de la politique de la ville (QPV)

@@ -19,6 +19,10 @@ DUMMY_FILE_2 = os.path.join(os.path.dirname(__file__), "data", "dummy2.txt")
 
 
 def pytest_sessionstart(session):
+    os.environ["http_proxy"] = os.environ[
+        "https_proxy"
+    ] = "http://pfrie-std.proxy.e2.rie.gouv.fr:8080"
+
     try:
         os.makedirs(DIR)
     except Exception:

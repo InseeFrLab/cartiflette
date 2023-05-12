@@ -13,8 +13,16 @@ from tests.conftest import (
     FILESIZE_DUMMY,
     CONTENT_DUMMY,
 )
+from cartiflette.download import (
+    Dataset,
+)
 
 logging.basicConfig(level=logging.INFO)
+
+
+@pytest.fixture
+def mock_Dataset_without_s3(monkeypatch):
+    monkeypatch.setattr(Dataset, "__get_last_md5__", lambda x: None)
 
 
 class MockResponse:
