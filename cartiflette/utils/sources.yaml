@@ -17,6 +17,11 @@ opendatarchives:
 
 
 IGN:
+
+# A rajouter (?):
+# - Route 500 : https://geoservices.ign.fr/route500
+# - IRIS GE : https://geoservices.ign.fr/irisge
+
   ADMINEXPRESS:
     documentation: https://geoservices.ign.fr/documentation/donnees/vecteur/adminexpress
     metadata: https://geoservices.ign.fr/sites/default/files/2021-11/IGNF_ADMIN_EXPRESS_3-1.html
@@ -108,7 +113,7 @@ IGN:
   BDTOPO:
     documentation: https://geoservices.ign.fr/documentation/donnees/vecteur/bdtopo
     metadata: https://geoservices.ign.fr/sites/default/files/2023-01/IGNF_BDTOPOr_3-3.html
-    BDTOPO_shapefiles::
+    BDTOPO_shapefiles:
       field:
         france_entiere: WGS84G_FRA
       2018:
