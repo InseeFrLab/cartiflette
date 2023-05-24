@@ -529,9 +529,9 @@ if __name__ == "__main__":
 
     providers = ["IGN"]
     dataset_family = ["BDTOPO"]
-    sources = ["REMOVE"]
+    sources = ["BDTOPO_shapefiles"]
     territories = ["france_entiere"]  # "guadeloupe", "martinique"]
-    years = [2017]
+    years = [2018]
 
     results = download_sources(
         providers, dataset_family, sources, territories, years
