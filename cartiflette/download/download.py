@@ -86,7 +86,10 @@ class Dataset:
         # TODO : à basculer dans utils pour réutilisation dans pipeline s3
         md5 = {
             self.provider: {
-                self.dataset_family: {self.source: {self.territory: {self.year: md5}}}
+                self.dataset_family: {
+                    self.source: {
+                        self.territory: {
+                            self.year: md5}}}
             }
         }
         try:

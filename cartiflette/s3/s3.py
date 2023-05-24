@@ -321,7 +321,9 @@ def download_vectorfile_s3_single(
         print("When using shp format, we first need to store a local version")
         tdir = tempfile.TemporaryDirectory()
         for remote_file in fs.ls(dir_s3):
-            fs.download(remote_file, f"{tdir.name}/{remote_file.replace(dir_s3, '')}")
+            fs.download(
+                remote_file,
+                f"{tdir.name}/{remote_file.replace(dir_s3, '')}")
         object = gpd.read_file(f"{tdir.name}/raw.shp", driver=None)
     elif format_read == "parquet":
         with fs.open(read_path, "rb") as f:
@@ -563,7 +565,12 @@ def duplicate_vectorfile_ign(
     - None: The function does not raise any exceptions explicitly.
     """
 
-    combinations = list(itertools.product(sources, territories, years, providers))
+    combinations = list(
+        itertools.product(
+            sources,
+            territories,
+            years,
+            providers))
 
     paths = dict(ChainMap(*[structure_path_raw_ign(c) for c in combinations]))
 
@@ -917,7 +924,7 @@ def production_cartiflette(
 
 def create_nested_topojson(path):
     croisement_filter_by_borders = {
-        ## structure -> niveau geo: [niveau filter_by macro],
+        # structure -> niveau geo: [niveau filter_by macro],
         "REGION": ["FRANCE_ENTIERE"],
         "DEPARTEMENT": ["FRANCE_ENTIERE"],
     }
@@ -932,7 +939,8 @@ def create_nested_topojson(path):
     for couple in croisement_filter_by_borders_flat:
         borders = couple[0]
         filter_by = couple[1]
-        list_output[borders] = create_territories(borders=borders, filter_by=filter_by)
+        list_output[borders] = create_territories(
+            borders=borders, filter_by=filter_by)
 
     topo = Topology(
         data=[

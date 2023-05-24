@@ -22,7 +22,9 @@ def download_pb(
     """
 
     try:
-        proxies = {"http": os.environ["http_proxy"], "https": os.environ["https_proxy"]}
+        proxies = {
+            "http": os.environ["http_proxy"],
+            "https": os.environ["https_proxy"]}
     except KeyError:
         proxies = {"http": "", "https": ""}
 

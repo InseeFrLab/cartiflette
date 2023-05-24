@@ -620,10 +620,11 @@ Eurostat: # Voir https://ropengov.github.io/giscoR/ ou directeeent API Gisco si 
         
 # POTENTIELLEMENT INTERESSANT 
 # mais à sourcer sur plusieurs millésimes (uniquement en geo communale 2021 sur Observatoire des territoires)
-# et probablement directement auprès des producteurs. Question de qualité des bases compilées par l'ANCT/ODT. 
-# https://www.observatoire-des-territoires.gouv.fr/ 
+# et probablement directement auprès des producteurs. Question de qualité des bases compilées par l'ANCT/ODT.
+# https://www.observatoire-des-territoires.gouv.fr/
 # https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/#view=map36&c=indicator
-# les compositions communales sont soir dans fichiers communes_2021 du site web soit via tableau de données du site carto
+# les compositions communales sont soir dans fichiers communes_2021 du
+# site web soit via tableau de données du site carto
 
 # Zonages:
-    # /!\ URL introuvable : Population municipale vivant dans un quartier prioritaire de la politique de la ville (QPV)
+        # /!\ URL introuvable : Population municipale vivant dans un quartier prioritaire de la politique de la ville (QPV)
