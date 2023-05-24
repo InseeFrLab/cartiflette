@@ -17,7 +17,7 @@ from shapely.validation import make_valid
 import py7zr
 from itertools import product
 import ftplib
-from typing import Dict, Any, TypedDict
+from typing import TypedDict  # , Any, Dict
 from glob import glob
 import tempfile
 import numpy as np
