@@ -17,7 +17,7 @@ from shapely.validation import make_valid
 import py7zr
 from itertools import product
 import ftplib
-from typing import Dict, Any, TypedDict
+from typing import TypedDict
 from glob import glob
 import tempfile
 import numpy as np
@@ -37,6 +37,10 @@ logger = logging.getLogger(__name__)
 
 
 class Dataset:
+    """
+    Class representing a dataset stored in the yaml meant to be retrieved
+    """
+
     JSON_MD5 = f"{BUCKET}/{PATH_WITHIN_BUCKET}/md5.json"
     md5 = None
 
@@ -48,6 +52,23 @@ class Dataset:
         provider: str = "IGN",
         territory: str = None,
     ):
+        """
+        Initialize a Dataset object.
+
+        Parameters
+        ----------
+        dataset_family : str, optional
+            Family descibed in the yaml file. The default is "ADMINEXPRESS".
+        source : str, optional
+            Source descibed in the yaml file. The default is "EXPRESS-COG-TERRITOIRE".
+        year : int, optional
+            Year descibed in the yaml file. The default is date.today().year.
+        provider : str, optional
+            Provider descibed in the yaml file. The default is "IGN".
+        territory : str, optional
+            Territory descibed in the yaml file. The default is None.
+
+        """
         self.dataset_family = dataset_family
         self.source = source
         self.year = year
@@ -59,14 +80,42 @@ class Dataset:
 
         self.__get_last_md5__()
 
+    def __str__(self):
+        dataset_family = self.dataset_family
+        source = self.source
+        year = self.year
+        territory = self.territory
+        provider = self.provider
+
+        name = f"<Dataset {provider} {dataset_family} {source} {territory} {year}>"
+        return name
+
+    def __repr__(self):
+        return self.__str__()
+
     @staticmethod
     def __md5__(file_path: str) -> str:
+        """
+        Compute the md5 hash value of a file given it's path.
+
+        Parameters
+        ----------
+        file_path : str
+            path of the target file.
+
+        Returns
+        -------
+        str
+            md5 hash value
+
+        """
         return hash_file(file_path)
 
-    def __get_last_md5__(self):
-        "Récupération du dernier md5 sur le s3"
-
-        # {provider} {dataset_family} {source} {territory} {year}
+    def __get_last_md5__(self) -> None:
+        """
+        Read the last md5 hash value of the target on the s3 and store it
+        as an attribute of the Dataset : self.md5
+        """
 
         try:
             with fs.open(self.JSON_MD5, "r") as f:
@@ -104,7 +153,21 @@ class Dataset:
             return False
 
     def get_path_from_provider(self) -> str:
-        "Récupération du chemin de téléchargement d'après le yaml"
+        """
+        Get the path to download the file from (based on the yaml content)
+
+        Raises
+        ------
+        ValueError
+            If the input (self.provider, self.year, ...) are not matching the
+            content of the yaml file.
+
+        Returns
+        -------
+        str
+            path to download the file from
+
+        """
 
         provider = self.provider
         year = self.year
@@ -202,18 +265,66 @@ class Dataset:
             raise ValueError(msg)
 
     def set_temp_file_path(self, path: str) -> None:
+        """
+        Store a given path as self.temp_archive_path to retrieve it later.
+
+        Parameters
+        ----------
+        path : str
+            Path to store
+
+        Returns
+        -------
+        None
+        """
         self.temp_archive_path = path
 
     def unzip(
         self,
         pattern: str = BASE_CACHE_PATTERN,
-        preserve: str = "shape"
-        # TODO : ajouter un argument qui spécifie l'extension recherchée :
-        # .shp, .gpkg, etc.
+        preserve: str = "shape",
+        ext: str = ".shp",
     ) -> str:
+        """
+        Decompress a group of files if they validate a pattern and an extension
+        type, sanitize geometries. Returns the path to the folder containing
+        the decompressed files. Note that this folder will be stored in the
+        temporary cache, but requires manual cleanup.
+
+        Parameters
+        ----------
+        pattern : str, optional
+            Pattern to validate. The default is BASE_CACHE_PATTERN.
+        preserve : str, optional
+            Specify which geometric option should be preserved while doing
+            geometry sanitation (either shape or topology).
+            The default is "shape".
+        ext : str, optional
+            File extension to look for (.shp, .gpkg, etc.). In order to
+            preserve all auxiliary file (in case of shapefile for instance:
+            .prj, .dbf, ...) all files sharing the same name (but it's
+            extension) as one validated will be decompressed as well.
+            The default is .shp.
+
+        Returns
+        -------
+        str
+            path to unzipped files
+
+        """
+
+        if preserve not in ["shape", "topology"]:
+            msg = (
+                "preserve must be either of 'shape', 'topology' - found "
+                f"'{preserve}' instead"
+            )
+            raise ValueError(msg)
+
+        if ext is not None:
+            ext = ext.lower()
+
         # unzip in temp directory
-        tmp = tempfile.TemporaryDirectory()
-        location = tmp.name
+        location = tempfile.mkdtemp()
         logger.debug(f"Extracting to {location}")
 
         year = self.year
@@ -229,7 +340,7 @@ class Dataset:
             shapefiles = {
                 os.path.splitext(x)[0]
                 for x in files
-                if x.lower().endswith(".shp")
+                if x.lower().endswith(ext)
             }
 
             if year <= 2020 and source.endswith("-TERRITOIRE"):
@@ -237,6 +348,8 @@ class Dataset:
                 shapefiles = {x for x in shapefiles if field_code in x}
 
             logger.debug(shapefiles)
+
+            # Find all auxiliary files sharing the same name as those found :
             targets = [
                 x for x in files if os.path.splitext(x)[0] in shapefiles
             ]
@@ -247,8 +360,9 @@ class Dataset:
         # note that glob is case sensitive on linux
         combinations_patterns = [
             [pattern.lower(), pattern.upper()],
-            ["*.shp", "*.SHP"],
+            [f"*{ext}", f"*{ext.upper()}"],
         ]
+
         patterns = list(product(*combinations_patterns))
         paths = []
         for list_pattern in patterns:
@@ -266,6 +380,10 @@ class Dataset:
 
 
 class BaseScraper:
+    """
+    Base scraper. Not meant to be used by itself, but only when surcharged.
+    """
+
     @staticmethod
     def __validate_file__(file_path: str, hash):
         """
@@ -280,10 +398,28 @@ class BaseScraper:
 
 
 class HttpScraper(BaseScraper, requests.Session):
+    """
+    Scraper with specific download method for http/https get protocol. Not
+    meant to be used by itself, but only when surcharged.
+    """
+
     def __init__(self, *args, **kwargs):
+        """
+        Initialize HttpScraper and set eventual proxies from os environment
+        variables. *args and **kwargs are arguments that should be processed
+        by a requests.Session object.
+
+        Parameters
+        ----------
+        *args :
+            Arguments passed to requests.Session
+        **kwargs :
+            Arguments passed to requests.Session.
+
+        """
         super().__init__(*args, **kwargs)
 
-        for protocol in ["http", "https", "ftp"]:
+        for protocol in ["http", "https"]:
             try:
                 proxy = {protocol: os.environ[f"{protocol}_proxy"]}
                 self.proxies.update(proxy)
@@ -400,9 +536,47 @@ class HttpScraper(BaseScraper, requests.Session):
 
 
 class FtpScraper(BaseScraper, ftplib.FTP):
+    """
+    Scraper with specific download method for ftp protocol. Not meant to be
+    used by itself, but only when surcharged.
+    """
+
     def download_to_tempfile_ftp(
         self, url: str, hash: str = None, **kwargs
     ) -> tuple[bool, str]:
+        """
+        Performs a FTP download that will ensure file integrity (through
+        the file's length) and that the file is a new one (if a previous md5
+        signature has been given)
+
+        The file will be written on a temporary file.
+
+        If the file has been updated, the first element of the tuple will be
+        True (False otherwise). If True, the path to the temporary file will be
+        returned as a second element
+
+        Parameters
+        ----------
+        url : str
+            url to download the file from
+        hash : str, optional
+            previous hash signature of the file at latest download. The default
+            is None.
+        **kwargs :
+            Will be ignored (set for consistency with HttpScraper)
+
+        Raises
+        ------
+        IOError
+            If validation of downloaded file fails
+
+        Returns
+        -------
+        tuple[bool, str]
+            bool : True if a new file has been downloaded, False in other cases
+            str : path to the temporary file if bool was True (else None)
+        """
+
         temp_file = tempfile.NamedTemporaryFile()
         file_path = temp_file.name + ".7z"
         logger.debug(f"Downloading to {file_path}")
@@ -438,6 +612,11 @@ class FtpScraper(BaseScraper, ftplib.FTP):
 
 
 class MasterScraper(HttpScraper, FtpScraper):
+    """
+    Scraper main class which could be used to perform either http/https get
+    downloads of ftp downloads.
+    """
+
     class DownloadReturn(TypedDict):
         downloaded: bool
         hash: str
@@ -448,8 +627,64 @@ class MasterScraper(HttpScraper, FtpScraper):
         datafile: Dataset,
         preserve: str = "shape",
         pattern: str = BASE_CACHE_PATTERN,
+        ext: str = ".shp",
         **kwargs,
     ) -> DownloadReturn:
+        """
+        Performs a download (through http, https of ftp protocol) to a tempfile
+        which will be cleaned afterwards ; unzip targeted files to a temporary
+        file which ** WILL ** need manual cleanup and sanitize geometries.
+        In case of an actual download (success of download AND the file is a
+        new one), the dict returned will be ot this form :
+            {
+                "downloaded": True,
+                "hash": the archive's new hash value (before uncompression),
+                "path": the temporary folder containing the targeted files
+                }
+        In case of failure (failure to download OR the file is the same as a
+        previous one), the dict returned will be of this form ;
+            {"downloaded": False, "hash": None, "path": None}
+
+        Parameters
+        ----------
+        datafile : Dataset
+            Dataset object to download.
+        preserve : str, optional
+            Specify which geometric option should be preserved while doing
+            geometry sanitation (either shape or topology).
+            The default is "shape".
+        pattern : str, optional
+            Pattern to validate. The default is BASE_CACHE_PATTERN.
+        ext : str, optional
+            File extension to look for (.shp, .gpkg, etc.). In order to
+            preserve all auxiliary file (in case of shapefile for instance:
+            .prj, .dbf, ...) all files sharing the same name (but it's
+            extension) as one validated will be decompressed as well.
+            The default is .shp.
+        **kwargs :
+            Optional arguments to pass to requests.Session object.
+
+        Raises
+        ------
+        ValueError
+            If preserve not amont 'shape' or 'topology'
+
+        Returns
+        -------
+        DownloadReturn
+            Dictionnaire doté du contenu suivant :
+                downloaded: bool
+                hash: str
+                path: str
+        """
+
+        if preserve not in ["shape", "topology"]:
+            msg = (
+                "preserve must be either of 'shape', 'topology' - found "
+                f"'{preserve}' instead"
+            )
+            raise ValueError(msg)
+
         hash = datafile.md5
         url = datafile.get_path_from_provider()
 
@@ -474,7 +709,7 @@ class MasterScraper(HttpScraper, FtpScraper):
             hash = datafile.__md5__(temp_archive_file_raw)
 
             datafile.set_temp_file_path(temp_archive_file_raw)
-            shp_location = datafile.unzip(pattern, preserve)
+            shp_location = datafile.unzip(pattern, preserve, ext=ext)
         except Exception as e:
             raise e
         finally:
@@ -489,7 +724,71 @@ def download_sources(
     sources: list,
     territories: list,
     years: list,
-):
+) -> dict:
+    """
+    Main function to perform downloads of datasets to store to the s3.
+    All available combinations will be tested; hence an unfound file might not
+    be an error given the fact that it might correspond to an unexpected
+    combination; those be printed as warnings in the log.
+
+
+    Parameters
+    ----------
+    providers : list
+        List of providers in the yaml file
+    dataset_family : list
+        List of datasets family in the yaml file
+    sources : list
+        List of sources in the yaml file
+    territories : list
+        List of territoires in the yaml file
+    years : list
+        List of years in the yaml file
+
+    Returns
+    -------
+    files : dict
+        Structure of the nested dict will use the following keys :
+            provider
+                dataset_family
+                    source
+                        territory
+                            year
+                            {downloaded: bool, hash: str, path: str}
+        For instance:
+            {
+                'IGN': {
+                    'ADMINEXPRESS': {
+                        'EXPRESS-COG-TERRITOIRE': {
+                            'guadeloupe': {
+                                2022: {
+                                    'downloaded': True,
+                                    'hash': '448ec7804a0671e13df7b39621f74dcd',
+                                    'path': ('C:\\Users\\THOMAS~1.GRA\\AppData\\Local\\Temp\\tmppi3lxass\\ADMIN-EXPRESS-COG_3-1__SHP_RGAF09UTM20_GLP_2022-04-15\\ADMIN-EXPRESS-COG\\1_DONNEES_LIVRAISON_2022-04-15\\ADECOG_3-1_SHP_RGAF09UTM20_GLP',)
+                                }, 2023: {
+                                    'downloaded': False,
+                                    'path': None,
+                                    'hash': None
+                                }
+                            },
+                            'martinique': {
+                                2022: {
+                                    'downloaded': True,
+                                    'hash': '57a4c26167ed3436a0b2f53e11467e1b',
+                                    'path': ('C:\\Users\\THOMAS~1.GRA\\AppData\\Local\\Temp\\tmpbmubfnsc\\ADMIN-EXPRESS-COG_3-1__SHP_RGAF09UTM20_MTQ_2022-04-15\\ADMIN-EXPRESS-COG\\1_DONNEES_LIVRAISON_2022-04-15\\ADECOG_3-1_SHP_RGAF09UTM20_MTQ',)
+                                },
+                                2023: {
+                                    'downloaded': False,
+                                    'path': None,
+                                    'hash': None
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+    """
     combinations = list(
         product(sources, territories, years, providers, dataset_family)
     )
@@ -509,15 +808,39 @@ def download_sources(
             # les EXPRESS-COG-TERRITOIRE d'avant 2020... -> à optimiser au cas
             # où ça se produirait avec des jeux de données plus récents ?
 
-            result = s.download_unzip(
-                datafile, preserve="shape", pattern=BASE_CACHE_PATTERN
-            )
+            # TODO : gérer les extensions dans le yaml ?
+            try:
+                result = s.download_unzip(
+                    datafile,
+                    preserve="shape",
+                    pattern=BASE_CACHE_PATTERN,
+                    ext=".shp",
+                )
+            except ValueError:
+                logger.warning(f"{datafile} failed")
 
-            this_result = {
-                provider: {
-                    dataset_family: {source: {territory: {year: result}}}
+                this_result = {
+                    provider: {
+                        dataset_family: {
+                            source: {
+                                territory: {
+                                    year: {
+                                        "downloaded": False,
+                                        "path": None,
+                                        "hash": None,
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
-            }
+
+            else:
+                this_result = {
+                    provider: {
+                        dataset_family: {source: {territory: {year: result}}}
+                    }
+                }
             files = deep_dict_update(files, this_result)
 
     return files
@@ -526,11 +849,17 @@ def download_sources(
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
+    # providers = ["IGN"]
+    # dataset_family = ["BDTOPO"]
+    # sources = ["REMOVE"]
+    # territories = ["france_entiere"]  # "guadeloupe", "martinique"]
+    # years = [2017]
+
     providers = ["IGN"]
-    dataset_family = ["BDTOPO"]
-    sources = ["REMOVE"]
-    territories = ["france_entiere"]  # "guadeloupe", "martinique"]
-    years = [2017]
+    dataset_family = ["ADMINEXPRESS"]
+    sources = ["EXPRESS-COG-TERRITOIRE"]
+    territories = ["guadeloupe", "martinique"]
+    years = [2022, 2023]
 
     results = download_sources(
         providers, dataset_family, sources, territories, years
