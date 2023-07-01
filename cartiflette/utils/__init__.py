@@ -9,6 +9,8 @@ from .dict_correspondance import (
     official_epsg_codes,
 )
 from .keep_subset_geopandas import keep_subset_geopandas
+from .hash import hash_file
+from .dict_update import deep_dict_update
 
 __all__ = [
     "download_pb",
@@ -18,4 +20,6 @@ __all__ = [
     "create_format_standardized",
     "create_format_driver",
     "keep_subset_geopandas",
+    "hash_file",
+    "deep_dict_update",
 ]
