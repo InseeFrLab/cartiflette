@@ -594,7 +594,7 @@ def duplicate_vectorfile_ign(
         fs.put(path_local_fs, f'{BUCKET}/{PATH_WITHIN_BUCKET}/{path_s3fs}', recursive = True)
 
 
-def write_vectorfile_all_borderss(
+def write_vectorfile_all_borders(
     object: gpd.GeoDataFrame,
     borders_var: str,
     borders: str = "COMMUNE",
@@ -692,7 +692,7 @@ def write_vectorfile_s3_custom_arrondissement(
         object["territoire"] = "metropole"
 
 
-    write_vectorfile_all_borderss(
+    write_vectorfile_all_borders(
         object=object,
         borders="COMMUNE_ARRONDISSEMENT",
         borders_var=var_filter_by_s3,
@@ -702,6 +702,8 @@ def write_vectorfile_s3_custom_arrondissement(
         crs=crs,
         provider=provider,
         source=source,
+        bucket=bucket,
+        path_within_bucket=path_within_bucket,
     )
 
 
@@ -754,7 +756,7 @@ def write_vectorfile_s3_all(
             epsg = crs
 
 
-        write_vectorfile_all_borderss(
+        write_vectorfile_all_borders(
             object=territories[territory],
             borders=borders,
             borders_var=var_filter_by_s3,
@@ -764,6 +766,8 @@ def write_vectorfile_s3_all(
             crs=epsg,
             provider=provider,
             source=source,
+            bucket=bucket,
+            path_within_bucket=path_within_bucket,
         )
 
 
@@ -900,7 +904,10 @@ def list_produced_cartiflette(
 
 
 def production_cartiflette(
-    croisement_filter_by_borders, formats, years, crs_list, sources
+    croisement_filter_by_borders,
+    formats, years, crs_list, sources,
+    bucket=BUCKET,
+    path_within_bucket=PATH_WITHIN_BUCKET,
 ):
 
     tempdf = crossproduct_parameters_production(
@@ -939,6 +946,8 @@ def production_cartiflette(
             crs=crs,
             provider="IGN",
             source=source,
+            bucket=bucket,
+            path_within_bucket=path_within_bucket            
         )
 
     print(80 * "-" + "\nProduction finished :)")

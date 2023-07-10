@@ -36,12 +36,11 @@ fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL})
 logger = logging.getLogger(__name__)
 
 
-class Dataset:
+class Dataset():
     """
     Class representing a dataset stored in the yaml meant to be retrieved
     """
 
-    JSON_MD5 = f"{BUCKET}/{PATH_WITHIN_BUCKET}/md5.json"
     md5 = None
 
     def __init__(
@@ -51,6 +50,8 @@ class Dataset:
         year: int = date.today().year,
         provider: str = "IGN",
         territory: str = None,
+        bucket=BUCKET,
+        path_within_bucket=PATH_WITHIN_BUCKET
     ):
         """
         Initialize a Dataset object.
@@ -75,6 +76,7 @@ class Dataset:
         self.territory = territory
         self.provider = provider
         self.config_open_data = import_yaml_config()
+        self.json_md5 = f"{bucket}/{path_within_bucket}/md5.json"
 
         self.sources = self.config_open_data[provider][dataset_family][source]
 
@@ -118,7 +120,7 @@ class Dataset:
         """
 
         try:
-            with fs.open(self.JSON_MD5, "r") as f:
+            with fs.open(self.json_md5, "r") as f:
                 all_md5 = json.load(f)
         except Exception as e:
             logger.warning(e)
@@ -141,7 +143,7 @@ class Dataset:
             }
         }
         try:
-            with fs.open(self.JSON_MD5, "r+") as f:
+            with fs.open(self.json_md5, "r+") as f:
                 all_md5 = json.load(f)
                 all_md5 = deep_dict_update(all_md5, md5)
                 fs.write(json.dump(all_md5, f))
@@ -724,6 +726,8 @@ def download_sources(
     sources: list,
     territories: list,
     years: list,
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET
 ) -> dict:
     """
     Main function to perform downloads of datasets to store to the s3.
@@ -801,7 +805,8 @@ def download_sources(
             )
 
             datafile = Dataset(
-                dataset_family, source, year, provider, territory
+                dataset_family, source, year, provider, territory,
+                bucket, path_within_bucket
             )
 
             # TODO : certains fichiers sont téléchargés plusieurs fois, par ex.

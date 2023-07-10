@@ -22,7 +22,8 @@ s3.duplicate_vectorfile_ign(
     sources=sources,
     territories=territories,
     years=years,
-    providers=providers
+    providers=providers,
+    PATH_WITHIN_BUCKET="diffusion/shapefiles-test2"
 )
 
 
@@ -30,8 +31,8 @@ s3.duplicate_vectorfile_ign(
 
 
 #formats = ["geoparquet", "shp", "gpkg", "geojson"]
-formats = ["topojson"]
-#formats = ["geojson"]
+#formats = ["topojson"]
+formats = ["geojson"]
 
 #years = [y for y in range(2021, 2023)]
 years = [2022]
@@ -56,7 +57,8 @@ s3.production_cartiflette(
     formats,
     years,
     crs_list,
-    sources
+    sources,
+    path_within_bucket="diffusion/shapefiles-test2"
 )
 
 s3.write_cog_s3(year = 2022, vectorfile_format = "parquet")

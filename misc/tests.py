@@ -6,10 +6,11 @@ from cartiflette.download import get_vectorfile_ign
 
 france = get_vectorfile_ign(
     year = 2022,
-    level = "COMMUNE", field = "metropole",
+    borders = "COMMUNE", field = "metropole",
     source = "EXPRESS-COG-CARTO", provider="IGN").to_crs(2154)
 
 
+help(get_vectorfile_ign)
 
 
 ### OLD
