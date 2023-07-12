@@ -5,11 +5,18 @@ import itertools
 from collections import ChainMap
 import os
 import tempfile
+import csv
 import typing
 import s3fs
 import pandas as pd
 import geopandas as gpd
 from topojson import Topology
+
+from cartiflette.download import (
+    MasterScraper,
+    Dataset
+)
+
 
 from cartiflette.utils import (
     keep_subset_geopandas,
@@ -30,6 +37,7 @@ from cartiflette.download import (
 BUCKET = "projet-cartiflette"
 PATH_WITHIN_BUCKET = "diffusion/shapefiles-test1"
 ENDPOINT_URL = "https://minio.lab.sspcloud.fr"
+BASE_CACHE_PATTERN = os.path.join("**", "*DONNEES_LIVRAISON*", "**")
 
 fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL})
 
@@ -548,6 +556,98 @@ def write_vectorfile_subset(
 
 
 def duplicate_vectorfile_ign(
+    providers=['IGN'],
+    dataset_family=['ADMINEXPRESS'],
+    sources=['EXPRESS-COG-TERRITOIRE'],
+    territories=['guyane'],
+    years=[2022],
+    bucket=BUCKET,
+    path_within_bucket=PATH_WITHIN_BUCKET
+):
+    """Duplicate and store vector files from IGN dataset.
+
+    This function duplicates vector files from the IGN (Institut national de l'information géographique et forestière)
+    dataset and stores them in a specified bucket on an S3-compatible storage system. It also maintains a record of the
+    duplicated files' metadata, such as dataset family, source, year, provider, territory, normalized path in the bucket,
+    and the MD5 hash of the file.
+
+    Args:
+        providers (list): List of provider names to duplicate vector files from. Default is ['IGN'].
+        dataset_family (list): List of dataset family names to duplicate vector files from. Default is ['ADMINEXPRESS'].
+        sources (list): List of source names to duplicate vector files from. Default is ['EXPRESS-COG-TERRITOIRE'].
+        territories (list): List of territory names to duplicate vector files from. Default is ['guyane'].
+        years (list): List of years to duplicate vector files from. Default is [2022].
+        bucket (str): Name of the S3-compatible bucket where the files will be stored.
+        path_within_bucket (str): Path within the bucket to store the duplicated files.
+
+    Returns:
+        None
+
+    Raises:
+        None
+
+    Example Usage:
+        duplicate_vectorfile_ign(
+            providers=['IGN', 'AnotherProvider'],
+            dataset_family=['ADMINEXPRESS', 'AnotherFamily'],
+            sources=['EXPRESS-COG-TERRITOIRE', 'AnotherSource'],
+            territories=['guyane', 'AnotherTerritory'],
+            years=[2022, 2023],
+            bucket='my-s3-bucket',
+            path_within_bucket='data/ign'
+        )
+    """
+
+    fs = s3fs.S3FileSystem(
+        client_kwargs={"endpoint_url": ENDPOINT_URL}
+        )
+
+    combinations = list(
+            itertools.product(
+                sources, territories, years, providers, dataset_family
+            )
+        )
+
+    with MasterScraper() as s:
+        for source, territory, year, provider, dataset_family in combinations:
+
+            datafile = Dataset(
+                dataset_family, source, year, provider, territory,
+                bucket, path_within_bucket
+            )
+
+            result = s.download_unzip(
+                    datafile,
+                    preserve="shape",
+                    pattern=BASE_CACHE_PATTERN,
+                    ext=".shp",
+                )
+
+            # DUPLICATE SOURCE IN BUCKET
+            normalized_path_bucket = \
+                f"{year=}/raw/{provider=}/{source=}/{territory=}"
+            normalized_path_bucket = normalized_path_bucket.replace("\'", "")
+            normalized_path = {normalized_path_bucket: result['path'][0]}
+
+            for path_s3fs, path_local_fs in normalized_path.items():
+                print(f"Iterating over {path_s3fs}")
+                fs.put(
+                    path_local_fs,
+                    f'{BUCKET}/{path_within_bucket}/{path_s3fs}',
+                    recursive=True)
+
+            # NOW WRITE MD5 IN BUCKET ROOT
+            list_values = [
+                dataset_family, source, year,
+                provider, territory,
+                normalized_path_bucket, result['hash']
+                ]
+            with fs.open(f'{BUCKET}/{path_within_bucket}/md5.csv', 'a') as f:
+                writer = csv.writer(f)
+                writer.writerow(list_values)
+
+
+def duplicate_vectorfile_ign_old(
     sources: list,
     territories: list,
     years: list,
@@ -868,7 +968,11 @@ def crossproduct_parameters_production(
 
     combinations = list(
         itertools.product(
-            list_format, croisement_filter_by_borders_flat, years, crs_list, sources
+            list_format,
+            croisement_filter_by_borders_flat,
+            years,
+            crs_list,
+            sources
         )
     )
 
