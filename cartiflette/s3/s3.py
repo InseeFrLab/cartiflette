@@ -6,6 +6,7 @@ from collections import ChainMap
 import os
 import tempfile
 import csv
+import logging
 import typing
 import s3fs
 import pandas as pd
@@ -16,7 +17,7 @@ from cartiflette.download import (
     MasterScraper,
     Dataset
 )
-
+from cartiflette.utils import update_json_md5
 
 from cartiflette.utils import (
     keep_subset_geopandas,
@@ -40,6 +41,7 @@ ENDPOINT_URL = "https://minio.lab.sspcloud.fr"
 BASE_CACHE_PATTERN = os.path.join("**", "*DONNEES_LIVRAISON*", "**")
 
 fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL})
+logger = logging.getLogger(__name__)
 
 # UTILITIES --------------------------------
 
@@ -637,14 +639,8 @@ def duplicate_vectorfile_ign(
                     recursive=True)
 
             # NOW WRITE MD5 IN BUCKET ROOT
-            list_values = [
-                dataset_family, source, year,
-                provider, territory,
-                normalized_path_bucket, result['hash']
-                ]
-            with fs.open(f'{BUCKET}/{path_within_bucket}/md5.csv', 'a') as f:
-                writer = csv.writer(f)
-                writer.writerow(list_values)
+            update_json_md5(datafile, result['hash'], fs)
+
 
 
 def duplicate_vectorfile_ign_old(
