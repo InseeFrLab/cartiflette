@@ -30,13 +30,19 @@ ENDPOINT_URL = "https://minio.lab.sspcloud.fr"
 
 BASE_CACHE_PATTERN = os.path.join("**", "*DONNEES_LIVRAISON*", "**")
 
-fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL})
+kwargs = {}
+for key in ["token", "secret", "key"]:
+    try:
+        kwargs[key] = os.environ[key]
+    except KeyError:
+        continue
+fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL}, **kwargs)
 
 
 logger = logging.getLogger(__name__)
 
 
-class Dataset():
+class Dataset:
     """
     Class representing a dataset stored in the yaml meant to be retrieved
     """
@@ -51,7 +57,7 @@ class Dataset():
         provider: str = "IGN",
         territory: str = None,
         bucket=BUCKET,
-        path_within_bucket=PATH_WITHIN_BUCKET
+        path_within_bucket=PATH_WITHIN_BUCKET,
     ):
         """
         Initialize a Dataset object.
@@ -727,7 +733,7 @@ def download_sources(
     territories: list,
     years: list,
     bucket: str = BUCKET,
-    path_within_bucket: str = PATH_WITHIN_BUCKET
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
 ) -> dict:
     """
     Main function to perform downloads of datasets to store to the s3.
@@ -805,8 +811,13 @@ def download_sources(
             )
 
             datafile = Dataset(
-                dataset_family, source, year, provider, territory,
-                bucket, path_within_bucket
+                dataset_family,
+                source,
+                year,
+                provider,
+                territory,
+                bucket,
+                path_within_bucket,
             )
 
             # TODO : certains fichiers sont téléchargés plusieurs fois, par ex.
@@ -866,7 +877,7 @@ if __name__ == "__main__":
     territories = ["guadeloupe", "martinique"]
     years = [2022, 2023]
 
-    results = download_sources(
-        providers, dataset_family, sources, territories, years
-    )
-    print(results)
+    # results = download_sources(
+    #     providers, dataset_family, sources, territories, years
+    # )
+    # print(results)

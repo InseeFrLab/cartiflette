@@ -20,6 +20,7 @@ topojson = "^1.5"
 appdirs = "^1.4.4"
 owslib = "^0.28.1"
 matplotlib = "^3.7.1"
+python-dotenv = "^1.0.0"
 
 [tool.poetry.group.dev.dependencies]
 spyder = "^5.4.2"

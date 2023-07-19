@@ -13,10 +13,7 @@ import pandas as pd
 import geopandas as gpd
 from topojson import Topology
 
-from cartiflette.download import (
-    MasterScraper,
-    Dataset
-)
+from cartiflette.download import MasterScraper, Dataset
 from cartiflette.utils import update_json_md5
 
 from cartiflette.utils import (
@@ -25,14 +22,14 @@ from cartiflette.utils import (
     create_format_standardized,
     create_format_driver,
     download_pb,
-    official_epsg_codes
+    official_epsg_codes,
 )
 
 from cartiflette.download import (
     store_vectorfile_ign,
     get_vectorfile_ign,
     get_vectorfile_communes_arrondissement,
-    get_cog_year
+    get_cog_year,
 )
 
 BUCKET = "projet-cartiflette"
@@ -40,24 +37,27 @@ PATH_WITHIN_BUCKET = "diffusion/shapefiles-test1"
 ENDPOINT_URL = "https://minio.lab.sspcloud.fr"
 BASE_CACHE_PATTERN = os.path.join("**", "*DONNEES_LIVRAISON*", "**")
 
-fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL})
+kwargs = {}
+for key in ["token", "secret", "key"]:
+    try:
+        kwargs[key] = os.environ[key]
+    except KeyError:
+        continue
+fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL}, **kwargs)
 logger = logging.getLogger(__name__)
 
 # UTILITIES --------------------------------
 
+
 def structure_path_raw_ign(c):
     source, field, year, provider = c
     path = store_vectorfile_ign(
-        source=source, year=year,
-        field=field, provider=provider
-        )
-    return(
-        {f"{year=}/raw/{provider=}/{source=}/{field=}": path}
-    )    
+        source=source, year=year, field=field, provider=provider
+    )
+    return {f"{year=}/raw/{provider=}/{source=}/{field=}": path}
 
 
 def standardize_inputs(vectorfile_format):
-
     corresp_filter_by_columns = dict_corresp_filter_by()
     format_standardized = create_format_standardized()
     gpd_driver = create_format_driver()
@@ -68,10 +68,11 @@ def standardize_inputs(vectorfile_format):
 
 
 def create_dict_all_territories(
-    provider="IGN", source="EXPRESS-COG-TERRITOIRE",
-    year=2022, borders="COMMUNE"
+    provider="IGN",
+    source="EXPRESS-COG-TERRITOIRE",
+    year=2022,
+    borders="COMMUNE",
 ):
-
     territories_available = [
         "metropole",
         "martinique",
@@ -85,8 +86,11 @@ def create_dict_all_territories(
 
     territories = {
         f: get_vectorfile_ign(
-            provider=provider, borders=borders,
-            year=year, field=f, source=source
+            provider=provider,
+            borders=borders,
+            year=year,
+            field=f,
+            source=source,
         )
         for f in territories_available
     }
@@ -189,11 +193,11 @@ def create_path_bucket(
     write_path = f"{write_path}/{filter_by}={value}/{vectorfile_format=}"
     write_path = f"{write_path}/{provider=}/{source=}"
     write_path = f"{write_path}/raw.{vectorfile_format}"
-    write_path = write_path.replace("\'", "")
+    write_path = write_path.replace("'", "")
 
     if vectorfile_format == "shp":
         write_path = write_path.rsplit("/", maxsplit=1)[0] + "/"
-    
+
     return write_path
 
 
@@ -256,9 +260,8 @@ def download_vectorfile_url_all(
     year=2022,
     provider: str = "IGN",
     source: str = "EXPRESS-COG-TERRITOIRE",
-    crs = None
+    crs=None,
 ):
-
     if isinstance(values, (str, int, float)):
         values = [str(values)]
 
@@ -271,7 +274,7 @@ def download_vectorfile_url_all(
             year=year,
             provider=provider,
             source=source,
-            crs=crs
+            crs=crs,
         )
         for val in values
     ]
@@ -338,7 +341,9 @@ def download_vectorfile_s3_single(
         print("When using shp format, we first need to store a local version")
         tdir = tempfile.TemporaryDirectory()
         for remote_file in fs.ls(dir_s3):
-            fs.download(remote_file, f"{tdir.name}/{remote_file.replace(dir_s3, '')}")
+            fs.download(
+                remote_file, f"{tdir.name}/{remote_file.replace(dir_s3, '')}"
+            )
         object = gpd.read_file(f"{tdir.name}/raw.shp", driver=None)
     elif format_read == "parquet":
         with fs.open(read_path, "rb") as f:
@@ -360,7 +365,7 @@ def download_vectorfile_url_single(
     path_within_bucket: str = PATH_WITHIN_BUCKET,
     provider: str = "IGN",
     source: str = "EXPRESS-COG-TERRITOIRE",
-    crs=None
+    crs=None,
 ):
     """
     This function downloads a vector file from a specified S3 bucket and returns it as a GeoPandas object.
@@ -395,7 +400,7 @@ def download_vectorfile_url_single(
         path_within_bucket=path_within_bucket,
         provider=provider,
         source=source,
-        crs=crs
+        crs=crs,
     )
 
     if format_read == "shp":
@@ -417,25 +422,24 @@ def download_vectorfile_url_single(
 
 # UPLOAD S3 -------------------------------
 
-def write_cog_s3(
-    year: int = 2022,
-    vectorfile_format = "json"
-):
 
+def write_cog_s3(year: int = 2022, vectorfile_format="json"):
     list_cog = get_cog_year(year)
 
     dict_path_data = {
         create_path_bucket(
-            bucket = BUCKET,
-            path_within_bucket = PATH_WITHIN_BUCKET,
-            provider = "INSEE",
-            source = "COG",
-            vectorfile_format = vectorfile_format,
-            borders = level,
-            filter_by = "france_entiere",
-            year = year,
-            value = "raw",
-            crs = None): value for level, value in list_cog.items()
+            bucket=BUCKET,
+            path_within_bucket=PATH_WITHIN_BUCKET,
+            provider="INSEE",
+            source="COG",
+            vectorfile_format=vectorfile_format,
+            borders=level,
+            filter_by="france_entiere",
+            year=year,
+            value="raw",
+            crs=None,
+        ): value
+        for level, value in list_cog.items()
     }
 
     for path, data in dict_path_data.items():
@@ -448,10 +452,6 @@ def write_cog_s3(
                 data.to_csv(f)
             else:
                 print("Unsupported format")
-
-    
-
-
 
 
 def write_vectorfile_subset(
@@ -558,13 +558,13 @@ def write_vectorfile_subset(
 
 
 def duplicate_vectorfile_ign(
-    providers=['IGN'],
-    dataset_family=['ADMINEXPRESS'],
-    sources=['EXPRESS-COG-TERRITOIRE'],
-    territories=['guyane'],
+    providers=["IGN"],
+    dataset_family=["ADMINEXPRESS"],
+    sources=["EXPRESS-COG-TERRITOIRE"],
+    territories=["guyane"],
     years=[2022],
     bucket=BUCKET,
-    path_within_bucket=PATH_WITHIN_BUCKET
+    path_within_bucket=PATH_WITHIN_BUCKET,
 ):
     """Duplicate and store vector files from IGN dataset.
 
@@ -600,47 +600,50 @@ def duplicate_vectorfile_ign(
         )
     """
 
-    fs = s3fs.S3FileSystem(
-        client_kwargs={"endpoint_url": ENDPOINT_URL}
-        )
+    fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL})
 
     combinations = list(
-            itertools.product(
-                sources, territories, years, providers, dataset_family
-            )
+        itertools.product(
+            sources, territories, years, providers, dataset_family
         )
+    )
 
     with MasterScraper() as s:
         for source, territory, year, provider, dataset_family in combinations:
-
             datafile = Dataset(
-                dataset_family, source, year, provider, territory,
-                bucket, path_within_bucket
+                dataset_family,
+                source,
+                year,
+                provider,
+                territory,
+                bucket,
+                path_within_bucket,
             )
 
             result = s.download_unzip(
-                    datafile,
-                    preserve="shape",
-                    pattern=BASE_CACHE_PATTERN,
-                    ext=".shp",
-                )
+                datafile,
+                preserve="shape",
+                pattern=BASE_CACHE_PATTERN,
+                ext=".shp",
+            )
 
             # DUPLICATE SOURCE IN BUCKET
-            normalized_path_bucket = \
+            normalized_path_bucket = (
                 f"{year=}/raw/{provider=}/{source=}/{territory=}"
-            normalized_path_bucket = normalized_path_bucket.replace("\'", "")
-            normalized_path = {normalized_path_bucket: result['path'][0]}
+            )
+            normalized_path_bucket = normalized_path_bucket.replace("'", "")
+            normalized_path = {normalized_path_bucket: result["path"][0]}
 
             for path_s3fs, path_local_fs in normalized_path.items():
                 print(f"Iterating over {path_s3fs}")
                 fs.put(
                     path_local_fs,
-                    f'{BUCKET}/{path_within_bucket}/{path_s3fs}',
-                    recursive=True)
+                    f"{BUCKET}/{path_within_bucket}/{path_s3fs}",
+                    recursive=True,
+                )
 
             # NOW WRITE MD5 IN BUCKET ROOT
-            update_json_md5(datafile, result['hash'], fs)
-
+            update_json_md5(datafile, result["hash"], fs)
 
 
 def duplicate_vectorfile_ign_old(
@@ -650,8 +653,8 @@ def duplicate_vectorfile_ign_old(
     providers: list,
     BUCKET=BUCKET,
     PATH_WITHIN_BUCKET=PATH_WITHIN_BUCKET,
-    ENDPOINT_URL=ENDPOINT_URL
-    ):
+    ENDPOINT_URL=ENDPOINT_URL,
+):
     """
     Duplicates a list of vector files to a specified Amazon S3 bucket using s3fs.
 
@@ -672,22 +675,20 @@ def duplicate_vectorfile_ign_old(
     """
 
     combinations = list(
-            itertools.product(
-                sources, territories, years, providers
-            )
-        )
+        itertools.product(sources, territories, years, providers)
+    )
 
-    paths = dict(
-        ChainMap(*[
-            structure_path_raw_ign(c) for c in combinations
-            ])
-        )
+    paths = dict(ChainMap(*[structure_path_raw_ign(c) for c in combinations]))
 
     fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL})
 
     for path_s3fs, path_local_fs in paths.items():
         print(f"Iterating over {path_s3fs}")
-        fs.put(path_local_fs, f'{BUCKET}/{PATH_WITHIN_BUCKET}/{path_s3fs}', recursive = True)
+        fs.put(
+            path_local_fs,
+            f"{BUCKET}/{PATH_WITHIN_BUCKET}/{path_s3fs}",
+            recursive=True,
+        )
 
 
 def write_vectorfile_all_borders(
@@ -703,7 +704,6 @@ def write_vectorfile_all_borders(
     provider: str = "IGN",
     source: str = "EXPRESS-COG-TERRITOIRE",
 ):
-
     """Write all borderss of a GeoDataFrame to a specified format on S3.
 
     This function takes a GeoDataFrame object, the variable name on which to create
@@ -741,7 +741,6 @@ def write_vectorfile_all_borders(
 
 
 def write_vectorfile_s3_shp(object, fs, write_path, driver=None):
-
     print("When using shp format, we first need a local temporary save")
 
     tdir = tempfile.TemporaryDirectory()
@@ -766,7 +765,6 @@ def write_vectorfile_s3_custom_arrondissement(
     crs=2154,
     borders=None,  # used to ensure we produce for "metropole" only
 ):
-
     if crs is None:
         if vectorfile_format.lower() == "geojson":
             crs = 4326
@@ -782,11 +780,10 @@ def write_vectorfile_s3_custom_arrondissement(
 
     object = get_vectorfile_communes_arrondissement(
         year=year, provider=provider, source=source
-    )    
+    )
 
     if filter_by.upper() == "FRANCE_ENTIERE":
         object["territoire"] = "metropole"
-
 
     write_vectorfile_all_borders(
         object=object,
@@ -817,7 +814,6 @@ def write_vectorfile_s3_all(
     provider="IGN",
     source="EXPRESS-COG-TERRITOIRE",
 ):
-
     if crs is None:
         if vectorfile_format.lower() == "geojson":
             crs = 4326
@@ -843,14 +839,12 @@ def write_vectorfile_s3_all(
             val["territoire"] = key
 
     for territory in territories:
-
         print(f"Writing {territory}")
 
         if crs == "official":
             epsg = official_epsg_codes()[territory]
         else:
             epsg = crs
-
 
         write_vectorfile_all_borders(
             object=territories[territory],
@@ -922,7 +916,6 @@ def create_territories(
     source: str = "EXPRESS-COG-TERRITOIRE",
     crs: int = None,
 ):
-
     if crs is None:
         if vectorfile_format.lower() == "geojson":
             crs = 4326
@@ -944,7 +937,6 @@ def create_territories(
 
 
 def restructure_nested_dict_borderss(dict_with_list: dict):
-
     croisement_filter_by_borders_flat = [
         [key, inner_value]
         for key, values in dict_with_list.items()
@@ -957,7 +949,6 @@ def restructure_nested_dict_borderss(dict_with_list: dict):
 def crossproduct_parameters_production(
     croisement_filter_by_borders, list_format, years, crs_list, sources
 ):
-
     croisement_filter_by_borders_flat = restructure_nested_dict_borderss(
         croisement_filter_by_borders
     )
@@ -968,7 +959,7 @@ def crossproduct_parameters_production(
             croisement_filter_by_borders_flat,
             years,
             crs_list,
-            sources
+            sources,
         )
     )
 
@@ -983,33 +974,36 @@ def crossproduct_parameters_production(
 
 
 def list_produced_cartiflette(
-    bucket: str = BUCKET,
-    path_within_bucket: str = PATH_WITHIN_BUCKET
+    bucket: str = BUCKET, path_within_bucket: str = PATH_WITHIN_BUCKET
 ):
     written_borderss = fs.glob(f"{bucket}/{path_within_bucket}/**/provider*")
-    df = pd.DataFrame(written_borderss, columns=['paths'])
+    df = pd.DataFrame(written_borderss, columns=["paths"])
 
-    df[
-        ['year', 'administrative_level', 'crs', 'filter_by', 'format']
-        ] = df['paths'].str.extract(
-            r'year=(\d+)/administrative_level=(\w+)/crs=(\d+)/(.*)=.*/vectorfile_format=\'(\w+)\''
-            )
+    df[["year", "administrative_level", "crs", "filter_by", "format"]] = df[
+        "paths"
+    ].str.extract(
+        r"year=(\d+)/administrative_level=(\w+)/crs=(\d+)/(.*)=.*/vectorfile_format=\'(\w+)\'"
+    )
 
-    df = df.filter(['year', 'administrative_level', 'crs', 'filter_by', 'format'], axis = 'columns')
+    df = df.filter(
+        ["year", "administrative_level", "crs", "filter_by", "format"],
+        axis="columns",
+    )
     df = df.drop_duplicates()
 
     with fs.open(f"{bucket}/{path_within_bucket}/available.json", "wb") as f:
         df.to_json(f, orient="records")
 
 
-
 def production_cartiflette(
     croisement_filter_by_borders,
-    formats, years, crs_list, sources,
+    formats,
+    years,
+    crs_list,
+    sources,
     bucket=BUCKET,
     path_within_bucket=PATH_WITHIN_BUCKET,
 ):
-
     tempdf = crossproduct_parameters_production(
         croisement_filter_by_borders=croisement_filter_by_borders,
         list_format=formats,
@@ -1032,12 +1026,12 @@ def production_cartiflette(
             f"{crs=}\n"
             f"{source=}"
         )
-        
+
         if borders == "COMMUNE_ARRONDISSEMENT":
             production_func = write_vectorfile_s3_custom_arrondissement
         else:
             production_func = write_vectorfile_s3_all
-        
+
         production_func(
             borders=borders,
             vectorfile_format=format,
@@ -1047,14 +1041,13 @@ def production_cartiflette(
             provider="IGN",
             source=source,
             bucket=bucket,
-            path_within_bucket=path_within_bucket            
+            path_within_bucket=path_within_bucket,
         )
 
     print(80 * "-" + "\nProduction finished :)")
 
 
 def create_nested_topojson(path):
-
     croisement_filter_by_borders = {
         ## structure -> niveau geo: [niveau filter_by macro],
         "REGION": ["FRANCE_ENTIERE"],
@@ -1071,7 +1064,9 @@ def create_nested_topojson(path):
     for couple in croisement_filter_by_borders_flat:
         borders = couple[0]
         filter_by = couple[1]
-        list_output[borders] = create_territories(borders=borders, filter_by=filter_by)
+        list_output[borders] = create_territories(
+            borders=borders, filter_by=filter_by
+        )
 
     topo = Topology(
         data=[
