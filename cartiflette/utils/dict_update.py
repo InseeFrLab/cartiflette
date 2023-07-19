@@ -6,6 +6,9 @@ Created on Thu May 11 20:11:03 2023
 """
 from typing import Dict, Any
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def deep_dict_update(
@@ -43,8 +46,6 @@ def deep_dict_update(
     return updated_mapping
 
 
-
-
 def update_json_md5(self, md5: str, fs) -> bool:
     "Mise à jour du json des md5"
     md5 = {
@@ -70,6 +71,6 @@ def update_json_md5(self, md5: str, fs) -> bool:
             json.dump(all_md5, f)
         return True
     except Exception as e:
-            logger.warning(e)
-            logger.warning("md5 not written")
-            return False
+        logger.warning(e)
+        logger.warning("md5 not written")
+        return False
