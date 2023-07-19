@@ -582,6 +582,7 @@ def duplicate_vectorfile_ign(
     fs: s3fs.S3FileSystem = cartiflette.FS,
     base_cache_pattern: str = cartiflette.BASE_CACHE_PATTERN,
 ):
+    # TODO : compléter la docstring
     """Duplicate and store vector files from IGN dataset.
 
     This function duplicates vector files from the IGN (Institut national de l'information géographique et forestière)
@@ -725,6 +726,7 @@ def write_vectorfile_all_borders(
     source: str = "EXPRESS-COG-TERRITOIRE",
     fs: s3fs.S3FileSystem = cartiflette.FS,
 ):
+    # TODO : compléter la docstring
     """Write all borderss of a GeoDataFrame to a specified format on S3.
 
     This function takes a GeoDataFrame object, the variable name on which to create
@@ -763,6 +765,7 @@ def write_vectorfile_all_borders(
 
 
 def write_vectorfile_s3_shp(object, fs, write_path, driver=None):
+    # TODO : docstring
     logger.info("When using shp format, we first need a local temporary save")
 
     tdir = tempfile.TemporaryDirectory()
@@ -788,6 +791,7 @@ def write_vectorfile_s3_custom_arrondissement(
     borders=None,  # used to ensure we produce for "metropole" only
     fs: s3fs.S3FileSystem = cartiflette.FS,
 ):
+    # TODO : docstring
     if crs is None:
         if vectorfile_format.lower() == "geojson":
             crs = 4326
@@ -839,6 +843,7 @@ def write_vectorfile_s3_all(
     source="EXPRESS-COG-TERRITOIRE",
     fs: s3fs.S3FileSystem = cartiflette.FS,
 ):
+    # TODO : docstring
     if crs is None:
         if vectorfile_format.lower() == "geojson":
             crs = 4326
@@ -887,6 +892,7 @@ def write_vectorfile_s3_all(
         )
 
 
+# TODO : fonction non appelée et non mentionnée dans les fonctions publiques ?
 def open_vectorfile_from_s3(
     vectorfile_format,
     filter_by,
@@ -895,6 +901,7 @@ def open_vectorfile_from_s3(
     crs,
     fs,
 ):
+    # TODO : docstring
     read_path = create_path_bucket(
         vectorfile_format=vectorfile_format,
         filter_by=filter_by,
@@ -905,6 +912,7 @@ def open_vectorfile_from_s3(
     return fs.open(read_path, mode="r")
 
 
+# TODO : fonction non appelée et non mentionnée dans les fonctions publiques ?
 def write_vectorfile_from_s3(
     filename: str,
     filter_by: str,
@@ -916,6 +924,7 @@ def write_vectorfile_from_s3(
     source: str = "EXPRESS-COG-TERRITOIRE",
     fs: s3fs.S3FileSystem = cartiflette.FS,
 ):
+    # TODO : compléter docstring
     """Retrieve shapefiles stored in S3
 
     Args:
@@ -950,6 +959,7 @@ def create_territories(
     source: str = "EXPRESS-COG-TERRITOIRE",
     crs: int = None,
 ):
+    # TODO : docstring
     if crs is None:
         if vectorfile_format.lower() == "geojson":
             crs = 4326
@@ -971,6 +981,7 @@ def create_territories(
 
 
 def restructure_nested_dict_borderss(dict_with_list: dict):
+    # TODO : docstring
     croisement_filter_by_borders_flat = [
         [key, inner_value]
         for key, values in dict_with_list.items()
@@ -983,6 +994,7 @@ def restructure_nested_dict_borderss(dict_with_list: dict):
 def crossproduct_parameters_production(
     croisement_filter_by_borders, list_format, years, crs_list, sources
 ):
+    # TODO : docstring
     croisement_filter_by_borders_flat = restructure_nested_dict_borderss(
         croisement_filter_by_borders
     )
@@ -1012,6 +1024,7 @@ def list_produced_cartiflette(
     path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
     fs: s3fs.S3FileSystem = cartiflette.FS,
 ):
+    # TODO : docstring
     written_borderss = fs.glob(f"{bucket}/{path_within_bucket}/**/provider*")
     df = pd.DataFrame(written_borderss, columns=["paths"])
 
@@ -1041,6 +1054,7 @@ def production_cartiflette(
     path_within_bucket=cartiflette.PATH_WITHIN_BUCKET,
     fs: s3fs.S3FileSystem = cartiflette.FS,
 ):
+    # TODO : docstring
     tempdf = crossproduct_parameters_production(
         croisement_filter_by_borders=croisement_filter_by_borders,
         list_format=formats,
@@ -1085,35 +1099,37 @@ def production_cartiflette(
     logger.info(80 * "-" + "\nProduction finished :)")
 
 
-def create_nested_topojson(path):
-    croisement_filter_by_borders = {
-        ## structure -> niveau geo: [niveau filter_by macro],
-        "REGION": ["FRANCE_ENTIERE"],
-        "DEPARTEMENT": ["FRANCE_ENTIERE"],
-    }
+# Plus utilisé ?
+# def create_nested_topojson(path):
+#     #TODO : docstring
+#     croisement_filter_by_borders = {
+#         ## structure -> niveau geo: [niveau filter_by macro],
+#         "REGION": ["FRANCE_ENTIERE"],
+#         "DEPARTEMENT": ["FRANCE_ENTIERE"],
+#     }
 
-    croisement_filter_by_borders_flat = [
-        [key, inner_value]
-        for key, values in croisement_filter_by_borders.items()
-        for inner_value in values
-    ]
+#     croisement_filter_by_borders_flat = [
+#         [key, inner_value]
+#         for key, values in croisement_filter_by_borders.items()
+#         for inner_value in values
+#     ]
 
-    list_output = {}
-    for couple in croisement_filter_by_borders_flat:
-        borders = couple[0]
-        filter_by = couple[1]
-        list_output[borders] = create_territories(
-            borders=borders, filter_by=filter_by
-        )
+#     list_output = {}
+#     for couple in croisement_filter_by_borders_flat:
+#         borders = couple[0]
+#         filter_by = couple[1]
+#         list_output[borders] = create_territories(
+#             borders=borders, filter_by=filter_by
+#         )
 
-    topo = Topology(
-        data=[
-            list_output["REGION"]["metropole"],
-            list_output["DEPARTEMENT"]["metropole"],
-        ],
-        object_name=["region", "departement"],
-        prequantize=False,
-    )
+#     topo = Topology(
+#         data=[
+#             list_output["REGION"]["metropole"],
+#             list_output["DEPARTEMENT"]["metropole"],
+#         ],
+#         object_name=["region", "departement"],
+#         prequantize=False,
+#     )
 
-    return topo
-    # topo.to_json(path)
+#     return topo
+#     # topo.to_json(path)
