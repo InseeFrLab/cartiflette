@@ -1,19 +1,39 @@
 import os
+from dotenv import load_dotenv
+import s3fs
 
-os.chdir("cartiflette")
+# os.chdir("cartiflette")
 
-import itertools
 import cartiflette.s3 as s3
 from cartiflette.download import get_administrative_level_available_ign
 
+load_dotenv()
+
+bucket = "projet-cartiflette"
+path_within_bucket = "diffusion/shapefiles-test4"
+endpoint_url = "https://minio.lab.sspcloud.fr"
+base_cache_pattern = os.path.join("**", "*DONNEES_LIVRAISON*", "**")
+
+kwargs = {}
+for key in ["token", "secret", "key"]:
+    try:
+        kwargs[key] = os.environ[key]
+    except KeyError:
+        continue
+fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": endpoint_url}, **kwargs)
 
 
 # RECUPERATION SHAPEFILES IGN -----------------------------
 
 sources = ["EXPRESS-COG-TERRITOIRE"]
 territories = [
-    "metropole", "reunion", "guadeloupe",
-    "martinique", "mayotte", "guyane"]
+    "metropole",
+    "reunion",
+    "guadeloupe",
+    "martinique",
+    "mayotte",
+    "guyane",
+]
 years = [2022, 2021]
 providers = ["IGN"]
 
@@ -23,21 +43,23 @@ s3.duplicate_vectorfile_ign(
     territories=territories,
     years=years,
     providers=providers,
-    PATH_WITHIN_BUCKET="diffusion/shapefiles-test2"
+    path_within_bucket=path_within_bucket,
+    base_cache_pattern=base_cache_pattern,
+    fs=fs,
 )
 
 
 # PRODUCTION SHAPEFILES CARTIFLETTE ----------------------
 
 
-#formats = ["geoparquet", "shp", "gpkg", "geojson"]
-#formats = ["topojson"]
+# formats = ["geoparquet", "shp", "gpkg", "geojson"]
+# formats = ["topojson"]
 formats = ["geojson"]
 
-#years = [y for y in range(2021, 2023)]
+# years = [y for y in range(2021, 2023)]
 years = [2022]
 
-#crs_list = [4326, 2154, "official"]
+# crs_list = [4326, 2154, "official"]
 crs_list = [4326, "official"]
 
 sources = ["EXPRESS-COG-CARTO-TERRITOIRE"]
@@ -45,26 +67,41 @@ sources = ["EXPRESS-COG-CARTO-TERRITOIRE"]
 croisement_decoupage_level = {
     ## structure -> niveau geo: [niveau decoupage macro],
     "REGION": ["FRANCE_ENTIERE"],
-    "ARRONDISSEMENT_MUNICIPAL" : ['DEPARTEMENT'], 
+    "ARRONDISSEMENT_MUNICIPAL": ["DEPARTEMENT"],
     "COMMUNE_ARRONDISSEMENT": ["DEPARTEMENT", "REGION", "FRANCE_ENTIERE"],
     "COMMUNE": ["DEPARTEMENT", "REGION", "FRANCE_ENTIERE"],
-    "DEPARTEMENT": ["REGION", "FRANCE_ENTIERE"]
+    "DEPARTEMENT": ["REGION", "FRANCE_ENTIERE"],
 }
 
-
+path_within_bucket = "diffusion/shapefiles-test2"
 s3.production_cartiflette(
     croisement_decoupage_level,
     formats,
     years,
     crs_list,
     sources,
-    path_within_bucket="diffusion/shapefiles-test2"
+    path_within_bucket=path_within_bucket,
+    fs=fs,
 )
 
-s3.write_cog_s3(year = 2022, vectorfile_format = "parquet")
-s3.write_cog_s3(year = 2021, vectorfile_format = "parquet")
+s3.write_cog_s3(
+    year=2022,
+    vectorfile_format="parquet",
+    path_within_bucket=path_within_bucket,
+    fs=fs,
+)
+s3.write_cog_s3(
+    year=2021,
+    vectorfile_format="parquet",
+    path_within_bucket=path_within_bucket,
+    fs=fs,
+)
 
-s3.list_produced_cartiflette()
+s3.list_produced_cartiflette(
+    bucket=bucket,
+    path_within_bucket=path_within_bucket,
+    fs=fs,
+)
 
 # OLD --------------
 
@@ -73,13 +110,16 @@ s3.download_vectorfile_url_all(
     level="REGION",
     vectorfile_format="geojson",
     decoupage="france_entiere",
-    year=2022)
+    year=2022,
+)
 
 s3.write_vectorfile_s3_all(
-        level="ARRONDISSEMENT_MUNICIPAL",
-        vectorfile_format="geojson",
-        decoupage="departement",
-        year=2022)
+    level="ARRONDISSEMENT_MUNICIPAL",
+    vectorfile_format="geojson",
+    decoupage="departement",
+    year=2022,
+    fs=fs,
+)
 
 
 obj = s3.download_vectorfile_s3_all(
@@ -87,7 +127,9 @@ obj = s3.download_vectorfile_s3_all(
     vectorfile_format="geojson",
     decoupage="region",
     year=2022,
-    values = ["28","11"])
+    values=["28", "11"],
+    fs=fs,
+)
 
 get_administrative_level_available_ign()
 
@@ -96,61 +138,81 @@ s3.write_vectorfile_s3_all(
     level="ARRONDISSEMENT",
     vectorfile_format="geojson",
     decoupage="region",
-    year=2022)
+    year=2022,
+    fs=fs,
+)
 
 obj2 = s3.download_vectorfile_s3_single(
     level="COMMUNE",
     vectorfile_format="gpkg",
     decoupage="region",
-    year=2022)
+    year=2022,
+    fs=fs,
+)
 
 obj3 = s3.download_vectorfile_s3_single(
     level="COMMUNE",
     vectorfile_format="shp",
     decoupage="region",
-    year=2022)
+    year=2022,
+    fs=fs,
+)
 
 s3.write_vectorfile_s3_all(
     level="COMMUNE",
     vectorfile_format="geojson",
     decoupage="region",
-    year=2022)
+    year=2022,
+    fs=fs,
+)
 
 s3.write_vectorfile_s3_all(
     level="ARRONDISSEMENT",
     vectorfile_format="geojson",
     decoupage="region",
-    year=2022)
+    year=2022,
+    fs=fs,
+)
 
 
 s3.write_vectorfile_s3_all(
     level="COMMUNE",
     vectorfile_format="geojson",
     decoupage="region",
-    year=2021)
+    year=2021,
+    fs=fs,
+)
 
 s3.write_vectorfile_s3_all(
     level="COMMUNE",
     vectorfile_format="GPKG",
     decoupage="region",
-    year=2019)
+    year=2019,
+    fs=fs,
+)
 
 s3.write_vectorfile_s3_all(
     level="COMMUNE",
     vectorfile_format="parquet",
     decoupage="region",
-    year=2019)
+    year=2019,
+    fs=fs,
+)
 
 
 s3.write_vectorfile_s3_all(
     level="COMMUNE",
     vectorfile_format="shp",
     decoupage="region",
-    year=2020)
+    year=2020,
+    fs=fs,
+)
 
 
 s3.write_vectorfile_s3_all(
     level="COMMUNE",
     vectorfile_format="shp",
     decoupage="region",
-    year=2022)
+    year=2022,
+    fs=fs,
+)
