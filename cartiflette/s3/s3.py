@@ -29,21 +29,8 @@ from cartiflette.download import (
     get_vectorfile_communes_arrondissement,
     get_cog_year,
 )
+import cartiflette
 
-BUCKET = "projet-cartiflette"
-PATH_WITHIN_BUCKET = "diffusion/shapefiles-test1"
-ENDPOINT_URL = "https://minio.lab.sspcloud.fr"
-BASE_CACHE_PATTERN = os.path.join("**", "*DONNEES_LIVRAISON*", "**")
-
-kwargs_fs = {}
-for key in ["token", "secret", "key"]:
-    try:
-        kwargs_fs[key] = os.environ[key]
-    except KeyError:
-        continue
-fs = s3fs.S3FileSystem(
-    client_kwargs={"endpoint_url": ENDPOINT_URL}, **kwargs_fs
-)
 logger = logging.getLogger(__name__)
 
 # UTILITIES --------------------------------
@@ -102,8 +89,8 @@ def create_dict_all_territories(
 
 
 def create_url_s3(
-    bucket: str = BUCKET,
-    path_within_bucket: str = PATH_WITHIN_BUCKET,
+    bucket: str = cartiflette.BUCKET,
+    path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
     provider: str = "IGN",
     source: str = "EXPRESS-COG-TERRITOIRE",
     vectorfile_format: str = "geojson",
@@ -143,16 +130,14 @@ def create_url_s3(
         value=value,
     )
 
-    url = f"{ENDPOINT_URL}/{path_within}"
-
-    print(url)
+    url = f"{cartiflette.ENDPOINT_URL}/{path_within}"
 
     return url
 
 
 def create_path_bucket(
-    bucket: str = BUCKET,
-    path_within_bucket: str = PATH_WITHIN_BUCKET,
+    bucket: str = cartiflette.BUCKET,
+    path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
     provider: str = "IGN",
     source: str = "EXPRESS-COG-TERRITOIRE",
     vectorfile_format: str = "geojson",
@@ -212,6 +197,7 @@ def download_vectorfile_s3_all(
     year: typing.Union[str, int, float] = 2022,
     provider: str = "IGN",
     source: str = "EXPRESS-COG-TERRITOIRE",
+    fs: s3fs.S3FileSystem = cartiflette.FS,
 ):
     """
     This function downloads multiple vector files from a specified S3 bucket and returns them as a GeoPandas object.
@@ -243,6 +229,7 @@ def download_vectorfile_s3_all(
             year=year,
             provider=provider,
             source=source,
+            fs=fs,
         )
         for val in values
     ]
@@ -291,10 +278,11 @@ def download_vectorfile_s3_single(
     filter_by: str = "region",
     year: typing.Union[str, int, float] = 2022,
     crs: typing.Union[str, int, float] = 2154,
-    bucket: str = BUCKET,
-    path_within_bucket: str = PATH_WITHIN_BUCKET,
+    bucket: str = cartiflette.BUCKET,
+    path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
     provider: str = "IGN",
     source: str = "EXPRESS-COG-TERRITOIRE",
+    fs: s3fs.S3FileSystem = cartiflette.FS,
 ):
     """
     This function downloads a vector file from a specified S3 bucket and returns it
@@ -361,8 +349,8 @@ def download_vectorfile_url_single(
     vectorfile_format: str = "geojson",
     filter_by: str = "region",
     year: typing.Union[str, int, float] = 2022,
-    bucket: str = BUCKET,
-    path_within_bucket: str = PATH_WITHIN_BUCKET,
+    bucket: str = cartiflette.BUCKET,
+    path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
     provider: str = "IGN",
     source: str = "EXPRESS-COG-TERRITOIRE",
     crs=None,
@@ -423,13 +411,19 @@ def download_vectorfile_url_single(
 # UPLOAD S3 -------------------------------
 
 
-def write_cog_s3(year: int = 2022, vectorfile_format="json"):
+def write_cog_s3(
+    year: int = 2022,
+    vectorfile_format="json",
+    bucket: str = cartiflette.BUCKET,
+    path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
+    fs: s3fs.S3FileSystem = cartiflette.FS,
+):
     list_cog = get_cog_year(year)
 
     dict_path_data = {
         create_path_bucket(
-            bucket=BUCKET,
-            path_within_bucket=PATH_WITHIN_BUCKET,
+            bucket=bucket,
+            path_within_bucket=path_within_bucket,
             provider="INSEE",
             source="COG",
             vectorfile_format=vectorfile_format,
@@ -463,10 +457,11 @@ def write_vectorfile_subset(
     year: int = 2022,
     crs: typing.Union[str, int, float] = 2154,
     force_crs: bool = False,
-    bucket: str = BUCKET,
-    path_within_bucket: str = PATH_WITHIN_BUCKET,
+    bucket: str = cartiflette.BUCKET,
+    path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
     provider: str = "IGN",
     source: str = "EXPRESS-COG-TERRITOIRE",
+    fs: s3fs.S3FileSystem = cartiflette.FS,
 ):
     """
     This function writes a subset of a given vector file to a specified bucket in S3.
@@ -563,8 +558,10 @@ def duplicate_vectorfile_ign(
     sources=["EXPRESS-COG-TERRITOIRE"],
     territories=["guyane"],
     years=[2022],
-    bucket=BUCKET,
-    path_within_bucket=PATH_WITHIN_BUCKET,
+    bucket=cartiflette.BUCKET,
+    path_within_bucket=cartiflette.PATH_WITHIN_BUCKET,
+    fs: s3fs.S3FileSystem = cartiflette.FS,
+    base_cache_pattern: str = cartiflette.BASE_CACHE_PATTERN,
 ):
     """Duplicate and store vector files from IGN dataset.
 
@@ -600,10 +597,6 @@ def duplicate_vectorfile_ign(
         )
     """
 
-    fs = s3fs.S3FileSystem(
-        client_kwargs={"endpoint_url": ENDPOINT_URL}, **kwargs_fs
-    )
-
     combinations = list(
         itertools.product(
             sources, territories, years, providers, dataset_family
@@ -626,7 +619,7 @@ def duplicate_vectorfile_ign(
             result = s.download_unzip(
                 datafile,
                 preserve="shape",
-                pattern=BASE_CACHE_PATTERN,
+                pattern=base_cache_pattern,
                 ext=".shp",
             )
 
@@ -642,10 +635,10 @@ def duplicate_vectorfile_ign(
             normalized_path = {normalized_path_bucket: result["path"][0]}
 
             for path_s3fs, path_local_fs in normalized_path.items():
-                print(f"Iterating over {path_s3fs}")
+                logger.info(f"Iterating over {path_s3fs}")
                 fs.put(
                     path_local_fs,
-                    f"{BUCKET}/{path_within_bucket}/{path_s3fs}",
+                    f"{bucket}/{path_within_bucket}/{path_s3fs}",
                     recursive=True,
                 )
 
@@ -653,49 +646,49 @@ def duplicate_vectorfile_ign(
             datafile.update_json_md5(result["hash"])
 
 
-def duplicate_vectorfile_ign_old(
-    sources: list,
-    territories: list,
-    years: list,
-    providers: list,
-    BUCKET=BUCKET,
-    PATH_WITHIN_BUCKET=PATH_WITHIN_BUCKET,
-    ENDPOINT_URL=ENDPOINT_URL,
-):
-    """
-    Duplicates a list of vector files to a specified Amazon S3 bucket using s3fs.
+# def duplicate_vectorfile_ign_old(
+#     sources: list,
+#     territories: list,
+#     years: list,
+#     providers: list,
+#     bucket=cartiflette.BUCKET,
+#     path_within_bucket=cartiflette.PATH_WITHIN_BUCKET,
+#     endpoint_url=cartiflette.ENDPOINT_URL,
+# ):
+#     """
+#     Duplicates a list of vector files to a specified Amazon S3 bucket using s3fs.
 
-    Args:
-    - sources (list): A list of source names (strings) to combine with other parameters to form file paths.
-    - territories (list): A list of territory names (strings) to combine with other parameters to form file paths.
-    - years (list): A list of year values (strings or integers) to combine with other parameters to form file paths.
-    - providers (list): A list of provider names (strings) to combine with other parameters to form file paths.
-    - BUCKET (string): The name of the Amazon S3 bucket to write the duplicated files to (default: "projet-cartiflette").
-    - PATH_WITHIN_BUCKET (string): The prefix within the bucket to write the duplicated files to (default: "diffusion/shapefiles-test1").
-    - ENDPOINT_URL (string): The endpoint URL of the S3-compatible object storage service (default: "https://minio.lab.sspcloud.fr").
+#     Args:
+#     - sources (list): A list of source names (strings) to combine with other parameters to form file paths.
+#     - territories (list): A list of territory names (strings) to combine with other parameters to form file paths.
+#     - years (list): A list of year values (strings or integers) to combine with other parameters to form file paths.
+#     - providers (list): A list of provider names (strings) to combine with other parameters to form file paths.
+#     - BUCKET (string): The name of the Amazon S3 bucket to write the duplicated files to (default: "projet-cartiflette").
+#     - PATH_WITHIN_BUCKET (string): The prefix within the bucket to write the duplicated files to (default: "diffusion/shapefiles-test1").
+#     - ENDPOINT_URL (string): The endpoint URL of the S3-compatible object storage service (default: "https://minio.lab.sspcloud.fr").
 
-    Returns:
-    - None: The function has no explicit return value.
+#     Returns:
+#     - None: The function has no explicit return value.
 
-    Raises:
-    - None: The function does not raise any exceptions explicitly.
-    """
+#     Raises:
+#     - None: The function does not raise any exceptions explicitly.
+#     """
 
-    combinations = list(
-        itertools.product(sources, territories, years, providers)
-    )
+#     combinations = list(
+#         itertools.product(sources, territories, years, providers)
+#     )
 
-    paths = dict(ChainMap(*[structure_path_raw_ign(c) for c in combinations]))
+#     paths = dict(ChainMap(*[structure_path_raw_ign(c) for c in combinations]))
 
-    fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL})
+#     fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": endpoint_url})
 
-    for path_s3fs, path_local_fs in paths.items():
-        print(f"Iterating over {path_s3fs}")
-        fs.put(
-            path_local_fs,
-            f"{BUCKET}/{PATH_WITHIN_BUCKET}/{path_s3fs}",
-            recursive=True,
-        )
+#     for path_s3fs, path_local_fs in paths.items():
+#         print(f"Iterating over {path_s3fs}")
+#         fs.put(
+#             path_local_fs,
+#             f"{bucket}/{path_within_bucket}/{path_s3fs}",
+#             recursive=True,
+#         )
 
 
 def write_vectorfile_all_borders(
@@ -706,10 +699,11 @@ def write_vectorfile_all_borders(
     filter_by: str = "region",
     year: typing.Union[str, int, float] = 2022,
     crs: typing.Union[str, int, float] = 2154,
-    bucket: str = BUCKET,
-    path_within_bucket: str = PATH_WITHIN_BUCKET,
+    bucket: str = cartiflette.BUCKET,
+    path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
     provider: str = "IGN",
     source: str = "EXPRESS-COG-TERRITOIRE",
+    fs: s3fs.S3FileSystem = cartiflette.FS,
 ):
     """Write all borderss of a GeoDataFrame to a specified format on S3.
 
@@ -742,6 +736,7 @@ def write_vectorfile_all_borders(
             path_within_bucket=path_within_bucket,
             provider=provider,
             source=source,
+            fs=fs,
         )
         for obs in object[borders_var].unique()
     ]
@@ -765,12 +760,13 @@ def write_vectorfile_s3_custom_arrondissement(
     vectorfile_format="geojson",
     year: int = 2022,
     filter_by="region",
-    bucket=BUCKET,
-    path_within_bucket=PATH_WITHIN_BUCKET,
+    bucket=cartiflette.BUCKET,
+    path_within_bucket=cartiflette.PATH_WITHIN_BUCKET,
     provider: str = "IGN",
     source: str = "EXPRESS-COG-TERRITOIRE",
     crs=2154,
     borders=None,  # used to ensure we produce for "metropole" only
+    fs: s3fs.S3FileSystem = cartiflette.FS,
 ):
     if crs is None:
         if vectorfile_format.lower() == "geojson":
@@ -804,6 +800,7 @@ def write_vectorfile_s3_custom_arrondissement(
         source=source,
         bucket=bucket,
         path_within_bucket=path_within_bucket,
+        fs=fs,
     )
 
 
@@ -816,10 +813,11 @@ def write_vectorfile_s3_all(
     filter_by="region",
     year=2022,
     crs: int = None,
-    bucket=BUCKET,
-    path_within_bucket=PATH_WITHIN_BUCKET,
+    bucket=cartiflette.BUCKET,
+    path_within_bucket=cartiflette.PATH_WITHIN_BUCKET,
     provider="IGN",
     source="EXPRESS-COG-TERRITOIRE",
+    fs: s3fs.S3FileSystem = cartiflette.FS,
 ):
     if crs is None:
         if vectorfile_format.lower() == "geojson":
@@ -865,10 +863,18 @@ def write_vectorfile_s3_all(
             source=source,
             bucket=bucket,
             path_within_bucket=path_within_bucket,
+            fs=fs,
         )
 
 
-def open_vectorfile_from_s3(vectorfile_format, filter_by, year, value, crs):
+def open_vectorfile_from_s3(
+    vectorfile_format,
+    filter_by,
+    year,
+    value,
+    crs,
+    fs,
+):
     read_path = create_path_bucket(
         vectorfile_format=vectorfile_format,
         filter_by=filter_by,
@@ -886,8 +892,9 @@ def write_vectorfile_from_s3(
     value: str,
     vectorfile_format: str = "geojson",
     crs: int = 2154,
-    provider="IGN",
-    source="EXPRESS-COG-TERRITOIRE",
+    provider: str = "IGN",
+    source: str = "EXPRESS-COG-TERRITOIRE",
+    fs: s3fs.S3FileSystem = cartiflette.FS,
 ):
     """Retrieve shapefiles stored in S3
 
@@ -981,7 +988,9 @@ def crossproduct_parameters_production(
 
 
 def list_produced_cartiflette(
-    bucket: str = BUCKET, path_within_bucket: str = PATH_WITHIN_BUCKET
+    bucket: str = cartiflette.BUCKET,
+    path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
+    fs: s3fs.S3FileSystem = cartiflette.FS,
 ):
     written_borderss = fs.glob(f"{bucket}/{path_within_bucket}/**/provider*")
     df = pd.DataFrame(written_borderss, columns=["paths"])
@@ -1008,8 +1017,9 @@ def production_cartiflette(
     years,
     crs_list,
     sources,
-    bucket=BUCKET,
-    path_within_bucket=PATH_WITHIN_BUCKET,
+    bucket=cartiflette.BUCKET,
+    path_within_bucket=cartiflette.PATH_WITHIN_BUCKET,
+    fs: s3fs.S3FileSystem = cartiflette.FS,
 ):
     tempdf = crossproduct_parameters_production(
         croisement_filter_by_borders=croisement_filter_by_borders,
@@ -1049,6 +1059,7 @@ def production_cartiflette(
             source=source,
             bucket=bucket,
             path_within_bucket=path_within_bucket,
+            fs=fs,
         )
 
     print(80 * "-" + "\nProduction finished :)")
