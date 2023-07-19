@@ -1,4 +1,4 @@
-from .dev import (
+from cartiflette.download.dev import (
     #     create_url_adminexpress,
     get_vectorfile_ign,
     #     get_administrative_level_available_ign,
@@ -8,7 +8,7 @@ from .dev import (
     get_cog_year,
 )
 
-from .download import (
+from cartiflette.download.download import (
     Dataset,
     BaseScraper,
     HttpScraper,
