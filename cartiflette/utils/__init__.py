@@ -10,10 +10,7 @@ from .dict_correspondance import (
 )
 from .keep_subset_geopandas import keep_subset_geopandas
 from .hash import hash_file
-from .dict_update import (
-    deep_dict_update,
-    update_json_md5
-    )
+from .dict_update import deep_dict_update
 
 __all__ = [
     "download_pb",

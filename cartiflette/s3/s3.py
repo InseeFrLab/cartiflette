@@ -5,7 +5,6 @@ import itertools
 from collections import ChainMap
 import os
 import tempfile
-import csv
 import logging
 import typing
 import s3fs
@@ -14,7 +13,6 @@ import geopandas as gpd
 from topojson import Topology
 
 from cartiflette.download import MasterScraper, Dataset
-from cartiflette.utils import update_json_md5
 
 from cartiflette.utils import (
     keep_subset_geopandas,
@@ -37,13 +35,15 @@ PATH_WITHIN_BUCKET = "diffusion/shapefiles-test1"
 ENDPOINT_URL = "https://minio.lab.sspcloud.fr"
 BASE_CACHE_PATTERN = os.path.join("**", "*DONNEES_LIVRAISON*", "**")
 
-kwargs = {}
+kwargs_fs = {}
 for key in ["token", "secret", "key"]:
     try:
-        kwargs[key] = os.environ[key]
+        kwargs_fs[key] = os.environ[key]
     except KeyError:
         continue
-fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL}, **kwargs)
+fs = s3fs.S3FileSystem(
+    client_kwargs={"endpoint_url": ENDPOINT_URL}, **kwargs_fs
+)
 logger = logging.getLogger(__name__)
 
 # UTILITIES --------------------------------
@@ -600,7 +600,9 @@ def duplicate_vectorfile_ign(
         )
     """
 
-    fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL})
+    fs = s3fs.S3FileSystem(
+        client_kwargs={"endpoint_url": ENDPOINT_URL}, **kwargs_fs
+    )
 
     combinations = list(
         itertools.product(
@@ -618,6 +620,7 @@ def duplicate_vectorfile_ign(
                 territory,
                 bucket,
                 path_within_bucket,
+                fs,
             )
 
             result = s.download_unzip(
@@ -626,6 +629,10 @@ def duplicate_vectorfile_ign(
                 pattern=BASE_CACHE_PATTERN,
                 ext=".shp",
             )
+
+            if not result["downloaded"]:
+                logger.info("File already there and uptodate")
+                return
 
             # DUPLICATE SOURCE IN BUCKET
             normalized_path_bucket = (
@@ -643,7 +650,7 @@ def duplicate_vectorfile_ign(
                 )
 
             # NOW WRITE MD5 IN BUCKET ROOT
-            update_json_md5(datafile, result["hash"], fs)
+            datafile.update_json_md5(result["hash"])
 
 
 def duplicate_vectorfile_ign_old(

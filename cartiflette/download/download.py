@@ -36,7 +36,7 @@ for key in ["token", "secret", "key"]:
         kwargs[key] = os.environ[key]
     except KeyError:
         continue
-fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL}, **kwargs)
+FS = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL}, **kwargs)
 
 
 logger = logging.getLogger(__name__)
@@ -56,8 +56,9 @@ class Dataset:
         year: int = date.today().year,
         provider: str = "IGN",
         territory: str = None,
-        bucket=BUCKET,
-        path_within_bucket=PATH_WITHIN_BUCKET,
+        bucket: str = BUCKET,
+        path_within_bucket: str = PATH_WITHIN_BUCKET,
+        fs: s3fs.S3FileSystem = FS,
     ):
         """
         Initialize a Dataset object.
@@ -74,6 +75,12 @@ class Dataset:
             Provider descibed in the yaml file. The default is "IGN".
         territory : str, optional
             Territory descibed in the yaml file. The default is None.
+        bucket : str, optional
+            Bucket to use. The default is BUCKET.
+        path_within_bucket : str, optional
+            path within bucket. The default is PATH_WITHIN_BUCKET.
+        fs : s3fs.S3FileSystem, optional
+            S3 file system to use. The default is FS.
 
         """
         self.dataset_family = dataset_family
@@ -83,6 +90,7 @@ class Dataset:
         self.provider = provider
         self.config_open_data = import_yaml_config()
         self.json_md5 = f"{bucket}/{path_within_bucket}/md5.json"
+        self.fs = fs
 
         self.sources = self.config_open_data[provider][dataset_family][source]
 
@@ -126,7 +134,7 @@ class Dataset:
         """
 
         try:
-            with fs.open(self.json_md5, "r") as f:
+            with self.fs.open(self.json_md5, "r") as f:
                 all_md5 = json.load(f)
         except Exception as e:
             logger.warning(e)
@@ -135,26 +143,32 @@ class Dataset:
 
         md5 = all_md5[self.provider][self.dataset_family][self.source][
             self.territory
-        ][self.year]
+        ][str(self.year)]
         self.md5 = md5
 
     def update_json_md5(self, md5: str) -> bool:
         "Mise à jour du json des md5"
-        # TODO : à basculer dans utils pour réutilisation dans pipeline s3
         md5 = {
             self.provider: {
                 self.dataset_family: {
-                    self.source: {self.territory: {self.year: md5}}
+                    self.source: {self.territory: {str(self.year): md5}}
                 }
             }
         }
+        path_filesystem = self.json_md5
+        json_in_bucket = path_filesystem in self.fs.ls(
+            path_filesystem.rsplit("/", maxsplit=1)[0]
+        )
         try:
-            with fs.open(self.json_md5, "r+") as f:
-                all_md5 = json.load(f)
-                all_md5 = deep_dict_update(all_md5, md5)
-                fs.write(json.dump(all_md5, f))
+            if json_in_bucket:
+                with self.fs.open(self.json_md5, "r") as f:
+                    all_md5 = json.load(f)
+                    all_md5 = deep_dict_update(all_md5, md5)
+            else:
+                all_md5 = md5
+            with self.fs.open(self.json_md5, "w") as f:
+                json.dump(all_md5, f)
             return True
-
         except Exception as e:
             logger.warning(e)
             logger.warning("md5 not written")
@@ -709,7 +723,10 @@ class MasterScraper(HttpScraper, FtpScraper):
 
         if not downloaded:
             # Suppression du fichier temporaire
-            os.unlink(temp_archive_file_raw)
+            try:
+                os.unlink(temp_archive_file_raw)
+            except TypeError:
+                pass
             return {"downloaded": False, "hash": None, "path": None}
 
         try:
