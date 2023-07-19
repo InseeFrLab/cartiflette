@@ -23,21 +23,7 @@ import tempfile
 import numpy as np
 
 from cartiflette.utils import import_yaml_config, hash_file, deep_dict_update
-
-BUCKET = "projet-cartiflette"
-PATH_WITHIN_BUCKET = "diffusion/shapefiles-test1"
-ENDPOINT_URL = "https://minio.lab.sspcloud.fr"
-
-BASE_CACHE_PATTERN = os.path.join("**", "*DONNEES_LIVRAISON*", "**")
-
-kwargs = {}
-for key in ["token", "secret", "key"]:
-    try:
-        kwargs[key] = os.environ[key]
-    except KeyError:
-        continue
-FS = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL}, **kwargs)
-
+import cartiflette
 
 logger = logging.getLogger(__name__)
 
@@ -56,9 +42,9 @@ class Dataset:
         year: int = date.today().year,
         provider: str = "IGN",
         territory: str = None,
-        bucket: str = BUCKET,
-        path_within_bucket: str = PATH_WITHIN_BUCKET,
-        fs: s3fs.S3FileSystem = FS,
+        bucket: str = cartiflette.BUCKET,
+        path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
+        fs: s3fs.S3FileSystem = cartiflette.FS,
     ):
         """
         Initialize a Dataset object.
@@ -303,7 +289,7 @@ class Dataset:
 
     def unzip(
         self,
-        pattern: str = BASE_CACHE_PATTERN,
+        pattern: str = cartiflette.BASE_CACHE_PATTERN,
         preserve: str = "shape",
         ext: str = ".shp",
     ) -> str:
@@ -648,7 +634,7 @@ class MasterScraper(HttpScraper, FtpScraper):
         self,
         datafile: Dataset,
         preserve: str = "shape",
-        pattern: str = BASE_CACHE_PATTERN,
+        pattern: str = cartiflette.BASE_CACHE_PATTERN,
         ext: str = ".shp",
         **kwargs,
     ) -> DownloadReturn:
@@ -749,8 +735,8 @@ def download_sources(
     sources: list,
     territories: list,
     years: list,
-    bucket: str = BUCKET,
-    path_within_bucket: str = PATH_WITHIN_BUCKET,
+    bucket: str = cartiflette.BUCKET,
+    path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
 ) -> dict:
     """
     Main function to perform downloads of datasets to store to the s3.
@@ -846,7 +832,7 @@ def download_sources(
                 result = s.download_unzip(
                     datafile,
                     preserve="shape",
-                    pattern=BASE_CACHE_PATTERN,
+                    pattern=cartiflette.BASE_CACHE_PATTERN,
                     ext=".shp",
                 )
             except ValueError:
