@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 import s3fs
 import logging
 
-# os.chdir("cartiflette")
+os.chdir("cartiflette")
 
 import cartiflette.s3 as s3
 from cartiflette.download import get_administrative_level_available_ign
