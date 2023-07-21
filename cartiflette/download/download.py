@@ -126,11 +126,14 @@ class Dataset:
             logger.warning(e)
             logger.warning("md5 not found")
             return
-
-        md5 = all_md5[self.provider][self.dataset_family][self.source][
-            self.territory
-        ][str(self.year)]
-        self.md5 = md5
+        try:
+            md5 = all_md5[self.provider][self.dataset_family][self.source][
+                self.territory
+            ][str(self.year)]
+            self.md5 = md5
+        except Exception as e:
+            logger.debug(e)
+            logger.info("file not referenced in md5 json")
 
     def update_json_md5(self, md5: str) -> bool:
         "Mise à jour du json des md5"
