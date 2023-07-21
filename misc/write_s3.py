@@ -1,12 +1,29 @@
 import os
 from dotenv import load_dotenv
 import s3fs
+import logging
 
 # os.chdir("cartiflette")
 
 import cartiflette.s3 as s3
 from cartiflette.download import get_administrative_level_available_ign
 
+# Configuration du logger
+script_file = os.path.basename(__file__)
+script_file, _ext = os.path.splitext(script_file)
+kwargs_log = {
+    "format": "%(levelname)s:%(asctime)s %(message)s",
+    "datefmt": "%m/%d/%Y %H:%M",
+    "level": logging.INFO,
+}
+file_handler = logging.FileHandler(
+    f"log_{script_file}.log", mode="w", encoding="utf8"
+)
+console_handler = logging.StreamHandler()
+kwargs_log.update({"handlers": [file_handler, console_handler]})
+logging.basicConfig(**kwargs_log)
+
+# Chargement des éventuels tokens SSPCloud
 load_dotenv()
 
 bucket = "projet-cartiflette"
