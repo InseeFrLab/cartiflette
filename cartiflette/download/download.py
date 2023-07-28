@@ -52,15 +52,15 @@ class Dataset:
         Parameters
         ----------
         dataset_family : str, optional
-            Family descibed in the yaml file. The default is "ADMINEXPRESS".
+            Family desrcibed in the yaml file. The default is "ADMINEXPRESS".
         source : str, optional
-            Source descibed in the yaml file. The default is "EXPRESS-COG-TERRITOIRE".
+            Source described in the yaml file. The default is "EXPRESS-COG-TERRITOIRE".
         year : int, optional
-            Year descibed in the yaml file. The default is date.today().year.
+            Year described in the yaml file. The default is date.today().year.
         provider : str, optional
-            Provider descibed in the yaml file. The default is "IGN".
+            Provider described in the yaml file. The default is "IGN".
         territory : str, optional
-            Territory descibed in the yaml file. The default is None.
+            Territory described in the yaml file. The default is None.
         bucket : str, optional
             Bucket to use. The default is BUCKET.
         path_within_bucket : str, optional
