@@ -14,6 +14,10 @@ from cartiflette.utils.dict_correspondance import (
 from cartiflette.utils.keep_subset_geopandas import keep_subset_geopandas
 from cartiflette.utils.hash import hash_file
 from cartiflette.utils.dict_update import deep_dict_update
+from cartiflette.utils.vectorfile_format_config import (
+    _vectorfile_format_config,
+)
+from cartiflette.utils.s3_paths import _vectorfile_path
 
 __all__ = [
     "download_pb",
