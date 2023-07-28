@@ -56,7 +56,9 @@ def safe_download_write(
         location = location + ext
 
     if param_ftp is not None:
-        ftp = ftplib.FTP(param_ftp["hostname"], param_ftp["username"], param_ftp["pwd"])
+        ftp = ftplib.FTP(
+            param_ftp["hostname"], param_ftp["username"], param_ftp["pwd"]
+        )
         download_pb_ftp(ftp, url, fname=location)
     else:
         download_pb(url, location, verify=verify, force=force)
@@ -66,7 +68,10 @@ def safe_download_write(
 
 def create_url_adminexpress(
     provider: typing.Union[list, str] = ["IGN", "opendatarchives"],
-    source: typing.Union[list, str] = ["EXPRESS-COG", "EXPRESS-COG-TERRITOIRE"],
+    source: typing.Union[list, str] = [
+        "EXPRESS-COG",
+        "EXPRESS-COG-TERRITOIRE",
+    ],
     year: typing.Optional[str] = None,
     field: str = "metropole",
 ):
@@ -96,7 +101,9 @@ def create_url_adminexpress(
     dict_source = dict_open_data[provider]["ADMINEXPRESS"][source]
 
     if source.endswith("-TERRITOIRE"):
-        url = url_express_COG_territoire(year=year, provider=provider, territoire=field)
+        url = url_express_COG_territoire(
+            year=year, provider=provider, territoire=field
+        )
     else:
         url = dict_source[year]["file"]
 
@@ -105,7 +112,10 @@ def create_url_adminexpress(
 
 def download_admin_express(
     provider: typing.Union[list, str] = ["IGN", "opendatarchives"],
-    source: typing.Union[list, str] = ["EXPRESS-COG", "EXPRESS-COG-TERRITOIRE"],
+    source: typing.Union[list, str] = [
+        "EXPRESS-COG",
+        "EXPRESS-COG-TERRITOIRE",
+    ],
     year: typing.Optional[str] = None,
     location: str = None,
     field: str = "metropole",
@@ -153,7 +163,9 @@ def download_admin_express(
         # download 7z file
         temp_file = tempfile.NamedTemporaryFile()
         temp_file_raw = temp_file.name + ".7z"
-        out_name = safe_download_write(url, location=temp_file_raw, param_ftp=param_ftp)
+        out_name = safe_download_write(
+            url, location=temp_file_raw, param_ftp=param_ftp
+        )
         if location is None:
             tmp = tempfile.TemporaryDirectory()
             location = tmp.name
@@ -168,7 +180,11 @@ def download_admin_express(
 
 
 def download_store_admin_express(
-    source: typing.Union[list, str] = ["EXPRESS-COG", "COG", "EXPRESS-COG-TERRITOIRE"],
+    source: typing.Union[list, str] = [
+        "EXPRESS-COG",
+        "COG",
+        "EXPRESS-COG-TERRITOIRE",
+    ],
     year: typing.Optional[str] = None,
     location: str = None,
     provider: typing.Union[list, str] = ["IGN", "opendatarchives"],
@@ -201,7 +217,9 @@ def download_store_admin_express(
     dict_source = dict_open_data[provider]["ADMINEXPRESS"][source]
 
     if year is None:
-        year = max([i for i in dict_source.keys() if i not in ("field", "FTP")])
+        year = max(
+            [i for i in dict_source.keys() if i not in ("field", "FTP")]
+        )
 
     if location is None:
         location = tempfile.gettempdir()
@@ -211,7 +229,11 @@ def download_store_admin_express(
                 location = f"{location}/{field}"
 
     path_cache_ign = download_admin_express(
-        source=source, year=year, location=location, provider=provider, field=field
+        source=source,
+        year=year,
+        location=location,
+        provider=provider,
+        field=field,
     )
 
     # For some years, md5 also validate pattern DONNEES_LIVRAISON
@@ -229,7 +251,11 @@ def download_store_admin_express(
 
 
 def store_vectorfile_ign(
-    source: typing.Union[list, str] = ["EXPRESS-COG", "COG", "EXPRESS-COG-TERRITOIRE"],
+    source: typing.Union[list, str] = [
+        "EXPRESS-COG",
+        "COG",
+        "EXPRESS-COG-TERRITOIRE",
+    ],
     year: typing.Optional[str] = None,
     field: str = "metropole",
     provider: typing.Union[list, str] = ["IGN", "opendatarchives"],
@@ -263,7 +289,10 @@ def store_vectorfile_ign(
 
 
 def get_administrative_level_available_ign(
-    source: typing.Union[list, str] = ["EXPRESS-COG", "EXPRESS-COG-TERRITOIRE"],
+    source: typing.Union[list, str] = [
+        "EXPRESS-COG",
+        "EXPRESS-COG-TERRITOIRE",
+    ],
     year: typing.Optional[str] = None,
     field: typing.Union[list, str] = [
         "metropole",
@@ -300,7 +329,9 @@ def get_administrative_level_available_ign(
     dict_source = dict_open_data["IGN"]["ADMINEXPRESS"][source]
 
     if year is None:
-        year = max([i for i in dict_source.keys() if i not in ("field", "FTP")])
+        year = max(
+            [i for i in dict_source.keys() if i not in ("field", "FTP")]
+        )
 
     if isinstance(field, list):
         field = field[0]
@@ -312,7 +343,11 @@ def get_administrative_level_available_ign(
         for i in glob.glob(shp_location + "/*.shp")
     ]
     if verbose:
-        print("\n  - ".join(["Available administrative levels are :"] + list_levels))
+        print(
+            "\n  - ".join(
+                ["Available administrative levels are :"] + list_levels
+            )
+        )
     return list_levels
 
 
@@ -385,7 +420,11 @@ def get_vectorfile_communes_arrondissement(
         source=source,
     )
     communes = get_vectorfile_ign(
-        borders="COMMUNE", year=year, field="metropole", provider=provider, source=source
+        borders="COMMUNE",
+        year=year,
+        field="metropole",
+        provider=provider,
+        source=source,
     )
     communes_sans_grandes_villes = communes.loc[
         ~communes["NOM"].isin(["Marseille", "Lyon", "Paris"])
@@ -402,11 +441,8 @@ def get_vectorfile_communes_arrondissement(
     ]
 
     df_enrichi = pd.concat(
-        [
-            communes_sans_grandes_villes,
-            arrondissement_extra_info
-        ]
-        )
+        [communes_sans_grandes_villes, arrondissement_extra_info]
+    )
 
     df_enrichi["INSEE_COG"] = np.where(
         df_enrichi["INSEE_ARM"].isnull(),
@@ -414,34 +450,26 @@ def get_vectorfile_communes_arrondissement(
         df_enrichi["INSEE_ARM"],
     )
 
-    df_enrichi = df_enrichi.drop('INSEE_ARM', axis="columns")
+    df_enrichi = df_enrichi.drop("INSEE_ARM", axis="columns")
 
     return df_enrichi
 
 
 def get_cog_year(year: int = 2022):
-
     config = import_yaml_config()
 
-    config_cog_year = config['Insee']['COG'][year]
-    config_root = config['Insee']['COG']['root']
+    config_cog_year = config["Insee"]["COG"][year]
+    config_root = config["Insee"]["COG"]["root"]
     url_root = f"{config_root}/{config_cog_year['id']}"
 
     urls = {
-        cog['alias']: f"{url_root}/{cog['filename']}" for \
-            key, cog in \
-                config_cog_year["content"].items()
-
-            }
-
-    dict_cog = {
-        level: pd.read_csv(url)\
-            for level, url in urls.items()
+        cog["alias"]: f"{url_root}/{cog['filename']}"
+        for key, cog in config_cog_year["content"].items()
     }
 
+    dict_cog = {level: pd.read_csv(url) for level, url in urls.items()}
+
     return dict_cog
-
-
 
 
 def get_BV(year: int = 2022):
@@ -461,7 +489,12 @@ def get_BV(year: int = 2022):
 
     # from dev import safe_download_write
     out_name = safe_download_write(
-        url, location=None, param_ftp=None, ext=".zip", verify=False, force=True
+        url,
+        location=None,
+        param_ftp=None,
+        ext=".zip",
+        verify=False,
+        force=True,
     )
 
     tmp = tempfile.TemporaryDirectory()
