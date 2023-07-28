@@ -2,7 +2,6 @@
 """
 
 import itertools
-from collections import ChainMap
 import os
 import tempfile
 import logging
@@ -17,10 +16,9 @@ from cartiflette.download import MasterScraper, Dataset
 from cartiflette.utils import (
     keep_subset_geopandas,
     dict_corresp_filter_by,
-    create_format_standardized,
-    create_format_driver,
-    download_pb,
     official_epsg_codes,
+    vectorfile_format_config,
+    _vectorfile_path,
 )
 
 from cartiflette.download import (
@@ -42,17 +40,6 @@ logger = logging.getLogger(__name__)
 #         source=source, year=year, field=field, provider=provider
 #     )
 #     return {f"{year=}/raw/{provider=}/{source=}/{field=}": path}
-
-
-def standardize_inputs(vectorfile_format: str) -> tuple:
-    # TODO (docstring)
-    corresp_filter_by_columns = dict_corresp_filter_by()
-    format_standardized = create_format_standardized()
-    gpd_driver = create_format_driver()
-    format_write = format_standardized[vectorfile_format.lower()]
-    driver = gpd_driver[format_write]
-
-    return corresp_filter_by_columns, format_write, driver
 
 
 def create_dict_all_territories(
@@ -86,344 +73,6 @@ def create_dict_all_territories(
     return territories
 
 
-# CREATE STANDARDIZED PATHS ------------------------
-
-
-def create_url_s3(
-    bucket: str = cartiflette.BUCKET,
-    path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
-    provider: str = "IGN",
-    source: str = "EXPRESS-COG-TERRITOIRE",
-    vectorfile_format: str = "geojson",
-    borders: str = "COMMUNE",
-    filter_by: str = "region",
-    year: typing.Union[str, int, float] = "2022",
-    value: typing.Union[str, int, float] = "28",
-    crs: typing.Union[list, str, int, float] = 2154,
-) -> str:
-    """
-    This function creates a URL for a vector file stored in an S3 bucket.
-
-    Parameters:
-    bucket (str): The name of the bucket where the file is stored. Default is BUCKET.
-    path_within_bucket (str): The path within the bucket where the file is stored. Default is PATH_WITHIN_BUCKET.
-    vectorfile_format (str): The format of the vector file, can be "geojson", "topojson", "gpkg" or "shp". Default is "geojson".
-    borders (str): The administrative borders of the tiles within the vector file. Can be any administrative borders provided by IGN, e.g. "COMMUNE", "DEPARTEMENT" or "REGION". Default is "COMMUNE".
-    filter_by (str): The administrative borders (supra to 'borders') that will be used to cut the vector file in pieces when writing to S3. For instance, if borders is "DEPARTEMENT", filter_by can be "REGION" or "FRANCE_ENTIERE". Default is "region".
-    year (typing.Union[str, int, float]): The year of the vector file. Default is "2022".
-    value (typing.Union[str, int, float]): The value of the vector file. Default is "28".
-    crs (typing.Union[list, str, int, float]): The coordinate reference system of the vector file. Default is 2154.
-
-    Returns:
-    str: The URL of the vector file stored in S3
-    """
-
-    path_within = create_path_bucket(
-        bucket=bucket,
-        path_within_bucket=path_within_bucket,
-        provider=provider,
-        source=source,
-        vectorfile_format=vectorfile_format,
-        borders=borders,
-        filter_by=filter_by,
-        year=year,
-        crs=crs,
-        value=value,
-    )
-
-    url = f"{cartiflette.ENDPOINT_URL}/{path_within}"
-
-    return url
-
-
-def create_path_bucket(
-    bucket: str = cartiflette.BUCKET,
-    path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
-    provider: str = "IGN",
-    source: str = "EXPRESS-COG-TERRITOIRE",
-    vectorfile_format: str = "geojson",
-    borders: str = "COMMUNE",
-    filter_by: str = "region",
-    year: typing.Union[str, int, float] = "2022",
-    value: typing.Union[str, int, float] = "28",
-    crs: typing.Union[str, int, float] = 2154,
-) -> str:
-    """
-    This function creates a file path for a vector file within a specified bucket.
-
-    Parameters:
-    bucket (str): The name of the bucket where the file will be stored.
-    path_within_bucket (str): The path within the bucket where the file will be stored.
-    vectorfile_format (str): The format of the vector file,
-        can be "geojson", "topojson", "gpkg" or "shp". Default is "geojson".
-    borders (str): The administrative borders of the tiles within the vector file.
-        Can be any administrative
-        borders provided by IGN, e.g. "COMMUNE", "DEPARTEMENT" or "REGION". Default is "COMMUNE".
-    filter_by (str): The administrative borders (supra to 'borders') that will be
-        used to cut the vector file in pieces when writing to S3. For instance, if
-        borders is "DEPARTEMENT", filter_by can be "REGION" or "FRANCE_ENTIERE".
-        Default is "region".
-    year (str): The year of the vector file. Default is "2022".
-    value (str): The value of the vector file. Default is "28".
-    crs (int): The coordinate reference system of the vector file. Default is 2154.
-
-    Returns:
-    str: The complete file path for the vector file that will be used to read
-    or write when interacting with S3 storage
-    """
-
-    write_path = f"{bucket}/{path_within_bucket}"
-    write_path = f"{write_path}/{year=}"
-    write_path = f"{write_path}/administrative_level={borders}"
-    write_path = f"{write_path}/{crs=}"
-    write_path = f"{write_path}/{filter_by}={value}/{vectorfile_format=}"
-    write_path = f"{write_path}/{provider=}/{source=}"
-    write_path = f"{write_path}/raw.{vectorfile_format}"
-    write_path = write_path.replace("'", "")
-
-    if vectorfile_format == "shp":
-        write_path = write_path.rsplit("/", maxsplit=1)[0] + "/"
-
-    return write_path
-
-
-# DOWNLOAD FROM S3 --------------------------
-
-
-def download_vectorfile_s3_all(
-    values: typing.Union[list, str, int, float] = "28",
-    borders: str = "COMMUNE",
-    vectorfile_format: str = "geojson",
-    filter_by: str = "region",
-    year: typing.Union[str, int, float] = 2022,
-    provider: str = "IGN",
-    source: str = "EXPRESS-COG-TERRITOIRE",
-    fs: s3fs.S3FileSystem = cartiflette.FS,
-) -> gpd.GeoDataFrame:
-    """
-    This function downloads multiple vector files from a specified S3 bucket and returns them as a GeoPandas object.
-
-    Parameters:
-    values (list or str or int or float): The values of the vector files. Default is "28".
-    borders (str): The administrative borders of the tiles within the vector file.
-         Can be any administrative borders provided by IGN, e.g. "COMMUNE", "DEPARTEMENT" or "REGION". Default is "COMMUNE".
-    vectorfile_format (str):
-         The format of the vector file, can be "geojson", "topojson", "gpkg" or "shp". Default is "geojson".
-    filter_by (str): The administrative borders (supra to 'borders') that will be used to cut the
-          vector file in pieces when writing to S3.
-          For instance, if borders is "DEPARTEMENT", filter_by can be "REGION" or "FRANCE_ENTIERE". Default is "region".
-    year (int or float): The year of the vector file. Default is 2022
-    provider (str) : dataset provider (from the yaml config file). The default is "IGN"
-    source (str) : dataset source (from the yaml config file). The default is "EXPRESS-COG-TERRITOIRE"
-    fs (s3fs.S3FileSystem): file system (s3). The default is cartiflette.FS
-
-    Returns:
-    gpd.GeoDataFrame: The vector files as a GeoPandas object
-    """
-
-    if isinstance(values, (str, int, float)):
-        values = [str(values)]
-
-    vectors = [
-        download_vectorfile_s3_single(
-            value=val,
-            borders=borders,
-            vectorfile_format=vectorfile_format,
-            filter_by=filter_by,
-            year=year,
-            provider=provider,
-            source=source,
-            fs=fs,
-        )
-        for val in values
-    ]
-
-    # TODO : contrôler le type : pandas ou geopandas ?
-    vectors = pd.concat(vectors)
-
-    return vectors
-
-
-def download_vectorfile_url_all(
-    values: typing.Union[str, int, float] = "28",
-    borders: str = "COMMUNE",
-    vectorfile_format: str = "geojson",
-    filter_by: str = "region",
-    year: int = 2022,
-    provider: str = "IGN",
-    source: str = "EXPRESS-COG-TERRITOIRE",
-    crs: str = None,
-) -> gpd.GeoDataFrame:
-    # TODO : docstring + contrôler type de sortie
-
-    if isinstance(values, (str, int, float)):
-        values = [str(values)]
-
-    vectors = [
-        download_vectorfile_url_single(
-            value=val,
-            borders=borders,
-            vectorfile_format=vectorfile_format,
-            filter_by=filter_by,
-            year=year,
-            provider=provider,
-            source=source,
-            crs=crs,
-        )
-        for val in values
-    ]
-
-    vectors = pd.concat(vectors)
-
-    return vectors
-
-
-def download_vectorfile_s3_single(
-    value: str = "28",
-    borders: str = "COMMUNE",
-    vectorfile_format: str = "geojson",
-    filter_by: str = "region",
-    year: typing.Union[str, int, float] = 2022,
-    crs: typing.Union[str, int, float] = 2154,
-    bucket: str = cartiflette.BUCKET,
-    path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
-    provider: str = "IGN",
-    source: str = "EXPRESS-COG-TERRITOIRE",
-    fs: s3fs.S3FileSystem = cartiflette.FS,
-) -> gpd.GeoDataFrame:
-    """
-    This function downloads a vector file from a specified S3 bucket and returns it
-
-    Parameters:
-    value (str): The value of the vector file. Default is "28".
-    borders (str): The administrative borders of the tiles within the vector file. Can be any administrative borders provided by IGN, e.g. "COMMUNE", "DEPARTEMENT" or "REGION". Default is "COMMUNE".
-    vectorfile_format (str): The format of the vector file, can be "geojson", "topojson", "gpkg" or "shp". Default is "geojson".
-    filter_by (str): The administrative borders (supra to 'borders') that will be used to cut the vector file in pieces when writing to S3. For instance, if borders is "DEPARTEMENT", filter_by can be "REGION" or "FRANCE_ENTIERE". Default is "region".
-    year (int): The year of the vector file. Default is 2022
-    crs (int): The coordinate reference system of the vector file. Default is 2154.
-    bucket (str): The name of the bucket where the file will be stored. Default is BUCKET
-    path_within_bucket (str): The path within the bucket where the file will be stored. Default is PATH_WITHIN_BUCKET
-    provider (str) : dataset provider (from the yaml config file). The default is "IGN"
-    source (str) : dataset source (from the yaml config file). The default is "EXPRESS-COG-TERRITOIRE"
-    fs (s3fs.S3FileSystem): file system (s3). The default is cartiflette.FS
-
-
-    Returns:
-    GeoPandas.GeoDataFrame: The vector file as a GeoPandas object
-
-    """
-
-    corresp_filter_by_columns, format_read, driver = standardize_inputs(
-        vectorfile_format
-    )
-
-    read_path = create_path_bucket(
-        bucket=bucket,
-        path_within_bucket=path_within_bucket,
-        vectorfile_format=format_read,
-        borders=borders,
-        filter_by=filter_by,
-        year=year,
-        value=value,
-        crs=crs,
-        provider=provider,
-        source=source,
-    )
-
-    try:
-        fs.exists(read_path)
-    except:
-        raise Exception("Shapefile has not been found")
-
-    if format_read == "shp":
-        dir_s3 = read_path
-        logger.info(
-            "When using shp format, we first need to store a local version"
-        )
-        tdir = tempfile.TemporaryDirectory()
-        for remote_file in fs.ls(dir_s3):
-            fs.download(
-                remote_file, f"{tdir.name}/{remote_file.replace(dir_s3, '')}"
-            )
-        object = gpd.read_file(f"{tdir.name}/raw.shp", driver=None)
-    elif format_read == "parquet":
-        with fs.open(read_path, "rb") as f:
-            object = gpd.read_parquet(f)
-    else:
-        with fs.open(read_path, "rb") as f:
-            object = gpd.read_file(f, driver=driver)
-
-    return object
-
-
-def download_vectorfile_url_single(
-    value: str = "28",
-    borders: str = "COMMUNE",
-    vectorfile_format: str = "geojson",
-    filter_by: str = "region",
-    year: typing.Union[str, int, float] = 2022,
-    bucket: str = cartiflette.BUCKET,
-    path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
-    provider: str = "IGN",
-    source: str = "EXPRESS-COG-TERRITOIRE",
-    crs=None,
-):
-    """
-    This function downloads a vector file from a specified S3 bucket and returns it as a GeoPandas object.
-
-    Parameters:
-    value (str or int): The value of the vector file. Default is "28".
-    borders (str): The administrative borders of the tiles within the vector file.
-        Can be any administrative borders provided by IGN, e.g. "COMMUNE", "DEPARTEMENT" or "REGION". Default is "COMMUNE".
-    vectorfile_format (str): The format of the vector file,
-        can be "geojson", "topojson", "gpkg" or "shp". Default is "geojson".
-    filter_by (str): The administrative borders (supra to 'borders') that will be used to cut the vector file in pieces when writing to S3.
-        For instance, if borders is "DEPARTEMENT", filter_by can be "REGION" or "FRANCE_ENTIERE". Default is "region".
-    year (int or float): The year of the vector file. Default is 2022.
-    bucket (str): The name of the bucket where the file is stored. Default is inherited from package configuration.
-    path_within_bucket (str): The path within the bucket where the file is stored. Default is PATH_WITHIN_BUCKET.
-    provider (str) : dataset provider (from the yaml config file). The default is "IGN"
-    source (str) : dataset source (from the yaml config file). The default is "EXPRESS-COG-TERRITOIRE"
-    crs (int): The coordinate reference system of the vector file. Default is None.
-
-    Returns:
-    gpd.GeoDataFrame: The vector file as a GeoPandas object
-    """
-
-    corresp_filter_by_columns, format_read, driver = standardize_inputs(
-        vectorfile_format
-    )
-
-    url = create_url_s3(
-        value=value,
-        borders=borders,
-        vectorfile_format=format_read,
-        filter_by=filter_by,
-        year=year,
-        bucket=bucket,
-        path_within_bucket=path_within_bucket,
-        provider=provider,
-        source=source,
-        crs=crs,
-    )
-
-    if format_read == "shp":
-        logger.warning("Not yet implemented")
-    elif format_read == "parquet":
-        tmp = tempfile.NamedTemporaryFile(delete=False)
-        download_pb(url, tmp.name)
-        object = gpd.read_parquet(tmp.name)
-    else:
-        tmp = tempfile.NamedTemporaryFile(delete=False)
-        download_pb(url, tmp.name)
-        object = gpd.read_file(url, driver=driver)
-
-    if format_read == "topojson":
-        object.crs = crs
-
-    return object
-
-
 # UPLOAD S3 -------------------------------
 
 
@@ -438,7 +87,7 @@ def write_cog_s3(
     list_cog = get_cog_year(year)
 
     dict_path_data = {
-        create_path_bucket(
+        _vectorfile_path(
             bucket=bucket,
             path_within_bucket=path_within_bucket,
             provider="INSEE",
@@ -447,8 +96,9 @@ def write_cog_s3(
             borders=level,
             filter_by="france_entiere",
             year=year,
-            value="raw",
+            value=value,
             crs=None,
+            type_url="bucket",
         ): value
         for level, value in list_cog.items()
     }
@@ -511,11 +161,10 @@ def write_vectorfile_subset(
     None
     """
 
-    corresp_filter_by_columns, format_write, driver = standardize_inputs(
-        vectorfile_format
-    )
+    corresp_filter_by_columns = dict_corresp_filter_by()
+    format_write, driver = vectorfile_format_config(vectorfile_format)
 
-    write_path = create_path_bucket(
+    write_path = _vectorfile_path(
         bucket=bucket,
         path_within_bucket=path_within_bucket,
         provider=provider,
@@ -526,6 +175,7 @@ def write_vectorfile_subset(
         year=year,
         value=value,
         crs=crs,
+        type_url="bucket",
     )
 
     logger.info(f"Writing file at {write_path} location")
@@ -899,16 +549,25 @@ def open_vectorfile_from_s3(
     year,
     value,
     crs,
-    fs,
+    fs: s3fs.S3FileSystem = cartiflette.FS,
+    bucket: str = cartiflette.BUCKET,
+    path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
 ):
     # TODO : docstring
-    read_path = create_path_bucket(
+    read_path = _vectorfile_path(
+        bucket=bucket,
+        path_within_bucket=path_within_bucket,
+        provider="IGN",
+        source="EXPRESS-COG-TERRITOIRE",
         vectorfile_format=vectorfile_format,
+        borders="COMMUNE",
         filter_by=filter_by,
         year=year,
         value=value,
         crs=crs,
+        type_url="bucket",
     )
+
     return fs.open(read_path, mode="r")
 
 
@@ -923,6 +582,8 @@ def write_vectorfile_from_s3(
     provider: str = "IGN",
     source: str = "EXPRESS-COG-TERRITOIRE",
     fs: s3fs.S3FileSystem = cartiflette.FS,
+    bucket: str = cartiflette.BUCKET,
+    path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
 ):
     # TODO : compléter docstring
     """Retrieve shapefiles stored in S3
@@ -935,14 +596,18 @@ def write_vectorfile_from_s3(
         vectorfile_format (str, optional): vectorfile format needed. Defaults to "geojson".
     """
 
-    read_path = create_path_bucket(
+    read_path = _vectorfile_path(
+        bucket=bucket,
+        path_within_bucket=path_within_bucket,
+        provider=provider,
+        source=source,
         vectorfile_format=vectorfile_format,
+        borders="COMMUNE",
         filter_by=filter_by,
         year=year,
         value=value,
         crs=crs,
-        provider=provider,
-        source=source,
+        type_url="bucket",
     )
 
     fs.download(read_path, filename)
@@ -1026,7 +691,7 @@ def list_produced_cartiflette(
 ):
     # TODO : docstring
     written_borderss = fs.glob(f"{bucket}/{path_within_bucket}/**/provider*")
-    df = pd.DataFrame(written_borderss, columns=["paths"])
+    df = gpd.pd.DataFrame(written_borderss, columns=["paths"])
 
     df[["year", "administrative_level", "crs", "filter_by", "format"]] = df[
         "paths"
