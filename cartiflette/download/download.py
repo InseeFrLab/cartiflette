@@ -39,7 +39,7 @@ class Dataset:
         self,
         dataset_family: str = "ADMINEXPRESS",
         source: str = "EXPRESS-COG-TERRITOIRE",
-        year: int = date.today().year,
+        year: int = None,
         provider: str = "IGN",
         territory: str = None,
         bucket: str = cartiflette.BUCKET,
@@ -69,6 +69,8 @@ class Dataset:
             S3 file system to use. The default is FS.
 
         """
+        if not year:
+            year = date.today().year
         self.dataset_family = dataset_family
         self.source = source
         self.year = year
