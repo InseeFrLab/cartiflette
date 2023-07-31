@@ -17,7 +17,7 @@ from cartiflette.utils import (
     keep_subset_geopandas,
     dict_corresp_filter_by,
     official_epsg_codes,
-    vectorfile_format_config,
+    _vectorfile_format_config,
     _vectorfile_path,
 )
 
@@ -162,7 +162,7 @@ def write_vectorfile_subset(
     """
 
     corresp_filter_by_columns = dict_corresp_filter_by()
-    format_write, driver = vectorfile_format_config(vectorfile_format)
+    format_write, driver = _vectorfile_format_config(vectorfile_format)
 
     write_path = _vectorfile_path(
         bucket=bucket,
