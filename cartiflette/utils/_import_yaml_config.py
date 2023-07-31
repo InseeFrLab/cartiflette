@@ -2,6 +2,7 @@
 Import sources from YAML
 """
 # Read YAML file
+from datetime import date
 import os
 import yaml
 
@@ -27,17 +28,19 @@ def import_yaml_config(location: str = config_file) -> dict:
 
 
 def url_express_COG_territoire(
-    year: int = 2022, provider: str = "IGN", territoire: str = "metropole"
+    year: int = None, provider: str = "IGN", territoire: str = "metropole"
 ):
-
     # from cartiflette.utils import import_yaml_config
+
+    if not year:
+        year = date.today().year
 
     yaml = import_yaml_config()
     source = yaml[provider]["ADMINEXPRESS"]["EXPRESS-COG-TERRITOIRE"]
 
     # RETRIEVING FROM YAML
     field = source["field"][territoire]
-    date = source[year]["date"]
+    date_yaml = source[year]["date"]
     prefix = source[year]["prefix"]
     version = source[year]["version"]
     structure = source[year]["structure"]
@@ -45,7 +48,11 @@ def url_express_COG_territoire(
 
     # REFORMATING
     url = structure.format(
-        url_prefix=url_prefix, date=date, prefix=prefix, version=version, field=field
+        url_prefix=url_prefix,
+        date=date_yaml,
+        prefix=prefix,
+        version=version,
+        field=field,
     )
 
     return url

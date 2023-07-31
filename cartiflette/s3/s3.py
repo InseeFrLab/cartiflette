@@ -1,15 +1,17 @@
 """Module for communication with Minio S3 Storage
 """
 
-import itertools
-import os
-import tempfile
-import logging
-import typing
-import s3fs
-import pandas as pd
+from datetime import date
 import geopandas as gpd
+import itertools
+import logging
+import os
+import pandas as pd
+import s3fs
+import tempfile
 from topojson import Topology
+import typing
+
 
 from cartiflette.download import MasterScraper, Dataset
 
@@ -45,7 +47,7 @@ logger = logging.getLogger(__name__)
 def create_dict_all_territories(
     provider: str = "IGN",
     source: str = "EXPRESS-COG-TERRITOIRE",
-    year: int = 2022,
+    year: int = None,
     borders: str = "COMMUNE",
 ) -> dict:
     territories_available = [
@@ -55,6 +57,8 @@ def create_dict_all_territories(
         "guadeloupe",
         "guyane",
     ]
+    if not year:
+        year = date.today().year
 
     if borders == "ARRONDISSEMENT_MUNICIPAL":
         territories_available = [territories_available[0]]
@@ -77,13 +81,15 @@ def create_dict_all_territories(
 
 
 def write_cog_s3(
-    year: int = 2022,
+    year: int = None,
     vectorfile_format="json",
     bucket: str = cartiflette.BUCKET,
     path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
     fs: s3fs.S3FileSystem = cartiflette.FS,
 ):
     # TODO : docstring
+    if not year:
+        year = date.today().year
     list_cog = get_cog_year(year)
 
     dict_path_data = {
@@ -121,7 +127,7 @@ def write_vectorfile_subset(
     vectorfile_format: str = "geojson",
     borders: str = "COMMUNE",
     filter_by: str = "region",
-    year: int = 2022,
+    year: int = None,
     crs: typing.Union[str, int, float] = 2154,
     force_crs: bool = False,
     bucket: str = cartiflette.BUCKET,
@@ -146,7 +152,7 @@ def write_vectorfile_subset(
     filter_by : str, optional
         The filter_by of the vector file to be written, by default "region".
     year : int, optional
-        The year of the vector file to be written, by default 2022.
+        The year of the vector file to be written, by default the current year.
     bucket : str, optional
         The S3 bucket where the vector file will be written, by default BUCKET.
     path_within_bucket : str, optional
@@ -160,6 +166,8 @@ def write_vectorfile_subset(
     -------
     None
     """
+    if not year:
+        year = date.today().year
 
     corresp_filter_by_columns = dict_corresp_filter_by()
     format_write, driver = _vectorfile_format_config(vectorfile_format)
@@ -226,7 +234,7 @@ def duplicate_vectorfile_ign(
     dataset_family=["ADMINEXPRESS"],
     sources=["EXPRESS-COG-TERRITOIRE"],
     territories=["guyane"],
-    years=[2022],
+    years=[],
     bucket=cartiflette.BUCKET,
     path_within_bucket=cartiflette.PATH_WITHIN_BUCKET,
     fs: s3fs.S3FileSystem = cartiflette.FS,
@@ -245,7 +253,7 @@ def duplicate_vectorfile_ign(
         dataset_family (list): List of dataset family names to duplicate vector files from. Default is ['ADMINEXPRESS'].
         sources (list): List of source names to duplicate vector files from. Default is ['EXPRESS-COG-TERRITOIRE'].
         territories (list): List of territory names to duplicate vector files from. Default is ['guyane'].
-        years (list): List of years to duplicate vector files from. Default is [2022].
+        years (list): List of years to duplicate vector files from. Default is [date.today().year].
         bucket (str): Name of the S3-compatible bucket where the files will be stored.
         path_within_bucket (str): Path within the bucket to store the duplicated files.
 
@@ -266,6 +274,8 @@ def duplicate_vectorfile_ign(
             path_within_bucket='data/ign'
         )
     """
+    if not years:
+        years = [date.today().year]
 
     combinations = list(
         itertools.product(
@@ -368,7 +378,7 @@ def write_vectorfile_all_borders(
     borders: str = "COMMUNE",
     vectorfile_format: str = "geojson",
     filter_by: str = "region",
-    year: typing.Union[str, int, float] = 2022,
+    year: typing.Union[str, int, float] = None,
     crs: typing.Union[str, int, float] = 2154,
     bucket: str = cartiflette.BUCKET,
     path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
@@ -389,11 +399,13 @@ def write_vectorfile_all_borders(
         borders (str, optional): The borders of the vector file. Defaults to "COMMUNE".
         vectorfile_format (str, optional): The format of the vector file. Defaults to "geojson".
         filter_by (str, optional): The filter_by of the vector file. Defaults to "region".
-        year (typing.Union[str, int, float], optional): The year of the vector file. Defaults to 2022.
+        year (typing.Union[str, int, float], optional): The year of the vector file. Defaults to current year.
         bucket (str, optional): The S3 bucket where to write the vector file. Defaults to BUCKET.
         path_within_bucket (str, optional): The path within the bucket where to write the vector file. Defaults to PATH_WITHIN_BUCKET.
         crs (typing.Union[str, int, float], optional): The Coordinate Reference System of the vector file. Defaults to 2154.
     """
+    if not year:
+        year = date.today().year
 
     [
         write_vectorfile_subset(
@@ -431,7 +443,7 @@ def write_vectorfile_s3_shp(object, fs, write_path, driver=None):
 
 def write_vectorfile_s3_custom_arrondissement(
     vectorfile_format="geojson",
-    year: int = 2022,
+    year: int = None,
     filter_by="region",
     bucket=cartiflette.BUCKET,
     path_within_bucket=cartiflette.PATH_WITHIN_BUCKET,
@@ -441,6 +453,9 @@ def write_vectorfile_s3_custom_arrondissement(
     borders=None,  # used to ensure we produce for "metropole" only
     fs: s3fs.S3FileSystem = cartiflette.FS,
 ):
+    if not year:
+        year = date.today().year
+
     # TODO : docstring
     if crs is None:
         if vectorfile_format.lower() == "geojson":
@@ -485,7 +500,7 @@ def write_vectorfile_s3_all(
     borders="COMMUNE",
     vectorfile_format="geojson",
     filter_by="region",
-    year=2022,
+    year=None,
     crs: int = None,
     bucket=cartiflette.BUCKET,
     path_within_bucket=cartiflette.PATH_WITHIN_BUCKET,
@@ -494,6 +509,8 @@ def write_vectorfile_s3_all(
     fs: s3fs.S3FileSystem = cartiflette.FS,
 ):
     # TODO : docstring
+    if not year:
+        year = date.today().year
     if crs is None:
         if vectorfile_format.lower() == "geojson":
             crs = 4326
@@ -619,12 +636,14 @@ def create_territories(
     borders: str = "COMMUNE",
     filter_by: str = "region",
     vectorfile_format: str = "geojson",
-    year: int = 2022,
+    year: int = None,
     provider: str = "IGN",
     source: str = "EXPRESS-COG-TERRITOIRE",
     crs: int = None,
 ):
     # TODO : docstring
+    if not year:
+        year = date.today().year
     if crs is None:
         if vectorfile_format.lower() == "geojson":
             crs = 4326

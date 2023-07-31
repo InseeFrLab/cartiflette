@@ -24,7 +24,7 @@ def download_vectorfile_single(
     vectorfile_format: str = "geojson",
     borders: str = "COMMUNE",
     filter_by: str = "region",
-    year: typing.Union[str, int, float] = str(date.today().year),
+    year: typing.Union[str, int, float] = None,
     value: typing.Union[str, int, float] = "28",
     crs: typing.Union[list, str, int, float] = 2154,
     type_download: str = "https",
@@ -93,6 +93,8 @@ def download_vectorfile_single(
         The vector file as a GeoPandas object
 
     """
+    if not year:
+        year = str(date.today().year)
 
     format_read, driver = _vectorfile_format_config(vectorfile_format)
 
@@ -183,7 +185,7 @@ def download_vectorfile_multiple(
     vectorfile_format: str = "geojson",
     borders: str = "COMMUNE",
     filter_by: str = "region",
-    year: typing.Union[str, int, float] = str(date.today().year),
+    year: typing.Union[str, int, float] = None,
     values: typing.Union[list, str, int, float] = "28",
     crs: typing.Union[list, str, int, float] = 2154,
     type_download: str = "https",
@@ -254,6 +256,9 @@ def download_vectorfile_multiple(
         The vector file as a GeoPandas object
 
     """
+
+    if not year:
+        year = str(date.today().year)
 
     if isinstance(values, (str, int, float)):
         values = [str(values)]

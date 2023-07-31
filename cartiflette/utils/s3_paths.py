@@ -13,7 +13,7 @@ def _vectorfile_path(
     vectorfile_format: str = "geojson",
     borders: str = "COMMUNE",
     filter_by: str = "region",
-    year: typing.Union[str, int, float] = str(date.today().year),
+    year: typing.Union[str, int, float] = None,
     value: typing.Union[str, int, float] = "28",
     crs: typing.Union[str, int, float] = 2154,
     type_url: str = "https",
@@ -75,6 +75,9 @@ def _vectorfile_path(
         file stored in S3 to be downloaded
 
     """
+
+    if not year:
+        year = str(date.today().year)
 
     if type_url not in ("https", "bucket"):
         msg = (
