@@ -1,16 +1,17 @@
 """
 Request data from IGN and other tile providers
 """
-import os
+from datetime import date
 import ftplib
-import glob
-import typing
-import tempfile
-import zipfile
-import py7zr
-import numpy as np
-import pandas as pd
 import geopandas as gpd
+import glob
+import numpy as np
+import os
+import pandas as pd
+import py7zr
+import tempfile
+import typing
+import zipfile
 
 
 from cartiflette.utils import (
@@ -95,7 +96,7 @@ def create_url_adminexpress(
     if isinstance(source, list):
         source = source[0]
     if year is None:
-        year = 2022
+        year = date.today().year
 
     dict_open_data = import_yaml_config()
     dict_source = dict_open_data[provider]["ADMINEXPRESS"][source]
@@ -410,8 +411,10 @@ def get_vectorfile_ign(
 
 
 def get_vectorfile_communes_arrondissement(
-    year=2022, provider="IGN", source="EXPRESS-COG-TERRITOIRE"
+    year=None, provider="IGN", source="EXPRESS-COG-TERRITOIRE"
 ):
+    if not year:
+        year = date.today().year
     arrondissement = get_vectorfile_ign(
         borders="ARRONDISSEMENT_MUNICIPAL",
         year=year,
@@ -455,7 +458,10 @@ def get_vectorfile_communes_arrondissement(
     return df_enrichi
 
 
-def get_cog_year(year: int = 2022):
+def get_cog_year(year: int = None):
+    if not year:
+        year = date.today().year
+
     config = import_yaml_config()
 
     config_cog_year = config["Insee"]["COG"][year]
@@ -472,7 +478,7 @@ def get_cog_year(year: int = 2022):
     return dict_cog
 
 
-def get_BV(year: int = 2022):
+def get_BV(year: int = None):
     """
     Import and Unzip Bassins de vie (Insee, format 2012)
 
@@ -482,6 +488,9 @@ def get_BV(year: int = 2022):
     Returns:
         A DataFrame
     """
+
+    if not year:
+        year = date.today().year
 
     dict_open_data = import_yaml_config()
 
