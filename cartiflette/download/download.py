@@ -532,10 +532,12 @@ class HttpScraper(BaseScraper, requests.Session):
         # Check that the downloaded file has the expected characteristics
         if expected_md5:
             if not self.__validate_file__(file_path, expected_md5):
+                os.unlink(file_path)
                 raise IOError("download failed (corrupted file)")
         elif expected_file_size:
             # check that the downloaded file is the expected size
             if not expected_file_size == os.path.getsize(file_path):
+                os.unlink(file_path)
                 raise IOError("download failed (corrupted file)")
 
         # if there's a hash value, check if there are any changes
