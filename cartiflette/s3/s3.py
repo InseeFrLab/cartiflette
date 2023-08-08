@@ -24,8 +24,6 @@ from cartiflette.utils import (
 )
 
 from cartiflette.download import (
-    # store_vectorfile_ign,
-    get_vectorfile_ign,
     get_vectorfile_communes_arrondissement,
     get_cog_year,
 )
@@ -34,14 +32,6 @@ import cartiflette
 logger = logging.getLogger(__name__)
 
 # UTILITIES --------------------------------
-
-# Plus utilisé ?
-# def structure_path_raw_ign(c):
-#     source, field, year, provider = c
-#     path = store_vectorfile_ign(
-#         source=source, year=year, field=field, provider=provider
-#     )
-#     return {f"{year=}/raw/{provider=}/{source=}/{field=}": path}
 
 
 def create_dict_all_territories(

@@ -5,22 +5,23 @@ Created on Tue Mar 21 20:52:51 2023
 @author: thomas.grandjean
 """
 
-import requests
-from tqdm import tqdm
-import os
-import geopandas as gpd
-import logging
 from datetime import date
-import s3fs
-import json
-from shapely.validation import make_valid
-import py7zr
-from itertools import product
 import ftplib
-from typing import TypedDict
+import geopandas as gpd
 from glob import glob
-import tempfile
+from itertools import product
+import json
+import logging
 import numpy as np
+import os
+import py7zr
+import requests
+import s3fs
+from shapely.validation import make_valid
+import shutil
+import tempfile
+from tqdm import tqdm
+from typing import TypedDict
 
 from cartiflette.utils import import_yaml_config, hash_file, deep_dict_update
 import cartiflette
@@ -82,7 +83,7 @@ class Dataset:
 
         self.sources = self.config_open_data[provider][dataset_family][source]
 
-        self.__get_last_md5__()
+        self._get_last_md5()
 
     def __str__(self):
         dataset_family = self.dataset_family
@@ -98,7 +99,7 @@ class Dataset:
         return self.__str__()
 
     @staticmethod
-    def __md5__(file_path: str) -> str:
+    def _md5(file_path: str) -> str:
         """
         Compute the md5 hash value of a file given it's path.
 
@@ -115,7 +116,7 @@ class Dataset:
         """
         return hash_file(file_path)
 
-    def __get_last_md5__(self) -> None:
+    def _get_last_md5(self) -> None:
         """
         Read the last md5 hash value of the target on the s3 and store it
         as an attribute of the Dataset : self.md5
@@ -223,7 +224,7 @@ class Dataset:
         return url
 
     @staticmethod
-    def __sanitize_file__(file_path: str, preserve: str = "shape") -> None:
+    def _sanitize_file(file_path: str, preserve: str = "shape") -> None:
         """
         Sanitizes geometries of geodataframe from file (if needed).
         Overwrites the file in place if unvalid geometries are detected.
@@ -297,7 +298,7 @@ class Dataset:
         pattern: str = cartiflette.BASE_CACHE_PATTERN,
         preserve: str = "shape",
         ext: str = ".shp",
-    ) -> str:
+    ) -> tuple:
         """
         Decompress a group of files if they validate a pattern and an extension
         type, sanitize geometries. Returns the path to the folder containing
@@ -321,8 +322,8 @@ class Dataset:
 
         Returns
         -------
-        str
-            path to unzipped files
+        shp_locations : tuple
+            paths to unzipped files
 
         """
 
@@ -385,11 +386,42 @@ class Dataset:
 
         # TODO : envisager un multiprocessing ?
         for file in paths:
-            self.__sanitize_file__(file, preserve=preserve)
+            self._sanitize_file(file, preserve=preserve)
 
         paths = {os.path.dirname(x) for x in paths}
-        shp_location = tuple(paths)
-        return shp_location
+        shp_locations = tuple(paths)
+
+        self._list_levels()
+
+        return shp_locations
+
+    def _list_levels(self, shp_locations: tuple) -> None:
+        """
+        List available levels in a raw dataset. Will have unexpected results on
+        any dataset which is not from an IGN source. The list consists of each
+        shapefile's basename in any case.
+        The list itsself is stored in self.levels.
+
+        Parameters
+        ----------
+        shp_locations : tuple
+            Paths to unzipped directories containing shapefiles.
+
+        Returns
+        -------
+        None
+
+        """
+
+        levels = [
+            os.path.splitext(os.path.basename(shp_file))[0]
+            for shp_location in shp_locations
+            for shp_file in glob.glob(os.path.join(shp_location + "*.shp"))
+        ]
+        logger.info(
+            "\n  - ".join(["Available administrative levels are :"] + levels)
+        )
+        self.levels = levels
 
 
 class BaseScraper:
@@ -635,7 +667,7 @@ class MasterScraper(HttpScraper, FtpScraper):
     class DownloadReturn(TypedDict):
         downloaded: bool
         hash: str
-        path: str
+        path: tuple
 
     def download_unzip(
         self,
@@ -690,7 +722,10 @@ class MasterScraper(HttpScraper, FtpScraper):
             Dictionnaire doté du contenu suivant :
                 downloaded: bool
                 hash: str
-                path: str
+                path: tuple (of str)
+                    paths to all directory where files matching the pattern
+                    have been extracted (should be only one path in usual
+                    cases)
         """
 
         if preserve not in ["shape", "topology"]:
@@ -724,16 +759,114 @@ class MasterScraper(HttpScraper, FtpScraper):
 
         try:
             # Calcul du hashage du fichier brut (avant dézipage)
-            hash = datafile.__md5__(temp_archive_file_raw)
+            hash = datafile._md5(temp_archive_file_raw)
 
             datafile.set_temp_file_path(temp_archive_file_raw)
-            shp_location = datafile.unzip(pattern, preserve, ext=ext)
+            shp_locations = datafile.unzip(pattern, preserve, ext=ext)
         except Exception as e:
             raise e
         finally:
             os.unlink(temp_archive_file_raw)
 
-        return {"downloaded": True, "hash": hash, "path": shp_location}
+        return {"downloaded": True, "hash": hash, "path": shp_locations}
+
+
+def upload_vectorfile_to_s3(
+    dataset_family: str = "ADMINEXPRESS",
+    source: str = "EXPRESS-COG-TERRITOIRE",
+    year: int = None,
+    provider: str = "IGN",
+    territory: str = "guyane",
+    bucket: str = cartiflette.BUCKET,
+    path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
+    fs: s3fs.S3FileSystem = cartiflette.FS,
+    base_cache_pattern: str = cartiflette.BASE_CACHE_PATTERN,
+):
+    """
+    Download exactly one dataset from it's provider's website and upload it to
+    cartiflette S3 storage. If the file is already there and uptodate, the file
+    will not be overwritten on S3.
+
+    Parameters
+    ----------
+    dataset_family : str, optional
+        Family desrcibed in the yaml file. The default is "ADMINEXPRESS".
+    source : str, optional
+        Source described in the yaml file. The default is "EXPRESS-COG-TERRITOIRE".
+    year : int, optional
+        Year described in the yaml file. The default is date.today().year.
+    provider : str, optional
+        Provider described in the yaml file. The default is "IGN".
+    territory : str, optional
+        Territory described in the yaml file. The default is "guyane".
+    bucket : str, optional
+        Bucket to use. The default is BUCKET.
+    path_within_bucket : str, optional
+        path within bucket. The default is PATH_WITHIN_BUCKET.
+    fs : s3fs.S3FileSystem, optional
+        S3 file system to use. The default is FS.
+    base_cache_pattern : str, optional
+        Pattern to validate. The default is cartiflette.BASE_CACHE_PATTERN.
+
+    Returns
+    -------
+    None.
+
+    """
+
+    if not year:
+        year = date.today().year
+
+    with MasterScraper() as s:
+        datafile = Dataset(
+            dataset_family,
+            source,
+            year,
+            provider,
+            territory,
+            bucket,
+            path_within_bucket,
+            fs,
+        )
+
+        result = s.download_unzip(
+            datafile,
+            preserve="shape",
+            pattern=base_cache_pattern,
+            ext=".shp",
+        )
+
+        normalized_path_bucket = (
+            f"{year=}/raw/{provider=}/{source=}/{territory=}"
+        )
+        normalized_path_bucket = normalized_path_bucket.replace("'", "")
+
+        if not result["downloaded"]:
+            logger.info("File already there and uptodate")
+            return
+
+        # DUPLICATE SOURCES IN BUCKET
+        errors_encountered = False
+        for path_local in result["path"]:
+            try:
+                logger.info(f"Iterating over {path_local}")
+
+                fs.put(
+                    path_local,
+                    f"{bucket}/{path_within_bucket}/{normalized_path_bucket}",
+                    recursive=True,
+                )
+            except Exception as e:
+                logger.error(e)
+                errors_encountered = True
+            finally:
+                # cleanup temp files
+                shutil.rmtree(path_local)
+
+        if not errors_encountered:
+            # NOW WRITE MD5 IN BUCKET ROOT (in case of error, should be skipped
+            # to allow for further tentatives)
+            datafile.update_json_md5(result["hash"])
 
 
 def download_sources(
@@ -749,7 +882,7 @@ def download_sources(
     Main function to perform downloads of datasets to store to the s3.
     All available combinations will be tested; hence an unfound file might not
     be an error given the fact that it might correspond to an unexpected
-    combination; those be printed as warnings in the log.
+    combination; those will be printed as warnings in the log.
 
 
     Parameters
@@ -887,7 +1020,22 @@ if __name__ == "__main__":
     territories = ["guadeloupe", "martinique"]
     years = [2022, 2023]
 
+    # test = upload_vectorfile_to_s3(year=2022)
+    # print(test)
+
     # results = download_sources(
     #     providers, dataset_family, sources, territories, years
     # )
     # print(results)
+
+    test = upload_vectorfile_to_s3(
+        dataset_family="COG",
+        source="root",
+        year=2022,
+        provider="Insee",
+        territory=None,
+        bucket=cartiflette.BUCKET,
+        path_within_bucket=cartiflette.PATH_WITHIN_BUCKET,
+        fs=cartiflette.FS,
+        base_cache_pattern=cartiflette.BASE_CACHE_PATTERN,
+    )

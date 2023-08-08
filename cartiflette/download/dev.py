@@ -2,354 +2,18 @@
 Request data from IGN and other tile providers
 """
 from datetime import date
-import ftplib
 import geopandas as gpd
-import glob
 import numpy as np
-import os
 import pandas as pd
-import py7zr
 import tempfile
 import typing
 import zipfile
 
 
-from cartiflette.utils import (
-    download_pb,
-    download_pb_ftp,
+from cartiflette import (
     import_yaml_config,
-    url_express_COG_territoire,
+    # MasterScraper,
 )
-
-
-def safe_download_write(
-    url: str,
-    location: str = None,
-    param_ftp: dict = None,
-    ext: str = "7z",
-    verify: bool = True,
-    force=True,
-) -> str:
-    """
-    Download data given URL and additional parameters.
-
-    File is downloaded either using requests or ftplib
-
-    Args:
-        url (str): URL from which data should be fetched. Depending
-          on the type of URL (http/https protocole or FTP),
-          either request or ftplib will be used to download
-          dataset.
-        location (str, optional): Location where the file should be written.
-          Defaults to None means a temporary file is used.
-        param_ftp (dict, optional): Dictionary with parameters useful
-          for FTP download. Ignored if the file is not located on a
-          FTP server. Defaults to None.
-        ext (str, optional): File extension. Defaults to "7z".
-
-    Returns:
-        str: File location
-    """
-
-    if location is None:
-        tmp = tempfile.NamedTemporaryFile()
-        location = tmp.name
-        location = location + ext
-
-    if param_ftp is not None:
-        ftp = ftplib.FTP(
-            param_ftp["hostname"], param_ftp["username"], param_ftp["pwd"]
-        )
-        download_pb_ftp(ftp, url, fname=location)
-    else:
-        download_pb(url, location, verify=verify, force=force)
-
-    return location
-
-
-def create_url_adminexpress(
-    provider: typing.Union[list, str] = ["IGN", "opendatarchives"],
-    source: typing.Union[list, str] = [
-        "EXPRESS-COG",
-        "EXPRESS-COG-TERRITOIRE",
-    ],
-    year: typing.Optional[str] = None,
-    field: str = "metropole",
-):
-    """Create a standardized url to find the relevent IGN
-      source
-
-    Args:
-        provider (typing.Union[list, str], optional): IGN data provider.
-            Defaults to 'IGN' but can be 'opendatarchives'
-            (contributive back-up).
-        source (typing.Union[list, str], optional): Sources used.
-         Can either be a string or a list. Defaults to ['EXPRESS-COG'].
-        year (typing.Optional[str], optional): Year to use. Defaults to None.
-
-    Returns:
-        _type_: _description_
-    """
-
-    if isinstance(provider, list):
-        provider = provider[0]
-    if isinstance(source, list):
-        source = source[0]
-    if year is None:
-        year = date.today().year
-
-    dict_open_data = import_yaml_config()
-    dict_source = dict_open_data[provider]["ADMINEXPRESS"][source]
-
-    if source.endswith("-TERRITOIRE"):
-        url = url_express_COG_territoire(
-            year=year, provider=provider, territoire=field
-        )
-    else:
-        url = dict_source[year]["file"]
-
-    return url
-
-
-def download_admin_express(
-    provider: typing.Union[list, str] = ["IGN", "opendatarchives"],
-    source: typing.Union[list, str] = [
-        "EXPRESS-COG",
-        "EXPRESS-COG-TERRITOIRE",
-    ],
-    year: typing.Optional[str] = None,
-    location: str = None,
-    field: str = "metropole",
-) -> str:
-    """
-    Download AdminExpress data for a given type of source and year
-
-    Args:
-        source (typing.Union[list, str], optional): Sources used.
-         Can either be a string or a list. Defaults to ['EXPRESS-COG'].
-         year (typing.Optional[str], optional): Year to use. Defaults to None.
-        location (str, optional): Location where file should be written.
-          Defaults to None.
-        provider (typing.Union[list, str], optional): IGN data provider.
-            Defaults to 'IGN' but can be 'opendatarchives'
-            (contributive back-up).
-
-    Returns:
-        str: Complete path where the IGN source has been unzipped.
-    """
-
-    if isinstance(provider, list):
-        provider: str = provider[0]
-    if isinstance(source, list):
-        source: str = source[0]
-
-    dict_open_data = import_yaml_config()
-    dict_source = dict_open_data[provider]["ADMINEXPRESS"][source]
-
-    url = create_url_adminexpress(
-        provider=provider, year=year, source=source, field=field
-    )
-    print(url)
-
-    if url.startswith(("http", "https")):
-        param_ftp = None
-    else:
-        param_ftp = dict_source["FTP"]
-
-    if location is not None and os.path.isdir(location):
-        print(
-            f"Data have been previously downloaded and are still available in {location}"
-        )
-    else:
-        # download 7z file
-        temp_file = tempfile.NamedTemporaryFile()
-        temp_file_raw = temp_file.name + ".7z"
-        out_name = safe_download_write(
-            url, location=temp_file_raw, param_ftp=param_ftp
-        )
-        if location is None:
-            tmp = tempfile.TemporaryDirectory()
-            location = tmp.name
-        # unzip in location directory
-        archive = py7zr.SevenZipFile(out_name, mode="r")
-        archive.extractall(path=location)
-        archive.close()
-
-    arbo = glob.glob(f"{location}/**/1_DONNEES_LIVRAISON_*", recursive=True)
-
-    return arbo
-
-
-def download_store_admin_express(
-    source: typing.Union[list, str] = [
-        "EXPRESS-COG",
-        "COG",
-        "EXPRESS-COG-TERRITOIRE",
-    ],
-    year: typing.Optional[str] = None,
-    location: str = None,
-    provider: typing.Union[list, str] = ["IGN", "opendatarchives"],
-    field: str = "metropole",
-) -> str:
-    """
-    Download, unzip and store AdminExpress data
-
-    Args:
-        source (typing.Union[list, str], optional): IGN data product. Defaults to ['EXPRESS-COG'].
-        year (typing.Optional[str], optional): Year used. Defaults to None.
-        location (str, optional): File location. Defaults to None.
-        provider (typing.Union[list, str], optional): IGN data provider. Defaults to 'IGN' but can be 'opendatarchives'
-            (contributive back-up).
-
-    Returns:
-        str: _description_
-    """
-
-    if isinstance(source, list):
-        source: str = source[0]
-    if isinstance(provider, list):
-        provider: str = provider[0]
-
-    dict_open_data = import_yaml_config()
-
-    # print(provider)
-    # print(source)
-
-    dict_source = dict_open_data[provider]["ADMINEXPRESS"][source]
-
-    if year is None:
-        year = max(
-            [i for i in dict_source.keys() if i not in ("field", "FTP")]
-        )
-
-    if location is None:
-        location = tempfile.gettempdir()
-        location = f"{location}/{source}-{year}"
-        if year > 2020:
-            if source.endswith("-TERRITOIRE"):
-                location = f"{location}/{field}"
-
-    path_cache_ign = download_admin_express(
-        source=source,
-        year=year,
-        location=location,
-        provider=provider,
-        field=field,
-    )
-
-    # For some years, md5 also validate pattern DONNEES_LIVRAISON
-    path_cache_ign = [s for s in path_cache_ign if not s.endswith(".md5")]
-    path_cache_ign = path_cache_ign[0]
-
-    if year <= 2020 and source.endswith("-TERRITOIRE"):
-        field_code = dict_source["field"][field].split("_")[0]
-        path_cache_ign = glob.glob(f"{path_cache_ign}/*{field_code}_*")
-        # For some years, md5 also validate pattern DONNEES_LIVRAISON
-        path_cache_ign = [s for s in path_cache_ign if not s.endswith(".md5")]
-        path_cache_ign = path_cache_ign[0]
-
-    return path_cache_ign
-
-
-def store_vectorfile_ign(
-    source: typing.Union[list, str] = [
-        "EXPRESS-COG",
-        "COG",
-        "EXPRESS-COG-TERRITOIRE",
-    ],
-    year: typing.Optional[str] = None,
-    field: str = "metropole",
-    provider: typing.Union[list, str] = ["IGN", "opendatarchives"],
-) -> str:
-    """
-    Function to download raw IGN shapefiles and
-    store them unzipped in filesystem
-
-    Args:
-        source (typing.Union[list, str], optional): IGN data product.
-            Defaults to ['EXPRESS-COG'].
-        year (typing.Optional[str], optional): Year used. Defaults to None.
-        field (str, optional): Geographic level to use. Defaults to "metropole".
-        provider (typing.Union[list, str], optional): IGN data provider.
-            Defaults to 'IGN' but can be 'opendatarchives'
-            (contributive back-up).
-
-    Returns:
-        str: Returns where file is stored on filesystem.
-    """
-
-    path_cache_ign = download_store_admin_express(
-        source=source, year=year, provider=provider, field=field
-    )
-    # returns path where datasets are stored
-
-    full_path_shp = glob.glob(f"{path_cache_ign}/**/*.shp", recursive=True)
-    shp_location = os.path.dirname(full_path_shp[0])
-
-    return shp_location
-
-
-def get_administrative_level_available_ign(
-    source: typing.Union[list, str] = [
-        "EXPRESS-COG",
-        "EXPRESS-COG-TERRITOIRE",
-    ],
-    year: typing.Optional[str] = None,
-    field: typing.Union[list, str] = [
-        "metropole",
-        "guadeloupe",
-        "martinique",
-        "reunion",
-        "guyane",
-        "mayotte",
-    ],
-    verbose: bool = True,
-) -> list:
-    """
-    User-level function to get administrative data that are available
-     in IGN raw sources for a given year
-
-    Args:
-        source (typing.Union[list, str], optional): IGN data product. Defaults to ['EXPRESS-COG'].
-        year (typing.Optional[str], optional): Year used. Defaults to None.
-        field (typing.Union[list, str], optional): _description_.
-           Defaults to "metropole". Acceptable values are "metropole",
-           "guadeloupe", "martinique", "reunion", "guyane", "mayotte"].
-        verbose (bool, optional): Should we print values or just return
-           them as list ? Defaults to True.
-
-    Returns:
-        list: List of administrative levels available
-    """
-
-    dict_open_data = import_yaml_config()
-
-    if isinstance(source, list):
-        source = source[0]
-
-    dict_source = dict_open_data["IGN"]["ADMINEXPRESS"][source]
-
-    if year is None:
-        year = max(
-            [i for i in dict_source.keys() if i not in ("field", "FTP")]
-        )
-
-    if isinstance(field, list):
-        field = field[0]
-
-    shp_location = store_vectorfile_ign(source=source, year=year, field=field)
-
-    list_levels = [
-        os.path.basename(i).replace(".shp", "")
-        for i in glob.glob(shp_location + "/*.shp")
-    ]
-    if verbose:
-        print(
-            "\n  - ".join(
-                ["Available administrative levels are :"] + list_levels
-            )
-        )
-    return list_levels
 
 
 def get_vectorfile_ign(
@@ -459,6 +123,9 @@ def get_vectorfile_communes_arrondissement(
 
 
 def get_cog_year(year: int = None):
+    # TODO : docstring et/ou deplacement vers download.py
+    # Télécharge les fichiers COG à plat sur le site de l'INSEE et charge les
+    # dataframes ad hoc ???
     if not year:
         year = date.today().year
 
@@ -473,6 +140,7 @@ def get_cog_year(year: int = None):
         for key, cog in config_cog_year["content"].items()
     }
 
+    # TODO : proxy, etc.
     dict_cog = {level: pd.read_csv(url) for level, url in urls.items()}
 
     return dict_cog
@@ -496,7 +164,6 @@ def get_BV(year: int = None):
 
     url = dict_open_data["Insee"]["BV2012"][year]["file"]
 
-    # from dev import safe_download_write
     out_name = safe_download_write(
         url,
         location=None,
@@ -525,17 +192,5 @@ def get_BV(year: int = None):
     return df
 
 
-# def get_bv(location):
-#    dict_open_data = import_yaml_config()
-#    url = dict_open_data['Insee']\
-#        ['BV']['2022']["file"]
-#
-#    if location is not None and os.path.isdir(location):
-#        print(f"Data have been previously downloaded and are still available in {location}")
-#    else:
-#
-#    safe_download_write(
-#    url: str,
-#    location: str = None,
-#    param_ftp: dict = None,
-#    ext: str = "7z")
+if __name__ == "__main__":
+    get_cog_year(year=2022)
