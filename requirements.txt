@@ -1,9 +1,9 @@
-requests
-py7zr
 geopandas
 openpyxl
-tqdm
-s3fs
 PyYAML
-xlrd
+py7zr
+requests
+s3fs
 topojson
+tqdm
+xlrd
