@@ -22,7 +22,7 @@ logging.basicConfig(level=logging.INFO)
 
 @pytest.fixture
 def mock_Dataset_without_s3(monkeypatch):
-    monkeypatch.setattr(Dataset, "__get_last_md5__", lambda x: None)
+    monkeypatch.setattr(Dataset, "_get_last_md5", lambda x: None)
 
 
 class MockResponse:
