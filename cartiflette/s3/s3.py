@@ -40,6 +40,7 @@ def create_dict_all_territories(
     year: int = None,
     borders: str = "COMMUNE",
 ) -> dict:
+    # A déplacer + intégrer COG / scrapper ?
     territories_available = [
         "metropole",
         "martinique",
@@ -314,52 +315,6 @@ def duplicate_vectorfile_ign(
 
             # NOW WRITE MD5 IN BUCKET ROOT
             datafile.update_json_md5(result["hash"])
-
-
-# Plus utilisé ?
-# def duplicate_vectorfile_ign_old(
-#     sources: list,
-#     territories: list,
-#     years: list,
-#     providers: list,
-#     bucket=cartiflette.BUCKET,
-#     path_within_bucket=cartiflette.PATH_WITHIN_BUCKET,
-#     endpoint_url=cartiflette.ENDPOINT_URL,
-# ):
-#     """
-#     Duplicates a list of vector files to a specified Amazon S3 bucket using s3fs.
-
-#     Args:
-#     - sources (list): A list of source names (strings) to combine with other parameters to form file paths.
-#     - territories (list): A list of territory names (strings) to combine with other parameters to form file paths.
-#     - years (list): A list of year values (strings or integers) to combine with other parameters to form file paths.
-#     - providers (list): A list of provider names (strings) to combine with other parameters to form file paths.
-#     - BUCKET (string): The name of the Amazon S3 bucket to write the duplicated files to (default: "projet-cartiflette").
-#     - PATH_WITHIN_BUCKET (string): The prefix within the bucket to write the duplicated files to (default: "diffusion/shapefiles-test1").
-#     - ENDPOINT_URL (string): The endpoint URL of the S3-compatible object storage service (default: "https://minio.lab.sspcloud.fr").
-
-#     Returns:
-#     - None: The function has no explicit return value.
-
-#     Raises:
-#     - None: The function does not raise any exceptions explicitly.
-#     """
-
-#     combinations = list(
-#         itertools.product(sources, territories, years, providers)
-#     )
-
-#     paths = dict(ChainMap(*[structure_path_raw_ign(c) for c in combinations]))
-
-#     fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": endpoint_url})
-
-#     for path_s3fs, path_local_fs in paths.items():
-#         logger.info(f"Iterating over {path_s3fs}")
-#         fs.put(
-#             path_local_fs,
-#             f"{bucket}/{path_within_bucket}/{path_s3fs}",
-#             recursive=True,
-#         )
 
 
 def write_vectorfile_all_borders(
@@ -771,39 +726,3 @@ def production_cartiflette(
         )
 
     logger.info(80 * "-" + "\nProduction finished :)")
-
-
-# Plus utilisé ?
-# def create_nested_topojson(path):
-#     #TODO : docstring
-#     croisement_filter_by_borders = {
-#         ## structure -> niveau geo: [niveau filter_by macro],
-#         "REGION": ["FRANCE_ENTIERE"],
-#         "DEPARTEMENT": ["FRANCE_ENTIERE"],
-#     }
-
-#     croisement_filter_by_borders_flat = [
-#         [key, inner_value]
-#         for key, values in croisement_filter_by_borders.items()
-#         for inner_value in values
-#     ]
-
-#     list_output = {}
-#     for couple in croisement_filter_by_borders_flat:
-#         borders = couple[0]
-#         filter_by = couple[1]
-#         list_output[borders] = create_territories(
-#             borders=borders, filter_by=filter_by
-#         )
-
-#     topo = Topology(
-#         data=[
-#             list_output["REGION"]["metropole"],
-#             list_output["DEPARTEMENT"]["metropole"],
-#         ],
-#         object_name=["region", "departement"],
-#         prequantize=False,
-#     )
-
-#     return topo
-#     # topo.to_json(path)
