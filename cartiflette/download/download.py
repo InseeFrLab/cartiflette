@@ -223,61 +223,6 @@ class Dataset:
 
         return url
 
-    @staticmethod
-    def _sanitize_file(file_path: str, preserve: str = "shape") -> None:
-        """
-        Sanitizes geometries of geodataframe from file (if needed).
-        Overwrites the file in place if unvalid geometries are detected.
-
-        Parameters
-        ----------
-        url : str
-            path to the source file
-        preserve : str, optional
-            choose which characteristic to preserve while sanitizing geometries
-            (either preserve topology or shape)
-
-        Raises
-        ------
-        ValueError
-            If the GeoDataFrame contains missing geometries or if the
-            sanitation fails
-
-        Returns
-        -------
-        None
-
-        """
-        logger.debug(f"sanitizing geometries of {file_path}")
-
-        if preserve not in ["shape", "topology"]:
-            msg = (
-                "preserve must be either of 'shape', 'topology' - found "
-                f"'{preserve}' instead"
-            )
-            raise ValueError(msg)
-
-        gdf = gpd.read_file(file_path)
-        geom = gdf.geometry
-        ix = geom[(geom.is_empty | geom.isna())].index
-        if len(ix) > 0:
-            raise ValueError("Geometries are missing")
-
-        ix = geom[~(geom.is_empty | geom.isna()) & ~geom.is_valid].index
-        if len(ix) > 0:
-            geoms = gdf.loc[ix, "geometry"]
-            if preserve == "shape":
-                gdf.loc[ix, "geometry"] = geoms.apply(make_valid)
-            elif preserve == "topology":
-                gdf.loc[ix, "geometry"] = geoms.buffer(0)
-
-            gdf.to_file(file_path)
-
-        ix = geom[~(geom.is_empty | geom.isna()) & ~geom.is_valid].index
-        if len(ix) > 0:
-            msg = "Unvalid geometries are still present in the file"
-            raise ValueError(msg)
-
     def set_temp_file_path(self, path: str) -> None:
         """
         Store a given path as self.temp_archive_path to retrieve it later.
@@ -296,12 +241,11 @@ class Dataset:
     def unzip(
         self,
         pattern: str = cartiflette.BASE_CACHE_PATTERN,
-        preserve: str = "shape",
         ext: str = ".shp",
     ) -> tuple:
         """
         Decompress a group of files if they validate a pattern and an extension
-        type, sanitize geometries. Returns the path to the folder containing
+        type. Returns the path to the folder containing
         the decompressed files. Note that this folder will be stored in the
         temporary cache, but requires manual cleanup.
 
@@ -309,10 +253,6 @@ class Dataset:
         ----------
         pattern : str, optional
             Pattern to validate. The default is BASE_CACHE_PATTERN.
-        preserve : str, optional
-            Specify which geometric option should be preserved while doing
-            geometry sanitation (either shape or topology).
-            The default is "shape".
         ext : str, optional
             File extension to look for (.shp, .gpkg, etc.). In order to
             preserve all auxiliary file (in case of shapefile for instance:
@@ -326,13 +266,6 @@ class Dataset:
             paths to unzipped files
 
         """
-
-        if preserve not in ["shape", "topology"]:
-            msg = (
-                "preserve must be either of 'shape', 'topology' - found "
-                f"'{preserve}' instead"
-            )
-            raise ValueError(msg)
 
         if ext is not None:
             ext = ext.lower()
@@ -383,10 +316,6 @@ class Dataset:
             pattern = os.path.join(*list_pattern)
             paths += glob(os.path.join(location, pattern), recursive=True)
         logger.debug(paths)
-
-        # TODO : envisager un multiprocessing ?
-        for file in paths:
-            self._sanitize_file(file, preserve=preserve)
 
         paths = {os.path.dirname(x) for x in paths}
         shp_locations = tuple(paths)
@@ -672,7 +601,6 @@ class MasterScraper(HttpScraper, FtpScraper):
     def download_unzip(
         self,
         datafile: Dataset,
-        preserve: str = "shape",
         pattern: str = cartiflette.BASE_CACHE_PATTERN,
         ext: str = ".shp",
         **kwargs,
@@ -680,7 +608,7 @@ class MasterScraper(HttpScraper, FtpScraper):
         """
         Performs a download (through http, https of ftp protocol) to a tempfile
         which will be cleaned afterwards ; unzip targeted files to a temporary
-        file which ** WILL ** need manual cleanup and sanitize geometries.
+        file which ** WILL ** need manual cleanup.
         In case of an actual download (success of download AND the file is a
         new one), the dict returned will be ot this form :
             {
@@ -696,10 +624,6 @@ class MasterScraper(HttpScraper, FtpScraper):
         ----------
         datafile : Dataset
             Dataset object to download.
-        preserve : str, optional
-            Specify which geometric option should be preserved while doing
-            geometry sanitation (either shape or topology).
-            The default is "shape".
         pattern : str, optional
             Pattern to validate. The default is BASE_CACHE_PATTERN.
         ext : str, optional
@@ -710,11 +634,6 @@ class MasterScraper(HttpScraper, FtpScraper):
             The default is .shp.
         **kwargs :
             Optional arguments to pass to requests.Session object.
-
-        Raises
-        ------
-        ValueError
-            If preserve not amont 'shape' or 'topology'
 
         Returns
         -------
@@ -727,13 +646,6 @@ class MasterScraper(HttpScraper, FtpScraper):
                     have been extracted (should be only one path in usual
                     cases)
         """
-
-        if preserve not in ["shape", "topology"]:
-            msg = (
-                "preserve must be either of 'shape', 'topology' - found "
-                f"'{preserve}' instead"
-            )
-            raise ValueError(msg)
 
         hash = datafile.md5
         url = datafile.get_path_from_provider()
@@ -762,7 +674,7 @@ class MasterScraper(HttpScraper, FtpScraper):
             hash = datafile._md5(temp_archive_file_raw)
 
             datafile.set_temp_file_path(temp_archive_file_raw)
-            shp_locations = datafile.unzip(pattern, preserve, ext=ext)
+            shp_locations = datafile.unzip(pattern, ext=ext)
         except Exception as e:
             raise e
         finally:
@@ -831,7 +743,6 @@ def upload_vectorfile_to_s3(
 
         result = s.download_unzip(
             datafile,
-            preserve="shape",
             pattern=base_cache_pattern,
             ext=".shp",
         )
@@ -971,7 +882,6 @@ def download_sources(
             try:
                 result = s.download_unzip(
                     datafile,
-                    preserve="shape",
                     pattern=cartiflette.BASE_CACHE_PATTERN,
                     ext=".shp",
                 )
