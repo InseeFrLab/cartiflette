@@ -9,6 +9,7 @@ ENDPOINT_URL = "https://minio.lab.sspcloud.fr"
 
 # CREATE STANDARDIZED PATHS ------------------------
 
+
 def create_path_bucket(config: Dict[str, Union[str, int, float]]) -> str:
     """
     This function creates a file path for a vector file within a specified bucket.
