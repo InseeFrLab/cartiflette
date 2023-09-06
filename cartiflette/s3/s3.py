@@ -111,18 +111,18 @@ def create_url_s3(
     str: The URL of the vector file stored in S3
     """
 
-    path_within = create_path_bucket(
-        bucket=bucket,
-        path_within_bucket=path_within_bucket,
-        provider=provider,
-        source=source,
-        vectorfile_format=vectorfile_format,
-        borders=borders,
-        filter_by=filter_by,
-        year=year,
-        crs=crs,
-        value=value,
-    )
+    path_within = create_path_bucket({
+        "bucket": bucket,
+        "path_within_bucket": path_within_bucket,
+        "provider": provider,
+        "source": source,
+        "vectorfile_format": vectorfile_format,
+        "borders": borders,
+        "filter_by": filter_by,
+        "year": year,
+        "crs": crs,
+        "value": value
+        })
 
     url = f"{ENDPOINT_URL}/{path_within}"
 
@@ -248,18 +248,18 @@ def download_vectorfile_s3_single(
         vectorfile_format
     )
 
-    read_path = create_path_bucket(
-        bucket=bucket,
-        path_within_bucket=path_within_bucket,
-        vectorfile_format=format_read,
-        borders=borders,
-        filter_by=filter_by,
-        year=year,
-        value=value,
-        crs=crs,
-        provider=provider,
-        source=source,
-    )
+    read_path = create_path_bucket({
+        "bucket": bucket,
+        "path_within_bucket": path_within_bucket,
+        "vectorfile_format": format_read,
+        "borders": borders,
+        "filter_by": filter_by,
+        "year": year,
+        "value": value,
+        "crs": crs,
+        "provider": provider,
+        "source": source
+    })
 
     try:
         fs.exists(read_path)
@@ -357,18 +357,18 @@ def write_cog_s3(year: int = 2022, vectorfile_format="json"):
     list_cog = get_cog_year(year)
 
     dict_path_data = {
-        create_path_bucket(
-            bucket=BUCKET,
-            path_within_bucket=PATH_WITHIN_BUCKET,
-            provider="INSEE",
-            source="COG",
-            vectorfile_format=vectorfile_format,
-            borders=level,
-            filter_by="france_entiere",
-            year=year,
-            value="raw",
-            crs=None,
-        ): value
+        create_path_bucket({
+            "bucket": BUCKET,
+            "path_within_bucket": PATH_WITHIN_BUCKET,
+            "provider": "INSEE",
+            "source": "COG",
+            "vectorfile_format": vectorfile_format,
+            "borders": level,
+            "filter_by": "france_entiere",
+            "year": year,
+            "value": "raw",
+            "crs": None,
+    }): value
         for level, value in list_cog.items()
     }
 
@@ -431,18 +431,18 @@ def write_vectorfile_subset(
         vectorfile_format
     )
 
-    write_path = create_path_bucket(
-        bucket=bucket,
-        path_within_bucket=path_within_bucket,
-        provider=provider,
-        source=source,
-        vectorfile_format=format_write,
-        borders=borders,
-        filter_by=filter_by,
-        year=year,
-        value=value,
-        crs=crs,
-    )
+    write_path = create_path_bucket({
+        "bucket": bucket,
+        "path_within_bucket": path_within_bucket,
+        "provider": provider,
+        "source": source,
+        "vectorfile_format": format_write,
+        "borders": borders,
+        "filter_by": filter_by,
+        "year": year,
+        "value": value,
+        "crs": crs,
+    })
 
     print(f"Writing file at {write_path} location")
 
@@ -700,13 +700,13 @@ def write_vectorfile_s3_all(
 
 
 def open_vectorfile_from_s3(vectorfile_format, filter_by, year, value, crs):
-    read_path = create_path_bucket(
-        vectorfile_format=vectorfile_format,
-        filter_by=filter_by,
-        year=year,
-        value=value,
-        crs=crs,
-    )
+    read_path = create_path_bucket({
+        "vectorfile_format": vectorfile_format,
+        "filter_by": filter_by,
+        "year": year,
+        "value": value,
+        "crs": crs,
+    })
     return fs.open(read_path, mode="r")
 
 
@@ -730,15 +730,15 @@ def write_vectorfile_from_s3(
         vectorfile_format (str, optional): vectorfile format needed. Defaults to "geojson".
     """
 
-    read_path = create_path_bucket(
-        vectorfile_format=vectorfile_format,
-        filter_by=filter_by,
-        year=year,
-        value=value,
-        crs=crs,
-        provider=provider,
-        source=source,
-    )
+    read_path = create_path_bucket({
+        "vectorfile_format": vectorfile_format,
+        "filter_by": filter_by,
+        "year": year,
+        "value": value,
+        "crs": crs,
+        "provider": provider,
+        "source": source,
+    })
 
     fs.download(read_path, filename)
 
