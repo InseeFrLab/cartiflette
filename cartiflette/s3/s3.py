@@ -17,6 +17,7 @@ from cartiflette.utils import (
     create_format_standardized,
     create_format_driver,
     download_pb,
+    create_path_bucket,
     official_epsg_codes,
 )
 
@@ -111,16 +112,18 @@ def create_url_s3(
     """
 
     path_within = create_path_bucket(
-        bucket=bucket,
-        path_within_bucket=path_within_bucket,
-        provider=provider,
-        source=source,
-        vectorfile_format=vectorfile_format,
-        borders=borders,
-        filter_by=filter_by,
-        year=year,
-        crs=crs,
-        value=value,
+        {
+            "bucket": bucket,
+            "path_within_bucket": path_within_bucket,
+            "provider": provider,
+            "source": source,
+            "vectorfile_format": vectorfile_format,
+            "borders": borders,
+            "filter_by": filter_by,
+            "year": year,
+            "crs": crs,
+            "value": value,
+        }
     )
 
     url = f"{ENDPOINT_URL}/{path_within}"
@@ -128,57 +131,6 @@ def create_url_s3(
     print(url)
 
     return url
-
-
-def create_path_bucket(
-    bucket: str = BUCKET,
-    path_within_bucket: str = PATH_WITHIN_BUCKET,
-    provider: str = "IGN",
-    source: str = "EXPRESS-COG-TERRITOIRE",
-    vectorfile_format: str = "geojson",
-    borders: str = "COMMUNE",
-    filter_by: str = "region",
-    year: typing.Union[str, int, float] = "2022",
-    value: typing.Union[str, int, float] = "28",
-    crs: typing.Union[str, int, float] = 2154,
-) -> str:
-    """
-    This function creates a file path for a vector file within a specified bucket.
-
-    Parameters:
-    bucket (str): The name of the bucket where the file will be stored.
-    path_within_bucket (str): The path within the bucket where the file will be stored.
-    vectorfile_format (str): The format of the vector file,
-        can be "geojson", "topojson", "gpkg" or "shp". Default is "geojson".
-    borders (str): The administrative borders of the tiles within the vector file.
-        Can be any administrative
-        borders provided by IGN, e.g. "COMMUNE", "DEPARTEMENT" or "REGION". Default is "COMMUNE".
-    filter_by (str): The administrative borders (supra to 'borders') that will be
-        used to cut the vector file in pieces when writing to S3. For instance, if
-        borders is "DEPARTEMENT", filter_by can be "REGION" or "FRANCE_ENTIERE".
-        Default is "region".
-    year (str): The year of the vector file. Default is "2022".
-    value (str): The value of the vector file. Default is "28".
-    crs (int): The coordinate reference system of the vector file. Default is 2154.
-
-    Returns:
-    str: The complete file path for the vector file that will be used to read
-    or write when interacting with S3 storage
-    """
-
-    write_path = f"{bucket}/{path_within_bucket}"
-    write_path = f"{write_path}/{year=}"
-    write_path = f"{write_path}/administrative_level={borders}"
-    write_path = f"{write_path}/{crs=}"
-    write_path = f"{write_path}/{filter_by}={value}/{vectorfile_format=}"
-    write_path = f"{write_path}/{provider=}/{source=}"
-    write_path = f"{write_path}/raw.{vectorfile_format}"
-    write_path = write_path.replace("'", "")
-
-    if vectorfile_format == "shp":
-        write_path = write_path.rsplit("/", maxsplit=1)[0] + "/"
-
-    return write_path
 
 
 # DOWNLOAD FROM S3 --------------------------
@@ -299,16 +251,18 @@ def download_vectorfile_s3_single(
     )
 
     read_path = create_path_bucket(
-        bucket=bucket,
-        path_within_bucket=path_within_bucket,
-        vectorfile_format=format_read,
-        borders=borders,
-        filter_by=filter_by,
-        year=year,
-        value=value,
-        crs=crs,
-        provider=provider,
-        source=source,
+        {
+            "bucket": bucket,
+            "path_within_bucket": path_within_bucket,
+            "vectorfile_format": format_read,
+            "borders": borders,
+            "filter_by": filter_by,
+            "year": year,
+            "value": value,
+            "crs": crs,
+            "provider": provider,
+            "source": source,
+        }
     )
 
     try:
@@ -321,9 +275,7 @@ def download_vectorfile_s3_single(
         print("When using shp format, we first need to store a local version")
         tdir = tempfile.TemporaryDirectory()
         for remote_file in fs.ls(dir_s3):
-            fs.download(
-                remote_file,
-                f"{tdir.name}/{remote_file.replace(dir_s3, '')}")
+            fs.download(remote_file, f"{tdir.name}/{remote_file.replace(dir_s3, '')}")
         object = gpd.read_file(f"{tdir.name}/raw.shp", driver=None)
     elif format_read == "parquet":
         with fs.open(read_path, "rb") as f:
@@ -408,16 +360,18 @@ def write_cog_s3(year: int = 2022, vectorfile_format="json"):
 
     dict_path_data = {
         create_path_bucket(
-            bucket=BUCKET,
-            path_within_bucket=PATH_WITHIN_BUCKET,
-            provider="INSEE",
-            source="COG",
-            vectorfile_format=vectorfile_format,
-            borders=level,
-            filter_by="france_entiere",
-            year=year,
-            value="raw",
-            crs=None,
+            {
+                "bucket": BUCKET,
+                "path_within_bucket": PATH_WITHIN_BUCKET,
+                "provider": "INSEE",
+                "source": "COG",
+                "vectorfile_format": vectorfile_format,
+                "borders": level,
+                "filter_by": "france_entiere",
+                "year": year,
+                "value": "raw",
+                "crs": None,
+            }
         ): value
         for level, value in list_cog.items()
     }
@@ -482,16 +436,18 @@ def write_vectorfile_subset(
     )
 
     write_path = create_path_bucket(
-        bucket=bucket,
-        path_within_bucket=path_within_bucket,
-        provider=provider,
-        source=source,
-        vectorfile_format=format_write,
-        borders=borders,
-        filter_by=filter_by,
-        year=year,
-        value=value,
-        crs=crs,
+        {
+            "bucket": bucket,
+            "path_within_bucket": path_within_bucket,
+            "provider": provider,
+            "source": source,
+            "vectorfile_format": format_write,
+            "borders": borders,
+            "filter_by": filter_by,
+            "year": year,
+            "value": value,
+            "crs": crs,
+        }
     )
 
     print(f"Writing file at {write_path} location")
@@ -565,12 +521,7 @@ def duplicate_vectorfile_ign(
     - None: The function does not raise any exceptions explicitly.
     """
 
-    combinations = list(
-        itertools.product(
-            sources,
-            territories,
-            years,
-            providers))
+    combinations = list(itertools.product(sources, territories, years, providers))
 
     paths = dict(ChainMap(*[structure_path_raw_ign(c) for c in combinations]))
 
@@ -751,11 +702,13 @@ def write_vectorfile_s3_all(
 
 def open_vectorfile_from_s3(vectorfile_format, filter_by, year, value, crs):
     read_path = create_path_bucket(
-        vectorfile_format=vectorfile_format,
-        filter_by=filter_by,
-        year=year,
-        value=value,
-        crs=crs,
+        {
+            "vectorfile_format": vectorfile_format,
+            "filter_by": filter_by,
+            "year": year,
+            "value": value,
+            "crs": crs,
+        }
     )
     return fs.open(read_path, mode="r")
 
@@ -781,13 +734,15 @@ def write_vectorfile_from_s3(
     """
 
     read_path = create_path_bucket(
-        vectorfile_format=vectorfile_format,
-        filter_by=filter_by,
-        year=year,
-        value=value,
-        crs=crs,
-        provider=provider,
-        source=source,
+        {
+            "vectorfile_format": vectorfile_format,
+            "filter_by": filter_by,
+            "year": year,
+            "value": value,
+            "crs": crs,
+            "provider": provider,
+            "source": source,
+        }
     )
 
     fs.download(read_path, filename)
@@ -939,8 +894,7 @@ def create_nested_topojson(path):
     for couple in croisement_filter_by_borders_flat:
         borders = couple[0]
         filter_by = couple[1]
-        list_output[borders] = create_territories(
-            borders=borders, filter_by=filter_by)
+        list_output[borders] = create_territories(borders=borders, filter_by=filter_by)
 
     topo = Topology(
         data=[
