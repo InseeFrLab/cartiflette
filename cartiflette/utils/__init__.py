@@ -9,6 +9,7 @@ from .dict_correspondance import (
     official_epsg_codes,
 )
 from .keep_subset_geopandas import keep_subset_geopandas
+from .create_path_bucket import create_path_bucket
 from .hash import hash_file
 from .dict_update import deep_dict_update
 
@@ -22,4 +23,5 @@ __all__ = [
     "keep_subset_geopandas",
     "hash_file",
     "deep_dict_update",
+    "create_path_bucket"
 ]
