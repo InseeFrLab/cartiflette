@@ -177,6 +177,12 @@ def test_sources_yaml(mock_Dataset_without_s3):
 
     yaml = import_yaml_config()
 
+    errors_type0 = []
+    errors_type1 = []
+    errors_type2 = []
+    errors_type3 = []
+    errors_type4 = []
+
     with MasterScraper() as scraper:
         for provider, provider_yaml in yaml.items():
             if not isinstance(provider_yaml, dict):
@@ -190,7 +196,7 @@ def test_sources_yaml(mock_Dataset_without_s3):
                     str_yaml = f"{dataset_family}/{source}"
 
                     if not isinstance(source_yaml, dict):
-                        logger.error(
+                        errors_type0.append(
                             f"yaml {str_yaml} contains '{source_yaml}'"
                         )
                         continue
@@ -219,29 +225,58 @@ def test_sources_yaml(mock_Dataset_without_s3):
                                     territory,
                                 )
                             except Exception:
-                                logger.error(
+                                errors_type1.append(
                                     f"error on yaml {str_yaml} : dataset not constructed"
                                 )
                                 continue
                             try:
                                 url = ds.get_path_from_provider()
                             except Exception:
-                                logger.error(
-                                    f"error on yaml {str_yaml} : url no reconstructed"
+                                errors_type2.append(
+                                    f"error on yaml {str_yaml} : url not reconstructed"
                                 )
                                 continue
 
                             try:
                                 r = scraper.get(url, stream=True)
                             except Exception:
-                                logger.error(
+                                errors_type3.append(
                                     f"error on yaml {str_yaml} : "
                                     f"https get request failed on {url}"
                                 )
                                 continue
                             if not r.ok:
-                                logger.error(
+                                errors_type4.append(
                                     f"error on yaml {str_yaml} : "
                                     "https get request "
                                     f"got code {r.status_code} on {url}"
                                 )
+    if errors_type0:
+        logger.warning("Champs du YAML non testés\n" + "\n".join(errors_type0))
+
+    if errors_type1 + errors_type2 + errors_type3 + errors_type4:
+        if errors_type1:
+            logger.error("=" * 50)
+            logger.error(
+                "Jeux de données non reconstitués\n" + "\n".join(errors_type1)
+            )
+            logger.error("-" * 50)
+
+        if errors_type2:
+            logger.error("=" * 50)
+            logger.error("URL non reconstituées:\n" + "\n".join(errors_type2))
+            logger.error("-" * 50)
+
+        if errors_type3:
+            logger.error("=" * 50)
+            logger.error("Erreur HTTP:\n" + "\n".join(errors_type3))
+            logger.error("-" * 50)
+
+        if errors_type4:
+            logger.error("=" * 50)
+            logger.error(
+                "Requête HTTP avec code d'erreur:\n" + "\n".join(errors_type4)
+            )
+            logger.error("-" * 50)
+
+        assert False

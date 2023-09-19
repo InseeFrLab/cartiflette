@@ -5,9 +5,9 @@ Created on Tue Mar 21 20:52:51 2023
 @author: thomas.grandjean
 """
 
+import magic
 from datetime import date
 import ftplib
-import geopandas as gpd
 from glob import glob
 from itertools import product
 import json
@@ -16,8 +16,8 @@ import numpy as np
 import os
 import py7zr
 import requests
+import requests_cache
 import s3fs
-from shapely.validation import make_valid
 import shutil
 import tempfile
 from tqdm import tqdm
@@ -55,7 +55,8 @@ class Dataset:
         dataset_family : str, optional
             Family desrcibed in the yaml file. The default is "ADMINEXPRESS".
         source : str, optional
-            Source described in the yaml file. The default is "EXPRESS-COG-TERRITOIRE".
+            Source described in the yaml file. The default is
+            "EXPRESS-COG-TERRITOIRE".
         year : int, optional
             Year described in the yaml file. The default is date.today().year.
         provider : str, optional
@@ -92,7 +93,10 @@ class Dataset:
         territory = self.territory
         provider = self.provider
 
-        name = f"<Dataset {provider} {dataset_family} {source} {territory} {year}>"
+        name = (
+            f"<Dataset {provider} {dataset_family} {source} "
+            f"{territory} {year}>"
+        )
         return name
 
     def __repr__(self):
@@ -188,6 +192,8 @@ class Dataset:
         source = self.source
         sources = self.sources
 
+        # print(sources)
+
         exclude = {"field", "FTP"}
         available_years = set(sources.keys()) - exclude
 
@@ -210,8 +216,23 @@ class Dataset:
             url = sources[year]["file"]
 
         except KeyError:
-            field = sources["field"][self.territory]
-            structure = sources[year]["structure"]
+            try:
+                field = sources["field"][self.territory]
+            except KeyError:
+                msg = (
+                    f"error on field / territory : {self.territory} not in "
+                    f"{sources['field']}"
+                )
+                raise KeyError(msg)
+
+            try:
+                structure = sources[year]["structure"]
+            except KeyError:
+                msg = (
+                    "error on year / structure : 'structure' not in "
+                    f"{sources[year]}"
+                )
+                raise KeyError(msg)
 
             kwargs = sources[year].copy()
             kwargs["field"] = field
@@ -320,7 +341,7 @@ class Dataset:
         paths = {os.path.dirname(x) for x in paths}
         shp_locations = tuple(paths)
 
-        self._list_levels()
+        self._list_levels(shp_locations)
 
         return shp_locations
 
@@ -345,7 +366,7 @@ class Dataset:
         levels = [
             os.path.splitext(os.path.basename(shp_file))[0]
             for shp_location in shp_locations
-            for shp_file in glob.glob(os.path.join(shp_location + "*.shp"))
+            for shp_file in glob(os.path.join(shp_location + "*.shp"))
         ]
         logger.info(
             "\n  - ".join(["Available administrative levels are :"] + levels)
@@ -371,13 +392,23 @@ class BaseScraper:
         return hash_file(file_path) == hash
 
 
-class HttpScraper(BaseScraper, requests.Session):
+class HttpScraper(
+    BaseScraper,
+    requests.Session,
+    # requests_cache.CachedSession,
+):
     """
     Scraper with specific download method for http/https get protocol. Not
     meant to be used by itself, but only when surcharged.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(
+        self,
+        cache_name: str = "cartiflette.sqlite",
+        expire_after: int = 3600 * 24 * 2,  # 2days cache
+        *args,
+        **kwargs,
+    ):
         """
         Initialize HttpScraper and set eventual proxies from os environment
         variables. *args and **kwargs are arguments that should be processed
@@ -391,7 +422,13 @@ class HttpScraper(BaseScraper, requests.Session):
             Arguments passed to requests.Session.
 
         """
-        super().__init__(*args, **kwargs)
+        super().__init__(
+            # cache_name,
+            # expire_after=expire_after,
+            *args,
+            **kwargs,
+        )
+        requests_cache.install_cache(cache_name, expire_after=expire_after)
 
         for protocol in ["http", "https"]:
             try:
@@ -433,8 +470,9 @@ class HttpScraper(BaseScraper, requests.Session):
 
         Returns
         -------
-        tuple[bool, str]
+        tuple[bool, str, str]
             bool : True if a new file has been downloaded, False in other cases
+            str : File type (as returned by web requests, None if fails)
             str : path to the temporary file if bool was True (else None)
         """
 
@@ -447,9 +485,15 @@ class HttpScraper(BaseScraper, requests.Session):
         block_size = 1024 * 1024  # 1MiB
 
         # check file's characteristics
-        head = super().head(url, **kwargs).headers
+        r = super().head(url, stream=True, **kwargs)
+        head = r.headers
+
+        if not r.ok:
+            raise IOError(f"download failed with {r.status_code} code")
+
         try:
             expected_md5 = head["content-md5"]
+
             logger.debug(f"File MD5 is {expected_md5}")
         except KeyError:
             expected_md5 = None
@@ -458,7 +502,7 @@ class HttpScraper(BaseScraper, requests.Session):
             if hash and expected_md5 == hash:
                 # unchanged file -> exit
                 logger.info(f"md5 matched at {url} - download cancelled")
-                return False, None
+                return False, None, None
         finally:
             try:
                 # No MD5 in header -> check requested file's size
@@ -474,9 +518,10 @@ class HttpScraper(BaseScraper, requests.Session):
             logger.debug(f"Downloading to {file_path}")
 
             logger.debug(f"starting download at {url}")
-            r = super().get(url, stream=True, **kwargs)
+            r = self.get(url, stream=True, **kwargs)
             if not r.ok:
                 raise IOError(f"download failed with {r.status_code} code")
+            print("What TQDM ?!")
             with tqdm(
                 desc="Downloading: ",
                 total=int(np.ceil(expected_file_size / block_size)),
@@ -506,9 +551,11 @@ class HttpScraper(BaseScraper, requests.Session):
             # unchanged file -> exit (after deleting the downloaded file)
             logger.info(f"md5 matched at {url} after download")
             os.unlink(file_path)
-            return False, None
+            return False, None, None
 
-        return True, file_path
+        filetype = magic.from_file(file_path)
+
+        return True, filetype, file_path
 
 
 class FtpScraper(BaseScraper, ftplib.FTP):
@@ -548,8 +595,9 @@ class FtpScraper(BaseScraper, ftplib.FTP):
 
         Returns
         -------
-        tuple[bool, str]
+        tuple[bool, str, str]
             bool : True if a new file has been downloaded, False in other cases
+            str : file type
             str : path to the temporary file if bool was True (else None)
         """
 
@@ -570,11 +618,11 @@ class FtpScraper(BaseScraper, ftplib.FTP):
                 leave=True,
             ) as pbar:
 
-                def dowload_write(data):
+                def download_write(data):
                     pbar.update(len(data))
                     file.write(data)
 
-                self.retrbinary(f"RETR {url}", dowload_write)
+                self.retrbinary(f"RETR {url}", download_write)
 
         # check that the downloaded file is the expected size
         if not expected_file_size == os.path.getsize(file_path):
@@ -584,7 +632,11 @@ class FtpScraper(BaseScraper, ftplib.FTP):
         if hash and self.__validate_file__(file_path, hash):
             # unchanged file -> exit (after deleting the downloaded file)
             os.unlink(file_path)
-            return False, None
+            return False, None, None
+
+        filetype = magic.from_file(file_path)
+
+        return True, filetype, file_path
 
 
 class MasterScraper(HttpScraper, FtpScraper):
@@ -659,7 +711,7 @@ class MasterScraper(HttpScraper, FtpScraper):
             func = self.download_to_tempfile_ftp
 
         # Download to temporary file
-        downloaded, temp_archive_file_raw = func(url, hash, **kwargs)
+        downloaded, filetype, temp_archive_file_raw = func(url, hash, **kwargs)
 
         if not downloaded:
             # Suppression du fichier temporaire
@@ -674,7 +726,11 @@ class MasterScraper(HttpScraper, FtpScraper):
             hash = datafile._md5(temp_archive_file_raw)
 
             datafile.set_temp_file_path(temp_archive_file_raw)
-            shp_locations = datafile.unzip(pattern, ext=ext)
+
+            if "7-zip" in filetype:
+                shp_locations = datafile.unzip(pattern, ext=ext)
+            else:
+                raise Exception(f"{filetype} encountered")
         except Exception as e:
             raise e
         finally:
@@ -704,7 +760,8 @@ def upload_vectorfile_to_s3(
     dataset_family : str, optional
         Family desrcibed in the yaml file. The default is "ADMINEXPRESS".
     source : str, optional
-        Source described in the yaml file. The default is "EXPRESS-COG-TERRITOIRE".
+        Source described in the yaml file. The default is
+        "EXPRESS-COG-TERRITOIRE".
     year : int, optional
         Year described in the yaml file. The default is date.today().year.
     provider : str, optional
@@ -886,7 +943,7 @@ def download_sources(
                     ext=".shp",
                 )
             except ValueError:
-                logger.warning(f"{datafile} failed")
+                logger.warning(f"{datafile} 7-zip extraction failed")
 
                 this_result = {
                     provider: {
@@ -915,6 +972,114 @@ def download_sources(
     return files
 
 
+def download_all():
+    # Option 1 pour dérouler pipeline par bloc familial
+
+    results = {}
+
+    # providers = ["IGN"]
+    # dataset_family = ["ADMINEXPRESS"]
+    # sources = ["EXPRESS-COG-TERRITOIRE"]
+    # territories = ["guadeloupe", "martinique"]
+    # years = [2022, 2023]
+    # results.update(
+    #     download_sources(
+    #         providers, dataset_family, sources, territories, years
+    #         )
+    #     )
+
+    providers = ["IGN"]
+    dataset_family = ["BDTOPO"]
+    sources = ["REMOVE"]
+    territories = ["france_entiere"]
+    years = [2017]
+    results.update(
+        download_sources(
+            providers, dataset_family, sources, territories, years
+        )
+    )
+
+
+# def download_all_option2():
+#     # Dérouler le yaml comme dans le test
+
+#     yaml = import_yaml_config()
+
+#     with MasterScraper() as scraper:
+#         for provider, provider_yaml in yaml.items():
+#             if not isinstance(provider_yaml, dict):
+#                 continue
+
+#             for dataset_family, dataset_family_yaml in provider_yaml.items():
+#                 if not isinstance(dataset_family_yaml, dict):
+#                     continue
+
+#                 for source, source_yaml in dataset_family_yaml.items():
+#                     str_yaml = f"{dataset_family}/{source}"
+
+#                     if not isinstance(source_yaml, dict):
+#                         logger.error(
+#                             f"yaml {str_yaml} contains '{source_yaml}'"
+#                         )
+#                         continue
+#                     elif "FTP" in set(source_yaml.keys()):
+#                         logger.info("yaml {str_yaml} not checked (FTP)")
+#                         continue
+
+#                     years = set(source_yaml.keys()) - {"field", "FTP"}
+#                     try:
+#                         territories = set(source_yaml["field"].keys())
+#                     except KeyError:
+#                         territories = {""}
+
+#                     for year in years:
+#                         for territory in territories:
+#                             str_yaml = (
+#                                 f"{dataset_family}/{source}/{year}/"
+#                                 f"{provider}/{territory}"
+#                             )
+
+#                             if territory == "":
+#                                 territory = None
+#                             try:
+#                                 ds = Dataset(
+#                                     dataset_family,
+#                                     source,
+#                                     int(year),
+#                                     provider,
+#                                     territory,
+#                                 )
+#                             except Exception:
+#                                 logger.error(
+#                                     f"error on yaml {str_yaml} : "
+#                                     "dataset not constructed"
+#                                 )
+#                                 continue
+#                             try:
+#                                 url = ds.get_path_from_provider()
+#                             except Exception:
+#                                 logger.error(
+#                                     f"error on yaml {str_yaml} : "
+#                                     "url no reconstructed"
+#                                 )
+#                                 continue
+
+#                             try:
+#                                 r = scraper.get(url, stream=True)
+#                             except Exception:
+#                                 logger.error(
+#                                     f"error on yaml {str_yaml} : "
+#                                     f"https get request failed on {url}"
+#                                 )
+#                                 continue
+#                             if not r.ok:
+#                                 logger.error(
+#                                     f"error on yaml {str_yaml} : "
+#                                     "https get request "
+#                                     f"got code {r.status_code} on {url}"
+#                                 )
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
@@ -924,28 +1089,32 @@ if __name__ == "__main__":
     # territories = ["france_entiere"]  # "guadeloupe", "martinique"]
     # years = [2017]
 
-    providers = ["IGN"]
-    dataset_family = ["ADMINEXPRESS"]
-    sources = ["EXPRESS-COG-TERRITOIRE"]
-    territories = ["guadeloupe", "martinique"]
-    years = [2022, 2023]
+    # =============================================================================
+    #     providers = ["IGN"]
+    #     dataset_family = ["ADMINEXPRESS"]
+    #     sources = ["EXPRESS-COG-TERRITOIRE"]
+    #     territories = ["guadeloupe", "martinique"]
+    #     years = [2022, 2023]
+    #
+    #     # test = upload_vectorfile_to_s3(year=2022)
+    #     # print(test)
+    #
+    #     results = download_sources(
+    #         providers, dataset_family, sources, territories, years
+    #     )
+    #     print(results)
+    # =============================================================================
 
-    # test = upload_vectorfile_to_s3(year=2022)
-    # print(test)
-
-    # results = download_sources(
-    #     providers, dataset_family, sources, territories, years
+    # test = upload_vectorfile_to_s3(
+    #     dataset_family="COG",
+    #     source="root",
+    #     year=2022,
+    #     provider="Insee",
+    #     territory=None,
+    #     bucket=cartiflette.BUCKET,
+    #     path_within_bucket=cartiflette.PATH_WITHIN_BUCKET,
+    #     fs=cartiflette.FS,
+    #     base_cache_pattern=cartiflette.BASE_CACHE_PATTERN,
     # )
-    # print(results)
 
-    test = upload_vectorfile_to_s3(
-        dataset_family="COG",
-        source="root",
-        year=2022,
-        provider="Insee",
-        territory=None,
-        bucket=cartiflette.BUCKET,
-        path_within_bucket=cartiflette.PATH_WITHIN_BUCKET,
-        fs=cartiflette.FS,
-        base_cache_pattern=cartiflette.BASE_CACHE_PATTERN,
-    )
+    results = download_all()
