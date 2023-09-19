@@ -131,3 +131,5 @@ dmypy.json
 # Setuptools vs. poetry
 *.lock
 .toml
+
+*.sqlite
