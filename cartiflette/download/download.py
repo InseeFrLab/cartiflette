@@ -757,6 +757,7 @@ class MasterScraper(HttpScraper, FtpScraper):
 
             if "7-zip" in filetype:
                 file_locations = datafile.unzip(pattern, ext=ext)
+                filetype = "SHAPEFILE"
             elif "Unicode text" in filetype:
                 # copy in temp directory without processing
                 location = tempfile.mkdtemp()
@@ -770,9 +771,10 @@ class MasterScraper(HttpScraper, FtpScraper):
                         out.write(f.read())
                 logger.debug(f"Storing CSV to {location}")
                 file_locations = (path,)
+                filetype = "CSV"
 
             else:
-                raise Exception(f"{filetype} encountered")
+                raise NotImplementedError(f"{filetype} encountered")
         except Exception as e:
             raise e
         finally:
