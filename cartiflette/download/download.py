@@ -15,6 +15,7 @@ import logging
 import numpy as np
 import os
 import py7zr
+import re
 import requests
 import requests_cache
 import s3fs
@@ -22,6 +23,7 @@ import shutil
 import tempfile
 from tqdm import tqdm
 from typing import TypedDict
+from unidecode import unidecode
 
 from cartiflette.utils import import_yaml_config, hash_file, deep_dict_update
 import cartiflette
@@ -188,6 +190,7 @@ class Dataset:
         """
 
         provider = self.provider
+        dataset_family = self.dataset_family
         year = self.year
         source = self.source
         sources = self.sources
@@ -212,33 +215,54 @@ class Dataset:
             )
             raise ValueError(msg)
 
+        # Let's scroll the yaml to find first `file` (fixed URL) or
+        # `structure` value (url to be formatted with diverse fields)
+
+        d = self.config_open_data.copy()
+        for key in provider, dataset_family, source, year:
+            d = d[key]
+            try:
+                url = d["file"]
+                break
+            except KeyError:
+                continue
+
         try:
-            url = sources[year]["file"]
+            url
+        except UnboundLocalError:
+            d = self.config_open_data.copy()
+            for key in provider, dataset_family, source, year:
+                d = d[key]
+                try:
+                    url = d["structure"]
+                    break
+                except KeyError:
+                    continue
 
-        except KeyError:
-            try:
-                field = sources["field"][self.territory]
-            except KeyError:
+            if not url:
                 msg = (
-                    f"error on field / territory : {self.territory} not in "
-                    f"{sources['field']}"
+                    "Neither `file` or `structure` has been found in the yaml "
+                    f"file for {self}"
                 )
-                raise KeyError(msg)
+                raise ValueError(msg)
 
-            try:
-                structure = sources[year]["structure"]
-            except KeyError:
-                msg = (
-                    "error on year / structure : 'structure' not in "
-                    f"{sources[year]}"
-                )
-                raise KeyError(msg)
+            if self.territory:
+                try:
+                    field = sources["field"][self.territory]
+                except KeyError:
+                    msg = (
+                        f"error on field / territory : {self.territory} not "
+                        f"in {sources['field']}"
+                    )
+                    raise ValueError(msg)
 
             kwargs = sources[year].copy()
-            kwargs["field"] = field
-            del kwargs["structure"]
+            try:
+                kwargs["field"] = field
+            except UnboundLocalError:
+                pass
 
-            url = structure.format(**kwargs)
+            url = url.format(**kwargs)
 
         logger.info(f"using {url}")
 
@@ -521,10 +545,14 @@ class HttpScraper(
             r = self.get(url, stream=True, **kwargs)
             if not r.ok:
                 raise IOError(f"download failed with {r.status_code} code")
-            print("What TQDM ?!")
+
+            if expected_file_size:
+                total = int(np.ceil(expected_file_size / block_size))
+            else:
+                total = None
             with tqdm(
                 desc="Downloading: ",
-                total=int(np.ceil(expected_file_size / block_size)),
+                total=total,
                 unit="iB",
                 unit_scale=True,
                 unit_divisor=1024,
@@ -728,7 +756,21 @@ class MasterScraper(HttpScraper, FtpScraper):
             datafile.set_temp_file_path(temp_archive_file_raw)
 
             if "7-zip" in filetype:
-                shp_locations = datafile.unzip(pattern, ext=ext)
+                file_locations = datafile.unzip(pattern, ext=ext)
+            elif "Unicode text" in filetype:
+                # copy in temp directory without processing
+                location = tempfile.mkdtemp()
+                with open(temp_archive_file_raw, "rb") as f:
+                    filename = unidecode(datafile.__str__().upper()).strip()
+                    filename = "_".join(
+                        x for x in re.split(r"\W+", filename) if x
+                    )
+                    path = os.path.join(location, filename + ".csv")
+                    with open(path, "wb") as out:
+                        out.write(f.read())
+                logger.debug(f"Storing CSV to {location}")
+                file_locations = (path,)
+
             else:
                 raise Exception(f"{filetype} encountered")
         except Exception as e:
@@ -736,7 +778,12 @@ class MasterScraper(HttpScraper, FtpScraper):
         finally:
             os.unlink(temp_archive_file_raw)
 
-        return {"downloaded": True, "hash": hash, "path": shp_locations}
+        return {
+            "downloaded": True,
+            "hash": hash,
+            "path": file_locations,
+            "filetype": filetype,
+        }
 
 
 def upload_vectorfile_to_s3(
@@ -918,7 +965,7 @@ def download_sources(
     with MasterScraper() as s:
         for source, territory, year, provider, dataset_family in combinations:
             logger.info(
-                f"{provider} {dataset_family} {source} {territory} {year}"
+                f"Download {provider} {dataset_family} {source} {territory} {year}"
             )
 
             datafile = Dataset(
@@ -942,8 +989,9 @@ def download_sources(
                     pattern=cartiflette.BASE_CACHE_PATTERN,
                     ext=".shp",
                 )
-            except ValueError:
-                logger.warning(f"{datafile} 7-zip extraction failed")
+            except ValueError as e:
+                logger.error(e)
+                # logger.error(f"{datafile} 7-zip extraction failed")
 
                 this_result = {
                     provider: {
@@ -967,6 +1015,7 @@ def download_sources(
                         dataset_family: {source: {territory: {year: result}}}
                     }
                 }
+                logger.info("Success")
             files = deep_dict_update(files, this_result)
 
     return files
@@ -985,14 +1034,25 @@ def download_all():
     # results.update(
     #     download_sources(
     #         providers, dataset_family, sources, territories, years
-    #         )
     #     )
+    # )
 
-    providers = ["IGN"]
-    dataset_family = ["BDTOPO"]
-    sources = ["REMOVE"]
-    territories = ["france_entiere"]
-    years = [2017]
+    # providers = ["IGN"]
+    # dataset_family = ["BDTOPO"]
+    # sources = ["REMOVE"]
+    # territories = ["france_entiere"]
+    # years = [2017]
+    # results.update(
+    #     download_sources(
+    #         providers, dataset_family, sources, territories, years
+    #     )
+    # )
+
+    providers = ["Insee"]
+    dataset_family = ["COG"]
+    sources = ["COMMUNES"]
+    territories = (None,)
+    years = [2022]
     results.update(
         download_sources(
             providers, dataset_family, sources, territories, years
