@@ -1050,7 +1050,7 @@ def download_all():
 
     providers = ["Insee"]
     dataset_family = ["COG"]
-    sources = ["COMMUNES"]
+    sources = ["COMMUNE", "ARRONDISSEMENT"]
     territories = (None,)
     years = [2022]
     results.update(
@@ -1058,6 +1058,8 @@ def download_all():
             providers, dataset_family, sources, territories, years
         )
     )
+
+    return results
 
 
 # def download_all_option2():
