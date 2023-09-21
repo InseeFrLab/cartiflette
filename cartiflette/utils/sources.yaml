@@ -1,28 +1,30 @@
 IGN:
+  
+  pattern: "*DONNEES_LIVRAISON*.shp"
+  
   ADMINEXPRESS:
-    documentation: https://geoservices.ign.fr/documentation/donnees/vecteur/adminexpress
-    metadata: https://geoservices.ign.fr/sites/default/files/2021-11/IGNF_ADMIN_EXPRESS_3-1.html
+  
     EXPRESS-COG-TERRITOIRE:
-      field:
+      
+      territory:
         metropole: LAMB93_FXX
         guadeloupe: RGAF09UTM20_GLP
         martinique: RGAF09UTM20_MTQ
         guyane: UTM22RGFG95_GUF
         reunion: RGR92UTM40S_REU
-        st-pierre-miquelon: 
         mayotte: RGM04UTM38S_MYT
       2022:
         prefix: ADMIN-EXPRESS-COG
         date: "2022-04-15"
         version: "3-1"
         url_prefix: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG_SHP_TERRITOIRES_PACK
-        structure: "{url_prefix}_{date}${prefix}_{version}__SHP_{field}_{date}/file/{prefix}_{version}__SHP_{field}_{date}.7z"
+        structure: "{url_prefix}_{date}${prefix}_{version}__SHP_{territory}_{date}/file/{prefix}_{version}__SHP_{territory}_{date}.7z"
       2021:
         prefix: ADMIN-EXPRESS-COG
         date: "2021-05-19"
         version: "3-0"
         url_prefix: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG_SHP_TERRITOIRES_PACK
-        structure: "{url_prefix}_{date}${prefix}_{version}__SHP_{field}_{date}/file/{prefix}_{version}__SHP_{field}_{date}.7z"
+        structure: "{url_prefix}_{date}${prefix}_{version}__SHP_{territory}_{date}/file/{prefix}_{version}__SHP_{territory}_{date}.7z"
       2020:
         prefix: ADMIN-EXPRESS-COG
         date: "2020-11-20"
@@ -35,21 +37,17 @@ IGN:
         version: "2-0"
         url_prefix: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG_SHP_TERRITOIRES_PACK_09-2019
         structure: "{url_prefix}${prefix}_{version}__SHP__FRA_{date}/file/{prefix}_{version}__SHP__FRA_{date}.7z"
+
     EXPRESS-COG:
-      field:
+      territory:
         prefix: ADECOG_3-1_SHP_
         metropole: LAMB93_FR
         guadeloupe: RGAF09UTM20_D971
         martinique: RGAF09UTM20_D972
         guyane: UTM22RGFG95_D973
         reunion: RGR92UTM40S_D974
-        st-pierre-miquelon: 
         mayotte: RGM04UTM38S_D976
-      FTP:
-        hostname: "ftp3.ign.fr"
-        username: "Admin_Express_ext"
-        pwd: "Dahnoh0eigheeFok"      
-      2022:              
+      2022:
         file: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS_SHP_WGS84G_PACK_2022-06-21$ADMIN-EXPRESS_3-1__SHP__FRA_WM_2022-06-21/file/ADMIN-EXPRESS_3-1__SHP__FRA_WM_2022-06-21.7z
       2021:
         file: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG_SHP_WGS84G_PACK_2021-05-19$ADMIN-EXPRESS-COG_3-0__SHP_WGS84G_FRA_2021-05-19/file/ADMIN-EXPRESS-COG_3-0__SHP_WGS84G_FRA_2021-05-19.7z
@@ -61,178 +59,582 @@ IGN:
         file: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG-PACK_2018-04-01$ADMIN-EXPRESS-COG_1-1__SHP__FRA_2018-04-03/file/ADMIN-EXPRESS-COG_1-1__SHP__FRA_2018-04-03.7z
       2017:
         file: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG-PACK_2017-07-07$ADMIN-EXPRESS-COG_1-0__SHP__FRA_2017-06-19/file/ADMIN-EXPRESS-COG_1-0__SHP__FRA_2017-06-19.7z
+
     EXPRESS-COG-CARTO-TERRITOIRE:
-      field:
+      territory:
         metropole: LAMB93_FXX
         guadeloupe: RGAF09UTM20_GLP
         martinique: RGAF09UTM20_MTQ
         guyane: UTM22RGFG95_GUF
         reunion: RGR92UTM40S_REU
-        st-pierre-miquelon: 
         mayotte: RGM04UTM38S_MYT
       2022:
-        prefix: ADMINEXPRESS-COG-CARTO
+        prefix: ADMIN-EXPRESS-COG-CARTO
         date: "2022-04-15"
         version: "3-1"
-        url_prefix: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG-CARTO_SHP_TERRITOIRES_PACK_2022-04-15
-        structure: "{url_prefix}_{date}${prefix}_{version}__SHP_{field}_{date}/file/{prefix}_{version}__SHP_{field}_{date}.7z"
+        url_prefix: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG-CARTO_SHP_TERRITOIRES_PACK
+        structure: "{url_prefix}_{date}${prefix}_{version}__SHP_{territory}_{date}/file/{prefix}_{version}__SHP_{territory}_{date}.7z"
       2021:
-        prefix: ADMINEXPRESS-COG-CARTO
+        prefix: ADMIN-EXPRESS-COG-CARTO
         date: "2021-05-19"
         version: "3-0"
-        url_prefix: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG-CARTO_SHP_TERRITOIRES_PACK_2021-05-19
-        structure: "{url_prefix}_{date}${prefix}_{version}__SHP_{field}_{date}/file/{prefix}_{version}__SHP_{field}_{date}.7z"
+        url_prefix: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG-CARTO_SHP_TERRITOIRES_PACK
+        structure: "{url_prefix}_{date}${prefix}_{version}__SHP_{territory}_{date}/file/{prefix}_{version}__SHP_{territory}_{date}.7z"
+
     EXPRESS-COG-CARTO:
       2022:
         file: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG-CARTO_SHP_WGS84G_PACK_2022-04-15$ADMIN-EXPRESS-COG-CARTO_3-1__SHP_WGS84G_FRA_2022-04-15/file/ADMIN-EXPRESS-COG-CARTO_3-1__SHP_WGS84G_FRA_2022-04-15.7z
       2021:
         file: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG-CARTO_SHP_WGS84G_PACK_2021-05-19$ADMIN-EXPRESS-COG-CARTO_3-0__SHP_WGS84G_FRA_2021-05-19/file/ADMIN-EXPRESS-COG-CARTO_3-0__SHP_WGS84G_FRA_2021-05-19.7z
+
   BDTOPO:
-    documentation: https://geoservices.ign.fr/documentation/donnees/vecteur/bdtopo
-    metadata: https://geoservices.ign.fr/sites/default/files/2023-01/IGNF_BDTOPOr_3-3.html
-    REMOVE:
-      field:
+    structure: "{url_prefix}_{year}.1${prefix}_{version}_ADMINISTRATIF_SHP_{territory}_{date}/file/{prefix}_{version}_ADMINISTRATIF_SHP_{territory}_{date}.7z"
+    ROOT:
+      territory:
         france_entiere: WGS84G_FRA
       2018:
-          prefix: BDTOPO
-          year: "18"
-          date: "2018-01-01"
-          version: "2-2"
-          france_entiere: WGS84G_FRA
-          url_prefix: https://wxs.ign.fr/859x8t863h6a09o9o6fy4v60/telechargement/inspire/BDTOPO-FRANCE-ADMIN-SSDOUBLON-PACK
-          structure: "{url_prefix}_{year}.1${prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}/file/{prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}.7z"
+        prefix: BDTOPO
+        year: "18"
+        date: "2018-01-01"
+        version: "2-2"
+        url_prefix: https://wxs.ign.fr/859x8t863h6a09o9o6fy4v60/telechargement/inspire/BDTOPO-FRANCE-ADMIN-SSDOUBLON-PACK
       2017:
-          prefix: BDTOPO
-          year: "17"
-          date: "2017-01-01"
-          version: "2-2"
-          france_entiere: WGS84G_FRA
-          url_prefix: https://wxs.ign.fr/859x8t863h6a09o9o6fy4v60/telechargement/inspire/BDTOPO-FRANCE-ADMIN-SSDOUBLON-PACK
-          structure: "{url_prefix}_{year}.1${prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}/file/{prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}.7z"
+        prefix: BDTOPO
+        year: "17"
+        date: "2017-01-01"
+        version: "2-2"
+        url_prefix: https://wxs.ign.fr/859x8t863h6a09o9o6fy4v60/telechargement/inspire/BDTOPO-FRANCE-ADMIN-SSDOUBLON-PACK
       2016:
-          prefix: BDTOPO
-          year: "16"
-          date: "2016-01-01"
-          version: "2-1"
-          france_entiere: WGS84G_FRA
-          url_prefix: https://wxs.ign.fr/859x8t863h6a09o9o6fy4v60/telechargement/inspire/BDTOPO-FRANCE-ADMIN-SSDOUBLON-PACK
-          structure: "{url_prefix}_{year}.1${prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}/file/{prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}.7z"
+        prefix: BDTOPO
+        year: "16"
+        date: "2016-01-01"
+        version: "2-1"
+        url_prefix: https://wxs.ign.fr/859x8t863h6a09o9o6fy4v60/telechargement/inspire/BDTOPO-FRANCE-ADMIN-SSDOUBLON-PACK
       2015:
-          prefix: BDTOPO
-          year: "15"
-          date: "2015-01-01"
-          version: "2-1"
-          france_entiere: WGS84G_FRA
-          url_prefix: https://wxs.ign.fr/859x8t863h6a09o9o6fy4v60/telechargement/inspire/BDTOPO-FRANCE-ADMIN-SSDOUBLON-PACK
-          structure: "{url_prefix}_{year}.1${prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}/file/{prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}.7z"
+        prefix: BDTOPO
+        year: "15"
+        date: "2015-01-01"
+        version: "2-1"
+        url_prefix: https://wxs.ign.fr/859x8t863h6a09o9o6fy4v60/telechargement/inspire/BDTOPO-FRANCE-ADMIN-SSDOUBLON-PACK
       2014:
-          prefix: BDTOPO
-          year: "14"
-          date: "2014-01-01"
-          version: "2-1"
-          france_entiere: WGS84G_FRA
-          url_prefix: https://wxs.ign.fr/859x8t863h6a09o9o6fy4v60/telechargement/inspire/BDTOPO-FRANCE-ADMIN-SSDOUBLON-PACK
-          structure: "{url_prefix}_{year}.1${prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}/file/{prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}.7z"
+        prefix: BDTOPO
+        year: "14"
+        date: "2014-01-01"
+        version: "2-1"
+        url_prefix: https://wxs.ign.fr/859x8t863h6a09o9o6fy4v60/telechargement/inspire/BDTOPO-FRANCE-ADMIN-SSDOUBLON-PACK
       2013:
-          prefix: BDTOPO
-          year: "13"
-          date: "2013-01-01"
-          version: "2-1"
-          france_entiere: WGS84G_FRA
-          url_prefix: https://wxs.ign.fr/859x8t863h6a09o9o6fy4v60/telechargement/inspire/BDTOPO-FRANCE-ADMIN-SSDOUBLON-PACK
-          structure: "{url_prefix}_{year}.1${prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}/file/{prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}.7z"
-      2011:
-          prefix: BDTOPO
-          year: "11"
-          date: "2011-01-01"
-          version: "2-0"
-          france_entiere: WGS84G_FRA
-          url_prefix: https://wxs.ign.fr/859x8t863h6a09o9o6fy4v60/telechargement/inspire/BDTOPO-FRANCE-ADMIN-SSDOUBLON-PACK
-          structure: "{url_prefix}_{year}.1${prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}/file/{prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}.7z"
+        prefix: BDTOPO
+        year: "13"
+        date: "2013-01-01"
+        version: "2-1"
+        url_prefix: https://wxs.ign.fr/859x8t863h6a09o9o6fy4v60/telechargement/inspire/BDTOPO-FRANCE-ADMIN-SSDOUBLON-PACK
       2010:
-          prefix: BDTOPO
-          year: "10"
-          date: "2010-01-01"
-          version: "2-0"
-          france_entiere: WGS84G_FRA
-          url_prefix: https://wxs.ign.fr/859x8t863h6a09o9o6fy4v60/telechargement/inspire/BDTOPO-FRANCE-ADMIN-SSDOUBLON-PACK
-          structure: "{url_prefix}_{year}.1${prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}/file/{prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}.7z"
+        prefix: BDTOPO
+        year: "10"
+        date: "2010-01-01"
+        version: "2-0"
+        url_prefix: https://wxs.ign.fr/859x8t863h6a09o9o6fy4v60/telechargement/inspire/BDTOPO-FRANCE-ADMIN-SSDOUBLON-PACK
       2009:
-          prefix: BDTOPO
-          year: "09"
-          date: "2009-01-01"
-          version: "2-0"
-          france_entiere: WGS84G_FRA
-          url_prefix: https://wxs.ign.fr/859x8t863h6a09o9o6fy4v60/telechargement/inspire/BDTOPO-FRANCE-ADMIN-SSDOUBLON-PACK
-          structure: "{url_prefix}_{year}.1${prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}/file/{prefix}_{version}_ADMINISTRATIF_SHP_{france_entiere}_{date}.7z"
-  CONTOUR-IRIS: #variables INSEE_COM NOM_COM IRIS CODE_IRIS NOM_IRIS TYP_IRIS ; manque la var Grand-Quartier (GRD_QUART) présente sur les tables insee https://www.insee.fr/fr/information/2017499
-    documentation: https://geoservices.ign.fr/documentation/donnees/vecteur/contoursiris
-    metadata: https://geoservices.ign.fr/sites/default/files/2022-03/IGNF_Contours-IRISr_2-1.html
-    field:
-      prefix: CONTOURS-IRIS_2-1_SHP_
-      metropole: LAMB93_FXX-
-      guadeloupe: RGAF09UTM20_GLP-
-      martinique: RGAF09UTM20_MTQ-
-      guyane: UTM22RGFG95_GUF-
-      reunion: RGR92UTM40S_REU-
-      mayotte: RGM04UTM38S_MYT-
-      suffix: $ANNEE # les noms de fichiers comportent le millésime à la fin du moins en 2022 et 2021, faudrait donc un paramètre...vive l'ign...   
-    FTP:
-      hostname: "ftp3.ign.fr"
-      username: "Contours_IRIS_ext"
-      pwd: "ao6Phu5ohJ4jaeji"
-    2022: #absence du fichier sur le FTP verifiee
-      file: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/CONTOURS-IRIS-PACK_2022-01$CONTOURS-IRIS_2-1__SHP__FRA_2022-01-01/file/CONTOURS-IRIS_2-1__SHP__FRA_2022-01-01.7z
-    2021:
-      file: CONTOURS-IRIS_2-1__SHP__FRA_2021-01-01.7z
-    2020:
-      file: CONTOURS-IRIS_2-1__SHP__FRA_2020-01-01.7z
-    2019:
-      file: CONTOURS-IRIS_2-1__SHP__FRA_2019-01-01.7z.001
-    2018:
-      file: CONTOURS-IRIS_2-1__SHP__FRA_2018-01-01.7z.001
-    2017:
-      file: CONTOURS-IRIS_2-1__SHP__FRA_2017-01-01.7z
-    2016: #absence sur le FTP verifiee 
-      file: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/CONTOURS-IRIS-2017-06-30%24CONTOURS-IRIS_2-1__SHP__FRA_2017-06-30/file/CONTOURS-IRIS_2-1__SHP__FRA_2017-06-30.7z
-    2015: #absence sur le FTP verifiee 
-      file: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/CONTOURS-IRIS-2015-01-01%24CONTOURS-IRIS_2-1__SHP_LAMB93_FXX_2016-11-10/file/CONTOURS-IRIS_2-1__SHP_LAMB93_FXX_2016-11-10.7z
-    2014: #absence sur le FTP verifiee
-      file: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/CONTOURS-IRIS-2014-01-01%24CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/file/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01.7z
-    2013:
-      file: CONTOURS-IRIS_1-0__SHP_LAMB93_FXX_2013-01-01.7z.001
-    2009:
-      file: CONTOURS-IRIS_1-0__SHP_LAMB93_FRA_2009-01-01.7z 
+        prefix: BDTOPO
+        year: "09"
+        date: "2009-01-01"
+        version: "2-0"
+        url_prefix: https://wxs.ign.fr/859x8t863h6a09o9o6fy4v60/telechargement/inspire/BDTOPO-FRANCE-ADMIN-SSDOUBLON-PACK
 
+  CONTOUR-IRIS: #variables INSEE_COM NOM_COM IRIS CODE_IRIS NOM_IRIS TYP_IRIS ; manque la var Grand-Quartier (GRD_QUART) présente sur les tables insee https://www.insee.fr/fr/information/2017499
+    structure: "{url_prefix}{prefix}$CONTOURS-IRIS_{version}__{local}_{date}/file/CONTOURS-IRIS_{version}__{local}_{date}.7z"
+    ROOT:
+      2022:
+        url_prefix: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/
+        prefix: CONTOURS-IRIS-PACK_2022-01
+        date: 2022-01-01
+        version: "2-1"
+        local: "SHP__FRA"
+      2021:
+        url_prefix: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/
+        prefix: CONTOURS-IRIS-PACK_2021-01
+        date: 2021-01-01
+        version: "2-1"
+        local: "SHP__FRA"
+      2020:
+        url_prefix: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/
+        prefix: CONTOURS-IRIS-2020-01-01
+        date: 2020-01-01
+        version: "2-1"
+        local: "SHP__FRA"
+      2019:
+        url_prefix: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/
+        prefix: CONTOURS-IRIS-2019-01-01
+        date: 2019-01-01
+        version: "2-1"
+        local: "SHP__FRA"
+      2018:
+        url_prefix: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/
+        prefix: CONTOURS-IRIS-2018-01-02
+        date: 2018-01-01
+        version: "2-1"
+        local: "SHP__FRA"
+      2017:
+        url_prefix: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/
+        prefix: CONTOURS-IRIS-2017-01-01
+        date: 2018-06-08
+        version: "2-1"
+        local: "SHP__FRA"
+      2016:
+        url_prefix: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/
+        prefix: CONTOURS-IRIS-2017-06-30
+        date: 2017-06-30
+        version: "2-1"
+        local: "SHP__FRA"
+      2015:
+        url_prefix: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/
+        prefix: CONTOURS-IRIS-2015-01-01
+        date: 2016-11-10
+        version: "2-1"
+        local: "SHP_LAMB93_FXX"
+      2014:
+        url_prefix: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/
+        prefix: CONTOURS-IRIS-2014-01-01
+        date: 2014-01-01
+        version: "2-0"
+        local: "SHP_LAMB93_FXX"
+      2013:
+        url_prefix: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/
+        prefix: CONTOURS-IRIS-PACK_2013-01
+        date: 2013-01-01
+        version: "1-0"
+        local: "SHP_FRA"
+      2010:
+        url_prefix: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/
+        prefix: CONTOURS-IRIS-2017-08-09
+        date: 2010-01-01
+        version: "1-0"
+        local: "SHP__FRA"
+      2009:
+        url_prefix: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/
+        prefix: CONTOURS-IRIS-PACK_2009-01-01
+        date: 2009-01-01
+        version: "1-0"
+        local: "SHP_LAMB93_FRA"
 
 Insee:
-  COG: #Penser à filtrer sur TYPECOM=COM pour les communes (sans les déléguées) et TYPECOM=ARM pour les arrondissements municipaux PLM
+  COG:
     structure: https://www.insee.fr/fr/statistiques/fichier/{id}/{filename}
     COMMUNE:
-        2022:
-            id: 6051727
-            filename: commune_2022.csv
+      2023:
+        id: 6800675
+        filename: v_commune_2023.csv
+      2022:
+        id: 6051727
+        filename: commune_2022.csv
+      2021:
+        pattern: "*.csv"
+        id: 5057840
+        filename: commune2021-csv.zip
+      2020:
+        pattern: "*.csv"
+        id: 4316069
+        filename: communes2020-csv.zip
+      2019:
+        pattern: "*.csv"
+        id: 3720946
+        filename: communes-01012019-csv.zip
+      2018:
+        pattern: "*.txt"
+        id: 3363419
+        filename: comsimp2018-txt.zip
+      2017:
+        pattern: "*.txt"
+        id: 2666684
+        filename: comsimp2017-txt.zip
     CANTON:
-        2022:
-            id: 6051727
-            filename: canton_2022.csv
+      2023:
+        id: 6800675
+        filename: v_canton_2023.csv
+      2022:
+        id: 6051727
+        filename: canton_2022.csv
+      2021:
+        pattern: "*.csv"
+        id: 5057840
+        filename: canton2021-csv.zip
+      2020:
+        pattern: "*.csv"
+        id: 4316069
+        filename: canton2020-csv.zip
+      2019:
+        pattern: "*.csv"
+        id: 3720946
+        filename: canton2019-csv.zip
+      2018:
+        pattern: "*.txt"
+        id: 3363419
+        filename: canton2018-txt.zip
+      2017:
+        pattern: "*.txt"
+        id: 2666684
+        filename: canton2017-txt.zip
     ARRONDISSEMENT:
-        2022:
-            id: 6051727
-            filename: arrondissement_2022.csv
+      2023:
+        id: 6800675
+        filename: v_arrondissement_2023.csv
+      2022:
+        id: 6051727
+        filename: arrondissement_2022.csv
+      2021:
+        pattern: "*.csv"
+        id: 5057840
+        filename: arrondissement2021-csv.zip
+      2020:
+        pattern: "*.csv"
+        id: 4316069
+        filename: arrondissement2020-csv.zip
+      2019:
+        pattern: "*.csv"
+        id: 3720946
+        filename: arrondissement2019-csv.zip
+      2018:
+        pattern: "*.txt"
+        id: 3363419
+        filename: arrond2018-txt.zip
+      2017:
+        pattern: "*.txt"
+        id: 2666684
+        filename: arrond2017-txt.zip
     DEPARTEMENT:
-        2022:
-            id: 6051727
-            filename: departement_2022.csv
+      2023:
+        id: 6800675
+        filename: v_departement_2023.csv
+      2022:
+        id: 6051727
+        filename: departement_2022.csv
+      2021:
+        pattern: "*.csv"
+        id: 5057840
+        filename: departement2021-csv.zip
+      2020:
+        pattern: "*.csv"
+        id: 4316069
+        filename: departement2020-csv.zip
+      2019:
+        pattern: "*.csv"
+        id: 3720946
+        filename: departement2019-csv.zip
+      2018:
+        pattern: "*.txt"
+        id: 3363419
+        filename: depts2018-txt.zip
+      2017:
+        pattern: "*.txt"
+        id: 2666684
+        filename: depts2017-txt.zip
     REGION:
-        2022:
-            id: 6051727
-            filename: region_2022.csv
+      2023:
+        id: 6800675
+        filename: v_region_2023.csv
+      2022:
+        id: 6051727
+        filename: region_2022.csv
+      2021:
+        pattern: "*.csv"
+        id: 5057840
+        filename: region2021-csv.zip
+      2020:
+        pattern: "*.csv"
+        id: 4316069
+        filename: region2020-csv.zip
+      2019:
+        pattern: "*.csv"
+        id: 3720946
+        filename: region2019-csv.zip
+      2018:
+        pattern: "*.txt"
+        id: 3363419
+        filename: reg2018-txt.zip
+      2017:
+        pattern: "*.txt"
+        id: 2666684
+        filename: reg2017-txt.zip
     COLLECTIVITE:
-        2022:
-            id: 6051727
-            filename: CTCD_2022.csv
+      2023:
+        id: 6800675
+        filename: v_CTCD_2023.csv
+      2022:
+        id: 6051727
+        filename: CTCD_2022.csv
+      2021:
+        pattern: "*.csv"
+        id: 5057840
+        filename: CTCD2021-csv.zip
     PAYS:
-        2022:
-            id: 6051727
-            filename: pays_2022.csv
+      2023:
+        id: 6800675
+        filename: v_pays_2023.csv
+      2022:
+        id: 6051727
+        filename: pays_2022.csv
+      2021:
+        pattern: "*.csv"
+        id: 5057840
+        filename: pays2021-csv.zip
+      2020:
+        pattern: "*.csv"
+        id: 4316069
+        filename: pays2020-csv.zip
+      2019:
+        pattern: "*.csv"
+        id: 3720946
+        filename: pays2019-csv.zip
+      2018:
+        pattern: "*.txt"
+        id: 3363419
+        filename: pays2018-txt.zip
+      2017:
+        pattern: "*.txt"
+        id: 2666684
+        filename: pays2017-txt.zip
+
+  BV:
+    pattern: "com_bv*.dbf"
+    #-> nota : zip dans des zip
+    FondsDeCarte_BV_2022:
+      2023:
+        file: https://www.insee.fr/fr/statistiques/fichier/6676988/fonds_bv2022_2023.zip
+      2022:
+        file: https://www.insee.fr/fr/statistiques/fichier/6676988/fonds_bv2022_2022.zip
+    FondsDeCarte_BV_2012:
+      2022:
+        file: https://www.insee.fr/fr/statistiques/fichier/2115016/fonds_bv2012_2022.zip
+      
+  # BV2012:
+    # 2022:
+     # id: 2115016
+     # file: https://www.insee.fr/fr/statistiques/fichier/2115016/BV2012_au_01-01-2022.zip
+     # excel_name: BV2012_au_01-01-2022.xlsx
+    # 2021:
+     # id: 2115016
+     # file: https://www.insee.fr/fr/statistiques/fichier/2115016/BV2012_au_01-01-2021.zip
+     # excel_name: BV2012_au_01-01-2021.xlsx
+    # 2020:
+     # id: 2115016
+     # file: https://www.insee.fr/fr/statistiques/fichier/2115016/BV2012_au_01-01-2020_v1.zip
+     # excel_name: BV2012_au_01-01-2020_v1.xlsx
+    # 2019:
+     # id: 2115016
+     # file: https://www.insee.fr/fr/statistiques/fichier/2115016/BV2012_au_01-01-2019.zip
+     # excel_name: BV2012_au_01-01-2019.xls
+    # 2018:
+     # id: 2115016
+     # file: https://www.insee.fr/fr/statistiques/fichier/2115016/BV2012_au_01-01-2018_V2.zip
+     # excel_name: BV2012_au_01-01-2018_V2.xls
+  # UU2020:
+    # 2022: #Pour appariement sur code commune : au sein du zip, fichier XLSX "UU2020_au_01-01-2022_v2022-09-27.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO UU2020 LIBUU2020 TYPE_COM STATUT_2017 DEP REG (début du tab, ligne 6)
+      # id: 4802589-2022
+      # file: https://www.insee.fr/fr/statistiques/fichier/4802589/UU2020_au_01-01-2022_V2.zip
+    # 2021: #Pour appariement sur code commune : au sein du zip, fichier XLSX "UU2020_au_01-01-2021_v2022-09-27.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO UU2020 LIBUU2020 TYPE_COM STATUT_2017 DEP REG (début du tab, ligne 6)
+      # id: 4802589-2021
+      # file: https://www.insee.fr/fr/statistiques/fichier/4802589/UU2020_au_01-01-2021_V2.zip
+    # 2020: #Pour appariement sur code commune : au sein du zip, fichier XLSX "UU2020_au_01-01-2020_v2022-09-27.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO UU2020 LIBUU2020 TYPE_COM STATUT_2017 DEP REG (début du tab, ligne 6)
+      # id: 4802589-2020
+      # file: https://www.insee.fr/fr/statistiques/fichier/4802589/UU2020_au_01-01-2020_V2.zip
+  # UU2010:
+    # 2020: #Pour appariement sur code commune : au sein du zip, fichier XLSX "UU2010_au_01-01-2020.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO UU2010 LIBUU2010 TYPE_COM STATUT_2017 DEP REG (début du tab, ligne 6)
+      # id: 2115018-2020
+      # file: https://www.insee.fr/fr/statistiques/fichier/2115018/UU2010_au_01-01-2020.zip
+    # 2019: #Pour appariement sur code commune : au sein du zip, fichier XLS "UU2010_au_01-01-2019.xls", onglet "Composition_communale", variables CODGEO LIBGEO UU2010 LIBUU2010 TYPE_COM STATUT_2017 DEP REG (début du tab, ligne 6)
+      # id: 2115018-2019
+      # file: https://www.insee.fr/fr/statistiques/fichier/2115018/UU2010_au_01-01-2019.zip
+    # 2018: #Pour appariement sur code commune : au sein du zip, fichier XLS "UU2010_au_01-01-2018.xls", onglet "Composition_communale", variables CODGEO LIBGEO UU2010 LIBUU2010 TYPE_COM STATUT_2017 DEP REG (début du tab, ligne 6)
+      # id: 2115018-2018
+      # file: https://www.insee.fr/fr/statistiques/fichier/2115018/UU2010_au_01-01-2018.zip
+  # AAV2020:
+    # 2022: #Pour appariement sur code commune : au sein du zip, fichier XLSX "AAV2020_au_01-01-2022.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO AAV2020 LIBAAV2020 CATEAAV2020 DEP REG (début du tab, ligne 6)
+      # id: 4803954-2022
+      # file: https://www.insee.fr/fr/statistiques/fichier/4803954/AAV2020_au_01-01-2022.zip
+    # 2021: #Pour appariement sur code commune : au sein du zip, fichier XLSX "AAV2020_au_01-01-2021.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO AAV2020 LIBAAV2020 CATEAAV2020 DEP REG (début du tab, ligne 6)
+      # id: 4803954-2021
+      # file: https://www.insee.fr/fr/statistiques/fichier/4803954/AAV2020_au_01-01-2021.zip
+    # 2020: #Pour appariement sur code commune : au sein du zip, fichier XLSX "AAV2020_au_01-01-2020_v1.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO AAV2020 LIBAAV2020 CATEAAV2020 DEP REG (début du tab, ligne 6)
+      # id: 4803954-2020
+      # file: https://www.insee.fr/fr/statistiques/fichier/4803954/AAV2020_au_01-01-2020.zip
+    # 2019: #Pour appariement sur code commune : fichier multizip 2014-2019, au sein du zip AAV2020_au_01-01-2019.zip, fichier XLSX "AAV2020_au_01-01-2019.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO AAV2020 LIBAAV2020 CATEAAV2020 DEP REG (début du tab, ligne 6)
+      # id: 4803954-2019
+      # file: https://www.insee.fr/fr/statistiques/fichier/4803954/AAV2020_2014-2019.zip
+    # 2018: #Pour appariement sur code commune : fichier multizip 2014-2019, au sein du zip AAV2020_au_01-01-2018.zip, fichier XLSX "AAV2020_au_01-01-2018.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO AAV2020 LIBAAV2020 CATEAAV2020 DEP REG (début du tab, ligne 6)
+      # id: 4803954-2018
+      # file: https://www.insee.fr/fr/statistiques/fichier/4803954/AAV2020_2014-2019.zip
+    # 2017: #Pour appariement sur code commune : fichier multizip 2014-2019, au sein du zip AAV2020_au_01-01-2017.zip, fichier XLSX "AAV2020_au_01-01-2017.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO AAV2020 LIBAAV2020 CATEAAV2020 DEP REG (début du tab, ligne 6)
+      # id: 4803954-2017
+      # file: https://www.insee.fr/fr/statistiques/fichier/4803954/AAV2020_2014-2019.zip
+  # AU2010:
+    # 2020: #Pour appariement sur code commune : au sein du zip, fichier XLSX "AU2010_au_01-01-2020.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO AU2010 LIBAU2010 CATAEU2010 DEP REG (début du tab, ligne 6)
+      # id: 2115011-2020
+      # file: https://www.insee.fr/fr/statistiques/fichier/2115011/AU2010_au_01-01-2020.zip
+    # 2019: #Pour appariement sur code commune : au sein du zip, fichier XLS "AU2010_au_01-01-2019.xls, onglet "Composition_communale", variables CODGEO LIBGEO AU2010 LIBAU2010 CATAEU2010 DEP REG (début du tab, ligne 6)
+      # id: 2115011-2019
+      # file: https://www.insee.fr/fr/statistiques/fichier/2115011/AU2010_au_01-01-2019.zip
+    # 2018: #Pour appariement sur code commune : au sein du zip, fichier XLS "AU2010_au_01-01-2018_V2.xls", onglet "Composition_communale", variables CODGEO LIBGEO AU2010 LIBAU2010 CATAEU2010 DEP REG (début du tab, ligne 6)
+      # id: 2115011-2018
+      # file: https://www.insee.fr/fr/statistiques/fichier/2115011/AU2010_au_01-01-2018_V2.zip
+  # ZE2020:
+    # 2022: #Pour appariement sur code commune : au sein du zip, fichier XLSX "ZE2020_au_01-01-2022.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO ZE2020 LIBZE2020 ZE2020_PARTIE_REG DEP REG (début du tab, ligne 6)
+      # id: 4652957-2022
+      # file: https://www.insee.fr/fr/statistiques/fichier/4652957/ZE2020_au_01-01-2022.zip
+    # 2021: #Pour appariement sur code commune : au sein du zip, fichier XLSX "ZE2020_au_01-01-2021.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO ZE2020 LIBZE2020 ZE2020_PARTIE_REG DEP REG (début du tab, ligne 6)
+      # id: 4652957-2021
+      # file: https://www.insee.fr/fr/statistiques/fichier/4652957/ZE2020_au_01-01-2021.zip
+    # 2020: #Pour appariement sur code commune : au sein du zip, fichier XLSX "ZE2020_au_01-01-2020_v1.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO ZE2020 LIBZE2020 ZE2020_PARTIE_REG DEP REG (début du tab, ligne 6)
+      # id: 4652957-2020
+      # file: https://www.insee.fr/fr/statistiques/fichier/4652957/ZE2020_au_01-01-2020_v1.zip
+  # ZE2010:
+    # 2020: #Pour appariement sur code commune : au sein du zip, fichier XLSX "ZE2010_au_01-01-2020.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO ZE2010 LIBZE2010 DEP REG (début du tab, ligne 6)
+      # id: 2114596-2020
+      # file: https://www.insee.fr/fr/statistiques/fichier/2114596/ZE2010_au_01-01-2020.zip
+    # 2019: #Pour appariement sur code commune : au sein du zip, fichier XLS "ZE2010_au_01-01-2019.xls", onglet "Composition_communale", variables CODGEO LIBGEO ZE2010 LIBZE2010 DEP REG (début du tab, ligne 6)
+      # id: 2114596-2019
+      # file: https://www.insee.fr/fr/statistiques/fichier/2114596/ZE2010_au_01-01-2019.zip
+    # 2018: #Pour appariement sur code commune : au sein du zip, fichier XLS "ZE2010_au_01-01-2018.xls", onglet "Composition_communale", variables CODGEO LIBGEO ZE2010 LIBZE2010 DEP REG (début du tab, ligne 6)
+      # id: 2114596-2018
+      # file: https://www.insee.fr/fr/statistiques/fichier/2114596/ZE2010_au_01-01-2018.zip
+  # EPCI:
+    # 2022: #Pour appariement sur code commune : au sein du zip, fichier XLSX "Intercommunalite_Metropole_au_01-01-2022.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO EPCI LIBEPCI DEP REG (début du tab, ligne 6)
+      # id: 2510634-2022
+      # file: https://www.insee.fr/fr/statistiques/fichier/2510634/Intercommunalite_Metropole_au_01-01-2022.zip
+    # 2021: #Pour appariement sur code commune : au sein du zip, fichier XLSX "Intercommunalite-Metropole_au_01-01-2021.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO EPCI LIBEPCI DEP REG (début du tab, ligne 6)
+      # id: 2510634-2021
+      # file: https://www.insee.fr/fr/statistiques/fichier/2510634/Intercommunalite_Metropole_au_01-01-2021.zip
+    # 2020: #Pour appariement sur code commune : au sein du zip, fichier XLSX "Intercommunalite-Metropole_au_01-01-2020_v1.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO EPCI LIBEPCI DEP REG (début du tab, ligne 6)
+      # id: 2510634-2020
+      # file: https://www.insee.fr/fr/statistiques/fichier/2510634/Intercommunalite_Metropole_au_01-01-2020_v1.zip
+    # 2019: #Pour appariement sur code commune : au sein du zip, fichier XLS "Intercommunalite_Metropole_au_01-01-2019.xls", onglet "Composition_communale", variables CODGEO LIBGEO EPCI LIBEPCI DEP REG (début du tab, ligne 6)
+      # id: 2510634-2019
+      # file: https://www.insee.fr/fr/statistiques/fichier/2510634/Intercommunalite_Metropole_au_01-01-2019.zip
+    # 2018: #Pour appariement sur code commune : au sein du zip, fichier XLS "Intercommunalite_Metropole_au_01-01-2018.xls", onglet "Composition_communale", variables CODGEO LIBGEO EPCI LIBEPCI DEP REG (début du tab, ligne 6)
+      # id: 2510634-2018
+      # file: https://www.insee.fr/fr/statistiques/fichier/2510634/Intercommunalite_Metropole_au_01-01-2018.zip
+    # 2017: #Pour appariement sur code commune : au sein du zip, fichier XLS "Intercommunalite_Metropole_au_01-01-2017.xls", onglet "Composition_communale", variables CODGEO LIBGEO EPCI LIBEPCI DEP REG (début du tab, ligne 6)
+      # id: 2510634-2017
+      # file: https://www.insee.fr/fr/statistiques/fichier/2510634/Intercommunalite_Metropole_au_01-01-2017.zip
+  # DENS: #grille communale de densité 7 niveaux
+    # 2022: #Pour appariement, variables ppales "Code commune", "Libellé commune", "Typo degré densité" ,"Libellé degré densité"
+      # id: 6439600-2022
+      # file: https://www.insee.fr/fr/statistiques/fichier/6439600/grille_densite_7_niveaux_detaille_2022.xlsx
+    # 2021: #Pour appariement, variables ppales "Code Commune", "Libellé des communes", "Typo degré de Densité", "Libellé degré de densité"
+      # id: 6439600-2021
+      # file: https://www.insee.fr/fr/statistiques/fichier/6439600/grille_densite_7_niveaux_detaille_2021.xlsx
+  # FUA: #composition communale des cities et des aires urbaines fonctionnelles
+    # 2021: #vars principales Typo degré densité et Libellé degré densité
+      # id: 3642744-2021
+      # file: https://www.insee.fr/fr/statistiques/fichier/3642744/com2021_citiesfua2021.xlsx
+  # CIRCO: #circonscriptions législatives
+    # 2022: #var ppales COMMUNE_RESID	circo type_com (entière ou partiel)
+      # id: 6436476 #Table de correspondance entre les communes et les circonscriptions législatives
+      # file: https://www.insee.fr/fr/statistiques/fichier/6436476/circo_composition.xlsx
+      # documentation : https://www.insee.fr/fr/statistiques/6436476
+    # SHP:
+      # id: 6441661  #shp des contours simplifiés en WGS84
+      # file: https://www.insee.fr/fr/statistiques/fichier/6441661/contours_circonscriptions_legislatives_03052022.zip
+      # documentation : https://www.insee.fr/fr/statistiques/6441661
+# Services comparables :
+  # Nom : "NUTS Converter"
+  # Nature : service web
+  # Producteur : Commission européenne
+  # Service rendu : "Convertit la nomenclature des NUTS entre Etats et entre niveaux (ex : à quel découpage administratif polonais correspondent les départements français ?)"
+  # URL : https://urban.jrc.ec.europa.eu/nutsconverter/#/
+
+# Eurostat: # Voir https://ropengov.github.io/giscoR/ ou directeeent API Gisco si besoin de géométrie ou de récupérer son dbf/table attributaire
+  # LAU: #Table de correspondance LAU - NUTS pour faire une jointure éventuelle avec shp/base communale via le LAU CODE. Variables ppales : NUTS3 CODE, LAU CODE, LAU NAME NATIONAL,LAU NAME LATIN, DEGURBA, COASTAL AREA, new_CITY_ID, new_CITY_NAME, new_FUA_ID, new_FUA_NAME
+    # 2021: #provisoire,  NUTS 2021
+      # file: https://ec.europa.eu/eurostat/documents/345175/501971/EU-27-LAU-2021-NUTS-2021.xlsx #autre possibilité de récupérer les données LAU via l'API GISCO https://gisco-services.ec.europa.eu/distribution/v2/
+    # 2020: #provisoire, NUTS 2016/2021
+      # file: https://ec.europa.eu/eurostat/documents/345175/501971/EU-27-LAU-2020-NUTS-2021-NUTS-2016.xlsx
+    # 2019: #NUTS 2016
+      # file: https://ec.europa.eu/eurostat/documents/345175/501971/EU-28-LAU-2019-NUTS-2016.xlsx
+    # 2018: #NUTS 2016
+      # file: https://ec.europa.eu/eurostat/documents/345175/501971/EU-28-LAU-2018-NUTS-2016.xlsx
+    # 2017: #NUTS 2016
+      # file: https://ec.europa.eu/eurostat/documents/345175/501971/EU-28_LAU_2017_NUTS_2016.xlsx
+
+  # Observatoire_des_territoires: # en l'état, les fichiers dispo sont les finchiers "commmunes", les fichier données "cours d'appel"/"tribunaux judiciaires"/perimetre des academies"/etc.. sont inexploitable en l'état
+    # cours_dappel: #Périmètre des ressorts des cours d'appel
+      # 2021: #URL : https://www.observatoire-des-territoires.gouv.fr/perimetre-des-ressorts-des-cours-dappel
+        # file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=_zon_&indic=ca
+    # tribunaux_judiciaires: #Périmètre des ressorts des tribunaux judiciaires
+      # 2021: #URL : https://www.observatoire-des-territoires.gouv.fr/perimetre-des-ressorts-des-tribunaux-judiciaires
+        # file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=_zon_&indic=tj
+    # tribunaux_de_proximité:  #Périmètre des ressorts des tribunaux de proximité ou pôles de proximité de tribunaux judiciaires
+      # 2021: #URL : https://www.observatoire-des-territoires.gouv.fr/perimetre-des-ressorts-des-tribunaux-de-proximite-ou-poles-de-proximite-de-tribunaux-judiciaires
+        # file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=_zon_&indic=tjtprx
+    # perimetre_des_academies: #Périmètre des académies
+      # 2021: #URL : https://www.observatoire-des-territoires.gouv.fr/perimetre-des-academies
+        # file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=_zon_&indic=academie
+    # modalite_classement_communes_revitalisation_rurale: #Modalités de classement des communes en zone de revitalisation rurale - ZRR (2018...1995)
+      # 2021: #URL : https://www.observatoire-des-territoires.gouv.fr/modalites-de-classement-des-communes-en-zone-de-revitalisation-rurale-zrr
+        # file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=typo_zrr&indic=zonage_zrr
+    # classement_communes_revitalisation_rurale: #Classement des communes en zone de revitalisation rurale - ZRR (2018...1995)
+      # 2021: #URL : https://www.observatoire-des-territoires.gouv.fr/classement-des-communes-en-zone-de-revitalisation-rurale-zrr
+        # file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=typo_zrr&indic=zrr_simp
+    # communes_éligibles_zonage_aide_regionale: #Communes éligibles au zonage d'aide à finalité régionale (AFR), période 2014-2021
+      # 2021: #URL : https://www.observatoire-des-territoires.gouv.fr/communes-eligibles-au-zonage-daide-finalite-regionale-afr-periode-2014-2021
+        # file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=typo_afr&indic=zonage_afr
+    # classement_commune_zone_revitalisation_commerces: #Classement des communes en zone de revitalisation des commerces en milieu rural
+      # 2021: #URL : https://www.observatoire-des-territoires.gouv.fr/kiosque/zonage-les-zones-de-revitalisation-des-commerces-en-milieu-rural-zorcomir
+        # file: https://www.observatoire-des-territoires.gouv.fr/sites/default/files/2021-09/Diffusion-zonages-ZoRCoMiR-cog2021.xls
+        # doc: https://www.observatoire-des-territoires.gouv.fr/kiosque/zonage-les-zones-de-revitalisation-des-commerces-en-milieu-rural-zorcomir
+    # communes_classees_montagne_agriculture: #Communes classées en zone de montagne (zonage agriculture) attention extension xlsx à restaurer
+      # 2021: #URL : https://www.observatoire-des-territoires.gouv.fr/kiosque/zonage-les-zones-de-montagne
+        # file: blob:https://www.observatoire-des-territoires.gouv.fr/c2419b47-496a-4957-930f-0336b69a6147
+        # doc: https://www.observatoire-des-territoires.gouv.fr/kiosque/zonage-les-zones-de-montagne
+    # communes_classees_monagne_urbanisme: #Communes classées en zone de montagne (zonage urbanisme)
+      # 2021: #URL : https://www.observatoire-des-territoires.gouv.fr/communes-classees-en-zone-de-montagne-zonage-urbanisme
+        # file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=zone_mont_urb&indic=mont_urb
+    # modalites_classement_communes_loi_littoral: #Modalités du classement des communes en loi littoral
+      # 2021: #URL: https://www.observatoire-des-territoires.gouv.fr/modalites-du-classement-des-communes-en-loi-littoral
+        # file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=typo_loilitt&indic=zonage_loilitt
+    # classement_communes_loi_littorale: # Les communes soumises à la loi littoral
+      # 2021: #URL: https://www.observatoire-des-territoires.gouv.fr/classement-des-communes-en-loi-littoral
+        # file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=typo_loilitt&indic=loilitt_simp
+        # doc: https://www.observatoire-des-territoires.gouv.fr/kiosque/zonage-les-communes-soumises-la-loi-littoral
+    # part_population_QPV: #Part de la population municipale vivant dans un quartier prioritaire de la politique de la ville (QPV)
+                         # # NB: d'autres maillages géographiques dispo à l'URL
+      # 2021: #URL: https://www.observatoire-des-territoires.gouv.fr/part-de-la-population-municipale-vivant-dans-un-quartier-prioritaire-de-la-politique-de-la-ville
+        # file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=qpv_pop&indic=part_pop_qpv
+    # nombre_QPV: #Nombre de quartiers prioritaires de la politique de la ville (QPV)
+                # # NB: d'autres maillages géographiques dispo à l'URL
+      # 2021: #URL : https://www.observatoire-des-territoires.gouv.fr/nombre-de-quartiers-prioritaires-de-la-politique-de-la-ville-qpv
+        # file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=qpv&indic=nb_qpv
+    # villes_beneficianires_programme_ACV: #Villes bénéficiaires du programme Action Coeur de Ville (ACV)
+      # 2021: #URL : https://www.observatoire-des-territoires.gouv.fr/villes-beneficiaires-du-programme-action-coeur-de-ville-acv
+        # file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=_zon_&indic=acv
+        # doc: https://www.observatoire-des-territoires.gouv.fr/kiosque/zonage-le-plan-national-action-coeur-de-ville-acv
+    # perimetre_territoires_industrie: #Périmètre des territoires d'industrie
+      # 2021: #URL : https://www.observatoire-des-territoires.gouv.fr/perimetre-des-territoires-dindustrie-0
+        # file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=_zon_&indic=ti
+    # perimetre_CRTE: #Périmètre des contrats de relance et de transition écologique (CRTE)
+      # 2021: #URL : https://www.observatoire-des-territoires.gouv.fr/perimetre-des-contrats-de-relance-et-de-transition-ecologique-crte
+        # file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=_zon_&indic=crte
+    # communes_PNR: #Communes des parcs naturels régionaux (PNR)
+      # 2021: #URL : https://www.observatoire-des-territoires.gouv.fr/communes-des-parcs-naturels-regionaux-pnr
+        # file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=_zon_&indic=pnr
+        # doc: https://www.observatoire-des-territoires.gouv.fr/kiosque/zonage-les-perimetres-des-parcs-naturels-regionaux-pnr
+    # communes_parcs_nationaux: #Communes des parcs nationaux
+      # 2021: #URL : https://www.observatoire-des-territoires.gouv.fr/communes-des-parcs-nationaux
+        # file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=_zon_&indic=pn
+    # perimetre_massifs: #Périmètre des massifs
+      # 2021: #URL : https://www.observatoire-des-territoires.gouv.fr/perimetre-des-massifs
+        # file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=_zon_&indic=massif
+        # doc: https://www.observatoire-des-territoires.gouv.fr/kiosque/zonage-les-zones-de-perimetre-de-massifs
+    # villes_beneficiaires_programme_PVD : #Villes bénéficiaires du programme Petites villes de demain (PVD)
+      # 2021: #URL : https://www.observatoire-des-territoires.gouv.fr/villes-beneficiaires-du-programme-petites-villes-de-demain-pvd
+        # file: https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/api/v1/functions/GC_API_download.php?type=stat&nivgeo=com2021&dataset=_zon_&indic=pn
+
+
+
+# POTENTIELLEMENT INTERESSANT
+# mais à sourcer sur plusieurs millésimes (uniquement en geo communale 2021 sur Observatoire des territoires)
+# et probablement directement auprès des producteurs. Question de qualité des bases compilées par l'ANCT/ODT.
+# https://www.observatoire-des-territoires.gouv.fr/
+# https://www.observatoire-des-territoires.gouv.fr/outils/cartographie-interactive/#view=map36&c=indicator
+# les compositions communales sont soir dans fichiers communes_2021 du site web soit via tableau de données du site carto
+# Zonages:
+    # /!\ URL introuvable : Population municipale vivant dans un quartier prioritaire de la politique de la ville (QPV)

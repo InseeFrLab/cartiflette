@@ -39,7 +39,7 @@ def url_express_COG_territoire(
     source = yaml[provider]["ADMINEXPRESS"]["EXPRESS-COG-TERRITOIRE"]
 
     # RETRIEVING FROM YAML
-    field = source["field"][territoire]
+    territory = source["territory"][territoire]
     date_yaml = source[year]["date"]
     prefix = source[year]["prefix"]
     version = source[year]["version"]
@@ -52,7 +52,7 @@ def url_express_COG_territoire(
         date=date_yaml,
         prefix=prefix,
         version=version,
-        field=field,
+        territory=territory,
     )
 
     return url

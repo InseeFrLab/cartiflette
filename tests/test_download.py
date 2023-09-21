@@ -7,16 +7,12 @@ Created on Thu May 11 19:54:04 2023
 
 import pytest
 import os
-import requests
+import requests_cache
 import logging
-from cartiflette.download import (
-    Dataset,
-    BaseScraper,
-    HttpScraper,
-    FtpScraper,
-    MasterScraper,
-    download_sources,
-)
+from cartiflette.download.dataset import Dataset
+from cartiflette.download.scraper import MasterScraper
+
+from cartiflette.download import download_sources
 from cartiflette.utils import import_yaml_config
 from tests.conftest import (
     DUMMY_FILE_1,
@@ -47,38 +43,36 @@ def test_Dataset():
     pass
 
 
-def test_BaseScraper():
+def test_file_validation():
     """
     test la validation des fichiers (méthode statique)
     """
-    assert BaseScraper.__validate_file__(DUMMY_FILE_1, HASH_DUMMY)
-    assert not BaseScraper.__validate_file__(DUMMY_FILE_2, HASH_DUMMY)
+    assert MasterScraper.__validate_file__(DUMMY_FILE_1, HASH_DUMMY)
+    assert not MasterScraper.__validate_file__(DUMMY_FILE_2, HASH_DUMMY)
 
 
-def test_HttpScraper_proxy():
+def test_http_proxy():
     """
     Test du bon fonctionnement du proxy
 
     """
     init = {}
-    for k in ["http", "https", "ftp"]:
+    for k in ["http", "https"]:
         try:
             init[f"{k}_proxy"] = os.environ[f"{k}_proxy"]
         except KeyError:
             pass
 
     os.environ["http_proxy"] = "blah"
-    os.environ["ftp_proxy"] = "blah"
     try:
         del os.environ["https_proxy"]
     except KeyError:
         pass
-    dummy_scraper = HttpScraper()
+    dummy_scraper = MasterScraper()
     try:
-        assert isinstance(dummy_scraper, requests.Session)
+        assert isinstance(dummy_scraper, requests_cache.CachedSession)
         assert dummy_scraper.proxies == {
             "http": "blah",
-            "ftp": "blah",
         }
     except Exception as e:
         raise e
@@ -86,34 +80,35 @@ def test_HttpScraper_proxy():
         os.environ.update(init)
 
 
-def test_HttpScraper_download(mock_httpscraper_download_success):
+def test_http_download(mock_httpscraper_download_success):
     """
     test de self.download_to_tempfile_http
     """
 
     # Initialisation
-    dummy_scraper = HttpScraper()
+    dummy_scraper = MasterScraper()
+    dummy = "https://dummy"
 
     # Fourniture du même hash -> pas de téléchargement
     result = dummy_scraper.download_to_tempfile_http(
-        url="dummy", hash=HASH_DUMMY
+        url=dummy, hash=HASH_DUMMY
     )
-    downloaded, path = result
+    downloaded, filetype, path = result
     assert not downloaded
 
     # Fourniture d'un hash changé -> téléchargement
-    result = dummy_scraper.download_to_tempfile_http(url="dummy", hash="BLAH")
-    downloaded, path = result
+    result = dummy_scraper.download_to_tempfile_http(url=dummy, hash="BLAH")
+    downloaded, filetype, path = result
     assert downloaded
 
     # Pas de hash fourni : valide le fichier a posteriori avec sa longueur
-    result = dummy_scraper.download_to_tempfile_http(url="dummy")
-    downloaded, path = result
+    result = dummy_scraper.download_to_tempfile_http(url=dummy)
+    downloaded, filetype, path = result
     assert downloaded
     assert path
 
 
-def test_HttpScraper_download_ko_length(
+def test_download_ko_length(
     mock_httpscraper_download_success_corrupt_length,
 ):
     """
@@ -121,12 +116,12 @@ def test_HttpScraper_download_ko_length(
     le Content-length ne correspond pas au contenu (simule un fichier corrompu)
     -> doit déclencher un IOError
     """
-    dummy_scraper = HttpScraper()
+    dummy_scraper = MasterScraper()
     with pytest.raises(IOError):
         result = dummy_scraper.download_to_tempfile_http("dummy")
 
 
-def test_HttpScraper_download_ko_md5(
+def test_download_ko_md5(
     mock_httpscraper_download_success_corrupt_hash,
 ):
     """
@@ -134,47 +129,45 @@ def test_HttpScraper_download_ko_md5(
     avec son contenu (simule un fichier corrompu)
     -> doit déclencher un IOError
     """
-    dummy_scraper = HttpScraper()
+    dummy_scraper = MasterScraper()
     with pytest.raises(IOError):
         result = dummy_scraper.download_to_tempfile_http("dummy")
 
 
-def test_FtpScraper():
-    """
-    download_to_tempfile_ftp
-    """
-    # TODO
-    pass
+# def test_ftp_download():
+#     """
+#     download_to_tempfile_ftp
+#     """
+#     # TODO
+#     pass
 
 
-def test_MasterScraper_ko():
-    """
-    download_unzip
-    * Tester que si échec du téléchargement, le fichier temporaire est supprimé
-    * contrôler que le retour est un dictionnaire avec les bonnes clefs
-    """
-    # TODO
-    pass
+# def test_MasterScraper_ko():
+#     """
+#     download_unzip
+#     * Tester que si échec du téléchargement, le fichier temporaire est supprimé
+#     * contrôler que le retour est un dictionnaire avec les bonnes clefs
+#     """
+#     # TODO
+#     pass
 
 
-def test_MasterScraper_ok():
-    """
-    download_unzip
-    * Si succès, contrôle de la présence du fichier temporaire (puis le
-      supprimer)
-    * contrôler que le retour est un dictionnaire avec les bonnes clefs
-    """
-    # TODO
-    pass
+# def test_MasterScraper_ok():
+#     """
+#     download_unzip
+#     * Si succès, contrôle de la présence du fichier temporaire (puis le
+#       supprimer)
+#     * contrôler que le retour est un dictionnaire avec les bonnes clefs
+#     """
+#     # TODO
+#     pass
 
 
-def test_download_sources():
-    pass
+# def test_download_sources():
+#     pass
 
 
 def test_sources_yaml(mock_Dataset_without_s3):
-    "teste la syntaxe du yaml (pour les sources en HTTP(S)"
-
     yaml = import_yaml_config()
 
     errors_type0 = []
@@ -196,27 +189,36 @@ def test_sources_yaml(mock_Dataset_without_s3):
                     str_yaml = f"{dataset_family}/{source}"
 
                     if not isinstance(source_yaml, dict):
-                        errors_type0.append(
-                            f"yaml {str_yaml} contains '{source_yaml}'"
-                        )
-                        continue
+                        if source in {"pattern", "structure"}:
+                            continue
+                        else:
+                            errors_type0.append(
+                                f"yaml {str_yaml} contains '{source_yaml}'"
+                            )
+                            continue
                     elif "FTP" in set(source_yaml.keys()):
                         logger.info("yaml {str_yaml} not checked (FTP)")
                         continue
 
-                    years = set(source_yaml.keys()) - {"field", "FTP"}
+                    years = set(source_yaml.keys()) - {"territory", "FTP"}
                     try:
-                        territories = set(source_yaml["field"].keys())
+                        territories = set(source_yaml["territory"].keys())
                     except KeyError:
                         territories = {""}
 
+                    print("-" * 50)
+                    print(str_yaml, territories)
                     for year in years:
                         for territory in territories:
-                            str_yaml = f"{dataset_family}/{source}/{year}/{provider}/{territory}"
+                            str_yaml = (
+                                f"{dataset_family}/{source}/{year}/{provider}"
+                                f"/{territory}"
+                            )
 
                             if territory == "":
                                 territory = None
                             try:
+                                print(str_yaml)
                                 ds = Dataset(
                                     dataset_family,
                                     source,
@@ -226,19 +228,25 @@ def test_sources_yaml(mock_Dataset_without_s3):
                                 )
                             except Exception:
                                 errors_type1.append(
-                                    f"error on yaml {str_yaml} : dataset not constructed"
+                                    f"error on yaml {str_yaml} : dataset not "
+                                    "constructed"
                                 )
                                 continue
                             try:
                                 url = ds.get_path_from_provider()
                             except Exception:
                                 errors_type2.append(
-                                    f"error on yaml {str_yaml} : url not reconstructed"
+                                    f"error on yaml {str_yaml} : url not "
+                                    "reconstructed"
                                 )
                                 continue
 
                             try:
-                                r = scraper.get(url, stream=True)
+                                # Use .head(url) instead of
+                                # .get(url, stream=True) until bug of
+                                # CachedSession is fixed
+                                # See https://github.com/requests-cache/requests-cache/issues/878
+                                r = scraper.head(url)
                             except Exception:
                                 errors_type3.append(
                                     f"error on yaml {str_yaml} : "
@@ -258,7 +266,8 @@ def test_sources_yaml(mock_Dataset_without_s3):
         if errors_type1:
             logger.error("=" * 50)
             logger.error(
-                "Jeux de données non reconstitués\n" + "\n".join(errors_type1)
+                "Objet(s) Dataset(s) non instancié(s)\n"
+                + "\n".join(errors_type1)
             )
             logger.error("-" * 50)
 
@@ -279,4 +288,4 @@ def test_sources_yaml(mock_Dataset_without_s3):
             )
             logger.error("-" * 50)
 
-        assert False
+    assert len(errors_type1 + errors_type2 + errors_type3 + errors_type4) == 0

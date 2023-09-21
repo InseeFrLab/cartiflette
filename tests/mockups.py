@@ -6,6 +6,7 @@ Created on Thu May 11 19:48:36 2023
 """
 import pytest
 import requests
+from requests_cache import CachedSession
 import logging
 
 from tests.conftest import (
@@ -13,9 +14,7 @@ from tests.conftest import (
     FILESIZE_DUMMY,
     CONTENT_DUMMY,
 )
-from cartiflette.download import (
-    Dataset,
-)
+from cartiflette.download.dataset import Dataset
 
 logging.basicConfig(level=logging.INFO)
 
@@ -75,8 +74,8 @@ def mock_httpscraper_download_success(monkeypatch):
     def mock_get(self, url, *args, **kwargs):
         return mocked_session.get(url, *args, **kwargs)
 
-    monkeypatch.setattr(requests.Session, "head", mock_head)
-    monkeypatch.setattr(requests.Session, "get", mock_get)
+    monkeypatch.setattr(CachedSession, "head", mock_head)
+    monkeypatch.setattr(CachedSession, "get", mock_get)
 
 
 @pytest.fixture
@@ -95,8 +94,8 @@ def mock_httpscraper_download_success_corrupt_hash(monkeypatch):
     def mock_get(self, url, *args, **kwargs):
         return mocked_session.get(url, *args, **kwargs)
 
-    monkeypatch.setattr(requests.Session, "head", mock_head)
-    monkeypatch.setattr(requests.Session, "get", mock_get)
+    monkeypatch.setattr(CachedSession, "head", mock_head)
+    monkeypatch.setattr(CachedSession, "get", mock_get)
 
 
 @pytest.fixture
@@ -114,5 +113,5 @@ def mock_httpscraper_download_success_corrupt_length(monkeypatch):
     def mock_get(self, url, *args, **kwargs):
         return mocked_session.get(url, *args, **kwargs)
 
-    monkeypatch.setattr(requests.Session, "head", mock_head)
-    monkeypatch.setattr(requests.Session, "get", mock_get)
+    monkeypatch.setattr(CachedSession, "head", mock_head)
+    monkeypatch.setattr(CachedSession, "get", mock_get)

@@ -39,16 +39,16 @@ fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": endpoint_url}, **kwargs)
 
 
 path = store_vectorfile_ign(
-    source="EXPRESS-COG-TERRITOIRE", year=2022, field="metropole"
+    source="EXPRESS-COG-TERRITOIRE", year=2022, territory="metropole"
 )
 path = store_vectorfile_ign(
-    source="EXPRESS-COG-TERRITOIRE", year=2021, field="reunion"
+    source="EXPRESS-COG-TERRITOIRE", year=2021, territory="reunion"
 )
 path = store_vectorfile_ign(
-    source="EXPRESS-COG-TERRITOIRE", year=2020, field="reunion"
+    source="EXPRESS-COG-TERRITOIRE", year=2020, territory="reunion"
 )
 path = store_vectorfile_ign(
-    source="EXPRESS-COG-TERRITOIRE", year=2019, field="reunion"
+    source="EXPRESS-COG-TERRITOIRE", year=2019, territory="reunion"
 )
 
 for c in [
@@ -60,7 +60,7 @@ for c in [
     "guyane",
 ]:
     path = store_vectorfile_ign(
-        source="EXPRESS-COG-TERRITOIRE", year=2022, field=c
+        source="EXPRESS-COG-TERRITOIRE", year=2022, territory=c
     )
     print(os.listdir(path))
 
