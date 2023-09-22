@@ -247,16 +247,17 @@ def test_sources_yaml(mock_Dataset_without_s3):
                                 # CachedSession is fixed
                                 # See https://github.com/requests-cache/requests-cache/issues/878
                                 r = scraper.head(url)
-                            except Exception:
+                            except Exception as e:
                                 errors_type3.append(
                                     f"error on yaml {str_yaml} : "
-                                    f"https get request failed on {url}"
+                                    f"https head request failed on {url} "
+                                    f"with exception {e}"
                                 )
                                 continue
                             if not r.ok:
                                 errors_type4.append(
                                     f"error on yaml {str_yaml} : "
-                                    "https get request "
+                                    "https head request "
                                     f"got code {r.status_code} on {url}"
                                 )
     if errors_type0:
