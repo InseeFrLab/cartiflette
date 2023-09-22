@@ -1,46 +1,65 @@
 """Module for communication with Minio S3 Storage
 """
 
-from typing import Dict, Union
+from typing import Optional
 
-BUCKET = "projet-cartiflette"
-PATH_WITHIN_BUCKET = "diffusion/shapefiles-test1"
-ENDPOINT_URL = "https://minio.lab.sspcloud.fr"
+from cartiflette import BUCKET, PATH_WITHIN_BUCKET
+
 
 # CREATE STANDARDIZED PATHS ------------------------
 
 
-def create_path_bucket(config: Dict[str, Union[str, int, float]]) -> str:
+class ConfigDict:
+    bucket: Optional[str]
+    path_within_bucket: Optional[str]
+    provider: str
+    source: str
+    vectorfile_format: str
+    borders: str
+    filter_by: str
+    year: str
+    crs: Optional[int]
+    value: str
+
+
+def create_path_bucket(config: ConfigDict) -> str:
     """
-    This function creates a file path for a vector file within a specified bucket.
+    This function creates a file path for a vector file within a specified
+    bucket.
 
-    Parameters:
-    config (Dict[str, Union[str, int, float]]): A dictionary containing vector file parameters.
+    Parameters
+    ----------
+    config : ConfigDict
+        A dictionary containing vector file parameters.
 
-    Returns:
-    str: The complete file path for the vector file that will be used to read
-    or write when interacting with S3 storage.
+    Returns
+    -------
+    str
+       The complete file path for the vector file that will be used to read
+       or write when interacting with S3 storage.
+
     """
 
     bucket = config.get("bucket", BUCKET)
     path_within_bucket = config.get("path_within_bucket", PATH_WITHIN_BUCKET)
-    provider = config.get("provider", "IGN")
-    source = config.get("source", "EXPRESS-COG-TERRITOIRE")
-    vectorfile_format = config.get("vectorfile_format", "geojson")
-    borders = config.get("borders", "COMMUNE")
-    filter_by = config.get("filter_by", "region")
-    year = config.get("year", "2022")
-    value = config.get("value", "28")
+    provider = config.get("provider")
+    source = config.get("source")
+    vectorfile_format = config.get("vectorfile_format")
+    borders = config.get("borders")
+    filter_by = config.get("filter_by")
+    year = config.get("year")
+    value = config.get("value")
     crs = config.get("crs", 2154)
 
-    write_path = f"{bucket}/{path_within_bucket}"
-    write_path = f"{write_path}/{year=}"
-    write_path = f"{write_path}/administrative_level={borders}"
-    write_path = f"{write_path}/{crs=}"
-    write_path = f"{write_path}/{filter_by}={value}/{vectorfile_format=}"
-    write_path = f"{write_path}/{provider=}/{source=}"
-    write_path = f"{write_path}/raw.{vectorfile_format}"
-    write_path = write_path.replace("'", "")
+    write_path = (
+        f"{bucket}/{path_within_bucket}"
+        f"/{year=}"
+        f"/administrative_level={borders}"
+        f"/{crs=}"
+        f"/{filter_by}={value}/{vectorfile_format=}"
+        f"/{provider=}/{source=}"
+        f"/raw.{vectorfile_format}"
+    ).replace("'", "")
 
     if vectorfile_format == "shp":
         write_path = write_path.rsplit("/", maxsplit=1)[0] + "/"
