@@ -3,7 +3,7 @@ name: Lint Python package
 on: [push]
 
 jobs:
-  build-linux:
+  lint-checking:
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 5
