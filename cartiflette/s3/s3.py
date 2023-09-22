@@ -13,7 +13,8 @@ from topojson import Topology
 import typing
 
 
-from cartiflette.download import MasterScraper, Dataset
+from cartiflette.download.dataset import Dataset
+from cartiflette.download.scraper import MasterScraper
 
 from cartiflette.utils import (
     keep_subset_geopandas,
@@ -59,7 +60,7 @@ def create_dict_all_territories(
             provider=provider,
             borders=borders,
             year=year,
-            field=f,
+            territory=f,
             source=source,
         )
         for f in territories_available
