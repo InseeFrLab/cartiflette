@@ -14,7 +14,9 @@ from tests.conftest import (
     FILESIZE_DUMMY,
     CONTENT_DUMMY,
 )
+
 from cartiflette.download.dataset import Dataset
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -113,5 +115,7 @@ def mock_httpscraper_download_success_corrupt_length(monkeypatch):
     def mock_get(self, url, *args, **kwargs):
         return mocked_session.get(url, *args, **kwargs)
 
+
     monkeypatch.setattr(CachedSession, "head", mock_head)
     monkeypatch.setattr(CachedSession, "get", mock_get)
+
