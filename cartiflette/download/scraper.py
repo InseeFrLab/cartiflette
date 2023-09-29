@@ -1,30 +1,25 @@
 # -*- coding: utf-8 -*-
 
 import magic
-from datetime import date
 import ftplib
-from itertools import product
+from glob import glob
 import logging
 import numpy as np
 import os
 import re
 import requests_cache
-import s3fs
-import shutil
 import tempfile
 from tqdm import tqdm
 from typing import TypedDict
 from unidecode import unidecode
 from urllib3.util import parse_url
 
-import cartiflette
-from cartiflette.utils import hash_file, deep_dict_update
-from .dataset import Dataset
+from cartiflette.utils import hash_file
+from cartiflette.download.dataset import Dataset
+from cartiflette.download.layer import Layer
 
 
 logger = logging.getLogger(__name__)
-
-# TODO : check all docstrings
 
 
 class BaseScraper:
@@ -55,6 +50,8 @@ class HttpScraper(
     meant to be used by itself, but only when surcharged.
     """
 
+    pattern_path = re.compile(r"[\\/]")
+
     def __init__(
         self,
         cache_name: str = "cartiflette.sqlite",
@@ -75,8 +72,13 @@ class HttpScraper(
             Arguments passed to requests.Session.
 
         """
+
+        backend = requests_cache.SQLiteCache(
+            db_path=cache_name, wal=True, check_same_thread=False
+        )
+
         super().__init__(
-            cache_name,
+            backend=backend,
             expire_after=expire_after,
             *args,
             **kwargs,
@@ -150,7 +152,7 @@ class HttpScraper(
             logger.debug(f"File MD5 is {expected_md5}")
         except KeyError:
             expected_md5 = None
-            logger.info(f"md5 not found in header at url {url}")
+            logger.debug(f"md5 not found in header at url {url}")
         else:
             if hash and expected_md5 == hash:
                 # unchanged file -> exit
@@ -164,7 +166,7 @@ class HttpScraper(
             except KeyError:
                 expected_file_size = None
                 msg = f"Content-Length not found in header at url {url}"
-                logger.info(msg)
+                logger.debug(msg)
 
         with tempfile.NamedTemporaryFile("wb", delete=False) as temp_file:
             file_path = temp_file.name
@@ -206,7 +208,7 @@ class HttpScraper(
         # if there's a hash value, check if there are any changes
         if hash and self.__validate_file__(file_path, hash):
             # unchanged file -> exit (after deleting the downloaded file)
-            logger.info(f"md5 matched at {url} after download")
+            logger.debug(f"md5 matched at {url} after download")
             os.unlink(file_path)
             return False, None, None
 
@@ -232,13 +234,15 @@ class FtpScraper(BaseScraper, ftplib.FTP):
                 raise NotImplementedError(
                     "Connection with protocol FTP through HTTP corporate "
                     "proxy is not implemented yet; please create an issue "
-                    "refering https://stackoverflow.com/questions/45472577/#answer-58282569"
+                    "refering https://stackoverflow.com/questions/45472577/"
+                    "#answer-58282569"
                 )
             if parsed.scheme == "ftp":
                 raise NotImplementedError(
                     "Connection with protocol FTP through FTP corporate "
                     "proxy is not implemented yet; please create an issue "
-                    "refering https://stackoverflow.com/questions/45472577/#answer-51879035"
+                    "refering https://stackoverflow.com/questions/45472577/"
+                    "#answer-51879035"
                 )
 
     def download_to_tempfile_ftp(
@@ -325,25 +329,26 @@ class MasterScraper(HttpScraper, FtpScraper):
     class DownloadReturn(TypedDict):
         downloaded: bool
         hash: str
-        paths: tuple
+        layers: dict
         root_cleanup: str
 
     def download_unpack(self, datafile: Dataset, **kwargs) -> DownloadReturn:
         """
         Performs a download (through http, https of ftp protocol) to a tempfile
-        which will be cleaned afterwards ; unzip targeted files to a temporary
-        file which ** WILL ** need manual cleanup.
+        which will be cleaned automatically ; unzip targeted files to a 2nd
+        temporary file which ** WILL ** need manual cleanup.
         In case of an actual download (success of download AND the file is a
         new one), the dict returned will be ot this form :
             {
                 "downloaded": True,
                 "hash": the archive's new hash value (before uncompression),
-                "paths": the targeted (and auxiliary) files extracted
-                "root_cleanup": the root temporary directory to cleanup later
+                "layers": dict of Layer objects
+                "root_cleanup": the root temporary directory to cleanup
+                    afterwards
                 }
         In case of failure (failure to download OR the file is the same as a
         previous one), the dict returned will be of this form ;
-            {"downloaded": False, "hash": None, "paths": None}
+            {"downloaded": False, "hash": None, "layers": None}
 
         Parameters
         ----------
@@ -358,11 +363,31 @@ class MasterScraper(HttpScraper, FtpScraper):
             Dictionnaire doté du contenu suivant :
                 downloaded: bool
                 hash: str
-                paths: tuple (of str)
-                    paths to all files matching the pattern having been
-                    extracted (should be only one path except with shapefiles)
+                layers: ...
                 root_cleanup: str
                     root temporary directory to cleanup afterwards
+
+        Ex:
+            {
+                'downloaded': True,
+                'hash': '5435fca3e488ca0372505b9bcacfde30',
+                'layers': {
+                    'CONTOURS-IRIS_2-1_SHP_RGR92UTM40S_REU-2022_CONTOURS-IRIS':
+                        < Layer CONTOURS - IRIS_2 - 1_SHP_RGR92UTM40S_REU - 2022_CONTOURS - IRIS from < Dataset IGN CONTOUR - IRIS ROOT None 2022 >> ,
+                    'CONTOURS-IRIS_2-1_SHP_RGAF09UTM20_GLP-2022_CONTOURS-IRIS':
+                        < Layer CONTOURS - IRIS_2 - 1_SHP_RGAF09UTM20_GLP - 2022_CONTOURS - IRIS from < Dataset IGN CONTOUR - IRIS ROOT None 2022 >> ,
+                    'CONTOURS-IRIS_2-1_SHP_RGAF09UTM20_MTQ-2022_CONTOURS-IRIS':
+                        < Layer CONTOURS - IRIS_2 - 1_SHP_RGAF09UTM20_MTQ - 2022_CONTOURS - IRIS from < Dataset IGN CONTOUR - IRIS ROOT None 2022 >> ,
+                    'CONTOURS-IRIS_2-1_SHP_LAMB93_FXX-2022_CONTOURS-IRIS':
+                        < Layer CONTOURS - IRIS_2 - 1_SHP_LAMB93_FXX - 2022_CONTOURS - IRIS from < Dataset IGN CONTOUR - IRIS ROOT None 2022 >> ,
+                    'CONTOURS-IRIS_2-1_SHP_UTM22RGFG95_GUF-2022_CONTOURS-IRIS':
+                        < Layer CONTOURS - IRIS_2 - 1_SHP_UTM22RGFG95_GUF - 2022_CONTOURS - IRIS from < Dataset IGN CONTOUR - IRIS ROOT None 2022 >> ,
+                    'CONTOURS-IRIS_2-1_SHP_RGM04UTM38S_MYT-2022_CONTOURS-IRIS':
+                        < Layer CONTOURS - IRIS_2 - 1_SHP_RGM04UTM38S_MYT - 2022_CONTOURS - IRIS from < Dataset IGN CONTOUR - IRIS ROOT None 2022 >>
+                },
+                'root_cleanup': 'C:\\Users\\tintin.milou\\AppData\\Local\\Temp\\tmpnbvoes9g'
+            }
+
 
         """
 
@@ -389,7 +414,7 @@ class MasterScraper(HttpScraper, FtpScraper):
             return {
                 "downloaded": False,
                 "hash": None,
-                "paths": None,
+                "layers": None,
                 "root_cleanup": None,
             }
 
@@ -414,8 +439,9 @@ class MasterScraper(HttpScraper, FtpScraper):
                     path = os.path.join(root_folder, filename + ".csv")
                     with open(path, "wb") as out:
                         out.write(f.read())
+
                 logger.debug(f"Storing CSV to {root_folder}")
-                files_locations = (path,)
+                files_locations = ((path,),)
 
             else:
                 raise NotImplementedError(f"{filetype} encountered")
@@ -424,9 +450,47 @@ class MasterScraper(HttpScraper, FtpScraper):
         finally:
             os.unlink(temp_archive_file_raw)
 
+        # Find discriminant names for files
+        basenames = {}
+        k = 1
+        spliter = re.compile(r"[\\/\.]")
+        while len(basenames) != len(files_locations):
+            k += 1
+            basenames = {
+                os.sep.join(spliter.split(file)[-k:-1]): cluster
+                for cluster in files_locations
+                for file in cluster
+            }
+            if k > 10:
+                raise Exception("Stop this")
+
+        paths = {
+            spliter.sub("_", basename): cluster
+            for basename, cluster in basenames.items()
+        }
+
+        layers = dict()
+        for cluster_name, cluster_filtered in paths.items():
+            cluster_pattern = {
+                os.path.splitext(x)[0] for x in cluster_filtered
+            }.pop()
+            all_files_cluster = glob(os.path.join(cluster_pattern + ".*"))
+            all_files_cluster = [
+                self.pattern_path.sub("/", x) for x in all_files_cluster
+            ]
+            cluster_filtered = {
+                self.pattern_path.sub("/", x) for x in cluster_filtered
+            }
+
+            dict_files = {
+                x: (x in cluster_filtered) for x in all_files_cluster
+            }
+
+            layers[cluster_name] = Layer(datafile, cluster_name, dict_files)
+
         return {
             "downloaded": True,
             "hash": hash,
-            "paths": files_locations,
+            "layers": layers,
             "root_cleanup": root_folder,
         }

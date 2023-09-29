@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Thu May 11 19:48:36 2023
-
-@author: Thomas
-"""
 import pytest
 import requests
 from requests_cache import CachedSession
@@ -24,6 +19,31 @@ logging.basicConfig(level=logging.INFO)
 @pytest.fixture
 def mock_Dataset_without_s3(monkeypatch):
     monkeypatch.setattr(Dataset, "_get_last_md5", lambda x: None)
+    monkeypatch.setattr("FS")
+
+
+@pytest.fixture
+def total_mock_s3(monkeypatch):
+    monkeypatch.setattr(Dataset, "_get_last_md5", lambda x: None)
+
+    def mock_unpack(x):
+        return {
+            x.provider: {
+                x.dataset_family: {
+                    x.source: {
+                        x.territory: {
+                            x.year: {
+                                "downloaded": False,
+                                "paths": None,
+                                "hash": None,
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    monkeypatch.setattr(Dataset, "download_unpack", lambda x: mock_unpack)
 
 
 class MockResponse:
@@ -115,7 +135,5 @@ def mock_httpscraper_download_success_corrupt_length(monkeypatch):
     def mock_get(self, url, *args, **kwargs):
         return mocked_session.get(url, *args, **kwargs)
 
-
     monkeypatch.setattr(CachedSession, "head", mock_head)
     monkeypatch.setattr(CachedSession, "get", mock_get)
-

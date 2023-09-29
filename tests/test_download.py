@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Thu May 11 19:54:04 2023
-
-@author: thomas.grandjean
-"""
 
 import pytest
 import os
@@ -12,7 +7,7 @@ import logging
 from cartiflette.download.dataset import Dataset
 from cartiflette.download.scraper import MasterScraper
 
-from cartiflette.download import download_sources
+from cartiflette.download import _download_sources
 from cartiflette.utils import import_yaml_config
 from tests.conftest import (
     DUMMY_FILE_1,
@@ -24,6 +19,7 @@ from tests.mockups import (
     mock_httpscraper_download_success_corrupt_hash,
     mock_httpscraper_download_success_corrupt_length,
     mock_Dataset_without_s3,
+    total_mock_s3,
 )
 
 logger = logging.getLogger(__name__)
@@ -163,10 +159,6 @@ def test_download_ko_md5(
 #     pass
 
 
-# def test_download_sources():
-#     pass
-
-
 def test_sources_yaml(mock_Dataset_without_s3):
     yaml = import_yaml_config()
 
@@ -290,3 +282,8 @@ def test_sources_yaml(mock_Dataset_without_s3):
             logger.error("-" * 50)
 
     assert len(errors_type1 + errors_type2 + errors_type3 + errors_type4) == 0
+
+
+def test_download_all(total_mock_s3):
+    ret = _download_sources()
+    assert isinstance(ret, dict)

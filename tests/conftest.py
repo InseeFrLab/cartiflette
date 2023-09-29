@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Thu May 11 20:02:02 2023
-
-@author: thomas.grandjean
-"""
 
 import os
 import shutil

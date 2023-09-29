@@ -1,7 +1,7 @@
 """Module for communication with Minio S3 Storage
 """
 
-from typing import Optional
+from typing import Optional, TypedDict
 
 from cartiflette import BUCKET, PATH_WITHIN_BUCKET
 
@@ -9,7 +9,7 @@ from cartiflette import BUCKET, PATH_WITHIN_BUCKET
 # CREATE STANDARDIZED PATHS ------------------------
 
 
-class ConfigDict:
+class ConfigDict(TypedDict):
     bucket: Optional[str]
     path_within_bucket: Optional[str]
     provider: str
@@ -42,26 +42,58 @@ def create_path_bucket(config: ConfigDict) -> str:
 
     bucket = config.get("bucket", BUCKET)
     path_within_bucket = config.get("path_within_bucket", PATH_WITHIN_BUCKET)
+
     provider = config.get("provider")
     source = config.get("source")
+
     vectorfile_format = config.get("vectorfile_format")
     borders = config.get("borders")
+    dataset_family = config.get("dataset_family")
+    territory = config.get("territory")
     filter_by = config.get("filter_by")
     year = config.get("year")
     value = config.get("value")
     crs = config.get("crs", 2154)
+
+    filename = config.get("filename")
 
     write_path = (
         f"{bucket}/{path_within_bucket}"
         f"/{year=}"
         f"/administrative_level={borders}"
         f"/{crs=}"
-        f"/{filter_by}={value}/{vectorfile_format=}"
-        f"/{provider=}/{source=}"
-        f"/raw.{vectorfile_format}"
+        f"/{filter_by}={value}"
+        f"/{vectorfile_format=}"
+        f"/{provider=}"
+        f"/{dataset_family=}"
+        f"/{source=}"
+        f"/{territory=}"
     ).replace("'", "")
 
-    if vectorfile_format == "shp":
-        write_path = write_path.rsplit("/", maxsplit=1)[0] + "/"
+    if filename:
+        write_path += f"/{filename}"
+    elif vectorfile_format == "shp":
+        write_path += "/"
+    else:
+        write_path += f"/raw.{vectorfile_format}"
 
     return write_path
+
+
+# if __name__ == "__main__":
+#     ret = create_path_bucket(
+#         {
+#             "bucket": BUCKET,
+#             "path_within_bucket": PATH_WITHIN_BUCKET,
+#             "provider": "IGN",
+#             "source": "ADMINEXPRESS",
+#             "vectorfile_format": "shp",
+#             "borders": "COMMUNE",
+#             "filter_by": None,
+#             "year": 2022,
+#             "value": None,
+#             "crs": "2154",
+#         }
+#     )
+
+#     print(ret)

@@ -133,3 +133,4 @@ dmypy.json
 .toml
 
 *.sqlite
+*.sqlite*

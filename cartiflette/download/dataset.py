@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Thu Sep 21 13:12:53 2023
-
-@author: thomas.grandjean
-"""
 
 from datetime import date
 import fnmatch
@@ -11,6 +6,7 @@ import io
 import json
 import logging
 import os
+import pebble
 import py7zr
 import re
 import s3fs
@@ -22,8 +18,6 @@ from cartiflette.utils import import_yaml_config, hash_file, deep_dict_update
 import cartiflette
 
 logger = logging.getLogger(__name__)
-
-# TODO : check all docstrings
 
 
 class Dataset:
@@ -51,7 +45,7 @@ class Dataset:
         Parameters
         ----------
         dataset_family : str, optional
-            Family desrcibed in the yaml file. The default is "ADMINEXPRESS".
+            Family described in the yaml file. The default is "ADMINEXPRESS".
         source : str, optional
             Source described in the yaml file. The default is
             "EXPRESS-COG-TERRITOIRE".
@@ -118,6 +112,7 @@ class Dataset:
         """
         return hash_file(file_path)
 
+    @pebble.synchronized
     def _get_last_md5(self) -> None:
         """
         Read the last md5 hash value of the target on the s3 and store it
@@ -128,8 +123,8 @@ class Dataset:
             with self.fs.open(self.json_md5, "r") as f:
                 all_md5 = json.load(f)
         except Exception as e:
-            logger.warning(e)
-            logger.warning("md5 not found")
+            logger.error(e)
+            logger.error("md5 json not found on MinIO")
             return
         try:
             md5 = all_md5[self.provider][self.dataset_family][self.source][
@@ -138,8 +133,9 @@ class Dataset:
             self.md5 = md5
         except Exception as e:
             logger.debug(e)
-            logger.info("file not referenced in md5 json")
+            logger.debug("file not referenced in md5 json")
 
+    @pebble.synchronized
     def update_json_md5(self, md5: str) -> bool:
         "Mise à jour du json des md5"
         md5 = {
@@ -164,8 +160,8 @@ class Dataset:
                 json.dump(all_md5, f)
             return True
         except Exception as e:
-            logger.warning(e)
-            logger.warning("md5 not written")
+            logger.error(e)
+            logger.error("md5 not written")
             return False
 
     def get_path_from_provider(self) -> str:
@@ -206,7 +202,7 @@ class Dataset:
 
         if year not in available_years:
             msg = (
-                f"year {year} not available for provider {provider} "
+                f"year {year} not described in YAML for provider {provider} "
                 f"with source {source}"
             )
             raise ValueError(msg)
@@ -276,7 +272,7 @@ class Dataset:
 
             url = url.format(**kwargs)
 
-        logger.info(f"using {url}")
+        logger.debug(f"using {url}")
 
         return url
 
@@ -295,7 +291,7 @@ class Dataset:
         """
         self.temp_archive_path = path
 
-    def unpack(self, protocol: str) -> Tuple[str, Tuple[str, ...]]:
+    def unpack(self, protocol: str) -> Tuple[str, Tuple[Tuple[str, ...], ...]]:
         """
         Decompress a group of files if they validate a pattern and an extension
         type. Returns the path to the folder containing
@@ -303,6 +299,8 @@ class Dataset:
         temporary cache, but requires manual cleanup.
         If nested archives (ie zip in zip), will unpack all nested data and
         look for target pattern **INSIDE** the nested archive only
+
+        Every file Path
 
         Parameters
         ----------
@@ -316,10 +314,14 @@ class Dataset:
 
         Returns
         -------
-        Tuple[str, Tuple[str, ...]]
-            First element is the root folder to cleanup
-            Second element is a tuple of subdirectories containing targeted
-            files (unzipped)
+        Tuple[str, Tuple[Tuple[str, ...], ...]]
+
+            str : First element is the root folder to cleanup
+
+            Tuple[Tuple[str, ...], ...] : Second element is a tuple containing
+            tuples of "cluster files", each cluster representing one file
+            (general case) of multiple ones (case of shapefiles with auxiliary
+            file, mostly)
 
         """
         if protocol not in {"7z", "zip"}:
@@ -352,6 +354,11 @@ class Dataset:
                 list_files = "namelist"
                 extract = "extractall"
                 targets_kw = "members"
+            # TODO
+            # rar files, see https://pypi.org/project/rarfile/
+            # tar files
+            # gz files
+
             return loader, list_files, extract, targets_kw
 
         extracted = []
@@ -362,12 +369,14 @@ class Dataset:
                 protocol
             )
             with loader(archive, mode="r") as archive:
-                files = getattr(archive, list_files)()
+                everything = getattr(archive, list_files)()
 
                 # Handle nested archives (and presume there is no mixup in
                 # formats...)
                 archives = [
-                    x for x in files if x.endswith(".zip") or x.endswith(".7z")
+                    x
+                    for x in everything
+                    if x.endswith(".zip") or x.endswith(".7z")
                 ]
                 archives = [(x, x.split(".")[-1]) for x in archives]
                 for nested_archive, protocol in archives:
@@ -376,7 +385,7 @@ class Dataset:
                             (io.BytesIO(nested.read()), protocol)
                         )
 
-                files = filter_case_insensitive(self.pattern, files)
+                files = filter_case_insensitive(self.pattern, everything)
 
                 if year <= 2020 and source.endswith("-TERRITOIRE"):
                     territory_code = sources["territory"][territory].split(
@@ -395,6 +404,8 @@ class Dataset:
                 else:
                     shapefiles_pattern = set()
 
+                logger.debug(shapefiles_pattern)
+
                 if shapefiles_pattern:
                     targets = [
                         x
@@ -406,44 +417,46 @@ class Dataset:
 
                 logger.debug(targets)
                 logger.debug(len(targets))
-                kwargs = {"path": location, targets_kw: targets}
+
+                # Nota : in any case, extract all other files (for territory
+                # detection even if shapefile is not the target, for example
+                # when using dbf) -> return only target but extract all
+                patterns = {x.rsplit(".", maxsplit=1)[0] for x in targets}
+                real_extracts = {
+                    x
+                    for x in everything
+                    if x.rsplit(".", maxsplit=1)[0] in patterns
+                }
+
+                kwargs = {"path": location, targets_kw: real_extracts}
                 getattr(archive, extract)(**kwargs)
                 extracted += [
                     os.path.join(location, target) for target in targets
                 ]
 
-        # paths = {os.path.dirname(x) for x in extracted}
-        paths = tuple(extracted)
-        self._list_levels(paths)
+        # self._list_levels(extracted)
 
+        if any(x.lower().endswith(".shp") for x in extracted):
+            shapefiles_pattern = {
+                os.path.splitext(x)[0]
+                for x in files
+                if x.lower().endswith(".shp")
+            }
+
+            extracted = [
+                tuple(
+                    [
+                        x
+                        for x in extracted
+                        if x.rsplit(".", maxsplit=1)[0].endswith(group)
+                    ]
+                )
+                for group in shapefiles_pattern
+            ]
+            logger.debug(extracted)
+        else:
+            extracted = [(x,) for x in extracted]
+
+        paths = tuple(extracted)
         root_cleanup = location
         return root_cleanup, paths
-
-    def _list_levels(self, extracted: tuple) -> None:
-        """
-        List available levels in a raw dataset. Will have unexpected results on
-        any dataset which is not from an IGN source. The list consists of each
-        shapefile's basename in any case.
-        The list itsself is stored in self.levels.
-
-        Parameters
-        ----------
-        extracted : tuple
-            Paths to extracted shapefiles (and auxilary files).
-
-        Returns
-        -------
-        None
-
-        """
-
-        levels = [
-            os.path.splitext(os.path.basename(file))[0]
-            for file in extracted
-            if os.path.splitext(file)[-1].lower() == ".shp"
-        ]
-
-        logger.info(
-            "\n  - ".join(["Available administrative levels are :"] + levels)
-        )
-        self.levels = levels

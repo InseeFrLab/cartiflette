@@ -9,9 +9,9 @@ import tempfile
 import typing
 
 import cartiflette
-from cartiflette.utils import _vectorfile_path, _vectorfile_format_config
 from cartiflette.download import MasterScraper
-
+from cartiflette.s3 import standardize_inputs
+from cartiflette.utils import create_path_bucket
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +96,9 @@ def download_vectorfile_single(
     if not year:
         year = str(date.today().year)
 
-    format_read, driver = _vectorfile_format_config(vectorfile_format)
+    corresp_filter_by_columns, format_read, driver = standardize_inputs(
+        vectorfile_format
+    )
 
     if type_download not in ("https", "bucket"):
         msg = (
@@ -105,18 +107,19 @@ def download_vectorfile_single(
         )
         raise ValueError(msg)
 
-    url = _vectorfile_path(
-        bucket=bucket,
-        path_within_bucket=path_within_bucket,
-        provider=provider,
-        source=source,
-        vectorfile_format=vectorfile_format,
-        borders=borders,
-        filter_by=filter_by,
-        year=year,
-        value=value,
-        crs=crs,
-        type_url=type_download,
+    url = create_path_bucket(
+        {
+            "bucket": bucket,
+            "path_within_bucket": path_within_bucket,
+            "vectorfile_format": format_read,
+            "borders": borders,
+            "filter_by": filter_by,
+            "year": year,
+            "value": value,
+            "crs": crs,
+            "provider": provider,
+            "source": source,
+        }
     )
 
     if type_download == "bucket":

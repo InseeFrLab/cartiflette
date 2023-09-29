@@ -1,8 +1,8 @@
 IGN:
   
-  pattern: "*DONNEES_LIVRAISON*.shp"
-  
   ADMINEXPRESS:
+  
+    pattern: "*DONNEES_LIVRAISON*.shp"
   
     EXPRESS-COG-TERRITOIRE:
       
@@ -88,6 +88,8 @@ IGN:
         file: https://wxs.ign.fr/x02uy2aiwjo9bm8ce5plwqmr/telechargement/prepackage/ADMINEXPRESS-COG-CARTO_SHP_WGS84G_PACK_2021-05-19$ADMIN-EXPRESS-COG-CARTO_3-0__SHP_WGS84G_FRA_2021-05-19/file/ADMIN-EXPRESS-COG-CARTO_3-0__SHP_WGS84G_FRA_2021-05-19.7z
 
   BDTOPO:
+  
+    pattern: "*DONNEES_LIVRAISON*.shp"
     structure: "{url_prefix}_{year}.1${prefix}_{version}_ADMINISTRATIF_SHP_{territory}_{date}/file/{prefix}_{version}_ADMINISTRATIF_SHP_{territory}_{date}.7z"
     ROOT:
       territory:
@@ -142,6 +144,8 @@ IGN:
         url_prefix: https://wxs.ign.fr/859x8t863h6a09o9o6fy4v60/telechargement/inspire/BDTOPO-FRANCE-ADMIN-SSDOUBLON-PACK
 
   CONTOUR-IRIS: #variables INSEE_COM NOM_COM IRIS CODE_IRIS NOM_IRIS TYP_IRIS ; manque la var Grand-Quartier (GRD_QUART) présente sur les tables insee https://www.insee.fr/fr/information/2017499
+    
+    pattern: "*DONNEES_LIVRAISON*.shp"
     structure: "{url_prefix}{prefix}$CONTOURS-IRIS_{version}__{local}_{date}/file/CONTOURS-IRIS_{version}__{local}_{date}.7z"
     ROOT:
       2022:
@@ -406,27 +410,7 @@ Insee:
       2022:
         file: https://www.insee.fr/fr/statistiques/fichier/2115016/fonds_bv2012_2022.zip
       
-  # BV2012:
-    # 2022:
-     # id: 2115016
-     # file: https://www.insee.fr/fr/statistiques/fichier/2115016/BV2012_au_01-01-2022.zip
-     # excel_name: BV2012_au_01-01-2022.xlsx
-    # 2021:
-     # id: 2115016
-     # file: https://www.insee.fr/fr/statistiques/fichier/2115016/BV2012_au_01-01-2021.zip
-     # excel_name: BV2012_au_01-01-2021.xlsx
-    # 2020:
-     # id: 2115016
-     # file: https://www.insee.fr/fr/statistiques/fichier/2115016/BV2012_au_01-01-2020_v1.zip
-     # excel_name: BV2012_au_01-01-2020_v1.xlsx
-    # 2019:
-     # id: 2115016
-     # file: https://www.insee.fr/fr/statistiques/fichier/2115016/BV2012_au_01-01-2019.zip
-     # excel_name: BV2012_au_01-01-2019.xls
-    # 2018:
-     # id: 2115016
-     # file: https://www.insee.fr/fr/statistiques/fichier/2115016/BV2012_au_01-01-2018_V2.zip
-     # excel_name: BV2012_au_01-01-2018_V2.xls
+  
   # UU2020:
     # 2022: #Pour appariement sur code commune : au sein du zip, fichier XLSX "UU2020_au_01-01-2022_v2022-09-27.xlsx", onglet "Composition_communale", variables CODGEO LIBGEO UU2020 LIBUU2020 TYPE_COM STATUT_2017 DEP REG (début du tab, ligne 6)
       # id: 4802589-2022
