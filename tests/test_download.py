@@ -7,7 +7,7 @@ import logging
 from cartiflette.download.dataset import Dataset
 from cartiflette.download.scraper import MasterScraper
 
-from cartiflette.download import _download_sources
+from cartiflette.download.download import _download_sources
 from cartiflette.utils import import_yaml_config
 from tests.conftest import (
     DUMMY_FILE_1,
