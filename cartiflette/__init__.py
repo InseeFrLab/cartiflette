@@ -4,6 +4,7 @@ from cartiflette.config import (
     ENDPOINT_URL,
     FS,
     THREADS_DOWNLOAD,
+    LEAVE_TQDM,
 )
 from cartiflette.constants import REFERENCES, DOWNLOAD_PIPELINE_ARGS
 from cartiflette.utils import *

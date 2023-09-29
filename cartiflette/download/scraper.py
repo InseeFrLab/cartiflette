@@ -17,7 +17,7 @@ from urllib3.util import parse_url
 from cartiflette.utils import hash_file
 from cartiflette.download.dataset import Dataset
 from cartiflette.download.layer import Layer
-
+from cartiflette import LEAVE_TQDM
 
 logger = logging.getLogger(__name__)
 
@@ -187,7 +187,7 @@ class HttpScraper(
                 unit="iB",
                 unit_scale=True,
                 unit_divisor=1024,
-                leave=False,
+                leave=LEAVE_TQDM,
             ) as pbar:
                 for chunk in r.iter_content(chunk_size=block_size):
                     if chunk:  # filter out keep-alive new chunks
@@ -296,7 +296,7 @@ class FtpScraper(BaseScraper, ftplib.FTP):
                 total=expected_file_size,
                 unit_scale=True,
                 miniters=1,
-                leave=True,
+                leave=LEAVE_TQDM,
             ) as pbar:
 
                 def download_write(data):
