@@ -3,7 +3,7 @@ name: Test Python package
 on: [push]
 
 jobs:
-  build-linux:
+  testing:
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 5
@@ -14,16 +14,20 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: "3.10"
+    - name: Add libmagic for python-magic on linux
+      run: sudo apt-get install libmagic1
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
     - name: Install dependencies
       run: |
-        pip install -r requirements.txt
-        pip install .
+        poetry install --without dev
+        poetry add pytest
     - name: Test import
       run: |
         export AWS_ACCESS_KEY_ID=${{ secrets.S3_ACCESS_KEY }}
         export AWS_SECRET_ACCESS_KEY=${{ secrets.S3_SECRET_KEY }}
-        python example/download.py 
-#    - name: Test with pytest
-#      run: |
-#        conda install pytest
-#        pytest
+        # python example/download.py 
+    - name: Test with pytest
+      run: |
+        poetry run pytest
+

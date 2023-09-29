@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Thu May 11 19:48:36 2023
-
-@author: Thomas
-"""
 import pytest
 import requests
+from requests_cache import CachedSession
 import logging
 
 from tests.conftest import (
@@ -13,19 +9,41 @@ from tests.conftest import (
     FILESIZE_DUMMY,
     CONTENT_DUMMY,
 )
-from cartiflette.utils import (
-    create_path_bucket
-)
-from cartiflette.download import (
-    Dataset
-)
+
+from cartiflette.download.dataset import Dataset
+
 
 logging.basicConfig(level=logging.INFO)
 
 
 @pytest.fixture
 def mock_Dataset_without_s3(monkeypatch):
-    monkeypatch.setattr(Dataset, "__get_last_md5__", lambda x: None)
+    monkeypatch.setattr(Dataset, "_get_last_md5", lambda x: None)
+    monkeypatch.setattr("FS")
+
+
+@pytest.fixture
+def total_mock_s3(monkeypatch):
+    monkeypatch.setattr(Dataset, "_get_last_md5", lambda x: None)
+
+    def mock_unpack(x):
+        return {
+            x.provider: {
+                x.dataset_family: {
+                    x.source: {
+                        x.territory: {
+                            x.year: {
+                                "downloaded": False,
+                                "paths": None,
+                                "hash": None,
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    monkeypatch.setattr(Dataset, "download_unpack", lambda x: mock_unpack)
 
 
 class MockResponse:
@@ -78,8 +96,8 @@ def mock_httpscraper_download_success(monkeypatch):
     def mock_get(self, url, *args, **kwargs):
         return mocked_session.get(url, *args, **kwargs)
 
-    monkeypatch.setattr(requests.Session, "head", mock_head)
-    monkeypatch.setattr(requests.Session, "get", mock_get)
+    monkeypatch.setattr(CachedSession, "head", mock_head)
+    monkeypatch.setattr(CachedSession, "get", mock_get)
 
 
 @pytest.fixture
@@ -98,8 +116,8 @@ def mock_httpscraper_download_success_corrupt_hash(monkeypatch):
     def mock_get(self, url, *args, **kwargs):
         return mocked_session.get(url, *args, **kwargs)
 
-    monkeypatch.setattr(requests.Session, "head", mock_head)
-    monkeypatch.setattr(requests.Session, "get", mock_get)
+    monkeypatch.setattr(CachedSession, "head", mock_head)
+    monkeypatch.setattr(CachedSession, "get", mock_get)
 
 
 @pytest.fixture
@@ -117,19 +135,5 @@ def mock_httpscraper_download_success_corrupt_length(monkeypatch):
     def mock_get(self, url, *args, **kwargs):
         return mocked_session.get(url, *args, **kwargs)
 
-    monkeypatch.setattr(requests.Session, "head", mock_head)
-    monkeypatch.setattr(requests.Session, "get", mock_get)
-
-
-@pytest.mark.parametrize(
-    "config, expected_path",
-    [
-        ({"bucket": "my_bucket"}, "my_bucket/PATH_WITHIN_BUCKET/2022/administrative_level=COMMUNE/2154/region=28/vectorfile_format=geojson/provider=IGN/source=EXPRESS-COG-TERRITOIRE/raw.geojson"),
-        ({"vectorfile_format": "shp"}, "BUCKET/PATH_WITHIN_BUCKET/2022/administrative_level=COMMUNE/2154/region=28/vectorfile_format=shp/provider=IGN/source=EXPRESS-COG-TERRITOIRE/"),
-        ({"borders": "DEPARTEMENT", "filter_by": "REGION", "year": "2023", "value": "42", "crs": 4326}, "BUCKET/PATH_WITHIN_BUCKET/2023/administrative_level=DEPARTEMENT/4326/REGION=42/geojson/IGN/EXPRESS-COG-TERRITOIRE/raw.geojson"),
-        ({"path_within_bucket": "data", "vectorfile_format": "gpkg"}, "BUCKET/data/2022/administrative_level=COMMUNE/2154/region=28/gpkg/IGN/EXPRESS-COG-TERRITOIRE/raw.gpkg"),
-    ],
-)
-def test_create_path_bucket(config, expected_path):
-    result = create_path_bucket(config)
-    assert result == expected_path
+    monkeypatch.setattr(CachedSession, "head", mock_head)
+    monkeypatch.setattr(CachedSession, "get", mock_get)
