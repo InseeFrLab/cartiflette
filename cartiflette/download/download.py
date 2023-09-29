@@ -225,7 +225,7 @@ def _download_sources(
         ("dataset_families", dataset_families),
     ]
     for key, val in items:
-        if isinstance(val, str):
+        if isinstance(val, str) or isinstance(val, int):
             kwargs[key] = [val]
         elif not val:
             kwargs[key] = [None]
