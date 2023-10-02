@@ -38,7 +38,7 @@ def total_mock_s3(monkeypatch):
         }
 
     monkeypatch.setattr(MasterScraper, "download_unpack", mock_unpack)
-    monkeypatch.setattr("cartiflette.THREADS_DOWNLOAD", 1)
+    # monkeypatch.setattr("cartiflette.THREADS_DOWNLOAD", 1)
 
     def mock_ls(folder):
         return [f"{folder}/md5.json"]
