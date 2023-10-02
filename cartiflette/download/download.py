@@ -11,6 +11,7 @@ import logging
 from pebble import ThreadPool
 import s3fs
 import shutil
+import traceback
 from typing import Union
 
 from cartiflette import BUCKET, PATH_WITHIN_BUCKET, FS, THREADS_DOWNLOAD
@@ -280,7 +281,8 @@ def _download_sources(
                 else:
                     paths = {}
                     # cleanup temp files
-                    shutil.rmtree(result["root_cleanup"])
+                    if result["root_cleanup"]:
+                        shutil.rmtree(result["root_cleanup"])
 
                 del result["hash"], result["root_cleanup"], result["layers"]
                 result["paths"] = paths
@@ -303,6 +305,7 @@ def _download_sources(
                         break
                     except Exception as e:
                         logger.error(e)
+                        logger.error(traceback.format_exc())
         else:
             for args in combinations:
                 files = deep_dict_update(files, func(args))

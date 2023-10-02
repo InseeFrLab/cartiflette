@@ -4,16 +4,18 @@ import pytest
 import os
 import requests_cache
 import logging
+
 from cartiflette.download.dataset import Dataset
 from cartiflette.download.scraper import MasterScraper
-
 from cartiflette.download.download import _download_sources
+from cartiflette.download import download_all
 from cartiflette.utils import import_yaml_config
 from tests.conftest import (
     DUMMY_FILE_1,
     DUMMY_FILE_2,
     HASH_DUMMY,
 )
+
 from tests.mockups import (
     mock_httpscraper_download_success,
     mock_httpscraper_download_success_corrupt_hash,
@@ -285,5 +287,6 @@ def test_sources_yaml(mock_Dataset_without_s3):
 
 
 def test_download_all(total_mock_s3):
-    ret = _download_sources()
+    ret = download_all()
     assert isinstance(ret, dict)
+    assert len(ret) > 0
