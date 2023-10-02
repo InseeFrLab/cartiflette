@@ -2,6 +2,7 @@
 import pytest
 import requests
 from requests_cache import CachedSession
+import s3fs
 import logging
 
 from tests.conftest import (
@@ -10,7 +11,9 @@ from tests.conftest import (
     CONTENT_DUMMY,
 )
 
+from cartiflette import FS
 from cartiflette.download.dataset import Dataset
+from cartiflette.download.scraper import MasterScraper
 
 
 logging.basicConfig(level=logging.INFO)
@@ -19,31 +22,28 @@ logging.basicConfig(level=logging.INFO)
 @pytest.fixture
 def mock_Dataset_without_s3(monkeypatch):
     monkeypatch.setattr(Dataset, "_get_last_md5", lambda x: None)
-    monkeypatch.setattr("FS")
+    # monkeypatch.setattr("FS")
 
 
 @pytest.fixture
 def total_mock_s3(monkeypatch):
     monkeypatch.setattr(Dataset, "_get_last_md5", lambda x: None)
 
-    def mock_unpack(x):
+    def mock_unpack(self, x):
         return {
-            x.provider: {
-                x.dataset_family: {
-                    x.source: {
-                        x.territory: {
-                            x.year: {
-                                "downloaded": False,
-                                "paths": None,
-                                "hash": None,
-                            }
-                        }
-                    }
-                }
-            }
+            "downloaded": False,
+            "layers": None,
+            "hash": None,
+            "root_cleanup": None,
         }
 
-    monkeypatch.setattr(Dataset, "download_unpack", lambda x: mock_unpack)
+    monkeypatch.setattr(MasterScraper, "download_unpack", mock_unpack)
+    # monkeypatch.setattr("cartiflette.THREADS_DOWNLOAD", 1)
+
+    def mock_ls(folder):
+        return [f"{folder}/md5.json"]
+
+    monkeypatch.setattr(FS, "ls", mock_ls)
 
 
 class MockResponse:
