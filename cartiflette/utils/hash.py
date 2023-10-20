@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Thu May 11 20:07:31 2023
-
-@author: thomas.grandjean
-"""
 import hashlib
 
 

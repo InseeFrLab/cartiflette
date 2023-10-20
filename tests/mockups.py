@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Thu May 11 19:48:36 2023
-
-@author: Thomas
-"""
 import pytest
 import requests
+from requests_cache import CachedSession
+import s3fs
 import logging
 
 from tests.conftest import (
@@ -13,16 +10,40 @@ from tests.conftest import (
     FILESIZE_DUMMY,
     CONTENT_DUMMY,
 )
-from cartiflette.download import (
-    Dataset,
-)
+
+from cartiflette import FS
+from cartiflette.download.dataset import Dataset
+from cartiflette.download.scraper import MasterScraper
+
 
 logging.basicConfig(level=logging.INFO)
 
 
 @pytest.fixture
 def mock_Dataset_without_s3(monkeypatch):
-    monkeypatch.setattr(Dataset, "__get_last_md5__", lambda x: None)
+    monkeypatch.setattr(Dataset, "_get_last_md5", lambda x: None)
+    # monkeypatch.setattr("FS")
+
+
+@pytest.fixture
+def total_mock_s3(monkeypatch):
+    monkeypatch.setattr(Dataset, "_get_last_md5", lambda x: None)
+
+    def mock_unpack(self, x):
+        return {
+            "downloaded": False,
+            "layers": None,
+            "hash": None,
+            "root_cleanup": None,
+        }
+
+    monkeypatch.setattr(MasterScraper, "download_unpack", mock_unpack)
+    # monkeypatch.setattr("cartiflette.THREADS_DOWNLOAD", 1)
+
+    def mock_ls(folder):
+        return [f"{folder}/md5.json"]
+
+    monkeypatch.setattr(FS, "ls", mock_ls)
 
 
 class MockResponse:
@@ -75,8 +96,8 @@ def mock_httpscraper_download_success(monkeypatch):
     def mock_get(self, url, *args, **kwargs):
         return mocked_session.get(url, *args, **kwargs)
 
-    monkeypatch.setattr(requests.Session, "head", mock_head)
-    monkeypatch.setattr(requests.Session, "get", mock_get)
+    monkeypatch.setattr(CachedSession, "head", mock_head)
+    monkeypatch.setattr(CachedSession, "get", mock_get)
 
 
 @pytest.fixture
@@ -95,8 +116,8 @@ def mock_httpscraper_download_success_corrupt_hash(monkeypatch):
     def mock_get(self, url, *args, **kwargs):
         return mocked_session.get(url, *args, **kwargs)
 
-    monkeypatch.setattr(requests.Session, "head", mock_head)
-    monkeypatch.setattr(requests.Session, "get", mock_get)
+    monkeypatch.setattr(CachedSession, "head", mock_head)
+    monkeypatch.setattr(CachedSession, "get", mock_get)
 
 
 @pytest.fixture
@@ -114,5 +135,5 @@ def mock_httpscraper_download_success_corrupt_length(monkeypatch):
     def mock_get(self, url, *args, **kwargs):
         return mocked_session.get(url, *args, **kwargs)
 
-    monkeypatch.setattr(requests.Session, "head", mock_head)
-    monkeypatch.setattr(requests.Session, "get", mock_get)
+    monkeypatch.setattr(CachedSession, "head", mock_head)
+    monkeypatch.setattr(CachedSession, "get", mock_get)

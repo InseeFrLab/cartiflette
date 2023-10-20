@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Thu May 11 20:02:02 2023
-
-@author: thomas.grandjean
-"""
 
 import os
 import shutil
@@ -19,10 +14,6 @@ DUMMY_FILE_2 = os.path.join(os.path.dirname(__file__), "data", "dummy2.txt")
 
 
 def pytest_sessionstart(session):
-    os.environ["http_proxy"] = os.environ[
-        "https_proxy"
-    ] = "http://pfrie-std.proxy.e2.rie.gouv.fr:8080"
-
     try:
         os.makedirs(DIR)
     except Exception:
