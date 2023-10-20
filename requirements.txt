@@ -1,0 +1,9 @@
+geopandas
+openpyxl
+PyYAML
+py7zr
+requests
+s3fs
+topojson
+tqdm
+xlrd

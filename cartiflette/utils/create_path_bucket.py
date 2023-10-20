@@ -59,14 +59,14 @@ def create_path_bucket(config: ConfigDict) -> str:
 
     write_path = (
         f"{bucket}/{path_within_bucket}"
+        f"/{provider=}"
+        f"/{dataset_family=}"
+        f"/{source=}"
         f"/{year=}"
         f"/administrative_level={borders}"
         f"/{crs=}"
         f"/{filter_by}={value}"
         f"/{vectorfile_format=}"
-        f"/{provider=}"
-        f"/{dataset_family=}"
-        f"/{source=}"
         f"/{territory=}"
     ).replace("'", "")
 
