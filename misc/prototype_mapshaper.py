@@ -1,45 +1,102 @@
 import s3fs
-import cartiflette.s3 as s3
 import os
 import subprocess
 
-ENDPOINT_URL = "https://minio.lab.sspcloud.fr"
+from cartiflette.download.download import _download_sources
+from cartiflette.utils import create_path_bucket
 
+ENDPOINT_URL = "https://minio.lab.sspcloud.fr"
 
 fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL})
 
+
+
+provider = "IGN"
+source = "EXPRESS-COG-CARTO-TERRITOIRE",
+dict_corresp = {"REGION": "INSEE_REG", "DEPARTEMENT": "INSEE_DEP"}
+year = 2022
+provider = "IGN"
+dataset_family = "ADMINEXPRESS"
+source = "EXPRESS-COG-CARTO-TERRITOIRE"
+territory = "metropole"
+path_within_bucket = "test-download3"
+crs = 4326
+
 # DOWNLOAD
-
-from cartiflette.download.download import _download_sources
-import s3fs
-
+  
 x = _download_sources(
     upload = True,
-    providers = "IGN",
-    dataset_families = "ADMINEXPRESS",
-    sources = "EXPRESS-COG-CARTO-TERRITOIRE",
-    territories = "metropole",
-    years = 2022,
-    path_within_bucket = "test-download2"
+    providers = provider,
+    dataset_families = dataset_family,
+    sources = source,
+    territories = territory,
+    years = year,
+    path_within_bucket = path_within_bucket
 )
 
 path = x['IGN']['ADMINEXPRESS']['EXPRESS-COG-CARTO-TERRITOIRE']['metropole'][2022]['paths']['COMMUNE'][0]
-
-list_files_shp = [
-    path.replace('.shp', '.' + extension) for extension in ['cpg','dbf','prj','shp']
-]
+path_bucket = path.rsplit("/", maxsplit=1)[0]
 
 
-fs = s3fs.S3FileSystem(
-  client_kwargs={'endpoint_url': 'https://minio.lab.sspcloud.fr'})
+def list_raw_files_level(fs, path_bucket, borders):
+    list_raw_files = fs.ls(f"{path_bucket}")
+    list_raw_files = [
+        chemin for chemin in list_raw_files if chemin.rsplit("/", maxsplit=1)[-1].startswith(f'{borders}.')
+        ]
+    return list_raw_files
 
 
-for remote_files in list_files_shp:
-    fs.download(
-        remote_files,
-        "temp/" + remote_files.rsplit("/", maxsplit = 1)[-1]
-    )
+def download_files_from_list(fs, list_raw_files):
+    for files in list_raw_files:
+        fs.download(
+            files,
+            "temp/" +\
+                files.rsplit("/", maxsplit=1)[-1]
+        )
 
+os.mkdir("temp")
+
+list_raw_files = list_raw_files_level(fs, path_bucket, borders=borders)
+download_files_from_list(fs, list_raw_files)
+
+
+# variables
+borders="COMMUNE" #tempdf['borders'].iloc[0]
+format_output="topojson" #tempdf['format'].iloc[0]
+niveau_agreg="DEPARTEMENT"#tempdf['filter_by'].iloc[0]
+
+os.mkdir(f"{niveau_agreg}/{format_output}/")
+
+subprocess.run(
+    (
+        f"mapshaper temp/{borders}.shp name='' -proj wgs84 "
+        f"-each \"SOURCE='{provider}:{source[0]}'\" "
+        f"-split {dict_corresp[niveau_agreg]} "
+        f"-o {niveau_agreg}/{format_output}/ format={format_output} extension=\".{format_output}\" singles"
+    ),
+    shell=True
+)
+
+bucket = "projet-cartiflette"
+path_within_bucket = "test-download3"
+
+for values in os.listdir(f"{niveau_agreg}/{format_output}"):
+    path_s3 = create_path_bucket(
+            {
+                "bucket": bucket,
+                "path_within_bucket": path_within_bucket,
+                "year": year,
+                "borders": borders,
+                "crs": crs,
+                "filter_by": niveau_agreg,
+                "value": values.replace(f".{format_output}", ""),
+                "vectorfile_format": format_output,
+                "provider": provider,
+                "dataset_family": dataset_family,
+                "source": source,
+                "territory": territory
+            })
+    fs.put(f"{niveau_agreg}/{format_output}/{values}", path_s3, recursive=True)
 
 
 # OLD
