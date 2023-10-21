@@ -8,6 +8,42 @@ ENDPOINT_URL = "https://minio.lab.sspcloud.fr"
 
 fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL})
 
+# DOWNLOAD
+
+from cartiflette.download.download import _download_sources
+import s3fs
+
+x = _download_sources(
+    upload = True,
+    providers = "IGN",
+    dataset_families = "ADMINEXPRESS",
+    sources = "EXPRESS-COG-CARTO-TERRITOIRE",
+    territories = "metropole",
+    years = 2022,
+    path_within_bucket = "test-download2"
+)
+
+path = x['IGN']['ADMINEXPRESS']['EXPRESS-COG-CARTO-TERRITOIRE']['metropole'][2022]['paths']['COMMUNE'][0]
+
+list_files_shp = [
+    path.replace('.shp', '.' + extension) for extension in ['cpg','dbf','prj','shp']
+]
+
+
+fs = s3fs.S3FileSystem(
+  client_kwargs={'endpoint_url': 'https://minio.lab.sspcloud.fr'})
+
+
+for remote_files in list_files_shp:
+    fs.download(
+        remote_files,
+        "temp/" + remote_files.rsplit("/", maxsplit = 1)[-1]
+    )
+
+
+
+# OLD
+
 croisement_decoupage_level = {
     ## structure -> niveau geo: [niveau decoupage macro],
     "REGION": ["FRANCE_ENTIERE"],

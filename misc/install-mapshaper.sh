@@ -1,6 +1,6 @@
 sudo apt-get update -y
 sudo apt install npm nodejs -y
-sudo apt-get install libmagic-dev
+sudo apt-get install libmagic-dev -y
 
 git clone https://github.com/mbloch/mapshaper.git
 cd mapshaper
