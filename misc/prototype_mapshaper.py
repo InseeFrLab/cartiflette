@@ -22,7 +22,10 @@ territory = "metropole"
 path_within_bucket = "test-download3"
 crs = 4326
 
-# DOWNLOAD
+
+
+# DOWNLOAD =========================
+
   
 x = _download_sources(
     upload = True,
@@ -33,6 +36,26 @@ x = _download_sources(
     years = year,
     path_within_bucket = path_within_bucket
 )
+
+
+# create_path_bucket(
+#                     {
+#                         "bucket": bucket,
+#                         "path_within_bucket": path_within_bucket,
+#                         "year": layer.year,
+#                         "borders": None,
+#                         "crs": layer.crs,
+#                         "filter_by": "origin",
+#                         "value": "raw",
+#                         "vectorfile_format": layer.format,
+#                         "provider": layer.provider,
+#                         "dataset_family": layer.dataset_family,
+#                         "source": layer.source,
+#                         "territory": layer.territory,
+#                         "filename": rename_basename,
+#                     }
+#                 )
+
 
 path = x['IGN']['ADMINEXPRESS']['EXPRESS-COG-CARTO-TERRITOIRE']['metropole'][2022]['paths']['COMMUNE'][0]
 path_bucket = path.rsplit("/", maxsplit=1)[0]
