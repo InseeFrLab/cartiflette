@@ -19,10 +19,13 @@ provider = "IGN"
 dataset_family = "ADMINEXPRESS"
 source = "EXPRESS-COG-CARTO-TERRITOIRE"
 territory = "metropole"
-path_within_bucket = "test-download3"
+path_within_bucket = "test-download4"
 crs = 4326
+bucket = "projet-cartiflette"
 
-
+borders="COMMUNE" #tempdf['borders'].iloc[0]
+format_output="topojson" #tempdf['format'].iloc[0]
+niveau_agreg="DEPARTEMENT"#tempdf['filter_by'].iloc[0]
 
 # DOWNLOAD =========================
 
@@ -38,24 +41,23 @@ x = _download_sources(
 )
 
 
-# create_path_bucket(
-#                     {
-#                         "bucket": bucket,
-#                         "path_within_bucket": path_within_bucket,
-#                         "year": layer.year,
-#                         "borders": None,
-#                         "crs": layer.crs,
-#                         "filter_by": "origin",
-#                         "value": "raw",
-#                         "vectorfile_format": layer.format,
-#                         "provider": layer.provider,
-#                         "dataset_family": layer.dataset_family,
-#                         "source": layer.source,
-#                         "territory": layer.territory,
-#                         "filename": rename_basename,
-#                     }
-#                 )
-
+# path_manual = create_path_bucket(
+#  {
+#      "bucket": bucket,
+#      "path_within_bucket": path_within_bucket,
+#      "year": year,
+#      "borders": None,
+#      "crs": 2154,
+#      "filter_by": "origin",
+#      "value": "raw",
+#      "vectorfile_format": "shp",
+#      "provider": provider,
+#      "dataset_family": dataset_family,
+#      "source": source,
+#      "territory": territory,
+#      "filename": "COMMUNE.shp",
+#  }
+# )
 
 path = x['IGN']['ADMINEXPRESS']['EXPRESS-COG-CARTO-TERRITOIRE']['metropole'][2022]['paths']['COMMUNE'][0]
 path_bucket = path.rsplit("/", maxsplit=1)[0]
@@ -82,13 +84,7 @@ os.mkdir("temp")
 list_raw_files = list_raw_files_level(fs, path_bucket, borders=borders)
 download_files_from_list(fs, list_raw_files)
 
-
-# variables
-borders="COMMUNE" #tempdf['borders'].iloc[0]
-format_output="topojson" #tempdf['format'].iloc[0]
-niveau_agreg="DEPARTEMENT"#tempdf['filter_by'].iloc[0]
-
-os.mkdir(f"{niveau_agreg}/{format_output}/")
+os.makedirs(f"{niveau_agreg}/{format_output}/", exist_ok=True)
 
 subprocess.run(
     (
@@ -100,8 +96,8 @@ subprocess.run(
     shell=True
 )
 
-bucket = "projet-cartiflette"
-path_within_bucket = "test-download3"
+bucket = bucket
+path_within_bucket = path_within_bucket
 
 for values in os.listdir(f"{niveau_agreg}/{format_output}"):
     path_s3 = create_path_bucket(
