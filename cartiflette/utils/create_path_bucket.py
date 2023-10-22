@@ -54,6 +54,7 @@ def create_path_bucket(config: ConfigDict) -> str:
     year = config.get("year")
     value = config.get("value")
     crs = config.get("crs", 2154)
+    simplification = config.get("simplification", 0)
 
     filename = config.get("filename")
 
@@ -68,6 +69,7 @@ def create_path_bucket(config: ConfigDict) -> str:
         f"/{filter_by}={value}"
         f"/{vectorfile_format=}"
         f"/{territory=}"
+        f"/{simplification=}"
     ).replace("'", "")
 
     if filename:

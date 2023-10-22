@@ -87,6 +87,7 @@ def create_url_s3(
     year: typing.Union[str, int, float] = "2022",
     value: typing.Union[str, int, float] = "28",
     crs: typing.Union[list, str, int, float] = 2154,
+    simplification: typing.Union[str, int, float] = None
 ) -> str:
     """
     This function creates a URL for a vector file stored in an S3 bucket.
@@ -154,6 +155,7 @@ def write_cog_s3(
                 "year": year,
                 "value": "raw",
                 "crs": None,
+                "simplification": None
             }
         ): value
         for level, value in list_cog.items()

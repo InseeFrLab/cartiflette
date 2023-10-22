@@ -27,6 +27,7 @@ def download_vectorfile_single(
     year: typing.Union[str, int, float] = None,
     value: typing.Union[str, int, float] = "28",
     crs: typing.Union[list, str, int, float] = 2154,
+    simplication: typing.Union[str, int, float] = None,
     type_download: str = "https",
     fs: s3fs.S3FileSystem = cartiflette.FS,
     *args,
@@ -119,6 +120,7 @@ def download_vectorfile_single(
             "crs": crs,
             "provider": provider,
             "source": source,
+            "simplification": simplication
         }
     )
 

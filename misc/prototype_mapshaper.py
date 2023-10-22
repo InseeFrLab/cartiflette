@@ -19,16 +19,16 @@ provider = "IGN"
 dataset_family = "ADMINEXPRESS"
 source = "EXPRESS-COG-CARTO-TERRITOIRE"
 territory = "metropole"
-path_within_bucket = "test-download4"
+path_within_bucket = "test-download5"
 crs = 4326
 bucket = "projet-cartiflette"
 
 borders="COMMUNE" #tempdf['borders'].iloc[0]
 format_output="topojson" #tempdf['format'].iloc[0]
 niveau_agreg="DEPARTEMENT"#tempdf['filter_by'].iloc[0]
+simplification = 0
 
 # DOWNLOAD =========================
-
   
 x = _download_sources(
     upload = True,
@@ -86,9 +86,12 @@ download_files_from_list(fs, list_raw_files)
 
 os.makedirs(f"{niveau_agreg}/{format_output}/", exist_ok=True)
 
+simplification_percent = simplification if simplification is not None else 0
+
 subprocess.run(
     (
-        f"mapshaper temp/{borders}.shp name='' -proj wgs84 "
+        f"mapshaper temp/{borders}.shp name='' -proj EPSG:{crs} "
+        f"-simplify {simplification_percent}% "
         f"-each \"SOURCE='{provider}:{source[0]}'\" "
         f"-split {dict_corresp[niveau_agreg]} "
         f"-o {niveau_agreg}/{format_output}/ format={format_output} extension=\".{format_output}\" singles"
@@ -113,7 +116,8 @@ for values in os.listdir(f"{niveau_agreg}/{format_output}"):
                 "provider": provider,
                 "dataset_family": dataset_family,
                 "source": source,
-                "territory": territory
+                "territory": territory,
+                "simplification": simplification
             })
     fs.put(f"{niveau_agreg}/{format_output}/{values}", path_s3, recursive=True)
 

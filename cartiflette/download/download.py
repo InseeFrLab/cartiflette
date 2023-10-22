@@ -98,6 +98,7 @@ def _upload_raw_dataset_to_s3(
                         "dataset_family": layer.dataset_family,
                         "source": layer.source,
                         "territory": layer.territory,
+                        "simplification": None,
                         "filename": rename_basename,
                     }
                 )
