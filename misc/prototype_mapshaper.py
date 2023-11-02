@@ -13,15 +13,16 @@ fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL})
 
 provider = "IGN"
 source = "EXPRESS-COG-CARTO-TERRITOIRE",
-dict_corresp = {"REGION": "INSEE_REG", "DEPARTEMENT": "INSEE_DEP"}
 year = 2022
 provider = "IGN"
 dataset_family = "ADMINEXPRESS"
 source = "EXPRESS-COG-CARTO-TERRITOIRE"
 territory = "metropole"
-path_within_bucket = "test-download5"
+path_within_bucket = "test-download6"
 crs = 4326
 bucket = "projet-cartiflette"
+
+dict_corresp = {"REGION": "INSEE_REG", "DEPARTEMENT": "INSEE_DEP"}
 
 borders="COMMUNE" #tempdf['borders'].iloc[0]
 format_output="topojson" #tempdf['format'].iloc[0]
@@ -29,39 +30,80 @@ niveau_agreg="DEPARTEMENT"#tempdf['filter_by'].iloc[0]
 simplification = 0
 
 # DOWNLOAD =========================
-  
-x = _download_sources(
-    upload = True,
-    providers = provider,
-    dataset_families = dataset_family,
-    sources = source,
-    territories = territory,
-    years = year,
-    path_within_bucket = path_within_bucket
-)
+
+def upload_s3_raw(
+    provider="IGN",
+    source="EXPRESS-COG-CARTO-TERRITOIRE",
+    year=2022,
+    dataset_family="ADMINEXPRESS",
+    territory="metropole",
+    borders="COMMUNE",
+    path_within_bucket="test-download6",
+    crs=4326,
+    bucket="projet-cartiflette"
+    ):
+
+    x = _download_sources(
+        upload=True,
+        providers=provider,
+        dataset_families=dataset_family,
+        sources=source,
+        territories=territory,
+        years=year,
+        path_within_bucket=path_within_bucket
+    )
 
 
-# path_manual = create_path_bucket(
-#  {
-#      "bucket": bucket,
-#      "path_within_bucket": path_within_bucket,
-#      "year": year,
-#      "borders": None,
-#      "crs": 2154,
-#      "filter_by": "origin",
-#      "value": "raw",
-#      "vectorfile_format": "shp",
-#      "provider": provider,
-#      "dataset_family": dataset_family,
-#      "source": source,
-#      "territory": territory,
-#      "filename": "COMMUNE.shp",
-#  }
-# )
+    paths = create_path_bucket(
+    {
+        "bucket": bucket,
+        "path_within_bucket": path_within_bucket,
+        "year": year,
+        "borders": None,
+        "crs": 2154,
+        "filter_by": "origin",
+        "value": "raw",
+        "vectorfile_format": "shp",
+        "provider": provider,
+        "dataset_family": dataset_family,
+        "source": source,
+        "territory": territory,
+        "filename": "COMMUNE.shp",
+    }
+    )
 
-path = x['IGN']['ADMINEXPRESS']['EXPRESS-COG-CARTO-TERRITOIRE']['metropole'][2022]['paths']['COMMUNE'][0]
-path_bucket = path.rsplit("/", maxsplit=1)[0]
+    rawpaths = x[provider][dataset_family][source][territory][year]['paths']
 
+    if rawpaths is None:
+        path_raw_s3 = create_path_bucket(
+        {
+            "bucket": bucket,
+            "path_within_bucket": path_within_bucket,
+            "year": year,
+            "borders": None,
+            "crs": 2154,
+            "filter_by": "origin",
+            "value": "raw",
+            "vectorfile_format": "shp",
+            "provider": provider,
+            "dataset_family": dataset_family,
+            "source": source,
+            "territory": territory,
+            "filename": "COMMUNE.shp",
+            "simplification": 0
+        }
+        )
+    else:
+        path_raw_s3 = rawpaths[borders][0]
+
+
+    path_bucket = path_raw_s3.rsplit("/", maxsplit=1)[0]
+
+    return path_bucket
+
+
+path_bucket_new = upload_s3_raw()
+path_bucket = upload_s3_raw()
 
 def list_raw_files_level(fs, path_bucket, borders):
     list_raw_files = fs.ls(f"{path_bucket}")
@@ -71,36 +113,86 @@ def list_raw_files_level(fs, path_bucket, borders):
     return list_raw_files
 
 
-def download_files_from_list(fs, list_raw_files):
+def download_files_from_list(fs, list_raw_files, local_dir = "temp"):
     for files in list_raw_files:
         fs.download(
             files,
-            "temp/" +\
-                files.rsplit("/", maxsplit=1)[-1]
+            f"{local_dir}/{files.rsplit('/', maxsplit=1)[-1]}"
         )
+    return local_dir
 
-os.mkdir("temp")
 
-list_raw_files = list_raw_files_level(fs, path_bucket, borders=borders)
-download_files_from_list(fs, list_raw_files)
+def prepare_local_directory_mapshaper(
+    path_bucket,
+    borders="COMMUNE",
+    niveau_agreg="DEPARTEMENT",
+    format_output="topojson",
+    simplification=0,
+    local_dir="temp",
+    fs=fs,
+    ):
 
-os.makedirs(f"{niveau_agreg}/{format_output}/", exist_ok=True)
+    os.makedirs(local_dir, exist_ok=True)
+    # Get all raw shapefiles from Minio
+    list_raw_files = list_raw_files_level(fs, path_bucket, borders=borders)
+    download_files_from_list(fs, list_raw_files)
+    local_path_destination = f"{local_dir}/{niveau_agreg}/{format_output}/{simplification}"
+    os.makedirs(
+        local_path_destination,
+        exist_ok=True
+    )
+    paths = {
+        "path_origin": local_dir, "path_destination": local_path_destination
+    }
+    return paths
 
-simplification_percent = simplification if simplification is not None else 0
 
-subprocess.run(
-    (
-        f"mapshaper temp/{borders}.shp name='' -proj EPSG:{crs} "
-        f"-simplify {simplification_percent}% "
-        f"-each \"SOURCE='{provider}:{source[0]}'\" "
-        f"-split {dict_corresp[niveau_agreg]} "
-        f"-o {niveau_agreg}/{format_output}/ format={format_output} extension=\".{format_output}\" singles"
-    ),
-    shell=True
-)
+def mapshaperize_shapefiles(
+    local_dir="temp",
+    filename_initial="COMMUNE",
+    extension_initial="shp", 
+    format_output="topojson",
+    niveau_agreg="DEPARTEMENT",
+    provider="IGN",
+    source="EXPRESS-COG-CARTO-TERRITOIRE",
+    year=2022,
+    dataset_family="ADMINEXPRESS",
+    territory="metropole",
+    crs=4326,
+    simplification=0
+):
+
+    simplification_percent = simplification if simplification is not None else 0
+
+    dict_corresp = {"REGION": "INSEE_REG", "DEPARTEMENT": "INSEE_DEP"}
+
+    output_path = f"{local_dir}/{niveau_agreg}/{format_output}/{simplification}"
+
+    subprocess.run(
+        (
+            f"mapshaper {local_dir}/{filename_initial}.{extension_initial} name='' -proj EPSG:{crs} "
+            f"-simplify {simplification_percent}% "
+            f"-each \"SOURCE='{provider}:{source[0]}'\" "
+            f"-split {dict_corresp[niveau_agreg]} "
+            f"-o {output_path} format={format_output} extension=\".{format_output}\" singles"
+        ),
+        shell=True
+    )
+
+    return output_path
+
+
 
 bucket = bucket
 path_within_bucket = path_within_bucket
+borders = "COMMUNE"
+
+local_directories = prepare_local_directory_mapshaper(path_bucket_new)
+mapshaperize_shapefiles(filename_initial = borders)
+local_directories = prepare_local_directory_mapshaper(path_bucket_new, niveau_agreg="REGION")
+mapshaperize_shapefiles(filename_initial = borders, niveau_agreg = "REGION")
+
+
 
 for values in os.listdir(f"{niveau_agreg}/{format_output}"):
     path_s3 = create_path_bucket(
@@ -120,6 +212,9 @@ for values in os.listdir(f"{niveau_agreg}/{format_output}"):
                 "simplification": simplification
             })
     fs.put(f"{niveau_agreg}/{format_output}/{values}", path_s3, recursive=True)
+
+
+
 
 
 # OLD
