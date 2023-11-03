@@ -53,3 +53,6 @@ from cartiflette.utils import create_path_bucket
 def test_create_path_bucket(config, expected_path):
     result = create_path_bucket(config)
     assert result == expected_path
+
+
+
