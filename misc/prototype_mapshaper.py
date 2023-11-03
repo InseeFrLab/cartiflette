@@ -64,6 +64,74 @@ for index, row in tempdf.iterrows():
     )
 
 
+# A intégrer
+
+# topojson & niveau communal
+format_output="topojson"
+
+subprocess.run(
+    f"mapshaper temp/{borders}.shp name='' -proj wgs84 \
+        -each \"SOURCE='{provider}:{source}'\"\
+        -split {dict_corresp[niveau_agreg]} \
+        -o '{niveau_agreg}/' format={format_output} extension=\".{format_output}\" singles",
+    shell=True
+)
+
+
+# niveau commune_arrondissement
+borders="ARRONDISSEMENT_MUNICIPAL"
+list_raw_files = list_raw_files_level(fs, path_bucket, borders=borders)
+download_files_from_list(fs, list_raw_files)
+
+
+subprocess.run(
+    f"mapshaper temp/COMMUNE.shp \
+        -proj wgs84 \
+        -filter '\"69123,13055,75056\".indexOf(INSEE_COM) > -1' invert \
+        -each \"INSEE_COG=INSEE_ARM\" \
+        -o format={format_output} extension=\".{format_output}\"",
+    shell=True
+)
+
+subprocess.run(
+    f"mapshaper temp/ARRONDISSEMENT_MUNICIPAL.shp \
+        -proj wgs84 \
+        -rename-fields INSEE_COG=INSEE_ARM \
+        -each '\
+                INSEE_DEP=INSEE_COG.substr(0,2), \
+                STATUT=\"Arrondissement municipal\"\
+            ' \
+        -o format={format_output} extension=\".{format_output}\"",
+    shell=True
+)
+
+
+subprocess.run(
+    f"mapshaper COMMUNE.topojson ARRONDISSEMENT_MUNICIPAL.topojson combine-files \
+        -proj wgs84 \
+        -merge-layers target=COMMUNE,ARRONDISSEMENT_MUNICIPAL force \
+        -rename-layers COMMUNE_ARRONDISSEMENT \
+        -o format={format_output} extension=\".{format_output}\"",
+    shell=True
+)
+
+# niveau departemental & niveaux supérieurs
+borders = "DEPARTEMENT"
+list_raw_files = list_raw_files_level(fs, path_bucket, borders=borders)
+download_files_from_list(fs, list_raw_files)
+
+# dissolve & export
+subprocess.run(
+    f"mapshaper temp/COMMUNE.shp \
+        -proj wgs84 \
+        -dissolve INSEE_DEP name=DEPARTEMENTS copy-fields=STATE_NAME,INSEE_REG sum-fields=POPULATION + \
+        -dissolve INSEE_REG name=REGIONS copy-fields=STATE_NAME sum-fields=POPULATION + \
+        -dissolve + name=france \
+        -o out.topojson target=*",
+    shell=True
+)
+
+
 
 # old
 
@@ -139,68 +207,4 @@ subprocess.run(
     shell=True
 )
 
-# topojson & niveau communal
-format_output="topojson"
-
-subprocess.run(
-    f"mapshaper temp/{borders}.shp name='' -proj wgs84 \
-        -each \"SOURCE='{provider}:{source}'\"\
-        -split {dict_corresp[niveau_agreg]} \
-        -o '{niveau_agreg}/' format={format_output} extension=\".{format_output}\" singles",
-    shell=True
-)
-
-
-# niveau commune_arrondissement
-borders="ARRONDISSEMENT_MUNICIPAL"
-list_raw_files = list_raw_files_level(fs, path_bucket, borders=borders)
-download_files_from_list(fs, list_raw_files)
-
-
-subprocess.run(
-    f"mapshaper temp/COMMUNE.shp \
-        -proj wgs84 \
-        -filter '\"69123,13055,75056\".indexOf(INSEE_COM) > -1' invert \
-        -each \"INSEE_COG=INSEE_ARM\" \
-        -o format={format_output} extension=\".{format_output}\"",
-    shell=True
-)
-
-subprocess.run(
-    f"mapshaper temp/ARRONDISSEMENT_MUNICIPAL.shp \
-        -proj wgs84 \
-        -rename-fields INSEE_COG=INSEE_ARM \
-        -each '\
-                INSEE_DEP=INSEE_COG.substr(0,2), \
-                STATUT=\"Arrondissement municipal\"\
-            ' \
-        -o format={format_output} extension=\".{format_output}\"",
-    shell=True
-)
-
-
-subprocess.run(
-    f"mapshaper COMMUNE.topojson ARRONDISSEMENT_MUNICIPAL.topojson combine-files \
-        -proj wgs84 \
-        -merge-layers target=COMMUNE,ARRONDISSEMENT_MUNICIPAL force \
-        -rename-layers COMMUNE_ARRONDISSEMENT \
-        -o format={format_output} extension=\".{format_output}\"",
-    shell=True
-)
-
-# niveau departemental & niveaux supérieurs
-borders = "DEPARTEMENT"
-list_raw_files = list_raw_files_level(fs, path_bucket, borders=borders)
-download_files_from_list(fs, list_raw_files)
-
-# dissolve & export
-subprocess.run(
-    f"mapshaper temp/COMMUNE.shp \
-        -proj wgs84 \
-        -dissolve INSEE_DEP name=DEPARTEMENTS copy-fields=STATE_NAME,INSEE_REG sum-fields=POPULATION + \
-        -dissolve INSEE_REG name=REGIONS copy-fields=STATE_NAME sum-fields=POPULATION + \
-        -dissolve + name=france \
-        -o out.topojson target=*",
-    shell=True
-)
 
