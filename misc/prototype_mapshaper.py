@@ -97,7 +97,6 @@ subprocess.run(
 subprocess.run(
     (
     f"mapshaper {local_dir}/ARRONDISSEMENT_MUNICIPAL.{extension_initial} name='ARRONDISSEMENT_MUNICIPAL' "
-    f"-proj EPSG:{crs} "
     f"-rename-fields INSEE_COG=INSEE_ARM "
     f"-each 'INSEE_DEP=INSEE_COG.substr(0,2), STATUT=\"Arrondissement municipal\" ' "
     f"-o {output_path}/arrondissements.{format_intermediate} format={format_intermediate} extension=\".{format_intermediate}\""
@@ -110,7 +109,6 @@ subprocess.run(
     (
     f"mapshaper {output_path}/communes_simples.{format_intermediate} {output_path}/arrondissements.{format_intermediate} snap combine-files "
     f"-rename-layers COMMUNE,ARRONDISSEMENT_MUNICIPAL "
-    f"-proj EPSG:{crs} "
     f"-merge-layers target=COMMUNE,ARRONDISSEMENT_MUNICIPAL force "
     f"-rename-layers COMMUNE_ARRONDISSEMENT "
     f"-o {output_path}/raw.{format_intermediate} format={format_intermediate} extension=\".{format_intermediate}\""
@@ -121,7 +119,7 @@ subprocess.run(
 subprocess.run(
     (
     f"mapshaper {output_path}/raw.{format_intermediate} "
-    f"-simplify {simplification_percent}% "
+    f"-proj EPSG:{crs} "
     f"-each \"SOURCE='{provider}:{source[0]}'\" "
     f"-split {dict_corresp[niveau_agreg]} "
     f"-o {output_path} format={format_output} extension=\".{format_output}\" singles"
