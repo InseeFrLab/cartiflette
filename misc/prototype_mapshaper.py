@@ -1,6 +1,6 @@
 from cartiflette.s3 import upload_s3_raw
 from cartiflette.pipeline import crossproduct_parameters_production
-from cartiflette.pipeline import mapshaperize_split_from_s3
+from cartiflette.pipeline import mapshaperize_split_from_s3, mapshaperize_merge_split_from_s3
 
 # DOWNLOAD =========================
 
@@ -18,7 +18,13 @@ mapshaperize_split_from_s3(
     }
 )
 
-
+mapshaperize_merge_split_from_s3(
+    path_bucket,
+    {
+        'path_within_bucket': path_within_bucket,
+        "simplification": 50
+    }
+)
 
 croisement_decoupage_level = {
     ## structure -> niveau geo: [niveau decoupage macro],
@@ -68,7 +74,9 @@ for index, row in tempdf.iterrows():
 
 from cartiflette.config import FS
 from cartiflette.pipeline.prepare_mapshaper import prepare_local_directory_mapshaper
+from cartiflette.mapshaper import mapshaperize_split_merge
 
+local_dir = "temp/"
 
 format_intermediate = "geojson"
 local_directories = prepare_local_directory_mapshaper(
@@ -90,65 +98,6 @@ local_directories = prepare_local_directory_mapshaper(
         fs=FS
 )
 
-simplification_percent = simplification if simplification is not None else 0
-
-subprocess.run(
-    (
-    f"mapshaper {local_dir}/COMMUNE.{extension_initial} name='COMMUNE' "
-    f"-proj EPSG:{crs} "
-    f"-filter '\"69123,13055,75056\".indexOf(INSEE_COM) > -1' invert "
-    f"-each \"INSEE_COG=INSEE_COM\" "
-    f"-o {output_path}/communes_simples.{format_intermediate} format={format_intermediate} extension=\".{format_intermediate}\" singles"
-    ),
-    shell=True
-)
-
-
-subprocess.run(
-    (
-    f"mapshaper {local_dir}/ARRONDISSEMENT_MUNICIPAL.{extension_initial} name='ARRONDISSEMENT_MUNICIPAL' "
-    f"-proj EPSG:{crs} "
-    f"-rename-fields INSEE_COG=INSEE_ARM "
-    f"-each 'INSEE_DEP=INSEE_COG.substr(0,2), STATUT=\"Arrondissement municipal\" ' "
-    f"-o {output_path}/arrondissements.{format_intermediate} format={format_intermediate} extension=\".{format_intermediate}\""
-    ),
-    shell=True
-)
-
-
-subprocess.run(
-    (
-    f"mapshaper {output_path}/communes_simples.{format_intermediate} {output_path}/arrondissements.{format_intermediate} snap combine-files "
-    f"-proj EPSG:{crs} "
-    f"-rename-layers COMMUNE,ARRONDISSEMENT_MUNICIPAL "
-    f"-merge-layers target=COMMUNE,ARRONDISSEMENT_MUNICIPAL force "
-    f"-rename-layers COMMUNE_ARRONDISSEMENT "
-    f"-o {output_path}/raw.{format_intermediate} format={format_intermediate} extension=\".{format_intermediate}\""
-    ),
-    shell=True
-)
-
-
-if simplification_percent != 0:
-    option_simplify = f"-simplify {simplification_percent}% "
-else:
-    option_simplify = ""
-
-cmd = (
-    f"mapshaper {output_path}/raw.{format_intermediate} "
-    f"{option_simplify}"
-    f"-proj EPSG:{crs} "
-    f"-each \"SOURCE='{provider}:{source}'\" "
-    f"-split {dict_corresp[niveau_agreg]} "
-    f"-o {output_path} format={format_output} extension=\".{format_output}\" singles"
-   )
-
-
-
-subprocess.run(
-   cmd,
-   shell=True
-)
 
 
 

@@ -4,4 +4,4 @@ from .cross_product_parameters import (
 )
 
 from .prepare_mapshaper import prepare_local_directory_mapshaper
-from .mapshaper_split_from_s3 import mapshaperize_split_from_s3
+from .mapshaper_split_from_s3 import mapshaperize_split_from_s3, mapshaperize_merge_split_from_s3

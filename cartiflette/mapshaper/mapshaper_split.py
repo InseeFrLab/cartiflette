@@ -86,3 +86,83 @@ def mapshaperize_split(
     return output_path
 
 
+
+def mapshaperize_split_merge(
+    local_dir="temp",
+    extension_initial="shp",
+    format_output="topojson",
+    niveau_agreg="DEPARTEMENT",
+    provider="IGN",
+    source="EXPRESS-COG-CARTO-TERRITOIRE",
+    year=2022,
+    dataset_family="ADMINEXPRESS",
+    territory="metropole",
+    crs=4326,
+    simplification=0,
+    dict_corresp=DICT_CORRESP_IGN
+):
+
+    simplification_percent = simplification if simplification is not None else 0
+
+    output_path = f"{local_dir}/{niveau_agreg}/{format_output}/{simplification=}"
+
+    if simplification_percent != 0:
+        option_simplify = f"-simplify {simplification_percent}% "
+    else:
+        option_simplify = ""
+
+
+    format_intermediate = "geojson"
+
+    # PREPROCESS CITIES
+    subprocess.run(
+        (
+        f"mapshaper {local_dir}/COMMUNE.{extension_initial} name='COMMUNE' "
+        f"-proj EPSG:{crs} "
+        f"-filter '\"69123,13055,75056\".indexOf(INSEE_COM) > -1' invert "
+        f"-each \"INSEE_COG=INSEE_COM\" "
+        f"-o {output_path}/communes_simples.{format_intermediate} format={format_intermediate} extension=\".{format_intermediate}\" singles"
+        ),
+        shell=True
+    )
+
+    # PREPROCESS ARRONDISSEMENT
+    subprocess.run(
+        (
+        f"mapshaper {local_dir}/ARRONDISSEMENT_MUNICIPAL.{extension_initial} name='ARRONDISSEMENT_MUNICIPAL' "
+        f"-proj EPSG:{crs} "
+        f"-rename-fields INSEE_COG=INSEE_ARM "
+        f"-each 'INSEE_DEP=INSEE_COG.substr(0,2), STATUT=\"Arrondissement municipal\" ' "
+        f"-o {output_path}/arrondissements.{format_intermediate} format={format_intermediate} extension=\".{format_intermediate}\""
+        ),
+        shell=True
+    )
+
+    # MERGE CITIES AND ARRONDISSEMENT
+    subprocess.run(
+        (
+        f"mapshaper {output_path}/communes_simples.{format_intermediate} {output_path}/arrondissements.{format_intermediate} snap combine-files "
+        f"-proj EPSG:{crs} "
+        f"-rename-layers COMMUNE,ARRONDISSEMENT_MUNICIPAL "
+        f"-merge-layers target=COMMUNE,ARRONDISSEMENT_MUNICIPAL force "
+        f"-rename-layers COMMUNE_ARRONDISSEMENT "
+        f"-o {output_path}/raw.{format_intermediate} format={format_intermediate} extension=\".{format_intermediate}\""
+        ),
+        shell=True
+    )
+
+    # TRANSFORM AS NEEDED
+    cmd = (
+        f"mapshaper {output_path}/raw.{format_intermediate} "
+        f"{option_simplify}"
+        f"-proj EPSG:{crs} "
+        f"-each \"SOURCE='{provider}:{source}'\" "
+        f"-split {dict_corresp[niveau_agreg]} "
+        f"-o {output_path} format={format_output} extension=\".{format_output}\" singles"
+    )
+
+
+    subprocess.run(
+        cmd,
+        shell=True
+    )
