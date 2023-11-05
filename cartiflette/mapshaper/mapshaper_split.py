@@ -64,14 +64,22 @@ def mapshaperize_split(
 
     output_path = f"{local_dir}/{niveau_agreg}/{format_output}/{simplification=}"
 
-    subprocess.run(
-        (
+    if simplification_percent != 0:
+        option_simplify = f"-simplify {simplification_percent}% "
+    else:
+        option_simplify = ""
+
+    cmd = (
             f"mapshaper {local_dir}/{filename_initial}.{extension_initial} name='' -proj EPSG:{crs} "
-            f"-simplify {simplification_percent}% "
-            f"-each \"SOURCE='{provider}:{source[0]}'\" "
+            f"{option_simplify}"
+            f"-each \"SOURCE='{provider}:{source}'\" "
             f"-split {dict_corresp[niveau_agreg]} "
             f"-o {output_path} format={format_output} extension=\".{format_output}\" singles"
-        ),
+        )
+
+
+    subprocess.run(
+        cmd,
         shell=True
     )
 

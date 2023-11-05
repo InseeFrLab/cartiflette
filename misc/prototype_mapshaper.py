@@ -73,6 +73,15 @@ from cartiflette.pipeline.prepare_mapshaper import prepare_local_directory_mapsh
 format_intermediate = "geojson"
 local_directories = prepare_local_directory_mapshaper(
         path_bucket,
+        borders="COMMUNE",
+        niveau_agreg="DEPARTEMENT",
+        format_output="topojson",
+        simplification=0,
+        local_dir=local_dir,
+        fs=FS
+)
+local_directories = prepare_local_directory_mapshaper(
+        path_bucket,
         borders="ARRONDISSEMENT_MUNICIPAL",
         niveau_agreg="DEPARTEMENT",
         format_output="topojson",
@@ -81,6 +90,7 @@ local_directories = prepare_local_directory_mapshaper(
         fs=FS
 )
 
+simplification_percent = simplification if simplification is not None else 0
 
 subprocess.run(
     (
@@ -97,6 +107,7 @@ subprocess.run(
 subprocess.run(
     (
     f"mapshaper {local_dir}/ARRONDISSEMENT_MUNICIPAL.{extension_initial} name='ARRONDISSEMENT_MUNICIPAL' "
+    f"-proj EPSG:{crs} "
     f"-rename-fields INSEE_COG=INSEE_ARM "
     f"-each 'INSEE_DEP=INSEE_COG.substr(0,2), STATUT=\"Arrondissement municipal\" ' "
     f"-o {output_path}/arrondissements.{format_intermediate} format={format_intermediate} extension=\".{format_intermediate}\""
@@ -108,6 +119,7 @@ subprocess.run(
 subprocess.run(
     (
     f"mapshaper {output_path}/communes_simples.{format_intermediate} {output_path}/arrondissements.{format_intermediate} snap combine-files "
+    f"-proj EPSG:{crs} "
     f"-rename-layers COMMUNE,ARRONDISSEMENT_MUNICIPAL "
     f"-merge-layers target=COMMUNE,ARRONDISSEMENT_MUNICIPAL force "
     f"-rename-layers COMMUNE_ARRONDISSEMENT "
@@ -116,16 +128,29 @@ subprocess.run(
     shell=True
 )
 
-subprocess.run(
-    (
+
+if simplification_percent != 0:
+    option_simplify = f"-simplify {simplification_percent}% "
+else:
+    option_simplify = ""
+
+cmd = (
     f"mapshaper {output_path}/raw.{format_intermediate} "
+    f"{option_simplify}"
     f"-proj EPSG:{crs} "
-    f"-each \"SOURCE='{provider}:{source[0]}'\" "
+    f"-each \"SOURCE='{provider}:{source}'\" "
     f"-split {dict_corresp[niveau_agreg]} "
     f"-o {output_path} format={format_output} extension=\".{format_output}\" singles"
-   ),
+   )
+
+
+
+subprocess.run(
+   cmd,
    shell=True
 )
+
+
 
 
 # A intégrer
