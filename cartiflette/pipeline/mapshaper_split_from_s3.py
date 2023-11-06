@@ -100,7 +100,7 @@ def mapshaperize_merge_split_from_s3(
     path_within_bucket = config.get("path_within_bucket", PATH_WITHIN_BUCKET)
     local_dir = config.get("local_dir", "temp")
 
-    prepare_local_directory_mapshaper(
+    local_directory = prepare_local_directory_mapshaper(
             path_bucket,
             borders="COMMUNE",
             niveau_agreg=filter_by,
@@ -119,6 +119,8 @@ def mapshaperize_merge_split_from_s3(
             local_dir=local_dir,
             fs=fs
     )
+
+    local_directory
 
     output_path = mapshaperize_split_merge(
         local_dir=local_dir,
