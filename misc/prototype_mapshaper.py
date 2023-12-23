@@ -22,7 +22,8 @@ mapshaperize_merge_split_from_s3(
     path_bucket,
     {
         'path_within_bucket': path_within_bucket,
-        "simplification": 50
+        "simplification": 50,
+        "filter_by": "DEPARTEMENT"
     }
 )
 
@@ -72,6 +73,22 @@ for index, row in tempdf.iterrows():
 
 # niveau commune_arrondissement
 
+tempdf_arr = tempdf.loc[tempdf['borders'] == "COMMUNE"].copy()
+tempdf_arr = tempdf_arr.drop(columns = ['borders'])
+
+for index, row in tempdf_arr.iterrows():
+    print(row)
+    mapshaperize_merge_split_from_s3(
+        path_bucket,
+        {
+            **{'path_within_bucket': path_within_bucket},
+            **row.to_dict()
+        }
+    )
+
+
+# old
+
 from cartiflette.config import FS
 from cartiflette.pipeline.prepare_mapshaper import prepare_local_directory_mapshaper
 from cartiflette.mapshaper import mapshaperize_split_merge
@@ -97,6 +114,11 @@ local_directories = prepare_local_directory_mapshaper(
         local_dir=local_dir,
         fs=FS
 )
+
+
+
+
+
 
 
 

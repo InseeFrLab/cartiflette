@@ -111,7 +111,6 @@ def mapshaperize_split_merge(
     else:
         option_simplify = ""
 
-
     format_intermediate = "geojson"
 
     # PREPROCESS CITIES

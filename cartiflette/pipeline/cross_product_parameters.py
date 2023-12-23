@@ -102,7 +102,7 @@ def crossproduct_parameters_production(
 
     tempdf = pd.DataFrame(
         combinations,
-        columns=["format", "nested", "year", "crs", "source", "simplification"]
+        columns=["format_output", "nested", "year", "crs", "source", "simplification"]
     )
     tempdf["borders"] = tempdf["nested"].apply(lambda l: l[0])
     tempdf["filter_by"] = tempdf["nested"].apply(lambda l: l[1])
