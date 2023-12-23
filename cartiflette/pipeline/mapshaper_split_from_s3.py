@@ -42,7 +42,7 @@ def mapshaperize_split_from_s3(
     output_path = mapshaperize_split(
         local_dir=local_dir,
         filename_initial=borders,
-        extension_initial="shp", 
+        extension_initial="shp",
         format_output=format_output,
         niveau_agreg=filter_by,
         provider=provider,
@@ -120,11 +120,10 @@ def mapshaperize_merge_split_from_s3(
             fs=fs
     )
 
-    local_directory
 
     output_path = mapshaperize_split_merge(
         local_dir=local_dir,
-        extension_initial="shp", 
+        extension_initial="shp",
         format_output=format_output,
         niveau_agreg=filter_by,
         provider=provider,

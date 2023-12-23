@@ -166,3 +166,5 @@ def mapshaperize_split_merge(
         cmd,
         shell=True
     )
+
+    return output_path
