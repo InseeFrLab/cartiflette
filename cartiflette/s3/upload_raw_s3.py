@@ -10,7 +10,8 @@ def upload_s3_raw(
     territory="metropole",
     borders="COMMUNE",
     path_within_bucket="test-download6",
-    crs=4326,
+    crs=2154,
+    vectorfile_format="shp",
     bucket="projet-cartiflette"
     ):
     """
@@ -63,10 +64,10 @@ def upload_s3_raw(
             "path_within_bucket": path_within_bucket,
             "year": year,
             "borders": None,
-            "crs": 2154,
+            "crs": crs,
             "filter_by": "origin",
             "value": "raw",
-            "vectorfile_format": "shp",
+            "vectorfile_format": vectorfile_format,
             "provider": provider,
             "dataset_family": dataset_family,
             "source": source,

@@ -5,10 +5,34 @@ from cartiflette.download.download import _download_sources
 
 # DOWNLOAD =========================
 
-path_within_bucket = "test-download10"
+path_within_bucket = "test-download13"
 
 path_bucket = upload_s3_raw(path_within_bucket=path_within_bucket)
+path_bucket_cog = upload_s3_raw(
+    provider='Insee',
+    dataset_family='COG',
+    source="COMMUNE",
+    territory="france_entiere",
+    borders="DATASET_INSEE_COG_COMMUNE_FRANCE_ENTIERE_2022",
+    year=2022,
+    crs=None,
+    vectorfile_format="csv",
+    path_within_bucket=path_within_bucket
+    )
+path_bucket_cog2 = upload_s3_raw(
+    provider='Insee',
+    dataset_family='COG',
+    source="DEPARTEMENT",
+    territory="france_entiere",
+    borders="DATASET_INSEE_COG_DEPARTEMENT_FRANCE_ENTIERE_2022",
+    year=2022,
+    crs=None,
+    vectorfile_format="csv",
+    path_within_bucket=path_within_bucket
+    )
 
+
+# TEST MAPSHAPERIZE
 
 mapshaperize_split_from_s3(
     path_bucket,
