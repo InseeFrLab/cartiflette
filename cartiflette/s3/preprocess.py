@@ -417,7 +417,7 @@ def get_BV(
     fs: s3fs.S3FileSystem = FS,
 ) -> gpd.GeoDataFrame:
     """
-    Reconstruct living areas ("Bassins de vie") from AdminExpress' cities' 
+    Reconstruct living areas ("Bassins de vie") from AdminExpress' cities'
     geometries and Insee's inventory.
 
     Parameters
@@ -426,7 +426,7 @@ def get_BV(
         Desired vintage. Will use the current year if set to None (which is
         default).
     bv_source : str, optional
-        Dataset's source to use for living area. The default is 
+        Dataset's source to use for living area. The default is
         "FondsDeCarte_BV_2022".
     ign_source : str, optional
         Dataset's source to use for geometries (should be a dataset from the
