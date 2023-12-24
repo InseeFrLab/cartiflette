@@ -1,12 +1,14 @@
 from cartiflette.s3 import upload_s3_raw
 from cartiflette.pipeline import crossproduct_parameters_production
 from cartiflette.pipeline import mapshaperize_split_from_s3, mapshaperize_merge_split_from_s3
+from cartiflette.download.download import _download_sources
 
 # DOWNLOAD =========================
 
 path_within_bucket = "test-download10"
 
 path_bucket = upload_s3_raw(path_within_bucket=path_within_bucket)
+
 
 mapshaperize_split_from_s3(
     path_bucket,
@@ -87,6 +89,24 @@ for index, row in tempdf_arr.iterrows():
             **row.to_dict()
         }
     )
+
+
+
+_download_sources(
+    providers=['Insee'],
+    dataset_families=['COG'],
+    sources=["COMMUNE"],
+    territories=["france_entiere"],
+    years = [2022]
+)
+
+_download_sources(
+    providers=['Insee'],
+    dataset_families=['BV'],
+    sources=["FondsDeCarte_BV_2022"],
+    territories=["france_entiere"],
+    years = [2022]
+)
 
 
 # old

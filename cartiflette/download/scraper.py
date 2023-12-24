@@ -428,7 +428,7 @@ class MasterScraper(HttpScraper, FtpScraper):
                 root_folder, files_locations = datafile.unpack(protocol="7z")
             elif "Zip archive" in filetype:
                 root_folder, files_locations = datafile.unpack(protocol="zip")
-            elif "Unicode text" in filetype:
+            elif "Unicode text" in filetype or "CSV text" in filetype:
                 # copy in temp directory without processing
                 root_folder = tempfile.mkdtemp()
                 with open(temp_archive_file_raw, "rb") as f:
