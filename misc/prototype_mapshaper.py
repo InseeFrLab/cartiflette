@@ -4,7 +4,7 @@ from cartiflette.pipeline import mapshaperize_split_from_s3, mapshaperize_merge_
 
 # DOWNLOAD =========================
 
-path_within_bucket = "test-download9"
+path_within_bucket = "test-download10"
 
 path_bucket = upload_s3_raw(path_within_bucket=path_within_bucket)
 
@@ -39,13 +39,15 @@ croisement_decoupage_level = {
 
 
 #formats = ["geoparquet", "shp", "gpkg", "geojson"]
-formats = ["topojson", "geojson"]
+#formats = ["topojson", "geojson"]
+formats = ["geojson"]
 
 #years = [y for y in range(2021, 2023)]
 years = [2022]
 
 #crs_list = [4326, 2154, "official"]
-crs_list = [4326, 2154]
+#crs_list = [4326, 2154]
+crs_list = [4326]
 
 sources = ["EXPRESS-COG-CARTO-TERRITOIRE"]
 

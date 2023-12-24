@@ -224,7 +224,7 @@ IGN:
 Insee:
   COG:
     structure: https://www.insee.fr/fr/statistiques/fichier/{id}/{filename}
-    COMMUNE:
+    COMMUNE: 
       2023:
         id: 6800675
         filename: v_commune_2023.csv

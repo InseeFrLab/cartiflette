@@ -160,7 +160,6 @@ def mapshaperize_split_merge(
         f"-o {output_path} format={format_output} extension=\".{format_output}\" singles"
     )
 
-
     subprocess.run(
         cmd,
         shell=True
