@@ -5,7 +5,7 @@ from cartiflette.download.download import _download_sources
 
 # DOWNLOAD =========================
 
-path_within_bucket = "test-download13"
+path_within_bucket = "test-download10"
 
 path_bucket = upload_s3_raw(path_within_bucket=path_within_bucket)
 path_bucket_cog = upload_s3_raw(
@@ -30,6 +30,29 @@ path_bucket_cog2 = upload_s3_raw(
     vectorfile_format="csv",
     path_within_bucket=path_within_bucket
     )
+path_bucket_tagc1 = upload_s3_raw(
+    provider='Insee',
+    dataset_family='TAGC',
+    source="APPARTENANCE",
+    territory="france_entiere",
+    borders="table-appartenance-geo-communes-22",
+    year=2022,
+    crs=None,
+    vectorfile_format="csv",
+    path_within_bucket=path_within_bucket
+    )
+path_bucket_tagc2 = upload_s3_raw(
+    provider='Insee',
+    dataset_family='TAGC',
+    source="PASSAGE",
+    territory="france_entiere",
+    borders="table_passage_geo2003_geo2023",
+    year=2023,
+    crs=None,
+    vectorfile_format="csv",
+    path_within_bucket=path_within_bucket
+    )
+
 
 
 # TEST MAPSHAPERIZE
