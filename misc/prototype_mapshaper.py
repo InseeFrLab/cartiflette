@@ -1,82 +1,3 @@
-# IGN DATASET
-from cartiflette.s3 import upload_s3_raw
-from cartiflette.pipeline import crossproduct_parameters_production
-from cartiflette.pipeline import mapshaperize_split_from_s3, mapshaperize_merge_split_from_s3
-from cartiflette.download.download import _download_sources
-
-path_within_bucket = "test-download15"
-
-
-# DATA RETRIEVING STEP =========================
-
-# IGN DATASET
-path_bucket_adminexpress = upload_s3_raw(
-    path_within_bucket=path_within_bucket,
-    year=2022
-)
-
-path_bucket_cog_commune = upload_s3_raw(
-    provider='Insee',
-    dataset_family='COG',
-    source="COMMUNE",
-    territory="france_entiere",
-    borders="DATASET_INSEE_COG_COMMUNE_FRANCE_ENTIERE_2022",
-    year=2022,
-    crs=None,
-    vectorfile_format="csv",
-    path_within_bucket=path_within_bucket
-    )
-
-# DEPARTEMENT (FOR COMMON NAMES)
-path_bucket_cog_departement = upload_s3_raw(
-    provider='Insee',
-    dataset_family='COG',
-    source="DEPARTEMENT",
-    territory="france_entiere",
-    borders="DATASET_INSEE_COG_DEPARTEMENT_FRANCE_ENTIERE_2022",
-    year=2022,
-    crs=None,
-    vectorfile_format="csv",
-    path_within_bucket=path_within_bucket
-    )
-
-# REGIONS (FOR COMMON NAMES)
-path_bucket_cog_departement = upload_s3_raw(
-    provider='Insee',
-    dataset_family='COG',
-    source="REGION",
-    territory="france_entiere",
-    borders="DATASET_INSEE_COG_REGION_FRANCE_ENTIERE_2022",
-    year=2022,
-    crs=None,
-    vectorfile_format="csv",
-    path_within_bucket=path_within_bucket
-    )
-
-# TABLE PASSAGE COMMUNES, DEP, REGIONS
-path_bucket_tagc_appartenance = upload_s3_raw(
-    provider='Insee',
-    dataset_family='TAGC',
-    source="APPARTENANCE",
-    territory="france_entiere",
-    borders="table-appartenance-geo-communes-22",
-    year=2022,
-    crs=None,
-    vectorfile_format="csv",
-    path_within_bucket=path_within_bucket
-    )
-
-path_bucket_tagc_passage = upload_s3_raw(
-    provider='Insee',
-    dataset_family='TAGC',
-    source="PASSAGE",
-    territory="france_entiere",
-    borders="table_passage_geo2003_geo2023",
-    year=2023,
-    crs=None,
-    vectorfile_format="csv",
-    path_within_bucket=path_within_bucket
-    )
 from cartiflette.s3 import upload_s3_raw
 from cartiflette.pipeline import crossproduct_parameters_production
 from cartiflette.pipeline import mapshaperize_split_from_s3, mapshaperize_merge_split_from_s3
@@ -147,25 +68,44 @@ path_bucket_tagc_appartenance = upload_s3_raw(
 path_bucket_tagc_passage = upload_s3_raw(
     provider='Insee',
     dataset_family='TAGC',
-    source="PASSAGE",
+    source="PASSAGE_ANNUEL",
     territory="france_entiere",
-    borders="table_passage_geo2003_geo2023",
+    borders="table_passage_annuelle_2023",
     year=2023,
     crs=None,
     vectorfile_format="xlsx",
     path_within_bucket=path_within_bucket
     )
 
+from cartiflette import FS
+import pandas as pd
+fs = FS
 
 # PUTTING ALL METADATA TOGETHER
 path_tagc = fs.ls(path_bucket_tagc_appartenance)[0]
 path_bucket_cog_departement = fs.ls(path_bucket_cog_departement)[0]
+path_bucket_cog_region = fs.ls(path_bucket_cog_region)[0]
+
 
 with fs.open(path_tagc, mode = "rb") as remote_file:
     tagc = pd.read_excel(remote_file, skiprows=5, dtype_backend="pyarrow")
 
 with fs.open(path_bucket_cog_departement, mode = "rb") as remote_file:
     cog_dep = pd.read_csv(remote_file, dtype_backend="pyarrow")
+
+with fs.open(path_bucket_cog_region, mode = "rb") as remote_file:
+    cog_region = pd.read_csv(remote_file, dtype_backend="pyarrow")
+
+
+cog_metadata = cog_dep.loc[:, ['DEP','REG', 'LIBELLE']].merge(
+    cog_region.loc[:, ['REG', 'LIBELLE']],
+    on = "REG", suffixes = ['_DEPARTEMENT','_REGION']
+).drop(columns = ['REG'])
+
+
+tagc_metadata = tagc.merge(
+    cog_metadata
+)
 
 
 
