@@ -3,12 +3,18 @@ from cartiflette.pipeline import crossproduct_parameters_production
 from cartiflette.pipeline import mapshaperize_split_from_s3, mapshaperize_merge_split_from_s3
 from cartiflette.download.download import _download_sources
 
-# DOWNLOAD =========================
+path_within_bucket = "test-download11"
 
-path_within_bucket = "test-download10"
 
-path_bucket = upload_s3_raw(path_within_bucket=path_within_bucket)
-path_bucket_cog = upload_s3_raw(
+# DATA RETRIEVING STEP =========================
+
+# IGN DATASET
+path_bucket_adminexpress = upload_s3_raw(
+    path_within_bucket=path_within_bucket,
+    year = 2022
+)
+
+path_bucket_cog_commune = upload_s3_raw(
     provider='Insee',
     dataset_family='COG',
     source="COMMUNE",
@@ -19,7 +25,9 @@ path_bucket_cog = upload_s3_raw(
     vectorfile_format="csv",
     path_within_bucket=path_within_bucket
     )
-path_bucket_cog2 = upload_s3_raw(
+
+# DEPARTEMENT (FOR COMMON NAMES)
+path_bucket_cog_departement = upload_s3_raw(
     provider='Insee',
     dataset_family='COG',
     source="DEPARTEMENT",
@@ -30,7 +38,22 @@ path_bucket_cog2 = upload_s3_raw(
     vectorfile_format="csv",
     path_within_bucket=path_within_bucket
     )
-path_bucket_tagc1 = upload_s3_raw(
+
+# REGIONS (FOR COMMON NAMES)
+path_bucket_cog_departement = upload_s3_raw(
+    provider='Insee',
+    dataset_family='COG',
+    source="REGION",
+    territory="france_entiere",
+    borders="DATASET_INSEE_COG_REGION_FRANCE_ENTIERE_2022",
+    year=2022,
+    crs=None,
+    vectorfile_format="csv",
+    path_within_bucket=path_within_bucket
+    )
+
+# TABLE PASSAGE COMMUNES, DEP, REGIONS
+path_bucket_tagc_appartenance = upload_s3_raw(
     provider='Insee',
     dataset_family='TAGC',
     source="APPARTENANCE",
@@ -41,7 +64,8 @@ path_bucket_tagc1 = upload_s3_raw(
     vectorfile_format="csv",
     path_within_bucket=path_within_bucket
     )
-path_bucket_tagc2 = upload_s3_raw(
+
+path_bucket_tagc_passage = upload_s3_raw(
     provider='Insee',
     dataset_family='TAGC',
     source="PASSAGE",
@@ -52,6 +76,8 @@ path_bucket_tagc2 = upload_s3_raw(
     vectorfile_format="csv",
     path_within_bucket=path_within_bucket
     )
+
+# PUTTING ALL METADATA TOGETHER
 
 
 
