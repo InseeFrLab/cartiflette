@@ -4,7 +4,7 @@ from cartiflette.pipeline import crossproduct_parameters_production
 from cartiflette.pipeline import mapshaperize_split_from_s3, mapshaperize_merge_split_from_s3
 from cartiflette.download.download import _download_sources
 
-path_within_bucket = "test-download16"
+path_within_bucket = "test-download15"
 
 
 # DATA RETRIEVING STEP =========================

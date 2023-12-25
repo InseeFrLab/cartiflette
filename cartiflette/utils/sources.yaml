@@ -396,22 +396,20 @@ Insee:
       2017:
         pattern: "*.txt"
         id: 2666684
-        filename: pays2017-txt.zip
-  
+        filename: pays2017-txt.zip  
+
   TAGC:
     structure: https://www.insee.fr/fr/statistiques/fichier/2028028/{filename}
+    pattern: "*.xlsx"    
     APPARTENANCE:
       2023:
-        pattern: "*.xlsx"
         filename: "table-appartenance-geo-communes-23.zip"
       2022:
-        pattern: "*.xlsx"
         filename: "table-appartenance-geo-communes-22.zip"
     PASSAGE_ANNUEL:
       # Pour cette source, juste besoin de la derniere version
       2023:
-        pattern: "*.xlsx"
-        filename: "table_passage_annuelle_2023.zip
+        filename: "table_passage_annuelle_2023.zip"
 
   BV:
     pattern: "com_bv*.dbf"
