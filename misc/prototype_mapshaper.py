@@ -3,10 +3,17 @@ from cartiflette.pipeline import crossproduct_parameters_production
 from cartiflette.pipeline import mapshaperize_split_from_s3, mapshaperize_merge_split_from_s3
 from cartiflette.download.download import _download_sources
 
-path_within_bucket = "test-download11"
+path_within_bucket = "test-download20"
 
 
 # DATA RETRIEVING STEP =========================
+
+import os
+import pandas as pd
+from cartiflette import FS
+fs = FS
+
+os.makedirs("temp", exist_ok=True)
 
 # IGN DATASET
 path_bucket_adminexpress = upload_s3_raw(
@@ -77,9 +84,6 @@ path_bucket_tagc_passage = upload_s3_raw(
     path_within_bucket=path_within_bucket
     )
 
-from cartiflette import FS
-import pandas as pd
-fs = FS
 
 # PUTTING ALL METADATA TOGETHER
 path_tagc = fs.ls(path_bucket_tagc_appartenance)[0]
@@ -124,13 +128,23 @@ mapshaperize_split_from_s3(
 )
 
 mapshaperize_merge_split_from_s3(
-    path_bucket,
-    {
+    path_bucket=path_bucket_adminexpress,
+    config={
         'path_within_bucket': path_within_bucket,
         "simplification": 50,
         "filter_by": "DEPARTEMENT"
     }
 )
+
+mapshaperize_merge_split_from_s3(
+    path_bucket=path_bucket_adminexpress,
+    config={
+        'path_within_bucket': path_within_bucket,
+        "simplification": 50,
+        "filter_by": "REGION"
+    }
+)
+
 
 croisement_decoupage_level = {
     ## structure -> niveau geo: [niveau decoupage macro],

@@ -146,7 +146,7 @@ def mapshaperize_split_merge(
         f"mapshaper {local_dir}/ARRONDISSEMENT_MUNICIPAL.{extension_initial} name='ARRONDISSEMENT_MUNICIPAL' "
         f"-proj EPSG:{crs} "
         f"-rename-fields INSEE_COG=INSEE_ARM "
-        f"-each 'INSEE_DEP=INSEE_COG.substr(0,2), STATUT=\"Arrondissement municipal\" ' "
+        f"-each 'STATUT=\"Arrondissement municipal\" ' "
         f"-o {output_path}/arrondissements.{format_intermediate} format={format_intermediate} extension=\".{format_intermediate}\""
         ),
         shell=True
@@ -165,9 +165,24 @@ def mapshaperize_split_merge(
         shell=True
     )
 
-    # TRANSFORM AS NEEDED
-    cmd = (
+    # STEP 1: ENRICHISSEMENT AVEC COG
+    cmd_step1 = (
         f"mapshaper {output_path}/raw.{format_intermediate} "
+        f"-join temp/tagc.csv "
+        f"keys=INSEE_COM,CODGEO field-types=INSEE_COM:str,CODGEO:str "
+        "-filter-fields INSEE_CAN,INSEE_ARR,SIREN_EPCI,INSEE_DEP,INSEE_REG invert "
+        f"-rename-fields INSEE_DEP=DEP,INSEE_REG=REG "
+        f"-o {output_path}/raw2.{format_intermediate}"
+    )
+
+    subprocess.run(
+        cmd_step1,
+        shell=True
+    )
+
+    # TRANSFORM AS NEEDED
+    cmd_step2 = (
+        f"mapshaper {output_path}/raw2.{format_intermediate} "
         f"{option_simplify}"
         f"-proj EPSG:{crs} "
         f"-each \"SOURCE='{provider}:{source}'\" "
@@ -176,7 +191,7 @@ def mapshaperize_split_merge(
     )
 
     subprocess.run(
-        cmd,
+        cmd_step2,
         shell=True
     )
 
