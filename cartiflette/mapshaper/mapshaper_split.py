@@ -69,17 +69,32 @@ def mapshaperize_split(
     else:
         option_simplify = ""
 
-    cmd = (
-            f"mapshaper {local_dir}/{filename_initial}.{extension_initial} name='' -proj EPSG:{crs} "
+    # STEP 1: ENRICHISSEMENT AVEC COG
+    cmd_step1 = (
+        f"mapshaper {local_dir}/{filename_initial}.{extension_initial} "
+        f"name='' -proj EPSG:{crs} "
+        f"-join temp/tagc.csv "
+        f"keys=INSEE_COM,CODGEO field-types=INSEE_COM:str,CODGEO:str "
+        "-filter-fields INSEE_CAN,INSEE_ARR,SIREN_EPCI,DEP,REG invert "
+        "-o temp.geojson"
+    )
+
+    subprocess.run(
+        cmd_step1,
+        shell=True
+    )
+
+    # STEP 2: SPLIT ET SIMPLIFIE
+    cmd_step2 = (
+            f"mapshaper temp.geojson name='' -proj EPSG:{crs} "
             f"{option_simplify}"
             f"-each \"SOURCE='{provider}:{source}'\" "
             f"-split {dict_corresp[niveau_agreg]} "
             f"-o {output_path} format={format_output} extension=\".{format_output}\" singles"
         )
 
-
     subprocess.run(
-        cmd,
+        cmd_step2,
         shell=True
     )
 

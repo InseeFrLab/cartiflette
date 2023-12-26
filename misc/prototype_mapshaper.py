@@ -11,7 +11,7 @@ path_within_bucket = "test-download11"
 # IGN DATASET
 path_bucket_adminexpress = upload_s3_raw(
     path_within_bucket=path_within_bucket,
-    year = 2022
+    year=2022
 )
 
 path_bucket_cog_commune = upload_s3_raw(
@@ -107,12 +107,14 @@ tagc_metadata = tagc.merge(
     cog_metadata
 )
 
+tagc_metadata.drop(columns = ["LIBGEO"]).to_csv("temp/tagc.csv")
+
 
 
 # TEST MAPSHAPERIZE
 
 mapshaperize_split_from_s3(
-    path_bucket,
+    path_bucket_adminexpress,
     {
         'path_within_bucket': path_within_bucket,
         "borders": "COMMUNE",
