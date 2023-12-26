@@ -6,7 +6,6 @@ from cartiflette import FS
 from cartiflette.s3 import upload_s3_raw
 
 
-
 def prepare_cog_metadata(
     path_within_bucket: str,
     local_dir: str = "temp",

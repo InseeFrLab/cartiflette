@@ -1,7 +1,5 @@
 import subprocess
 
-
-
 DICT_CORRESP_IGN = {"REGION": "INSEE_REG", "DEPARTEMENT": "INSEE_DEP"}
 
 
@@ -101,7 +99,6 @@ def mapshaperize_split(
     return output_path
 
 
-
 def mapshaperize_split_merge(
     local_dir="temp",
     extension_initial="shp",
@@ -131,11 +128,12 @@ def mapshaperize_split_merge(
     # PREPROCESS CITIES
     subprocess.run(
         (
-        f"mapshaper {local_dir}/COMMUNE.{extension_initial} name='COMMUNE' "
-        f"-proj EPSG:{crs} "
-        f"-filter '\"69123,13055,75056\".indexOf(INSEE_COM) > -1' invert "
-        f"-each \"INSEE_COG=INSEE_COM\" "
-        f"-o {output_path}/communes_simples.{format_intermediate} format={format_intermediate} extension=\".{format_intermediate}\" singles"
+            f"mapshaper {local_dir}/COMMUNE.{extension_initial} name='COMMUNE' "
+            f"-proj EPSG:{crs} "
+            f"-filter '\"69123,13055,75056\".indexOf(INSEE_COM) > -1' invert "
+            f"-each \"INSEE_COG=INSEE_COM\" "
+            f"-o {output_path}/communes_simples.{format_intermediate} "
+            f"format={format_intermediate} extension=\".{format_intermediate}\" singles"
         ),
         shell=True
     )
@@ -143,11 +141,13 @@ def mapshaperize_split_merge(
     # PREPROCESS ARRONDISSEMENT
     subprocess.run(
         (
-        f"mapshaper {local_dir}/ARRONDISSEMENT_MUNICIPAL.{extension_initial} name='ARRONDISSEMENT_MUNICIPAL' "
-        f"-proj EPSG:{crs} "
-        f"-rename-fields INSEE_COG=INSEE_ARM "
-        f"-each 'STATUT=\"Arrondissement municipal\" ' "
-        f"-o {output_path}/arrondissements.{format_intermediate} format={format_intermediate} extension=\".{format_intermediate}\""
+            f"mapshaper {local_dir}/ARRONDISSEMENT_MUNICIPAL.{extension_initial} "
+            f"name='ARRONDISSEMENT_MUNICIPAL' "
+            f"-proj EPSG:{crs} "
+            f"-rename-fields INSEE_COG=INSEE_ARM "
+            f"-each 'STATUT=\"Arrondissement municipal\" ' "
+            f"-o {output_path}/arrondissements.{format_intermediate} "
+            f"format={format_intermediate} extension=\".{format_intermediate}\""
         ),
         shell=True
     )
@@ -155,12 +155,15 @@ def mapshaperize_split_merge(
     # MERGE CITIES AND ARRONDISSEMENT
     subprocess.run(
         (
-        f"mapshaper {output_path}/communes_simples.{format_intermediate} {output_path}/arrondissements.{format_intermediate} snap combine-files "
-        f"-proj EPSG:{crs} "
-        f"-rename-layers COMMUNE,ARRONDISSEMENT_MUNICIPAL "
-        f"-merge-layers target=COMMUNE,ARRONDISSEMENT_MUNICIPAL force "
-        f"-rename-layers COMMUNE_ARRONDISSEMENT "
-        f"-o {output_path}/raw.{format_intermediate} format={format_intermediate} extension=\".{format_intermediate}\""
+            f"mapshaper "
+            f"{output_path}/communes_simples.{format_intermediate} "
+            f"{output_path}/arrondissements.{format_intermediate} snap combine-files "
+            f"-proj EPSG:{crs} "
+            f"-rename-layers COMMUNE,ARRONDISSEMENT_MUNICIPAL "
+            f"-merge-layers target=COMMUNE,ARRONDISSEMENT_MUNICIPAL force "
+            f"-rename-layers COMMUNE_ARRONDISSEMENT "
+            f"-o {output_path}/raw.{format_intermediate} "
+            f"format={format_intermediate} extension=\".{format_intermediate}\""
         ),
         shell=True
     )

@@ -6,6 +6,7 @@ from cartiflette.utils import create_path_bucket
 from cartiflette.mapshaper import mapshaperize_split, mapshaperize_split_merge
 from .prepare_mapshaper import prepare_local_directory_mapshaper
 
+
 def mapshaperize_split_from_s3(
     path_bucket,
     config,
@@ -29,7 +30,7 @@ def mapshaperize_split_from_s3(
     path_within_bucket = config.get("path_within_bucket", PATH_WITHIN_BUCKET)
     local_dir = config.get("local_dir", "temp")
 
-    local_directories = prepare_local_directory_mapshaper(
+    prepare_local_directory_mapshaper(
         path_bucket,
         borders=borders,
         niveau_agreg=filter_by,
@@ -73,7 +74,6 @@ def mapshaperize_split_from_s3(
                 })
         fs.put(f"{output_path}/{values}", path_s3)
 
-
     return output_path
 
 
@@ -85,7 +85,7 @@ def mapshaperize_merge_split_from_s3(
 
     format_output = config.get("format_output", "topojson")
     filter_by = config.get("filter_by", "DEPARTEMENT")
-    borders = config.get("borders", "COMMUNE")
+    # borders = config.get("borders", "COMMUNE")
     territory = config.get("territory", "metropole")
 
     provider = config.get("provider", "IGN")
@@ -100,7 +100,7 @@ def mapshaperize_merge_split_from_s3(
     path_within_bucket = config.get("path_within_bucket", PATH_WITHIN_BUCKET)
     local_dir = config.get("local_dir", "temp")
 
-    local_directory = prepare_local_directory_mapshaper(
+    prepare_local_directory_mapshaper(
             path_bucket,
             borders="COMMUNE",
             niveau_agreg=filter_by,
@@ -119,7 +119,6 @@ def mapshaperize_merge_split_from_s3(
             local_dir=local_dir,
             fs=fs
     )
-
 
     output_path = mapshaperize_split_merge(
         local_dir=local_dir,
@@ -154,6 +153,4 @@ def mapshaperize_merge_split_from_s3(
                 })
         fs.put(f"{output_path}/{values}", path_s3)
 
-
     return output_path
-
