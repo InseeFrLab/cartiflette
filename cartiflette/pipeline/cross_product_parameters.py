@@ -22,7 +22,7 @@ def restructure_nested_dict_borders(dict_with_list: dict):
         sample_dict = {'a': [1, 2, 3], 'b': [4, 5]}
         result = restructure_nested_dict_borders(sample_dict)
         print(result)
-        
+
     This will output:
         [['a', 1], ['a', 2], ['a', 3], ['b', 4], ['b', 5]]
     """
@@ -34,8 +34,6 @@ def restructure_nested_dict_borders(dict_with_list: dict):
 
     return croisement_filter_by_borders_flat
 
-import itertools
-import pandas as pd
 
 def crossproduct_parameters_production(
     croisement_filter_by_borders: dict,
@@ -43,7 +41,7 @@ def crossproduct_parameters_production(
     years: list,
     crs_list: list,
     sources: list,
-    simplifications: list
+    simplifications: list,
 ) -> pd.DataFrame:
     """
     Generates a DataFrame by performing a cross-product of the given parameters.
@@ -96,13 +94,13 @@ def crossproduct_parameters_production(
             years,
             crs_list,
             sources,
-            simplifications
+            simplifications,
         )
     )
 
     tempdf = pd.DataFrame(
         combinations,
-        columns=["format_output", "nested", "year", "crs", "source", "simplification"]
+        columns=["format_output", "nested", "year", "crs", "source", "simplification"],
     )
     tempdf["level_polygons"] = tempdf["nested"].apply(lambda l: l[0])
     tempdf["filter_by"] = tempdf["nested"].apply(lambda l: l[1])

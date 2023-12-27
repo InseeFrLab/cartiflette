@@ -7,9 +7,7 @@ from cartiflette.s3 import upload_s3_raw
 
 
 def prepare_cog_metadata(
-    path_within_bucket: str,
-    local_dir: str = "temp",
-    fs: s3fs.core.S3FileSystem = FS
+    path_within_bucket: str, local_dir: str = "temp", fs: s3fs.core.S3FileSystem = FS
 ) -> pd.DataFrame:
     """
     Prepares and retrieves COG (French Census Geographic Code) metadata by fetching and merging

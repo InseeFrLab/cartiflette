@@ -1,11 +1,12 @@
 import subprocess
 
 DICT_CORRESP_IGN = {
-    "REGION": "INSEE_REG", "DEPARTEMENT": "INSEE_DEP",
+    "REGION": "INSEE_REG",
+    "DEPARTEMENT": "INSEE_DEP",
     "FRANCE_ENTIERE": "PAYS",
     "LIBELLE_REGION": "LIBELLE_REGION",
-    "LIBELLE_DEPARTEMENT": "LIBELLE_DEPARTEMENT"
-    }
+    "LIBELLE_DEPARTEMENT": "LIBELLE_DEPARTEMENT",
+}
 
 
 def mapshaperize_split(
@@ -22,7 +23,7 @@ def mapshaperize_split(
     territory="metropole",
     crs=4326,
     simplification=0,
-    dict_corresp=DICT_CORRESP_IGN
+    dict_corresp=DICT_CORRESP_IGN,
 ):
     """
     Processes shapefiles and splits them based on specified parameters using Mapshaper.
@@ -84,11 +85,7 @@ def mapshaperize_split(
         "-o temp.geojson"
     )
 
-    subprocess.run(
-        cmd_step1,
-        shell=True
-    )
-
+    subprocess.run(cmd_step1, shell=True, check=True)
 
     if niveau_polygons != filename_initial:
         csv_list_vars = (
@@ -107,24 +104,18 @@ def mapshaperize_split(
             f"copy-fields={csv_list_vars} "
             "-o temp.geojson force"
         )
-        subprocess.run(
-            cmd_dissolve,
-            shell=True
-        )
+        subprocess.run(cmd_dissolve, shell=True, check=True)
 
     # STEP 2: SPLIT ET SIMPLIFIE
     cmd_step2 = (
-            f"mapshaper temp.geojson name='' -proj EPSG:{crs} "
-            f"{option_simplify}"
-            f"-each \"SOURCE='{provider}:{source}'\" "
-            f"-split {dict_corresp[niveau_agreg]} "
-            f"-o {output_path} format={format_output} extension=\".{format_output}\" singles"
-        )
-
-    subprocess.run(
-        cmd_step2,
-        shell=True
+        f"mapshaper temp.geojson name='' -proj EPSG:{crs} "
+        f"{option_simplify}"
+        f"-each \"SOURCE='{provider}:{source}'\" "
+        f"-split {dict_corresp[niveau_agreg]} "
+        f'-o {output_path} format={format_output} extension=".{format_output}" singles'
     )
+
+    subprocess.run(cmd_step2, shell=True, check=True)
 
     return output_path
 
@@ -141,9 +132,8 @@ def mapshaperize_split_merge(
     territory="metropole",
     crs=4326,
     simplification=0,
-    dict_corresp=DICT_CORRESP_IGN
+    dict_corresp=DICT_CORRESP_IGN,
 ):
-
     simplification_percent = simplification if simplification is not None else 0
 
     output_path = f"{local_dir}/{niveau_agreg}/{format_output}/{simplification=}"
@@ -161,11 +151,12 @@ def mapshaperize_split_merge(
             f"mapshaper {local_dir}/COMMUNE.{extension_initial} name='COMMUNE' "
             f"-proj EPSG:4326 "
             f"-filter '\"69123,13055,75056\".indexOf(INSEE_COM) > -1' invert "
-            f"-each \"INSEE_COG=INSEE_COM\" "
+            f'-each "INSEE_COG=INSEE_COM" '
             f"-o {output_path}/communes_simples.{format_intermediate} "
-            f"format={format_intermediate} extension=\".{format_intermediate}\" singles"
+            f'format={format_intermediate} extension=".{format_intermediate}" singles'
         ),
-        shell=True
+        shell=True,
+        check=True
     )
 
     # PREPROCESS ARRONDISSEMENT
@@ -177,9 +168,10 @@ def mapshaperize_split_merge(
             f"-rename-fields INSEE_COG=INSEE_ARM "
             f"-each 'STATUT=\"Arrondissement municipal\" ' "
             f"-o {output_path}/arrondissements.{format_intermediate} "
-            f"format={format_intermediate} extension=\".{format_intermediate}\""
+            f'format={format_intermediate} extension=".{format_intermediate}"'
         ),
-        shell=True
+        shell=True,
+        check=True
     )
 
     # MERGE CITIES AND ARRONDISSEMENT
@@ -193,9 +185,10 @@ def mapshaperize_split_merge(
             f"-merge-layers target=COMMUNE,ARRONDISSEMENT_MUNICIPAL force "
             f"-rename-layers COMMUNE_ARRONDISSEMENT "
             f"-o {output_path}/raw.{format_intermediate} "
-            f"format={format_intermediate} extension=\".{format_intermediate}\""
+            f'format={format_intermediate} extension=".{format_intermediate}"'
         ),
-        shell=True
+        shell=True,
+        check=True
     )
 
     # STEP 1: ENRICHISSEMENT AVEC COG
@@ -208,10 +201,7 @@ def mapshaperize_split_merge(
         f"-o {output_path}/raw2.{format_intermediate}"
     )
 
-    subprocess.run(
-        cmd_step1,
-        shell=True
-    )
+    subprocess.run(cmd_step1, shell=True, check=True)
 
     # TRANSFORM AS NEEDED
     cmd_step2 = (
@@ -220,12 +210,9 @@ def mapshaperize_split_merge(
         f"-proj EPSG:{crs} "
         f"-each \"SOURCE='{provider}:{source}'\" "
         f"-split {dict_corresp[niveau_agreg]} "
-        f"-o {output_path} format={format_output} extension=\".{format_output}\" singles"
+        f'-o {output_path} format={format_output} extension=".{format_output}" singles'
     )
 
-    subprocess.run(
-        cmd_step2,
-        shell=True
-    )
+    subprocess.run(cmd_step2, shell=True, check=True)
 
     return output_path

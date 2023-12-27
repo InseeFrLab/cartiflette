@@ -6,12 +6,7 @@ from cartiflette.mapshaper import mapshaperize_split, mapshaperize_split_merge
 from .prepare_mapshaper import prepare_local_directory_mapshaper
 
 
-def mapshaperize_split_from_s3(
-    path_bucket,
-    config,
-    fs=FS
-):
-
+def mapshaperize_split_from_s3(path_bucket, config, fs=FS):
     format_output = config.get("format_output", "topojson")
     filter_by = config.get("filter_by", "DEPARTEMENT")
     borders = config.get("borders", "COMMUNE")
@@ -37,8 +32,8 @@ def mapshaperize_split_from_s3(
         format_output=format_output,
         simplification=simplification,
         local_dir=local_dir,
-        fs=fs
-        )
+        fs=fs,
+    )
 
     output_path = mapshaperize_split(
         local_dir=local_dir,
@@ -53,37 +48,33 @@ def mapshaperize_split_from_s3(
         dataset_family=dataset_family,
         territory=territory,
         crs=crs,
-        simplification=simplification
+        simplification=simplification,
     )
 
     for values in os.listdir(output_path):
         path_s3 = create_path_bucket(
-                {
-                    "bucket": bucket,
-                    "path_within_bucket": path_within_bucket,
-                    "year": year,
-                    "borders": level_polygons,
-                    "crs": crs,
-                    "filter_by": filter_by,
-                    "value": values.replace(f".{format_output}", ""),
-                    "vectorfile_format": format_output,
-                    "provider": provider,
-                    "dataset_family": dataset_family,
-                    "source": source,
-                    "territory": territory,
-                    "simplification": simplification
-                })
+            {
+                "bucket": bucket,
+                "path_within_bucket": path_within_bucket,
+                "year": year,
+                "borders": level_polygons,
+                "crs": crs,
+                "filter_by": filter_by,
+                "value": values.replace(f".{format_output}", ""),
+                "vectorfile_format": format_output,
+                "provider": provider,
+                "dataset_family": dataset_family,
+                "source": source,
+                "territory": territory,
+                "simplification": simplification,
+            }
+        )
         fs.put(f"{output_path}/{values}", path_s3)
 
     return output_path
 
 
-def mapshaperize_merge_split_from_s3(
-    path_bucket,
-    config,
-    fs=FS
-):
-
+def mapshaperize_merge_split_from_s3(path_bucket, config, fs=FS):
     format_output = config.get("format_output", "topojson")
     filter_by = config.get("filter_by", "DEPARTEMENT")
     # borders = config.get("borders", "COMMUNE")
@@ -102,23 +93,23 @@ def mapshaperize_merge_split_from_s3(
     local_dir = config.get("local_dir", "temp")
 
     prepare_local_directory_mapshaper(
-            path_bucket,
-            borders="COMMUNE",
-            niveau_agreg=filter_by,
-            format_output=format_output,
-            simplification=simplification,
-            local_dir=local_dir,
-            fs=fs
+        path_bucket,
+        borders="COMMUNE",
+        niveau_agreg=filter_by,
+        format_output=format_output,
+        simplification=simplification,
+        local_dir=local_dir,
+        fs=fs,
     )
 
     prepare_local_directory_mapshaper(
-            path_bucket,
-            borders="ARRONDISSEMENT_MUNICIPAL",
-            niveau_agreg=filter_by,
-            format_output=format_output,
-            simplification=simplification,
-            local_dir=local_dir,
-            fs=fs
+        path_bucket,
+        borders="ARRONDISSEMENT_MUNICIPAL",
+        niveau_agreg=filter_by,
+        format_output=format_output,
+        simplification=simplification,
+        local_dir=local_dir,
+        fs=fs,
     )
 
     output_path = mapshaperize_split_merge(
@@ -132,26 +123,27 @@ def mapshaperize_merge_split_from_s3(
         dataset_family=dataset_family,
         territory=territory,
         crs=crs,
-        simplification=simplification
+        simplification=simplification,
     )
 
     for values in os.listdir(output_path):
         path_s3 = create_path_bucket(
-                {
-                    "bucket": bucket,
-                    "path_within_bucket": path_within_bucket,
-                    "year": year,
-                    "borders": "COMMUNE_ARRONDISSEMENT",
-                    "crs": crs,
-                    "filter_by": filter_by,
-                    "value": values.replace(f".{format_output}", ""),
-                    "vectorfile_format": format_output,
-                    "provider": provider,
-                    "dataset_family": dataset_family,
-                    "source": source,
-                    "territory": territory,
-                    "simplification": simplification
-                })
+            {
+                "bucket": bucket,
+                "path_within_bucket": path_within_bucket,
+                "year": year,
+                "borders": "COMMUNE_ARRONDISSEMENT",
+                "crs": crs,
+                "filter_by": filter_by,
+                "value": values.replace(f".{format_output}", ""),
+                "vectorfile_format": format_output,
+                "provider": provider,
+                "dataset_family": dataset_family,
+                "source": source,
+                "territory": territory,
+                "simplification": simplification,
+            }
+        )
         fs.put(f"{output_path}/{values}", path_s3)
 
     return output_path

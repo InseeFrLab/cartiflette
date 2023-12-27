@@ -136,28 +136,3 @@ for index, row in tempdf_arr.iterrows():
             **row.to_dict()
         }
     )
-
-
-
-
-# niveau departemental & niveaux supérieurs
-borders = "DEPARTEMENT"
-list_raw_files = list_raw_files_level(fs, path_bucket, borders=borders)
-download_files_from_list(fs, list_raw_files)
-
-# dissolve & export
-subprocess.run(
-    f"mapshaper temp/COMMUNE.shp \
-        -proj wgs84 \
-        -dissolve INSEE_DEP name=DEPARTEMENTS copy-fields=STATE_NAME,INSEE_REG sum-fields=POPULATION + \
-        -dissolve INSEE_REG name=REGIONS copy-fields=STATE_NAME sum-fields=POPULATION + \
-        -dissolve + name=france \
-        -o out.topojson target=*",
-    shell=True
-)
-
-
-
-# old
-
-
