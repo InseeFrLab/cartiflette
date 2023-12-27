@@ -9,7 +9,7 @@ import tempfile
 import typing
 
 import cartiflette
-from cartiflette.download import MasterScraper
+from cartiflette.download.scraper import MasterScraper
 from cartiflette.s3 import standardize_inputs
 from cartiflette.utils import create_path_bucket
 

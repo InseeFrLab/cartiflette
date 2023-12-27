@@ -409,66 +409,6 @@ def write_vectorfile_s3_custom_arrondissement(
 
 
 # main function
-
-
-def write_vectorfile_s3_all(
-    borders="COMMUNE",
-    vectorfile_format="geojson",
-    filter_by="region",
-    year=2022,
-    crs: int = None,
-    bucket: str = BUCKET,
-    path_within_bucket: str = PATH_WITHIN_BUCKET,
-    provider="IGN",
-    source="EXPRESS-COG-TERRITOIRE",
-    fs: s3fs.S3FileSystem = FS,
-):
-    if crs is None:
-        if vectorfile_format.lower() == "geojson":
-            crs = 4326
-        else:
-            crs = "official"
-
-    corresp_filter_by_columns = dict_corresp_filter_by()
-
-    var_filter_by_s3 = corresp_filter_by_columns[filter_by.lower()]
-    borders_read = borders.upper()
-    filter_by = filter_by.upper()
-
-    # IMPORT SHAPEFILES ------------------
-
-    territories = create_dict_all_territories(
-        provider=provider, source=source, year=year, borders=borders_read
-    )
-
-    # For whole France, we need to combine everything together
-    # into new key "territoire"
-    if filter_by.upper() == "FRANCE_ENTIERE":
-        for key, val in territories.items():
-            val["territoire"] = key
-
-    for territory in territories:
-        print(f"Writing {territory}")
-
-        if crs == "official":
-            epsg = official_epsg_codes()[territory]
-        else:
-            epsg = crs
-
-        write_vectorfile_all_borders(
-            object=territories[territory],
-            borders=borders,
-            borders_var=var_filter_by_s3,
-            vectorfile_format=vectorfile_format,
-            filter_by=filter_by,
-            year=year,
-            crs=epsg,
-            provider=provider,
-            source=source,
-            fs=fs,
-        )
-
-
 def open_vectorfile_from_s3(
     vectorfile_format,
     filter_by,
