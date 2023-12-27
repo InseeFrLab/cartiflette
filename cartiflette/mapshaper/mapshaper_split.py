@@ -8,6 +8,7 @@ def mapshaperize_split(
     filename_initial="COMMUNE",
     extension_initial="shp",
     format_output="topojson",
+    niveau_polygons="DEPARTEMENT",
     niveau_agreg="DEPARTEMENT",
     provider="IGN",
     source="EXPRESS-COG-CARTO-TERRITOIRE",
@@ -81,6 +82,19 @@ def mapshaperize_split(
         cmd_step1,
         shell=True
     )
+
+
+    if niveau_polygons != niveau_agreg:
+        cmd_dissolve = (
+            f"mapshaper temp.geojson "
+            f"name='' -proj EPSG:{crs} "
+            f"-dissolve {dict_corresp[niveau_polygons]} calc='POPULATION=sum(POPULATION)'"
+            "-o temp.geojson force"
+        )
+        subprocess.run(
+            cmd_dissolve,
+            shell=True
+        )
 
     # STEP 2: SPLIT ET SIMPLIFIE
     cmd_step2 = (

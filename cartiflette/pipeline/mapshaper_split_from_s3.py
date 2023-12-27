@@ -4,7 +4,7 @@ import os
 from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
 from cartiflette.utils import create_path_bucket
 from cartiflette.mapshaper import mapshaperize_split, mapshaperize_split_merge
-from .prepare_mapshaper import prepare_local_directory_mapshaper
+from cartiflette.prepare_mapshaper import prepare_local_directory_mapshaper
 
 
 def mapshaperize_split_from_s3(
