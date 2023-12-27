@@ -9,6 +9,49 @@ DICT_CORRESP_IGN = {
 }
 
 
+def mapshaper_enrich(
+    local_dir="temp",
+    filename_initial="COMMUNE",
+    extension_initial="shp",
+    output_path="temp.geojson",
+    dict_corresp=DICT_CORRESP_IGN
+):
+
+    cmd_step1 = (
+        f"mapshaper {local_dir}/{filename_initial}.{extension_initial} "
+        f"name='' -proj EPSG:4326 "
+        f"-join temp/tagc.csv "
+        f"keys=INSEE_COM,CODGEO field-types=INSEE_COM:str,CODGEO:str "
+        f"-filter-fields INSEE_CAN,INSEE_ARR,SIREN_EPCI,DEP,REG invert "
+        f"-each \"{dict_corresp['FRANCE_ENTIERE']}='France'\" "
+        f"-o {output_path}"
+    )
+
+    subprocess.run(cmd_step1, shell=True, check=True)
+
+
+def mapshaper_split(
+    input_file="temp.geojson",
+    layer_name='',
+    split_variable="DEPARTEMENT",
+    output_path="temp2.geojson",
+    format_output="geojson",
+    crs=4326,
+    option_simplify="",
+    source_identifier=""
+):
+
+    cmd_step2 = (
+        f"mapshaper {input_file} name='{layer_name}' -proj EPSG:{crs} "
+        f"{option_simplify}"
+        f"-each \"SOURCE='{source_identifier}'\" "
+        f"-split {split_variable} "
+        f'-o {output_path} format={format_output} extension=".{format_output}" singles'
+    )
+
+    subprocess.run(cmd_step2, shell=True, check=True)
+
+
 def mapshaperize_split(
     local_dir="temp",
     filename_initial="COMMUNE",
@@ -72,17 +115,13 @@ def mapshaperize_split(
         option_simplify = ""
 
     # STEP 1: ENRICHISSEMENT AVEC COG
-    cmd_step1 = (
-        f"mapshaper {local_dir}/{filename_initial}.{extension_initial} "
-        f"name='' -proj EPSG:4326 "
-        f"-join temp/tagc.csv "
-        f"keys=INSEE_COM,CODGEO field-types=INSEE_COM:str,CODGEO:str "
-        f"-filter-fields INSEE_CAN,INSEE_ARR,SIREN_EPCI,DEP,REG invert "
-        f"-each \"{dict_corresp['FRANCE_ENTIERE']}='France'\" "
-        "-o temp.geojson"
+    mapshaper_enrich(
+        local_dir=local_dir,
+        filename_initial=filename_initial,
+        extension_initial=extension_initial,
+        dict_corresp=dict_corresp
     )
 
-    subprocess.run(cmd_step1, shell=True, check=True)
 
     if niveau_polygons != filename_initial:
         csv_list_vars = (
@@ -93,6 +132,7 @@ def mapshaperize_split(
         if niveau_agreg != "FRANCE_ENTIERE":
             csv_list_vars = f"{csv_list_vars},{dict_corresp['LIBELLE_' + niveau_agreg]}"
 
+        # STEP 1B: DISSOLVE IF NEEDED
         cmd_dissolve = (
             f"mapshaper temp.geojson "
             f"name='' -proj EPSG:4326 "
@@ -104,15 +144,16 @@ def mapshaperize_split(
         subprocess.run(cmd_dissolve, shell=True, check=True)
 
     # STEP 2: SPLIT ET SIMPLIFIE
-    cmd_step2 = (
-        f"mapshaper temp.geojson name='' -proj EPSG:{crs} "
-        f"{option_simplify}"
-        f"-each \"SOURCE='{provider}:{source}'\" "
-        f"-split {dict_corresp[niveau_agreg]} "
-        f'-o {output_path} format={format_output} extension=".{format_output}" singles'
+    mapshaper_split(
+        input_file="temp.geojson",
+        layer_name='',
+        split_variable=dict_corresp[niveau_agreg],
+        output_path=output_path,
+        format_output=format_output,
+        crs=crs,
+        option_simplify=option_simplify,
+        source_identifier=f"{provider}:{source}"
     )
-
-    subprocess.run(cmd_step2, shell=True, check=True)
 
     return output_path
 
@@ -186,27 +227,24 @@ def mapshaperize_split_merge(
     )
 
     # STEP 1: ENRICHISSEMENT AVEC COG
-    cmd_step1 = (
-        f"mapshaper {output_path}/raw.{format_intermediate} "
-        f"-join temp/tagc.csv "
-        f"keys=INSEE_COM,CODGEO field-types=INSEE_COM:str,CODGEO:str "
-        "-filter-fields INSEE_CAN,INSEE_ARR,SIREN_EPCI,INSEE_DEP,INSEE_REG invert "
-        f"-rename-fields INSEE_DEP=DEP,INSEE_REG=REG "
-        f"-o {output_path}/raw2.{format_intermediate}"
+    mapshaper_enrich(
+        local_dir=output_path,
+        filename_initial="raw",
+        extension_initial=format_intermediate,
+        output_path=f"{output_path}/raw2.{format_intermediate}",
+        dict_corresp=DICT_CORRESP_IGN
     )
-
-    subprocess.run(cmd_step1, shell=True, check=True)
 
     # TRANSFORM AS NEEDED
-    cmd_step2 = (
-        f"mapshaper {output_path}/raw2.{format_intermediate} "
-        f"{option_simplify}"
-        f"-proj EPSG:{crs} "
-        f"-each \"SOURCE='{provider}:{source}'\" "
-        f"-split {dict_corresp[niveau_agreg]} "
-        f'-o {output_path} format={format_output} extension=".{format_output}" singles'
+    mapshaper_split(
+        input_file=f"{output_path}/raw2.{format_intermediate}",
+        layer_name='',
+        split_variable=dict_corresp[niveau_agreg],
+        output_path=output_path,
+        format_output=format_output,
+        crs=crs,
+        option_simplify=option_simplify,
+        source_identifier=f"{provider}:{source}"
     )
-
-    subprocess.run(cmd_step2, shell=True, check=True)
 
     return output_path
