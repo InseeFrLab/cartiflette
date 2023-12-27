@@ -12,8 +12,8 @@ def upload_s3_raw(
     path_within_bucket="test-download6",
     crs=2154,
     vectorfile_format="shp",
-    bucket="projet-cartiflette"
-    ):
+    bucket="projet-cartiflette",
+):
     """
     Uploads raw data to an S3 bucket and returns the path to the bucket.
 
@@ -44,7 +44,7 @@ def upload_s3_raw(
         The path to the S3 bucket where the raw data is uploaded.
 
     """
-    
+
     x = _download_sources(
         upload=True,
         providers=provider,
@@ -52,29 +52,29 @@ def upload_s3_raw(
         sources=source,
         territories=territory,
         years=year,
-        path_within_bucket=path_within_bucket
+        path_within_bucket=path_within_bucket,
     )
 
-    rawpaths = x[provider][dataset_family][source][territory][year]['paths']
+    rawpaths = x[provider][dataset_family][source][territory][year]["paths"]
 
     if rawpaths is None:
         path_raw_s3 = create_path_bucket(
-        {
-            "bucket": bucket,
-            "path_within_bucket": path_within_bucket,
-            "year": year,
-            "borders": None,
-            "crs": crs,
-            "filter_by": "origin",
-            "value": "raw",
-            "vectorfile_format": vectorfile_format,
-            "provider": provider,
-            "dataset_family": dataset_family,
-            "source": source,
-            "territory": territory,
-            "filename": "COMMUNE.shp",
-            "simplification": 0
-        }
+            {
+                "bucket": bucket,
+                "path_within_bucket": path_within_bucket,
+                "year": year,
+                "borders": None,
+                "crs": crs,
+                "filter_by": "origin",
+                "value": "raw",
+                "vectorfile_format": vectorfile_format,
+                "provider": provider,
+                "dataset_family": dataset_family,
+                "source": source,
+                "territory": territory,
+                "filename": "COMMUNE.shp",
+                "simplification": 0,
+            }
         )
     else:
         path_raw_s3 = rawpaths[borders][0]

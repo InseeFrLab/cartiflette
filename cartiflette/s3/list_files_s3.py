@@ -26,12 +26,14 @@ def list_raw_files_level(fs, path_bucket, borders):
     """
     list_raw_files = fs.ls(path_bucket)
     list_raw_files = [
-        chemin for chemin in list_raw_files if chemin.rsplit("/", maxsplit=1)[-1].startswith(f'{borders}.')
-        ]
+        chemin
+        for chemin in list_raw_files
+        if chemin.rsplit("/", maxsplit=1)[-1].startswith(f"{borders}.")
+    ]
     return list_raw_files
 
 
-def download_files_from_list(fs, list_raw_files, local_dir = "temp"):
+def download_files_from_list(fs, list_raw_files, local_dir="temp"):
     """
     Downloads files from a list of raw files to a specified local directory.
 
@@ -50,8 +52,5 @@ def download_files_from_list(fs, list_raw_files, local_dir = "temp"):
         The path of the local directory where the files are downloaded.
     """
     for files in list_raw_files:
-        fs.download(
-            files,
-            f"{local_dir}/{files.rsplit('/', maxsplit=1)[-1]}"
-        )
+        fs.download(files, f"{local_dir}/{files.rsplit('/', maxsplit=1)[-1]}")
     return local_dir

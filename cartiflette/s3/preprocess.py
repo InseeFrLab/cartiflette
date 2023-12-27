@@ -280,9 +280,7 @@ def get_vectorfile_ign(
             all_files = fs.glob(pattern + "*")  # , refresh=True)
             # see issue : https://github.com/fsspec/s3fs/issues/504
             for temp in all_files:
-                with open(
-                    os.path.join(tempdir, os.path.basename(temp)), "wb"
-                ) as tf:
+                with open(os.path.join(tempdir, os.path.basename(temp)), "wb") as tf:
                     with fs.open(temp, "rb") as fsf:
                         tf.write(fsf.read())
             gdf = gpd.read_file(os.path.join(tempdir, os.path.basename(file)))
@@ -393,9 +391,7 @@ def get_vectorfile_communes_arrondissement(
         :, ~arrondissement_extra_info.columns.str.endswith("_y")
     ]
 
-    df_enrichi = pd.concat(
-        [communes_sans_grandes_villes, arrondissement_extra_info]
-    )
+    df_enrichi = pd.concat([communes_sans_grandes_villes, arrondissement_extra_info])
 
     df_enrichi["INSEE_COG"] = np.where(
         df_enrichi["INSEE_ARM"].isnull(),
@@ -506,9 +502,7 @@ def get_BV(
         source=ign_source,
     )
 
-    bv = communes.merge(
-        bv, left_on="INSEE_COM", right_on="codgeo", how="right"
-    )
+    bv = communes.merge(bv, left_on="INSEE_COM", right_on="codgeo", how="right")
     if bv_source == "FondsDeCarte_BV_2022":
         rename = ["bv2022", "libbv2022"]
     elif bv_source == "FondsDeCarte_BV_2012":
@@ -516,9 +510,7 @@ def get_BV(
     bv = bv.rename(dict(zip(rename, ["bv", "libbv"])), axis=1)
     by = ["bv", "libbv", "dep", "reg"]
 
-    bv = bv.dissolve(
-        by=by, aggfunc={"POPULATION": "sum"}, as_index=False, dropna=False
-    )
+    bv = bv.dissolve(by=by, aggfunc={"POPULATION": "sum"}, as_index=False, dropna=False)
 
     return bv
 

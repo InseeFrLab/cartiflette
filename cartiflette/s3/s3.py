@@ -1,7 +1,6 @@
 """Module for communication with Minio S3 Storage
 """
 
-import itertools
 import os
 import tempfile
 import typing
@@ -87,20 +86,34 @@ def create_url_s3(
     year: typing.Union[str, int, float] = "2022",
     value: typing.Union[str, int, float] = "28",
     crs: typing.Union[list, str, int, float] = 2154,
-    simplification: typing.Union[str, int, float] = None
+    simplification: typing.Union[str, int, float] = None,
 ) -> str:
     """
     This function creates a URL for a vector file stored in an S3 bucket.
 
     Parameters:
     bucket (str): The name of the bucket where the file is stored. Default is BUCKET.
-    path_within_bucket (str): The path within the bucket where the file is stored. Default is PATH_WITHIN_BUCKET.
-    vectorfile_format (str): The format of the vector file, can be "geojson", "topojson", "gpkg" or "shp". Default is "geojson".
-    borders (str): The administrative borders of the tiles within the vector file. Can be any administrative borders provided by IGN, e.g. "COMMUNE", "DEPARTEMENT" or "REGION". Default is "COMMUNE".
-    filter_by (str): The administrative borders (supra to 'borders') that will be used to cut the vector file in pieces when writing to S3. For instance, if borders is "DEPARTEMENT", filter_by can be "REGION" or "FRANCE_ENTIERE". Default is "region".
+    path_within_bucket (str):
+        The path within the bucket where the file is stored.
+        Default is PATH_WITHIN_BUCKET.
+    vectorfile_format (str):
+        The format of the vector file.
+        Can be "geojson", "topojson", "gpkg" or "shp". Default is "geojson".
+    borders (str): The administrative borders of the tiles within the vector file.
+        Can be any administrative borders provided by IGN,
+        e.g. "COMMUNE", "DEPARTEMENT" or "REGION". Default is "COMMUNE".
+    filter_by (str):
+        The administrative borders (supra to 'borders')
+        that will be used to cut the vector file in pieces
+        when writing to S3.
+        For instance, if borders is "DEPARTEMENT",
+        filter_by can be "REGION" or "FRANCE_ENTIERE".
+        Default is "REGION".
     year (typing.Union[str, int, float]): The year of the vector file. Default is "2022".
     value (typing.Union[str, int, float]): The value of the vector file. Default is "28".
-    crs (typing.Union[list, str, int, float]): The coordinate reference system of the vector file. Default is 2154.
+    crs (typing.Union[list, str, int, float]):
+        The coordinate reference system of the vector file.
+        Default is 2154.
 
     Returns:
     str: The URL of the vector file stored in S3
@@ -155,7 +168,7 @@ def write_cog_s3(
                 "year": year,
                 "value": "raw",
                 "crs": None,
-                "simplification": None
+                "simplification": None,
             }
         ): value
         for level, value in list_cog.items()
@@ -208,7 +221,8 @@ def write_vectorfile_subset(
     bucket : str, optional
         The S3 bucket where the vector file will be written, by default BUCKET.
     path_within_bucket : str, optional
-        The path within the specified S3 bucket where the vector file will be written, by default PATH_WITHIN_BUCKET.
+        The path within the specified S3 bucket where the vector file will be written,
+        by default PATH_WITHIN_BUCKET.
     crs : typing.Union[str, int, float], optional
         The coordinate reference system to be used, by default 2154.
 
@@ -305,10 +319,14 @@ def write_vectorfile_all_borders(
         borders (str, optional): The borders of the vector file. Defaults to "COMMUNE".
         vectorfile_format (str, optional): The format of the vector file. Defaults to "geojson".
         filter_by (str, optional): The filter_by of the vector file. Defaults to "region".
-        year (typing.Union[str, int, float], optional): The year of the vector file. Defaults to 2022.
+        year (typing.Union[str, int, float], optional):
+            The year of the vector file. Defaults to 2022.
         bucket (str, optional): The S3 bucket where to write the vector file. Defaults to BUCKET.
-        path_within_bucket (str, optional): The path within the bucket where to write the vector file. Defaults to PATH_WITHIN_BUCKET.
-        crs (typing.Union[str, int, float], optional): The Coordinate Reference System of the vector file. Defaults to 2154.
+        path_within_bucket (str, optional):
+            The path within the bucket where to write the vector file.
+            Defaults to PATH_WITHIN_BUCKET.
+        crs (typing.Union[str, int, float], optional):
+            The Coordinate Reference System of the vector file. Defaults to 2154.
     """
 
     [
@@ -524,9 +542,6 @@ def create_territories(
         else:
             crs = "official"
 
-    corresp_filter_by_columns = dict_corresp_filter_by()
-
-    var_filter_by_s3 = corresp_filter_by_columns[filter_by.lower()]
     borders_read = borders.upper()
 
     # IMPORT SHAPEFILES ------------------
@@ -546,7 +561,6 @@ def restructure_nested_dict_borders(dict_with_list: dict):
     ]
 
     return croisement_filter_by_borders_flat
-
 
 
 def list_produced_cartiflette(
@@ -571,87 +585,3 @@ def list_produced_cartiflette(
 
     with fs.open(f"{bucket}/{path_within_bucket}/available.json", "wb") as f:
         df.to_json(f, orient="records")
-
-
-def production_cartiflette(
-    croisement_filter_by_borders,
-    formats,
-    years,
-    crs_list,
-    sources,
-    fs: s3fs.S3FileSystem = FS,
-):
-    tempdf = crossproduct_parameters_production(
-        croisement_filter_by_borders=croisement_filter_by_borders,
-        list_format=formats,
-        years=years,
-        crs_list=crs_list,
-        sources=sources,
-    )
-
-    for index, row in tempdf.iterrows():
-        format = row["format"]
-        borders = row["borders"]
-        filter_by = row["filter_by"]
-        year = row["year"]
-        crs = row["crs"]
-        source = row["source"]
-        print(
-            80 * "==" + "\n"
-            f"{borders=}\n{format=}\n"
-            f"{filter_by=}\n{year=}\n"
-            f"{crs=}\n"
-            f"{source=}"
-        )
-
-        if borders == "COMMUNE_ARRONDISSEMENT":
-            production_func = write_vectorfile_s3_custom_arrondissement
-        else:
-            production_func = write_vectorfile_s3_all
-
-        production_func(
-            borders=borders,
-            vectorfile_format=format,
-            filter_by=filter_by,
-            year=year,
-            crs=crs,
-            provider="IGN",
-            source=source,
-            fs=fs,
-        )
-
-    print(80 * "-" + "\nProduction finished :)")
-
-
-def create_nested_topojson(path):
-    croisement_filter_by_borders = {
-        # structure -> niveau geo: [niveau filter_by macro],
-        "REGION": ["FRANCE_ENTIERE"],
-        "DEPARTEMENT": ["FRANCE_ENTIERE"],
-    }
-
-    croisement_filter_by_borders_flat = [
-        [key, inner_value]
-        for key, values in croisement_filter_by_borders.items()
-        for inner_value in values
-    ]
-
-    list_output = {}
-    for couple in croisement_filter_by_borders_flat:
-        borders = couple[0]
-        filter_by = couple[1]
-        list_output[borders] = create_territories(
-            borders=borders, filter_by=filter_by
-        )
-
-    topo = Topology(
-        data=[
-            list_output["REGION"]["metropole"],
-            list_output["DEPARTEMENT"]["metropole"],
-        ],
-        object_name=["region", "departement"],
-        prequantize=False,
-    )
-
-    return topo
-    # topo.to_json(path)
