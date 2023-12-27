@@ -124,13 +124,13 @@ for index, row in tempdf.iterrows():
 
 # niveau commune_arrondissement
 
-tempdf_arr = tempdf.loc[tempdf['borders'] == "COMMUNE"].copy()
-tempdf_arr = tempdf_arr.drop(columns = ['borders'])
+tempdf_arr = tempdf.loc[tempdf['level_polygons'] == "COMMUNE"].copy()
+tempdf_arr = tempdf_arr.drop(columns = ['level_polygons'])
 
 for index, row in tempdf_arr.iterrows():
     print(row)
     mapshaperize_merge_split_from_s3(
-        path_bucket,
+        path_bucket_adminexpress,
         {
             **{'path_within_bucket': path_within_bucket},
             **row.to_dict()
