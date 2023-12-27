@@ -46,7 +46,8 @@ def download_from_cartiflette(
     - borders (str): The type of borders (default is "COMMUNE").
     - filter_by (str): The parameter to filter by (default is "region").
     - territory (str): The territory (default is "metropole").
-    - year (Union[str, int, float]): The year of the dataset (default is None, which uses the current year).
+    - year (Union[str, int, float]): The year of the dataset
+        (default is None, which uses the current year).
     - crs (Union[list, str, int, float]): The coordinate reference system (default is 2154).
     - simplification (Union[str, int, float]): The simplification parameter (default is None).
 
@@ -247,7 +248,6 @@ def download_vectorfile_single(
             "simplification": simplification
         }
     )
-
 
     if type_download == "bucket":
         try:
