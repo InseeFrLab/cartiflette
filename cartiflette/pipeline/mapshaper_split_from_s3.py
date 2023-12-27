@@ -44,9 +44,6 @@ def mapshaperize_split_from_s3(path_bucket, config, fs=FS):
         niveau_polygons=level_polygons,
         provider=provider,
         source=source,
-        year=year,
-        dataset_family=dataset_family,
-        territory=territory,
         crs=crs,
         simplification=simplification,
     )
@@ -119,9 +116,6 @@ def mapshaperize_merge_split_from_s3(path_bucket, config, fs=FS):
         niveau_agreg=filter_by,
         provider=provider,
         source=source,
-        year=year,
-        dataset_family=dataset_family,
-        territory=territory,
         crs=crs,
         simplification=simplification,
     )

@@ -18,9 +18,6 @@ def mapshaperize_split(
     niveau_agreg="DEPARTEMENT",
     provider="IGN",
     source="EXPRESS-COG-CARTO-TERRITOIRE",
-    year=2022,
-    dataset_family="ADMINEXPRESS",
-    territory="metropole",
     crs=4326,
     simplification=0,
     dict_corresp=DICT_CORRESP_IGN,
@@ -127,9 +124,6 @@ def mapshaperize_split_merge(
     niveau_agreg="DEPARTEMENT",
     provider="IGN",
     source="EXPRESS-COG-CARTO-TERRITOIRE",
-    year=2022,
-    dataset_family="ADMINEXPRESS",
-    territory="metropole",
     crs=4326,
     simplification=0,
     dict_corresp=DICT_CORRESP_IGN,
@@ -156,7 +150,7 @@ def mapshaperize_split_merge(
             f'format={format_intermediate} extension=".{format_intermediate}" singles'
         ),
         shell=True,
-        check=True
+        check=True,
     )
 
     # PREPROCESS ARRONDISSEMENT
@@ -171,7 +165,7 @@ def mapshaperize_split_merge(
             f'format={format_intermediate} extension=".{format_intermediate}"'
         ),
         shell=True,
-        check=True
+        check=True,
     )
 
     # MERGE CITIES AND ARRONDISSEMENT
@@ -188,7 +182,7 @@ def mapshaperize_split_merge(
             f'format={format_intermediate} extension=".{format_intermediate}"'
         ),
         shell=True,
-        check=True
+        check=True,
     )
 
     # STEP 1: ENRICHISSEMENT AVEC COG
