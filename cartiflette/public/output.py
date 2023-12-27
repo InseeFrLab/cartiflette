@@ -10,24 +10,146 @@ import typing
 
 import cartiflette
 from cartiflette.download.scraper import MasterScraper
-from cartiflette.s3 import standardize_inputs
+from cartiflette.s3.s3 import standardize_inputs
 from cartiflette.utils import create_path_bucket
 
 logger = logging.getLogger(__name__)
+
+
+def download_from_cartiflette(
+    values: typing.List[typing.Union[str, int, float]],
+    bucket: str = cartiflette.BUCKET,
+    path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
+    provider: str = "IGN",
+    dataset_family: str = "ADMINEXPRESS",
+    source: str = "EXPRESS-COG-TERRITOIRE",
+    vectorfile_format: str = "geojson",
+    borders: str = "COMMUNE",
+    filter_by: str = "region",
+    territory: str = "metropole",
+    year: typing.Union[str, int, float] = None,
+    crs: typing.Union[list, str, int, float] = 2154,
+    simplification: typing.Union[str, int, float] = None,
+) -> gpd.GeoDataFrame:
+    """
+    Downloads GeoDataFrames from the Cartiflette service for specified values.
+
+    Parameters:
+    - values (List[Union[str, int, float]]): A list of values to use in the 'value' parameter
+      when calling download_from_cartiflette_single for each iteration.
+    - bucket (str): The name of the S3 bucket.
+    - path_within_bucket (str): The path within the S3 bucket where the datasets are stored.
+    - provider (str): The data provider (default is "IGN").
+    - dataset_family (str): The dataset family (default is "ADMINEXPRESS").
+    - source (str): The data source (default is "EXPRESS-COG-TERRITOIRE").
+    - vectorfile_format (str): The file format for vector files (default is "geojson").
+    - borders (str): The type of borders (default is "COMMUNE").
+    - filter_by (str): The parameter to filter by (default is "region").
+    - territory (str): The territory (default is "metropole").
+    - year (Union[str, int, float]): The year of the dataset (default is None, which uses the current year).
+    - crs (Union[list, str, int, float]): The coordinate reference system (default is 2154).
+    - simplification (Union[str, int, float]): The simplification parameter (default is None).
+
+    Returns:
+    - gpd.GeoDataFrame: A GeoDataFrame containing concatenated data from the Cartiflette service
+      for the specified values.
+    """
+
+    # Initialize an empty list to store individual GeoDataFrames
+    gdf_list = []
+
+    # Set the year to the current year if not provided
+    if not year:
+        year = str(date.today().year)
+
+    # Iterate over values and call download_from_cartiflette_single
+    for value in values:
+        gdf_single = download_from_cartiflette_single(
+            value=value,
+            bucket=bucket,
+            path_within_bucket=path_within_bucket,
+            provider=provider,
+            dataset_family=dataset_family,
+            source=source,
+            vectorfile_format=vectorfile_format,
+            borders=borders,
+            filter_by=filter_by,
+            territory=territory,
+            year=year,
+            crs=crs,
+            simplification=simplification
+        )
+        gdf_list.append(gdf_single)
+
+    # Concatenate the list of GeoDataFrames into a single GeoDataFrame
+    concatenated_gdf = gpd.pd.concat(gdf_list, ignore_index=True)
+
+    return concatenated_gdf
+
+
+def download_from_cartiflette_single(
+    bucket: str = cartiflette.BUCKET,
+    path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
+    provider: str = "IGN",
+    dataset_family: str = "ADMINEXPRESS",
+    source: str = "EXPRESS-COG-TERRITOIRE",
+    vectorfile_format: str = "geojson",
+    borders: str = "COMMUNE",
+    filter_by: str = "region",
+    territory: str = "metropole",
+    year: typing.Union[str, int, float] = None,
+    value: typing.Union[str, int, float] = "28",
+    crs: typing.Union[list, str, int, float] = 2154,
+    simplification: typing.Union[str, int, float] = None,
+    *args,
+    **kwargs,
+):
+    if not year:
+        year = str(date.today().year)
+
+    corresp_filter_by_columns, format_read, driver = standardize_inputs(
+        vectorfile_format
+    )
+
+    url = create_path_bucket(
+        {
+            "bucket": bucket,
+            "path_within_bucket": path_within_bucket,
+            "vectorfile_format": format_read,
+            "territory": territory,
+            "borders": borders,
+            "filter_by": filter_by,
+            "year": year,
+            "value": value,
+            "crs": crs,
+            "provider": provider,
+            "dataset_family": dataset_family,
+            "source": source,
+            "simplification": simplification
+        }
+    )
+
+    url = f"https://minio.lab.sspcloud.fr/{url}"
+
+    gdf = gpd.read_file(url)
+
+    return gdf
 
 
 def download_vectorfile_single(
     bucket: str = cartiflette.BUCKET,
     path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
     provider: str = "IGN",
+    dataset_family: str = "ADMINEXPRESS",
     source: str = "EXPRESS-COG-TERRITOIRE",
     vectorfile_format: str = "geojson",
     borders: str = "COMMUNE",
     filter_by: str = "region",
+    territory: str = "metropole",
     year: typing.Union[str, int, float] = None,
     value: typing.Union[str, int, float] = "28",
     crs: typing.Union[list, str, int, float] = 2154,
-    simplication: typing.Union[str, int, float] = None,
+    simplification: typing.Union[str, int, float] = None,
     type_download: str = "https",
     fs: s3fs.S3FileSystem = cartiflette.FS,
     *args,
@@ -113,16 +235,19 @@ def download_vectorfile_single(
             "bucket": bucket,
             "path_within_bucket": path_within_bucket,
             "vectorfile_format": format_read,
+            "territory": territory,
             "borders": borders,
             "filter_by": filter_by,
             "year": year,
             "value": value,
             "crs": crs,
             "provider": provider,
+            "dataset_family": dataset_family,
             "source": source,
-            "simplification": simplication
+            "simplification": simplification
         }
     )
+
 
     if type_download == "bucket":
         try:
