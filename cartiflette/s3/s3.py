@@ -548,32 +548,6 @@ def restructure_nested_dict_borders(dict_with_list: dict):
     return croisement_filter_by_borders_flat
 
 
-def crossproduct_parameters_production(
-    croisement_filter_by_borders, list_format, years, crs_list, sources
-):
-    croisement_filter_by_borders_flat = restructure_nested_dict_borders(
-        croisement_filter_by_borders
-    )
-
-    combinations = list(
-        itertools.product(
-            list_format,
-            croisement_filter_by_borders_flat,
-            years,
-            crs_list,
-            sources,
-        )
-    )
-
-    tempdf = pd.DataFrame(
-        combinations, columns=["format", "nested", "year", "crs", "source"]
-    )
-    tempdf["borders"] = tempdf["nested"].apply(lambda l: l[0])
-    tempdf["filter_by"] = tempdf["nested"].apply(lambda l: l[1])
-    tempdf.drop("nested", axis="columns", inplace=True)
-
-    return tempdf
-
 
 def list_produced_cartiflette(
     bucket: str = BUCKET,

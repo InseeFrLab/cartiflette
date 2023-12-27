@@ -104,7 +104,7 @@ def crossproduct_parameters_production(
         combinations,
         columns=["format_output", "nested", "year", "crs", "source", "simplification"]
     )
-    tempdf["borders"] = tempdf["nested"].apply(lambda l: l[0])
+    tempdf["level_polygons"] = tempdf["nested"].apply(lambda l: l[0])
     tempdf["filter_by"] = tempdf["nested"].apply(lambda l: l[1])
     tempdf.drop("nested", axis="columns", inplace=True)
 

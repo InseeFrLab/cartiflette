@@ -1,6 +1,11 @@
 import subprocess
 
-DICT_CORRESP_IGN = {"REGION": "INSEE_REG", "DEPARTEMENT": "INSEE_DEP"}
+DICT_CORRESP_IGN = {
+    "REGION": "INSEE_REG", "DEPARTEMENT": "INSEE_DEP",
+    "FRANCE_ENTIERE": "PAYS",
+    "LIBELLE_REGION": "LIBELLE_REGION",
+    "LIBELLE_DEPARTEMENT": "LIBELLE_DEPARTEMENT"
+    }
 
 
 def mapshaperize_split(
@@ -8,7 +13,7 @@ def mapshaperize_split(
     filename_initial="COMMUNE",
     extension_initial="shp",
     format_output="topojson",
-    niveau_polygons="DEPARTEMENT",
+    niveau_polygons="COMMUNE",
     niveau_agreg="DEPARTEMENT",
     provider="IGN",
     source="EXPRESS-COG-CARTO-TERRITOIRE",
@@ -71,10 +76,11 @@ def mapshaperize_split(
     # STEP 1: ENRICHISSEMENT AVEC COG
     cmd_step1 = (
         f"mapshaper {local_dir}/{filename_initial}.{extension_initial} "
-        f"name='' -proj EPSG:{crs} "
+        f"name='' -proj EPSG:4326 "
         f"-join temp/tagc.csv "
         f"keys=INSEE_COM,CODGEO field-types=INSEE_COM:str,CODGEO:str "
-        "-filter-fields INSEE_CAN,INSEE_ARR,SIREN_EPCI,DEP,REG invert "
+        f"-filter-fields INSEE_CAN,INSEE_ARR,SIREN_EPCI,DEP,REG invert "
+        f"-each \"{dict_corresp['FRANCE_ENTIERE']}='France'\" "
         "-o temp.geojson"
     )
 
@@ -84,11 +90,21 @@ def mapshaperize_split(
     )
 
 
-    if niveau_polygons != niveau_agreg:
+    if niveau_polygons != filename_initial:
+        csv_list_vars = (
+            f"{dict_corresp[niveau_polygons]},"
+            f"{dict_corresp[niveau_agreg]},"
+            f"{dict_corresp['LIBELLE_' + niveau_polygons]}"
+        )
+        if niveau_agreg != "FRANCE_ENTIERE":
+            csv_list_vars = f"{csv_list_vars},{dict_corresp['LIBELLE_' + niveau_agreg]}"
+
         cmd_dissolve = (
             f"mapshaper temp.geojson "
-            f"name='' -proj EPSG:{crs} "
-            f"-dissolve {dict_corresp[niveau_polygons]} calc='POPULATION=sum(POPULATION)'"
+            f"name='' -proj EPSG:4326 "
+            f"-dissolve {dict_corresp[niveau_polygons]} "
+            f"calc='POPULATION=sum(POPULATION)' "
+            f"copy-fields={csv_list_vars} "
             "-o temp.geojson force"
         )
         subprocess.run(
@@ -143,7 +159,7 @@ def mapshaperize_split_merge(
     subprocess.run(
         (
             f"mapshaper {local_dir}/COMMUNE.{extension_initial} name='COMMUNE' "
-            f"-proj EPSG:{crs} "
+            f"-proj EPSG:4326 "
             f"-filter '\"69123,13055,75056\".indexOf(INSEE_COM) > -1' invert "
             f"-each \"INSEE_COG=INSEE_COM\" "
             f"-o {output_path}/communes_simples.{format_intermediate} "
@@ -157,7 +173,7 @@ def mapshaperize_split_merge(
         (
             f"mapshaper {local_dir}/ARRONDISSEMENT_MUNICIPAL.{extension_initial} "
             f"name='ARRONDISSEMENT_MUNICIPAL' "
-            f"-proj EPSG:{crs} "
+            f"-proj EPSG:4326 "
             f"-rename-fields INSEE_COG=INSEE_ARM "
             f"-each 'STATUT=\"Arrondissement municipal\" ' "
             f"-o {output_path}/arrondissements.{format_intermediate} "
@@ -172,7 +188,7 @@ def mapshaperize_split_merge(
             f"mapshaper "
             f"{output_path}/communes_simples.{format_intermediate} "
             f"{output_path}/arrondissements.{format_intermediate} snap combine-files "
-            f"-proj EPSG:{crs} "
+            f"-proj EPSG:4326 "
             f"-rename-layers COMMUNE,ARRONDISSEMENT_MUNICIPAL "
             f"-merge-layers target=COMMUNE,ARRONDISSEMENT_MUNICIPAL force "
             f"-rename-layers COMMUNE_ARRONDISSEMENT "

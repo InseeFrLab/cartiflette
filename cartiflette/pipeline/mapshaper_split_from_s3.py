@@ -1,10 +1,9 @@
-
 import os
 
 from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
 from cartiflette.utils import create_path_bucket
 from cartiflette.mapshaper import mapshaperize_split, mapshaperize_split_merge
-from cartiflette.prepare_mapshaper import prepare_local_directory_mapshaper
+from .prepare_mapshaper import prepare_local_directory_mapshaper
 
 
 def mapshaperize_split_from_s3(
@@ -16,6 +15,7 @@ def mapshaperize_split_from_s3(
     format_output = config.get("format_output", "topojson")
     filter_by = config.get("filter_by", "DEPARTEMENT")
     borders = config.get("borders", "COMMUNE")
+    level_polygons = config.get("level_polygons", "COMMUNE")
     territory = config.get("territory", "metropole")
 
     provider = config.get("provider", "IGN")
@@ -46,6 +46,7 @@ def mapshaperize_split_from_s3(
         extension_initial="shp",
         format_output=format_output,
         niveau_agreg=filter_by,
+        niveau_polygons=level_polygons,
         provider=provider,
         source=source,
         year=year,
@@ -61,7 +62,7 @@ def mapshaperize_split_from_s3(
                     "bucket": bucket,
                     "path_within_bucket": path_within_bucket,
                     "year": year,
-                    "borders": borders,
+                    "borders": level_polygons,
                     "crs": crs,
                     "filter_by": filter_by,
                     "value": values.replace(f".{format_output}", ""),
