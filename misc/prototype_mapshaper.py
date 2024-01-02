@@ -1,37 +1,81 @@
 from cartiflette.s3 import upload_s3_raw
 from cartiflette.pipeline import crossproduct_parameters_production
 from cartiflette.pipeline import mapshaperize_split_from_s3, mapshaperize_merge_split_from_s3
-from cartiflette.pipeline.prepare_cog_metadata import prepare_cog_metadata
 from cartiflette.download.download import _download_sources
 
-path_within_bucket = "test-download27"
 
+import subprocess
 
 from cartiflette.utils import import_yaml_config
 from cartiflette.pipeline.prepare_mapshaper import prepare_local_directory_mapshaper
-from cartiflette import FS
+from cartiflette import FS, BUCKET, PATH_WITHIN_BUCKET
 
-fs = FS
+
+# DATA RETRIEVING STEP =========================
+
+path_within_bucket = "test-download27"
+
+from cartiflette import BUCKET, PATH_WITHIN_BUCKET, FS, DICT_CORRESP_IGN
+from cartiflette.utils import create_path_bucket
+from cartiflette.mapshaper.mapshaper_split import mapshaper_enrich
+from cartiflette.pipeline.combine_adminexpress_france import combine_adminexpress_territory
+from cartiflette.pipeline.prepare_cog_metadata import prepare_cog_metadata
+
+
+bucket=BUCKET
+path_within_bucket="test-download27"
+year=2022
+fs=FS
+#path_within_bucket = PATH_WITHIN_BUCKET
+
+# PART 1/ COMBINE RAW FILES TOGETHER AND WRITE TO S3
+
+path_combined_files = combine_adminexpress_territory(
+    path_within_bucket=path_within_bucket
+)
+
+path_raw_s3 = create_path_bucket(
+            {
+                "bucket": bucket,
+                "path_within_bucket": path_within_bucket,
+                "year": year,
+                "borders": "france",
+                "crs": 4326,
+                "filter_by": "preprocessed",
+                "value": "before_cog",
+                "vectorfile_format": "geojson",
+                "provider": "IGN",
+                "dataset_family": 'ADMINEXPRESS',
+                "source": 'EXPRESS-COG-CARTO-TERRITOIRE',
+                "territory": "france",
+                "filename": "raw.geojson",
+                "simplification": 0,
+            }
+        )
+
+fs.put_file(path_combined_files, path_raw_s3)
+
+
+# STEP 2: ENRICH AND SPLIT ----------------------
+
+# Retrieve COG metadata
+tagc_metadata = prepare_cog_metadata(
+    path_within_bucket
+)
+tagc_metadata.drop(columns=["LIBGEO"]).to_csv("temp/tagc.csv")
+
+
+from cartiflette.mapshaper.mapshaper_split import mapshaperize_split
 
 config = {
-    'path_within_bucket': path_within_bucket,
-    "level_polygons": "COMMUNE",
-    "filter_by": "REGION",
-    "simplification": 50
-}
-
-yaml = import_yaml_config()
-
-list_territories = yaml['IGN']['ADMINEXPRESS']['EXPRESS-COG-TERRITOIRE']['territory'].keys()
-
-list_location_raw = {
-    territ: upload_s3_raw(path_within_bucket=path_within_bucket, year=2022, territory=territ) for territ in list_territories
-}
+        'path_within_bucket': path_within_bucket,
+        "level_polygons": "COMMUNE",
+        "filter_by": "REGION",
+        "simplification": 50
+    }
 
     format_output = config.get("format_output", "topojson")
     filter_by = config.get("filter_by", "DEPARTEMENT")
-    borders = config.get("borders", "COMMUNE")
-    level_polygons = config.get("level_polygons", "COMMUNE")
     territory = config.get("territory", "metropole")
 
     provider = config.get("provider", "IGN")
@@ -42,24 +86,84 @@ list_location_raw = {
     crs = config.get("crs", 4326)
     simplification = config.get("simplification", 0)
 
-    bucket = config.get("bucket", BUCKET)
-    path_within_bucket = config.get("path_within_bucket", PATH_WITHIN_BUCKET)
-    local_dir = config.get("local_dir", "temp")
+local_dir = "temp"
+niveau_agreg = filter_by
+level_polygons = "COMMUNE"
 
-for territory, path_bucket in list_location_raw.items():
-    prepare_local_directory_mapshaper(
-            path_bucket,
-            borders=borders,
-            territory=territory,
-            niveau_agreg=filter_by,
-            format_output=format_output,
-            simplification=simplification,
-            local_dir=local_dir,
-            fs=fs,
+path_raw_s3_combined = create_path_bucket(
+            {
+                "bucket": bucket,
+                "path_within_bucket": path_within_bucket,
+                "year": year,
+                "borders": "france",
+                "crs": 4326,
+                "filter_by": "preprocessed",
+                "value": "before_cog",
+                "vectorfile_format": "geojson",
+                "provider": "IGN",
+                "dataset_family": 'ADMINEXPRESS',
+                "source": 'EXPRESS-COG-CARTO-TERRITOIRE',
+                "territory": "france",
+                "filename": "raw.geojson",
+                "simplification": 0,
+            }
         )
 
+fs.download(
+    path_raw_s3_combined,
+    "temp/preprocessed_combined/COMMUNE.geojson"
+)
 
-# DATA RETRIEVING STEP =========================
+path_raw_s3_arrondissement = create_path_bucket(
+            {
+                "bucket": bucket,
+                "path_within_bucket": path_within_bucket,
+                "year": year,
+                "borders": None,
+                "crs": 2154,
+                "filter_by": "origin",
+                "value": "raw",
+                "vectorfile_format": "shp",
+                "provider": "IGN",
+                "dataset_family": 'ADMINEXPRESS',
+                "source": 'EXPRESS-COG-CARTO-TERRITOIRE',
+                "territory": "metropole",
+                "filename": "ARRONDISSEMENT_MUNICIPAL.shp",
+                "simplification": 0,
+            }
+        )
+path_raw_s3_arrondissement = path_raw_s3_arrondissement.rsplit("/", maxsplit=1)[0]
+
+# retrieve arrondissement
+prepare_local_directory_mapshaper(
+    path_raw_s3_arrondissement,
+    borders="ARRONDISSEMENT_MUNICIPAL",
+    territory="metropole",
+    niveau_agreg=niveau_agreg,
+    format_output="topojson",
+    simplification=simplification,
+    local_dir="temp",
+    fs=FS,
+)
+
+
+output_path = mapshaperize_split(
+        local_dir=local_dir,
+        config_file_city={
+            "location": "temp/preprocessed_combined",
+            "filename": "COMMUNE",
+            "extension": "geojson"
+        },
+        format_output=format_output,
+        niveau_agreg=filter_by,
+        niveau_polygons=level_polygons,
+        provider=provider,
+        source=source,
+        crs=crs,
+        simplification=simplification,
+    )
+
+
 
 
 # IGN DATASETS
@@ -77,11 +181,7 @@ essai = upload_s3_raw(
 )
 
 
-# Retrieve COG metadata
-tagc_metadata = prepare_cog_metadata(
-    path_within_bucket
-)
-tagc_metadata.drop(columns=["LIBGEO"]).to_csv("temp/tagc.csv")
+
 
 
 

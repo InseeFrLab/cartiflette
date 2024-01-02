@@ -54,13 +54,13 @@ def mapshaper_split(
 
 def mapshaperize_split(
     local_dir="temp",
-    filename_initial="COMMUNE",
-    extension_initial="shp",
+    config_file_city={},
     format_output="topojson",
     niveau_polygons="COMMUNE",
     niveau_agreg="DEPARTEMENT",
     provider="IGN",
     source="EXPRESS-COG-CARTO-TERRITOIRE",
+    territory="metropole",
     crs=4326,
     simplification=0,
     dict_corresp=DICT_CORRESP_IGN,
@@ -107,7 +107,12 @@ def mapshaperize_split(
 
     simplification_percent = simplification if simplification is not None else 0
 
-    output_path = f"{local_dir}/{niveau_agreg}/{format_output}/{simplification=}"
+    # City level borders, file location
+    directory_city = config_file_city.get("location", local_dir)
+    initial_filename_city = config_file_city.get("filename", "COMMUNE")
+    extension_initial_city = config_file_city.get("extension", "shp")  
+
+    output_path = f"{local_dir}/{territory}/{niveau_agreg}/{format_output}/{simplification=}"
 
     if simplification_percent != 0:
         option_simplify = f"-simplify {simplification_percent}% "
@@ -116,14 +121,14 @@ def mapshaperize_split(
 
     # STEP 1: ENRICHISSEMENT AVEC COG
     mapshaper_enrich(
-        local_dir=local_dir,
-        filename_initial=filename_initial,
-        extension_initial=extension_initial,
-        dict_corresp=dict_corresp
+        local_dir=directory_city,
+        filename_initial=initial_filename_city,
+        extension_initial=extension_initial_city,
+        dict_corresp=dict_corresp,
+        output_path="temp.geojson"
     )
 
-
-    if niveau_polygons != filename_initial:
+    if niveau_polygons != initial_filename_city:
         csv_list_vars = (
             f"{dict_corresp[niveau_polygons]},"
             f"{dict_corresp[niveau_agreg]},"
@@ -159,19 +164,34 @@ def mapshaperize_split(
 
 
 def mapshaperize_split_merge(
-    local_dir="temp",
-    extension_initial="shp",
     format_output="topojson",
     niveau_agreg="DEPARTEMENT",
     provider="IGN",
     source="EXPRESS-COG-CARTO-TERRITOIRE",
+    territory="metropole",
+    config_file_city={},
+    config_file_arrondissement={},
+    local_dir="temp",
     crs=4326,
     simplification=0,
     dict_corresp=DICT_CORRESP_IGN,
 ):
     simplification_percent = simplification if simplification is not None else 0
 
-    output_path = f"{local_dir}/{niveau_agreg}/{format_output}/{simplification=}"
+    # City level borders, file location
+    directory_city = config_file_city.get("location", local_dir)
+    initial_filename_city = config_file_city.get("filename", "COMMUNE")
+    extension_initial_city = config_file_city.get("extension", "shp")
+
+    # Arrondissement level borders, file location
+    directory_arrondissement = config_file_arrondissement.get("location", local_dir)
+    initial_filename_arrondissement = config_file_arrondissement.get(
+        "filename", "ARRONDISSEMENT_MUNICIPAL"
+    )
+    extension_initial_arrondissement = config_file_arrondissement.get("extension", "shp")
+
+    # Intermediate output location
+    output_path = f"{local_dir}/{territory}/{niveau_agreg}/{format_output}/{simplification=}"
 
     if simplification_percent != 0:
         option_simplify = f"-simplify {simplification_percent}% "
@@ -181,9 +201,10 @@ def mapshaperize_split_merge(
     format_intermediate = "geojson"
 
     # PREPROCESS CITIES
+    file_city = f"{directory_city}/{initial_filename_city}.{extension_initial_city}"
     subprocess.run(
         (
-            f"mapshaper {local_dir}/COMMUNE.{extension_initial} name='COMMUNE' "
+            f"mapshaper {file_city} name='COMMUNE' "
             f"-proj EPSG:4326 "
             f"-filter '\"69123,13055,75056\".indexOf(INSEE_COM) > -1' invert "
             f'-each "INSEE_COG=INSEE_COM" '
@@ -195,9 +216,13 @@ def mapshaperize_split_merge(
     )
 
     # PREPROCESS ARRONDISSEMENT
+    file_arrondissement = (
+        f"{directory_arrondissement}/"
+        f"{initial_filename_arrondissement}.{extension_initial_arrondissement}"
+    )
     subprocess.run(
         (
-            f"mapshaper {local_dir}/ARRONDISSEMENT_MUNICIPAL.{extension_initial} "
+            f"mapshaper {file_arrondissement} "
             f"name='ARRONDISSEMENT_MUNICIPAL' "
             f"-proj EPSG:4326 "
             f"-rename-fields INSEE_COG=INSEE_ARM "

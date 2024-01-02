@@ -47,7 +47,7 @@ def prepare_local_directory_mapshaper(
     os.makedirs(local_dir, exist_ok=True)
     # Get all raw shapefiles from Minio
     list_raw_files = list_raw_files_level(fs, path_bucket, borders=borders)
-    download_files_from_list(fs, list_raw_files)
+    download_files_from_list(fs, list_raw_files, local_dir=local_dir)
     local_path_destination = (
         f"{local_dir}/{niveau_agreg}/{format_output}/{simplification=}"
     )

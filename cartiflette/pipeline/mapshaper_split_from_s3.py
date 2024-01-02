@@ -74,7 +74,6 @@ def mapshaperize_split_from_s3(path_bucket, config, fs=FS):
 def mapshaperize_merge_split_from_s3(path_bucket, config, fs=FS):
     format_output = config.get("format_output", "topojson")
     filter_by = config.get("filter_by", "DEPARTEMENT")
-    # borders = config.get("borders", "COMMUNE")
     territory = config.get("territory", "metropole")
 
     provider = config.get("provider", "IGN")
