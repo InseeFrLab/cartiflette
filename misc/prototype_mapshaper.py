@@ -65,7 +65,7 @@ tagc_metadata = prepare_cog_metadata(
 tagc_metadata.drop(columns=["LIBGEO"]).to_csv("temp/tagc.csv")
 
 
-from cartiflette.mapshaper.mapshaper_split import mapshaperize_split
+from cartiflette.mapshaper.mapshaper_split import mapshaperize_split, mapshaperize_split_merge
 
 config = {
         'path_within_bucket': path_within_bucket,
@@ -146,6 +146,7 @@ prepare_local_directory_mapshaper(
     fs=FS,
 )
 
+# pipeline communes
 
 output_path = mapshaperize_split(
         local_dir=local_dir,
@@ -164,6 +165,26 @@ output_path = mapshaperize_split(
     )
 
 
+
+output_path = mapshaperize_split_merge(
+        local_dir=local_dir,
+        config_file_city={
+            "location": "temp/preprocessed_combined",
+            "filename": "COMMUNE",
+            "extension": "geojson"
+        },
+        config_file_arrondissement = {
+            "location": "temp/metropole",
+            "filename": "ARRONDISSEMENT_MUNICIPAL",
+            "extension": "shp"
+        },
+        format_output=format_output,
+        niveau_agreg=filter_by,
+        provider=provider,
+        source=source,
+        crs=crs,
+        simplification=simplification,
+    )
 
 
 # IGN DATASETS
