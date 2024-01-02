@@ -4,17 +4,78 @@ from cartiflette.pipeline import mapshaperize_split_from_s3, mapshaperize_merge_
 from cartiflette.pipeline.prepare_cog_metadata import prepare_cog_metadata
 from cartiflette.download.download import _download_sources
 
-path_within_bucket = "test-download23"
+path_within_bucket = "test-download27"
+
+
+from cartiflette.utils import import_yaml_config
+from cartiflette.pipeline.prepare_mapshaper import prepare_local_directory_mapshaper
+from cartiflette import FS
+
+fs = FS
+
+config = {
+    'path_within_bucket': path_within_bucket,
+    "level_polygons": "COMMUNE",
+    "filter_by": "REGION",
+    "simplification": 50
+}
+
+yaml = import_yaml_config()
+
+list_territories = yaml['IGN']['ADMINEXPRESS']['EXPRESS-COG-TERRITOIRE']['territory'].keys()
+
+list_location_raw = {
+    territ: upload_s3_raw(path_within_bucket=path_within_bucket, year=2022, territory=territ) for territ in list_territories
+}
+
+    format_output = config.get("format_output", "topojson")
+    filter_by = config.get("filter_by", "DEPARTEMENT")
+    borders = config.get("borders", "COMMUNE")
+    level_polygons = config.get("level_polygons", "COMMUNE")
+    territory = config.get("territory", "metropole")
+
+    provider = config.get("provider", "IGN")
+    source = config.get("source", "EXPRESS-COG-CARTO-TERRITOIRE")
+    year = config.get("year", 2022)
+    dataset_family = config.get("dataset_family", "ADMINEXPRESS")
+    territory = config.get("territory", "metropole")
+    crs = config.get("crs", 4326)
+    simplification = config.get("simplification", 0)
+
+    bucket = config.get("bucket", BUCKET)
+    path_within_bucket = config.get("path_within_bucket", PATH_WITHIN_BUCKET)
+    local_dir = config.get("local_dir", "temp")
+
+for territory, path_bucket in list_location_raw.items():
+    prepare_local_directory_mapshaper(
+            path_bucket,
+            borders=borders,
+            territory=territory,
+            niveau_agreg=filter_by,
+            format_output=format_output,
+            simplification=simplification,
+            local_dir=local_dir,
+            fs=fs,
+        )
 
 
 # DATA RETRIEVING STEP =========================
 
 
-# IGN DATASET
+# IGN DATASETS
+
 path_bucket_adminexpress = upload_s3_raw(
     path_within_bucket=path_within_bucket,
     year=2022
 )
+
+
+essai = upload_s3_raw(
+    path_within_bucket=path_within_bucket,
+    year=2022,
+    territory="blabla"
+)
+
 
 # Retrieve COG metadata
 tagc_metadata = prepare_cog_metadata(
@@ -88,15 +149,15 @@ croisement_decoupage_level = {
 }
 
 
-#formats = ["topojson", "geojson"]
+formats = ["topojson", "geojson"]
 formats = ["geojson"]
 
-#years = [y for y in range(2021, 2023)]
-years = [2022]
+years = [y for y in range(2021, 2023)]
+#years = [2022]
 
 #crs_list = [4326, 2154, "official"]
 #crs_list = [4326, 2154]
-crs_list = [4326]
+crs_list = [4326, 2154]
 
 sources = ["EXPRESS-COG-CARTO-TERRITOIRE"]
 

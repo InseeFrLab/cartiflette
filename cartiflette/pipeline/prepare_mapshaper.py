@@ -7,6 +7,7 @@ from cartiflette.s3 import list_raw_files_level, download_files_from_list
 def prepare_local_directory_mapshaper(
     path_bucket,
     borders="COMMUNE",
+    territory="metropole",
     niveau_agreg="DEPARTEMENT",
     format_output="topojson",
     simplification=0,
@@ -42,6 +43,7 @@ def prepare_local_directory_mapshaper(
         A dictionary containing paths for the original and destination directories.
 
     """
+    local_dir = f"{local_dir}/{territory}"
     os.makedirs(local_dir, exist_ok=True)
     # Get all raw shapefiles from Minio
     list_raw_files = list_raw_files_level(fs, path_bucket, borders=borders)

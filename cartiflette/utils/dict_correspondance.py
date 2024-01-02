@@ -66,5 +66,6 @@ def official_epsg_codes() -> dict:
         "reunion": 2975,
         "guadeloupe": 5490,
         "guyane": 2972,
+        "mayotte": 4326
     }
     return crs_list

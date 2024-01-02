@@ -1,5 +1,5 @@
 from cartiflette.download.download import _download_sources
-from cartiflette.utils import create_path_bucket
+from cartiflette.utils import create_path_bucket, official_epsg_codes
 
 
 def upload_s3_raw(
@@ -64,7 +64,7 @@ def upload_s3_raw(
                 "path_within_bucket": path_within_bucket,
                 "year": year,
                 "borders": None,
-                "crs": crs,
+                "crs": official_epsg_codes()[territory],
                 "filter_by": "origin",
                 "value": "raw",
                 "vectorfile_format": vectorfile_format,
