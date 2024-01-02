@@ -1,3 +1,5 @@
+#!/bin/bash
+
 sudo apt-get update -y
 sudo apt install npm nodejs -y
 sudo apt-get install libmagic-dev -y
