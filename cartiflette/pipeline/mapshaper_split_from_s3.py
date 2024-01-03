@@ -1,4 +1,5 @@
 import os
+import shutil
 
 from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
 from cartiflette.utils import create_path_bucket
@@ -82,7 +83,7 @@ def mapshaperize_split_from_s3(config, fs=FS):
         )
         fs.put(f"{output_path}/{values}", path_s3)
 
-    return output_path
+    shutil.rmtree(output_path)
 
 
 def mapshaperize_merge_split_from_s3(config, fs=FS):
@@ -196,4 +197,4 @@ def mapshaperize_merge_split_from_s3(config, fs=FS):
         )
         fs.put(f"{output_path}/{values}", path_s3)
 
-    return output_path
+    shutil.rmtree(output_path)
