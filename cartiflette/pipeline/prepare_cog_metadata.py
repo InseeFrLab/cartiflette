@@ -72,13 +72,22 @@ def prepare_cog_metadata(
 
     # Read datasets from S3 into Pandas DataFrames
     with fs.open(path_tagc, mode="rb") as remote_file:
-        tagc = pd.read_excel(remote_file, skiprows=5, dtype_backend="pyarrow")
+        tagc = pd.read_excel(
+            remote_file, skiprows=5,
+            dtype_backend="pyarrow", dtype={"REG": 'string[pyarrow]'}
+            )
 
     with fs.open(path_bucket_cog_departement, mode="rb") as remote_file:
-        cog_dep = pd.read_csv(remote_file, dtype_backend="pyarrow")
+        cog_dep = pd.read_csv(
+            remote_file,
+            dtype_backend="pyarrow", dtype={"REG": 'string[pyarrow]'}
+            )
 
     with fs.open(path_bucket_cog_region, mode="rb") as remote_file:
-        cog_region = pd.read_csv(remote_file, dtype_backend="pyarrow")
+        cog_region = pd.read_csv(
+            remote_file,
+            dtype_backend="pyarrow", dtype={"REG": 'string[pyarrow]'}
+            )
 
     # Merge DEPARTEMENT and REGION COG metadata
     cog_metadata = (

@@ -22,7 +22,7 @@ def mapshaper_enrich(
         f"name='' -proj EPSG:4326 "
         f"-join temp/tagc.csv "
         f"keys=INSEE_COM,CODGEO field-types=INSEE_COM:str,CODGEO:str "
-        f"-filter-fields INSEE_CAN,INSEE_ARR,SIREN_EPCI,INSEE_DEP,INSEE_REG, NOM_M invert "
+        f"-filter-fields INSEE_CAN,INSEE_ARR,SIREN_EPCI,INSEE_DEP,INSEE_REG,NOM_M invert "
         f"-rename-fields INSEE_DEP=DEP,INSEE_REG=REG "
         f"-each \"{dict_corresp['FRANCE_ENTIERE']}='France'\" "
         f"-o {output_path}"

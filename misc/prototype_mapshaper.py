@@ -165,7 +165,6 @@ output_path = mapshaperize_split(
     )
 
 
-
 output_path = mapshaperize_split_merge(
         local_dir=local_dir,
         config_file_city={
