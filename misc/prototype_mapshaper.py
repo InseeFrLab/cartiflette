@@ -1,6 +1,5 @@
 from cartiflette import BUCKET, PATH_WITHIN_BUCKET, FS
 from cartiflette.utils import create_path_bucket
-from cartiflette.mapshaper.mapshaper_split import mapshaper_enrich
 from cartiflette.pipeline.combine_adminexpress_france import (
     combine_adminexpress_territory,
 )
