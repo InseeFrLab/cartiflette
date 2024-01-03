@@ -1,4 +1,6 @@
+import os
 import subprocess
+
 from cartiflette.utils import DICT_CORRESP_IGN
 from .mapshaper_wrangling import mapshaper_enrich, mapshaper_split
 
@@ -66,6 +68,8 @@ def mapshaperize_split(
     output_path = (
         f"{local_dir}/{territory}/{niveau_agreg}/{format_output}/{simplification=}"
     )
+
+    os.makedirs(output_path, exist_ok=True)
 
     if simplification_percent != 0:
         option_simplify = f"-simplify {simplification_percent}% "
