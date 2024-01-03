@@ -9,6 +9,7 @@ from cartiflette.utils.dict_correspondance import (
     create_format_standardized,
     create_format_driver,
     official_epsg_codes,
+    DICT_CORRESP_IGN,
 )
 
 from cartiflette.utils.keep_subset_geopandas import keep_subset_geopandas
@@ -16,7 +17,6 @@ from cartiflette.utils.hash import hash_file
 from cartiflette.utils.dict_update import deep_dict_update
 
 from cartiflette.utils.csv_magic import magic_csv_reader
-
 
 # from cartiflette.utils.vectorfile_format_config import (
 #     _vectorfile_format_config,
@@ -37,4 +37,5 @@ __all__ = [
     "deep_dict_update",
     "magic_csv_reader",
     "create_path_bucket",
+    "DICT_CORRESP_IGN",
 ]

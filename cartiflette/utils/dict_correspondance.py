@@ -2,6 +2,14 @@
 Collection of utils to reformat inputs
 """
 
+DICT_CORRESP_IGN = {
+    "REGION": "INSEE_REG",
+    "DEPARTEMENT": "INSEE_DEP",
+    "FRANCE_ENTIERE": "PAYS",
+    "LIBELLE_REGION": "LIBELLE_REGION",
+    "LIBELLE_DEPARTEMENT": "LIBELLE_DEPARTEMENT",
+}
+
 
 def dict_corresp_filter_by() -> dict:
     """Transforms explicit administrative borders into relevant column

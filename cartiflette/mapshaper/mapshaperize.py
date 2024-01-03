@@ -1,54 +1,6 @@
 import subprocess
-
-DICT_CORRESP_IGN = {
-    "REGION": "INSEE_REG",
-    "DEPARTEMENT": "INSEE_DEP",
-    "FRANCE_ENTIERE": "PAYS",
-    "LIBELLE_REGION": "LIBELLE_REGION",
-    "LIBELLE_DEPARTEMENT": "LIBELLE_DEPARTEMENT",
-}
-
-
-def mapshaper_enrich(
-    local_dir="temp",
-    filename_initial="COMMUNE",
-    extension_initial="shp",
-    output_path="temp.geojson",
-    dict_corresp=DICT_CORRESP_IGN,
-):
-    cmd_step1 = (
-        f"mapshaper {local_dir}/{filename_initial}.{extension_initial} "
-        f"name='' -proj EPSG:4326 "
-        f"-join temp/tagc.csv "
-        f"keys=INSEE_COM,CODGEO field-types=INSEE_COM:str,CODGEO:str "
-        f"-filter-fields INSEE_CAN,INSEE_ARR,SIREN_EPCI,INSEE_DEP,INSEE_REG,NOM_M invert "
-        f"-rename-fields INSEE_DEP=DEP,INSEE_REG=REG "
-        f"-each \"{dict_corresp['FRANCE_ENTIERE']}='France'\" "
-        f"-o {output_path}"
-    )
-
-    subprocess.run(cmd_step1, shell=True, check=True)
-
-
-def mapshaper_split(
-    input_file="temp.geojson",
-    layer_name="",
-    split_variable="DEPARTEMENT",
-    output_path="temp2.geojson",
-    format_output="geojson",
-    crs=4326,
-    option_simplify="",
-    source_identifier="",
-):
-    cmd_step2 = (
-        f"mapshaper {input_file} name='{layer_name}' -proj EPSG:{crs} "
-        f"{option_simplify}"
-        f"-each \"SOURCE='{source_identifier}'\" "
-        f"-split {split_variable} "
-        f'-o {output_path} format={format_output} extension=".{format_output}" singles'
-    )
-
-    subprocess.run(cmd_step2, shell=True, check=True)
+from cartiflette.utils import DICT_CORRESP_IGN
+from .mapshaper_wrangling import mapshaper_enrich, mapshaper_split
 
 
 def mapshaperize_split(
