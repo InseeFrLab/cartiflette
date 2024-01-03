@@ -1,19 +1,15 @@
 # -*- coding: utf-8 -*-
 
 from datetime import date
-import geopandas as gpd
 import io
 import logging
-import os
 import pandas as pd
 import s3fs
-import tempfile
 from typing import TypedDict
 
 
 from cartiflette import BUCKET, PATH_WITHIN_BUCKET, FS
 from cartiflette.utils import magic_csv_reader
-from cartiflette.download import get_vectorfile_ign
 
 logger = logging.getLogger(__name__)
 
@@ -173,121 +169,121 @@ def get_cog_year(
     return dict_cog
 
 
-def get_BV(
-    year: int = None,
-    bv_source: str = "FondsDeCarte_BV_2022",
-    ign_source: str = "EXPRESS-COG-TERRITOIRE",
-    bucket: str = BUCKET,
-    path_within_bucket: str = PATH_WITHIN_BUCKET,
-    fs: s3fs.S3FileSystem = FS,
-) -> gpd.GeoDataFrame:
-    """
-    Reconstruct living areas ("Bassins de vie") from AdminExpress' cities'
-    geometries and Insee's inventory.
+# def get_BV(
+#     year: int = None,
+#     bv_source: str = "FondsDeCarte_BV_2022",
+#     ign_source: str = "EXPRESS-COG-TERRITOIRE",
+#     bucket: str = BUCKET,
+#     path_within_bucket: str = PATH_WITHIN_BUCKET,
+#     fs: s3fs.S3FileSystem = FS,
+# ) -> gpd.GeoDataFrame:
+#     """
+#     Reconstruct living areas ("Bassins de vie") from AdminExpress' cities'
+#     geometries and Insee's inventory.
 
-    Parameters
-    ----------
-    year : int, optional
-        Desired vintage. Will use the current year if set to None (which is
-        default).
-    bv_source : str, optional
-        Dataset's source to use for living area. The default is
-        "FondsDeCarte_BV_2022".
-    ign_source : str, optional
-        Dataset's source to use for geometries (should be a dataset from the
-        dataset_family AdminExpress. The default is "EXPRESS-COG-TERRITOIRE".
-    bucket : str, optional
-        Bucket to use. The default is BUCKET.
-    path_within_bucket : str, optional
-        path within bucket. The default is PATH_WITHIN_BUCKET.
-    fs : s3fs.S3FileSystem, optional
-        S3 file system to use. The default is FS.
+#     Parameters
+#     ----------
+#     year : int, optional
+#         Desired vintage. Will use the current year if set to None (which is
+#         default).
+#     bv_source : str, optional
+#         Dataset's source to use for living area. The default is
+#         "FondsDeCarte_BV_2022".
+#     ign_source : str, optional
+#         Dataset's source to use for geometries (should be a dataset from the
+#         dataset_family AdminExpress. The default is "EXPRESS-COG-TERRITOIRE".
+#     bucket : str, optional
+#         Bucket to use. The default is BUCKET.
+#     path_within_bucket : str, optional
+#         path within bucket. The default is PATH_WITHIN_BUCKET.
+#     fs : s3fs.S3FileSystem, optional
+#         S3 file system to use. The default is FS.
 
-    Raises
-    ------
-    ValueError
-        If no file has been found on S3 for the given parameters.
+#     Raises
+#     ------
+#     ValueError
+#         If no file has been found on S3 for the given parameters.
 
-    Returns
-    -------
-    bv : gpd.GeoDataFrame
-        GeoDataFrame of living areas, constructed from cities geometries
+#     Returns
+#     -------
+#     bv : gpd.GeoDataFrame
+#         GeoDataFrame of living areas, constructed from cities geometries
 
-          Ex.:
-              bv              libbv dep reg  \
-        0  01004  Ambérieu-en-Bugey  01  84
-        1  01033         Valserhône  01  84
-        2  01033         Valserhône  74  84
-        3  01034             Belley  01  84
-        4  01053    Bourg-en-Bresse  01  84
+#           Ex.:
+#               bv              libbv dep reg  \
+#         0  01004  Ambérieu-en-Bugey  01  84
+#         1  01033         Valserhône  01  84
+#         2  01033         Valserhône  74  84
+#         3  01034             Belley  01  84
+#         4  01053    Bourg-en-Bresse  01  84
 
-                                                    geometry  POPULATION
-        0  POLYGON ((5.31974 45.92194, 5.31959 45.92190, ...       46645
-        1  POLYGON ((5.72192 46.03413, 5.72165 46.03449, ...       25191
-        2  POLYGON ((5.85098 45.99099, 5.85094 45.99070, ...        4566
-        3  POLYGON ((5.61963 45.66754, 5.61957 45.66773, ...       25620
-        4  POLYGON ((5.18709 46.05114, 5.18692 46.05085, ...       83935
+#                                                     geometry  POPULATION
+#         0  POLYGON ((5.31974 45.92194, 5.31959 45.92190, ...       46645
+#         1  POLYGON ((5.72192 46.03413, 5.72165 46.03449, ...       25191
+#         2  POLYGON ((5.85098 45.99099, 5.85094 45.99070, ...        4566
+#         3  POLYGON ((5.61963 45.66754, 5.61957 45.66773, ...       25620
+#         4  POLYGON ((5.18709 46.05114, 5.18692 46.05085, ...       83935
 
-    """
+#     """
 
-    if not year:
-        year = date.today().year
+#     if not year:
+#         year = date.today().year
 
-    territory = "france_entiere"
-    provider = "Insee"
-    dataset_family = "BV"
-    source = bv_source
-    pattern = (
-        f"{bucket}/{path_within_bucket}/{year=}/**/"
-        f"{provider=}/{dataset_family=}/{source=}/{territory=}/**/"
-        f"*.dbf"
-    ).replace("'", "")
-    files = fs.glob(pattern)  # , refresh=True)
-    # see issue : https://github.com/fsspec/s3fs/issues/504
-    if not files:
-        raise ValueError(
-            "No file retrieved with the set parameters, resulting to the "
-            f"following {pattern=}"
-        )
-    data = []
-    for file in files:
-        with tempfile.TemporaryDirectory() as tempdir:
-            tmp_dbf = os.path.join(tempdir, os.path.basename(file))
-            with open(tmp_dbf, "wb") as tf:
-                with fs.open(file, "rb") as fsf:
-                    tf.write(fsf.read())
+#     territory = "france_entiere"
+#     provider = "Insee"
+#     dataset_family = "BV"
+#     source = bv_source
+#     pattern = (
+#         f"{bucket}/{path_within_bucket}/{year=}/**/"
+#         f"{provider=}/{dataset_family=}/{source=}/{territory=}/**/"
+#         f"*.dbf"
+#     ).replace("'", "")
+#     files = fs.glob(pattern)  # , refresh=True)
+#     # see issue : https://github.com/fsspec/s3fs/issues/504
+#     if not files:
+#         raise ValueError(
+#             "No file retrieved with the set parameters, resulting to the "
+#             f"following {pattern=}"
+#         )
+#     data = []
+#     for file in files:
+#         with tempfile.TemporaryDirectory() as tempdir:
+#             tmp_dbf = os.path.join(tempdir, os.path.basename(file))
+#             with open(tmp_dbf, "wb") as tf:
+#                 with fs.open(file, "rb") as fsf:
+#                     tf.write(fsf.read())
 
-            df = gpd.read_file(tmp_dbf, encoding="utf8")
-            df = df.drop("geometry", axis=1)
-        data.append(df)
+#             df = gpd.read_file(tmp_dbf, encoding="utf8")
+#             df = df.drop("geometry", axis=1)
+#         data.append(df)
 
-    bv = pd.concat(data)
+#     bv = pd.concat(data)
 
-    communes = get_vectorfile_ign(
-        borders="COMMUNE",
-        year=year,
-        territory="*",
-        provider="IGN",
-        source=ign_source,
-    )
+#     communes = get_vectorfile_ign(
+#         borders="COMMUNE",
+#         year=year,
+#         territory="*",
+#         provider="IGN",
+#         source=ign_source,
+#     )
 
-    bv = communes.merge(bv, left_on="INSEE_COM", right_on="codgeo", how="right")
-    if bv_source == "FondsDeCarte_BV_2022":
-        rename = ["bv2022", "libbv2022"]
-    elif bv_source == "FondsDeCarte_BV_2012":
-        rename = ["bv2012", "libbv2012"]
-    bv = bv.rename(dict(zip(rename, ["bv", "libbv"])), axis=1)
-    by = ["bv", "libbv", "dep", "reg"]
+#     bv = communes.merge(bv, left_on="INSEE_COM", right_on="codgeo", how="right")
+#     if bv_source == "FondsDeCarte_BV_2022":
+#         rename = ["bv2022", "libbv2022"]
+#     elif bv_source == "FondsDeCarte_BV_2012":
+#         rename = ["bv2012", "libbv2012"]
+#     bv = bv.rename(dict(zip(rename, ["bv", "libbv"])), axis=1)
+#     by = ["bv", "libbv", "dep", "reg"]
 
-    bv = bv.dissolve(by=by, aggfunc={"POPULATION": "sum"}, as_index=False, dropna=False)
+#     bv = bv.dissolve(by=by, aggfunc={"POPULATION": "sum"}, as_index=False, dropna=False)
 
-    return bv
+#     return bv
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
     # logging.basicConfig(level=logging.INFO)
 
     # ret = get_cog_year(2022)
     # ret = get_vectorfile_ign(source="EXPRESS-COG-TERRITOIRE", year=2022)
     # ret = get_vectorfile_communes_arrondissement(year=2022)
-    ret = get_BV(year=2022)
+    # ret = get_BV(year=2022)
