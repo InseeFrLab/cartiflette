@@ -14,7 +14,7 @@ from cartiflette.pipeline import (
 # DATA RETRIEVING STEP =========================
 
 bucket = BUCKET
-path_within_bucket = "test-download29"
+path_within_bucket = "diffusion/preprod"
 year = 2022
 fs = FS
 # path_within_bucket = PATH_WITHIN_BUCKET
@@ -46,13 +46,13 @@ path_raw_s3 = create_path_bucket(
 
 fs.put_file(path_combined_files, path_raw_s3)
 
-
-# STEP 2: ENRICH AND SPLIT ----------------------
-
 # Retrieve COG metadata
 tagc_metadata = prepare_cog_metadata(path_within_bucket)
 tagc_metadata.drop(columns=["LIBGEO"]).to_csv("temp/tagc.csv")
 
+
+# STEP 2: ENRICH AND SPLIT ----------------------
+# First a few tests
 
 mapshaperize_split_from_s3(
     {
@@ -78,8 +78,6 @@ mapshaperize_merge_split_from_s3(
 croisement_decoupage_level = {
     ## structure -> niveau geo: [niveau decoupage macro],
     "REGION": ["FRANCE_ENTIERE"],
-    # "ARRONDISSEMENT_MUNICIPAL" : ['DEPARTEMENT'],
-    # "COMMUNE_ARRONDISSEMENT": ["DEPARTEMENT", "REGION", "FRANCE_ENTIERE"],
     "COMMUNE": ["DEPARTEMENT", "REGION", "FRANCE_ENTIERE"],
     "DEPARTEMENT": ["REGION", "FRANCE_ENTIERE"],
 }
