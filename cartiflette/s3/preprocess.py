@@ -4,7 +4,6 @@ from datetime import date
 import geopandas as gpd
 import io
 import logging
-import numpy as np
 import os
 import pandas as pd
 import s3fs
@@ -14,6 +13,7 @@ from typing import TypedDict
 
 from cartiflette import BUCKET, PATH_WITHIN_BUCKET, FS
 from cartiflette.utils import magic_csv_reader
+from cartiflette.download import get_vectorfile_ign
 
 logger = logging.getLogger(__name__)
 
