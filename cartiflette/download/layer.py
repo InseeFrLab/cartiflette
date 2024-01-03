@@ -63,18 +63,14 @@ class Layer:
         return self.__str__()
 
     def _get_format(self):
-        if any(
-            x.lower().split(".")[-1] == "shp" for x in self.files_to_upload
-        ):
+        if any(x.lower().split(".")[-1] == "shp" for x in self.files_to_upload):
             self.format = "shp"
         else:
             # assume there is only one file
             self.format = list(self.files_to_upload)[0].split(".")[-1]
 
     def _get_encoding(self):
-        ref_cpg_file = [
-            x for x in self.files if x.lower().split(".")[-1] == "cpg"
-        ]
+        ref_cpg_file = [x for x in self.files if x.lower().split(".")[-1] == "cpg"]
         try:
             ref_cpg_file = ref_cpg_file[0]
         except IndexError:
@@ -85,9 +81,7 @@ class Layer:
         return encoding.lower()
 
     def _get_gis_file(self):
-        ref_gis_file = [
-            x for x in self.files if x.lower().split(".")[-1] == "shp"
-        ]
+        ref_gis_file = [x for x in self.files if x.lower().split(".")[-1] == "shp"]
         try:
             ref_gis_file = ref_gis_file[0]
         except IndexError:
@@ -120,8 +114,7 @@ class Layer:
 
             elif encoding and encoding != "utf-8":
                 logger.warning(
-                    f"{self} - encoding={encoding}, "
-                    "layer will be re-encoded to UTF8"
+                    f"{self} - encoding={encoding}, " "layer will be re-encoded to UTF8"
                 )
                 # let's overwrite initial files with utf8...
                 gdf.to_file(ref_gis_file, encoding="utf-8")

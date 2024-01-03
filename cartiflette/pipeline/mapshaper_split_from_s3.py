@@ -26,35 +26,32 @@ def mapshaperize_split_from_s3(config, fs=FS):
     local_dir = config.get("local_dir", "temp")
 
     path_raw_s3_combined = create_path_bucket(
-                {
-                    "bucket": bucket,
-                    "path_within_bucket": path_within_bucket,
-                    "year": year,
-                    "borders": "france",
-                    "crs": 4326,
-                    "filter_by": "preprocessed",
-                    "value": "before_cog",
-                    "vectorfile_format": "geojson",
-                    "provider": "IGN",
-                    "dataset_family": 'ADMINEXPRESS',
-                    "source": 'EXPRESS-COG-CARTO-TERRITOIRE',
-                    "territory": "france",
-                    "filename": "raw.geojson",
-                    "simplification": 0,
-                }
-            )
-
-    fs.download(
-        path_raw_s3_combined,
-        "temp/preprocessed_combined/COMMUNE.geojson"
+        {
+            "bucket": bucket,
+            "path_within_bucket": path_within_bucket,
+            "year": year,
+            "borders": "france",
+            "crs": 4326,
+            "filter_by": "preprocessed",
+            "value": "before_cog",
+            "vectorfile_format": "geojson",
+            "provider": "IGN",
+            "dataset_family": "ADMINEXPRESS",
+            "source": "EXPRESS-COG-CARTO-TERRITOIRE",
+            "territory": "france",
+            "filename": "raw.geojson",
+            "simplification": 0,
+        }
     )
+
+    fs.download(path_raw_s3_combined, "temp/preprocessed_combined/COMMUNE.geojson")
 
     output_path = mapshaperize_split(
         local_dir=local_dir,
         config_file_city={
             "location": "temp/preprocessed_combined",
             "filename": "COMMUNE",
-            "extension": "geojson"
+            "extension": "geojson",
         },
         format_output=format_output,
         niveau_agreg=filter_by,
@@ -106,47 +103,44 @@ def mapshaperize_merge_split_from_s3(config, fs=FS):
     local_dir = config.get("local_dir", "temp")
 
     path_raw_s3_combined = create_path_bucket(
-                {
-                    "bucket": bucket,
-                    "path_within_bucket": path_within_bucket,
-                    "year": year,
-                    "borders": "france",
-                    "crs": 4326,
-                    "filter_by": "preprocessed",
-                    "value": "before_cog",
-                    "vectorfile_format": "geojson",
-                    "provider": "IGN",
-                    "dataset_family": 'ADMINEXPRESS',
-                    "source": 'EXPRESS-COG-CARTO-TERRITOIRE',
-                    "territory": "france",
-                    "filename": "raw.geojson",
-                    "simplification": 0,
-                }
-            )
-
-    fs.download(
-        path_raw_s3_combined,
-        "temp/preprocessed_combined/COMMUNE.geojson"
+        {
+            "bucket": bucket,
+            "path_within_bucket": path_within_bucket,
+            "year": year,
+            "borders": "france",
+            "crs": 4326,
+            "filter_by": "preprocessed",
+            "value": "before_cog",
+            "vectorfile_format": "geojson",
+            "provider": "IGN",
+            "dataset_family": "ADMINEXPRESS",
+            "source": "EXPRESS-COG-CARTO-TERRITOIRE",
+            "territory": "france",
+            "filename": "raw.geojson",
+            "simplification": 0,
+        }
     )
 
+    fs.download(path_raw_s3_combined, "temp/preprocessed_combined/COMMUNE.geojson")
+
     path_raw_s3_arrondissement = create_path_bucket(
-                {
-                    "bucket": bucket,
-                    "path_within_bucket": path_within_bucket,
-                    "year": year,
-                    "borders": None,
-                    "crs": 2154,
-                    "filter_by": "origin",
-                    "value": "raw",
-                    "vectorfile_format": "shp",
-                    "provider": "IGN",
-                    "dataset_family": 'ADMINEXPRESS',
-                    "source": 'EXPRESS-COG-CARTO-TERRITOIRE',
-                    "territory": "metropole",
-                    "filename": "ARRONDISSEMENT_MUNICIPAL.shp",
-                    "simplification": 0,
-                }
-            )
+        {
+            "bucket": bucket,
+            "path_within_bucket": path_within_bucket,
+            "year": year,
+            "borders": None,
+            "crs": 2154,
+            "filter_by": "origin",
+            "value": "raw",
+            "vectorfile_format": "shp",
+            "provider": "IGN",
+            "dataset_family": "ADMINEXPRESS",
+            "source": "EXPRESS-COG-CARTO-TERRITOIRE",
+            "territory": "metropole",
+            "filename": "ARRONDISSEMENT_MUNICIPAL.shp",
+            "simplification": 0,
+        }
+    )
 
     path_raw_s3_arrondissement = path_raw_s3_arrondissement.rsplit("/", maxsplit=1)[0]
 
@@ -167,12 +161,12 @@ def mapshaperize_merge_split_from_s3(config, fs=FS):
         config_file_city={
             "location": "temp/preprocessed_combined",
             "filename": "COMMUNE",
-            "extension": "geojson"
+            "extension": "geojson",
         },
-        config_file_arrondissement = {
+        config_file_arrondissement={
             "location": "temp/metropole",
             "filename": "ARRONDISSEMENT_MUNICIPAL",
-            "extension": "shp"
+            "extension": "shp",
         },
         format_output=format_output,
         niveau_agreg=filter_by,

@@ -9,9 +9,7 @@ from typing import Union
 logger = logging.getLogger(__name__)
 
 
-def magic_csv_reader(
-    path_or_bytes: Union[str, bytes], **kwargs
-) -> pd.DataFrame:
+def magic_csv_reader(path_or_bytes: Union[str, bytes], **kwargs) -> pd.DataFrame:
     """
     Reads csv file without beforehand knowledge of separator, encoding, ...
     Further kwargs are passed to pandas read_csv method.

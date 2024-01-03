@@ -106,9 +106,7 @@ def download_all(
     """
 
     if not upload:
-        logger.warning(
-            "no upload to s3 will be done, set upload=True to upload"
-        )
+        logger.warning("no upload to s3 will be done, set upload=True to upload")
 
     # Initialize MD5 json if absent
     json_md5 = f"{bucket}/{path_within_bucket}/md5.json"

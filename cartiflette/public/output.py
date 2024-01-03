@@ -78,7 +78,7 @@ def download_from_cartiflette(
             territory=territory,
             year=year,
             crs=crs,
-            simplification=simplification
+            simplification=simplification,
         )
         gdf_list.append(gdf_single)
 
@@ -126,7 +126,7 @@ def download_from_cartiflette_single(
             "provider": provider,
             "dataset_family": dataset_family,
             "source": source,
-            "simplification": simplification
+            "simplification": simplification,
         }
     )
 
@@ -245,7 +245,7 @@ def download_vectorfile_single(
             "provider": provider,
             "dataset_family": dataset_family,
             "source": source,
-            "simplification": simplification
+            "simplification": simplification,
         }
     )
 

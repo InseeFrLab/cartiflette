@@ -14,9 +14,8 @@ def mapshaper_enrich(
     filename_initial="COMMUNE",
     extension_initial="shp",
     output_path="temp.geojson",
-    dict_corresp=DICT_CORRESP_IGN
+    dict_corresp=DICT_CORRESP_IGN,
 ):
-
     cmd_step1 = (
         f"mapshaper {local_dir}/{filename_initial}.{extension_initial} "
         f"name='' -proj EPSG:4326 "
@@ -33,15 +32,14 @@ def mapshaper_enrich(
 
 def mapshaper_split(
     input_file="temp.geojson",
-    layer_name='',
+    layer_name="",
     split_variable="DEPARTEMENT",
     output_path="temp2.geojson",
     format_output="geojson",
     crs=4326,
     option_simplify="",
-    source_identifier=""
+    source_identifier="",
 ):
-
     cmd_step2 = (
         f"mapshaper {input_file} name='{layer_name}' -proj EPSG:{crs} "
         f"{option_simplify}"
@@ -113,7 +111,9 @@ def mapshaperize_split(
     initial_filename_city = config_file_city.get("filename", "COMMUNE")
     extension_initial_city = config_file_city.get("extension", "shp")
 
-    output_path = f"{local_dir}/{territory}/{niveau_agreg}/{format_output}/{simplification=}"
+    output_path = (
+        f"{local_dir}/{territory}/{niveau_agreg}/{format_output}/{simplification=}"
+    )
 
     if simplification_percent != 0:
         option_simplify = f"-simplify {simplification_percent}% "
@@ -126,7 +126,7 @@ def mapshaperize_split(
         filename_initial=initial_filename_city,
         extension_initial=extension_initial_city,
         dict_corresp=dict_corresp,
-        output_path="temp.geojson"
+        output_path="temp.geojson",
     )
 
     if niveau_polygons != initial_filename_city:
@@ -152,13 +152,13 @@ def mapshaperize_split(
     # STEP 2: SPLIT ET SIMPLIFIE
     mapshaper_split(
         input_file="temp.geojson",
-        layer_name='',
+        layer_name="",
         split_variable=dict_corresp[niveau_agreg],
         output_path=output_path,
         format_output=format_output,
         crs=crs,
         option_simplify=option_simplify,
-        source_identifier=f"{provider}:{source}"
+        source_identifier=f"{provider}:{source}",
     )
 
     return output_path
@@ -189,10 +189,14 @@ def mapshaperize_split_merge(
     initial_filename_arrondissement = config_file_arrondissement.get(
         "filename", "ARRONDISSEMENT_MUNICIPAL"
     )
-    extension_initial_arrondissement = config_file_arrondissement.get("extension", "shp")
+    extension_initial_arrondissement = config_file_arrondissement.get(
+        "extension", "shp"
+    )
 
     # Intermediate output location
-    output_path = f"{local_dir}/{territory}/{niveau_agreg}/{format_output}/{simplification=}"
+    output_path = (
+        f"{local_dir}/{territory}/{niveau_agreg}/{format_output}/{simplification=}"
+    )
 
     if simplification_percent != 0:
         option_simplify = f"-simplify {simplification_percent}% "
@@ -258,19 +262,19 @@ def mapshaperize_split_merge(
         filename_initial="raw",
         extension_initial=format_intermediate,
         output_path=f"{output_path}/raw2.{format_intermediate}",
-        dict_corresp=DICT_CORRESP_IGN
+        dict_corresp=DICT_CORRESP_IGN,
     )
 
     # TRANSFORM AS NEEDED
     mapshaper_split(
         input_file=f"{output_path}/raw2.{format_intermediate}",
-        layer_name='',
+        layer_name="",
         split_variable=dict_corresp[niveau_agreg],
         output_path=output_path,
         format_output=format_output,
         crs=crs,
         option_simplify=option_simplify,
-        source_identifier=f"{provider}:{source}"
+        source_identifier=f"{provider}:{source}",
     )
 
     return output_path

@@ -67,6 +67,6 @@ def official_epsg_codes() -> dict:
         "guadeloupe": 5490,
         "guyane": 2972,
         "mayotte": 4326,
-        "france_entiere": None
+        "france_entiere": None,
     }
     return crs_list
