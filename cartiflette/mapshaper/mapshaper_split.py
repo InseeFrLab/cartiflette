@@ -111,7 +111,7 @@ def mapshaperize_split(
     # City level borders, file location
     directory_city = config_file_city.get("location", local_dir)
     initial_filename_city = config_file_city.get("filename", "COMMUNE")
-    extension_initial_city = config_file_city.get("extension", "shp")  
+    extension_initial_city = config_file_city.get("extension", "shp")
 
     output_path = f"{local_dir}/{territory}/{niveau_agreg}/{format_output}/{simplification=}"
 
