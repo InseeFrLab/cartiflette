@@ -7,18 +7,15 @@ from shapely.geometry import Point
 import pandas as pd
 import geopandas as gpd
 
-# Import the function to be tested
-from cartiflette.mapshaper.mapshaper_wrangling import mapshaper_split
-from cartiflette.mapshaper.mapshaper_wrangling import mapshaper_enrich
+# Import the functions to be tested
+from cartiflette.mapshaper.mapshaper_wrangling import mapshaper_enrich, mapshaper_split
 
 
-class TestMapshaperEnrich(unittest.TestCase):
+class TestMapshaperWrangling(unittest.TestCase):
     def setUp(self):
-        # Create a temporary shapefile for testing
-        self.input_shapefile = tempfile.NamedTemporaryFile(
-            suffix=".geojson", delete=False
-        )
-        gdf = gpd.GeoDataFrame(
+        # Create temporary files for testing
+        self.input_shapefile = tempfile.NamedTemporaryFile(suffix=".geojson", delete=False)
+        gdf_shapefile = gpd.GeoDataFrame(
             {
                 "geometry": [Point(0, 0), Point(1, 1), Point(2, 2)],
                 "INSEE_COM": ["1", "2", "3"],
@@ -31,9 +28,8 @@ class TestMapshaperEnrich(unittest.TestCase):
             },
             crs="EPSG:4326",
         )
-        gdf.to_file(self.input_shapefile.name, driver="GeoJSON")
+        gdf_shapefile.to_file(self.input_shapefile.name, driver="GeoJSON")
 
-        # Create a temporary CSV file for testing
         self.input_csv = tempfile.NamedTemporaryFile(suffix=".csv", delete=False)
         df_csv = pd.DataFrame(
             {
@@ -45,10 +41,21 @@ class TestMapshaperEnrich(unittest.TestCase):
         )
         df_csv.to_csv(self.input_csv.name, index=False)
 
+        self.input_geojson = tempfile.NamedTemporaryFile(suffix=".geojson", delete=False)
+        gdf_geojson = gpd.GeoDataFrame(
+            {
+                "geometry": [Point(0, 0), Point(1, 1), Point(2, 2)],
+                "DEPARTEMENT": ["A", "B", "A"],
+            },
+            crs="EPSG:4326",
+        )
+        gdf_geojson.to_file(self.input_geojson.name, driver="GeoJSON")
+
     def tearDown(self):
         # Clean up: remove the temporary files
         os.remove(self.input_shapefile.name)
         os.remove(self.input_csv.name)
+        os.remove(self.input_geojson.name)
 
     def test_mapshaper_enrich(self):
         # Set up the parameters for the function
@@ -84,26 +91,6 @@ class TestMapshaperEnrich(unittest.TestCase):
         finally:
             # Clean up: remove the temporary output directory
             shutil.rmtree(output_path)
-
-
-class TestMapshaperSplit(unittest.TestCase):
-    def setUp(self):
-        # Create a temporary GeoJSON file for testing
-        self.input_geojson = tempfile.NamedTemporaryFile(
-            suffix=".geojson", delete=False
-        )
-        gdf = gpd.GeoDataFrame(
-            {
-                "geometry": [Point(0, 0), Point(1, 1), Point(2, 2)],
-                "DEPARTEMENT": ["A", "B", "A"],
-            },
-            crs="EPSG:4326",
-        )
-        gdf.to_file(self.input_geojson.name, driver="GeoJSON")
-
-    def tearDown(self):
-        # Clean up: remove the temporary GeoJSON file
-        os.remove(self.input_geojson.name)
 
     def test_mapshaper_split(self):
         # Set up the parameters for the function
