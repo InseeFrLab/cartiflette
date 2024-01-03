@@ -10,8 +10,7 @@ import typing
 
 import cartiflette
 from cartiflette.download.scraper import MasterScraper
-from cartiflette.s3.s3 import standardize_inputs
-from cartiflette.utils import create_path_bucket
+from cartiflette.utils import create_path_bucket, standardize_inputs
 
 logger = logging.getLogger(__name__)
 

@@ -1,6 +1,7 @@
 import unittest
 from cartiflette.public import download_from_cartiflette
 
+
 class TestDownloadFromCartiflette(unittest.TestCase):
 
     def test_download_from_cartiflette_single_value(self):
