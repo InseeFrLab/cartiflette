@@ -14,7 +14,7 @@ from cartiflette.pipeline import (
 # DATA RETRIEVING STEP =========================
 
 bucket = BUCKET
-path_within_bucket = "test/preprod"
+path_within_bucket = "test/test-bv"
 year = 2022
 fs = FS
 
