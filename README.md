@@ -23,4 +23,4 @@ fréquemment sur cette page.
 pip install git+https://github.com/inseefrlab/cartogether
 ```
 
-Documentation interactive disponible sur [ObservableHQ](https://observablehq.com/@linogaliana/cartiflette-demo?collection=@linogaliana/cartiflette)
+Documentation interactive disponible sur [`ObservableHQ`](https://observablehq.com/@linogaliana/cartiflette-demo?collection=@linogaliana/cartiflette).
