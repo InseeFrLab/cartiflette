@@ -9,7 +9,7 @@ from .dict_correspondance import (
     create_format_standardized,
     create_format_driver,
     official_epsg_codes,
-    DICT_CORRESP_IGN,
+    DICT_CORRESP_ADMINEXPRESS,
 )
 
 from .keep_subset_geopandas import keep_subset_geopandas
@@ -34,5 +34,5 @@ __all__ = [
     "magic_csv_reader",
     "create_path_bucket",
     "standardize_inputs",
-    "DICT_CORRESP_IGN",
+    "DICT_CORRESP_ADMINEXPRESS",
 ]

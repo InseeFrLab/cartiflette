@@ -3,7 +3,7 @@ Data wrangling (geo)operations wrappers from mapshaper.
 """
 
 import subprocess
-from cartiflette.utils import DICT_CORRESP_IGN
+from cartiflette.utils import DICT_CORRESP_ADMINEXPRESS
 
 
 def mapshaper_enrich(
@@ -12,7 +12,7 @@ def mapshaper_enrich(
     extension_initial: str = "shp",
     output_path: str = "temp.geojson",
     metadata_file: str = "temp/tagc.csv",
-    dict_corresp: dict = DICT_CORRESP_IGN,
+    dict_corresp: dict = DICT_CORRESP_ADMINEXPRESS,
 ) -> None:
     """
     Enriches an initial shapefile with additional data using Mapshaper and a specified
@@ -27,7 +27,7 @@ def mapshaper_enrich(
     - output_path (str): The path for the output GeoJSON file after enrichment
       (default is "temp.geojson").
     - dict_corresp (dict): A dictionary containing correspondences for field renaming
-      and value assignment (default is DICT_CORRESP_IGN).
+      and value assignment (default is DICT_CORRESP_ADMINEXPRESS).
 
     Returns:
     - None: The function runs Mapshaper with the specified commands and enriches

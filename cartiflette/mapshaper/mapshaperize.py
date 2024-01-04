@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-from cartiflette.utils import DICT_CORRESP_IGN
+from cartiflette.utils import DICT_CORRESP_ADMINEXPRESS
 from .mapshaper_wrangling import mapshaper_enrich, mapshaper_split
 
 
@@ -16,7 +16,7 @@ def mapshaperize_split(
     territory="metropole",
     crs=4326,
     simplification=0,
-    dict_corresp=DICT_CORRESP_IGN,
+    dict_corresp=DICT_CORRESP_ADMINEXPRESS,
 ):
     """
     Processes shapefiles and splits them based on specified parameters using Mapshaper.
@@ -88,11 +88,15 @@ def mapshaperize_split(
     if niveau_polygons != initial_filename_city:
         csv_list_vars = (
             f"{dict_corresp[niveau_polygons]},"
-            f"{dict_corresp[niveau_agreg]},"
-            f"{dict_corresp['LIBELLE_' + niveau_polygons]}"
+            f"{dict_corresp[niveau_agreg]}"
         )
-        if niveau_agreg != "FRANCE_ENTIERE":
-            csv_list_vars = f"{csv_list_vars},{dict_corresp['LIBELLE_' + niveau_agreg]}"
+        libelle_niveau_polygons = dict_corresp.get('LIBELLE_' + niveau_polygons, '')
+        if libelle_niveau_polygons != "":
+            libelle_niveau_polygons = f",{libelle_niveau_polygons}"
+        libelle_niveau_agreg = dict_corresp.get('LIBELLE_' + niveau_agreg, '')
+        if libelle_niveau_polygons != "":
+            libelle_niveau_agreg = f",{libelle_niveau_agreg}"
+        csv_list_vars = f"{csv_list_vars}{libelle_niveau_polygons}{libelle_niveau_agreg}"
 
         # STEP 1B: DISSOLVE IF NEEDED
         cmd_dissolve = (
@@ -131,7 +135,7 @@ def mapshaperize_split_merge(
     local_dir="temp",
     crs=4326,
     simplification=0,
-    dict_corresp=DICT_CORRESP_IGN,
+    dict_corresp=DICT_CORRESP_ADMINEXPRESS,
 ):
     simplification_percent = simplification if simplification is not None else 0
 
@@ -218,7 +222,7 @@ def mapshaperize_split_merge(
         filename_initial="raw",
         extension_initial=format_intermediate,
         output_path=f"{output_path}/raw2.{format_intermediate}",
-        dict_corresp=DICT_CORRESP_IGN,
+        dict_corresp=DICT_CORRESP_ADMINEXPRESS,
     )
 
     # TRANSFORM AS NEEDED
