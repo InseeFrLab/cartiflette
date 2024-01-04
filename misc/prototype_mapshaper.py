@@ -14,7 +14,7 @@ from cartiflette.pipeline import (
 # DATA RETRIEVING STEP =========================
 
 bucket = BUCKET
-path_within_bucket = "test/test-territoire"
+path_within_bucket = "test/preprod"
 year = 2022
 fs = FS
 # path_within_bucket = PATH_WITHIN_BUCKET
@@ -113,9 +113,16 @@ mapshaperize_split_from_s3(
 
 croisement_decoupage_level = {
     ## structure -> niveau geo: [niveau decoupage macro],
-    "REGION": ["FRANCE_ENTIERE"],
-    "COMMUNE": ["DEPARTEMENT", "REGION", "BASSIN_VIE", "ZONE_EMPLOI", "FRANCE_ENTIERE"],
-    "DEPARTEMENT": ["REGION", "FRANCE_ENTIERE"],
+    "COMMUNE": [
+        "BASSIN_VIE", "ZONE_EMPLOI", "UNITE_URBAINE", "AIRE_ATTRACTION_VILLES",  # zonages d'études
+        "DEPARTEMENT", "REGION",  # zonages administratifs
+        "TERRITOIRE", "FRANCE_ENTIERE"],
+    "DEPARTEMENT": ["REGION", "TERRITOIRE", "FRANCE_ENTIERE"],
+    "REGION": ["TERRITOIRE", "FRANCE_ENTIERE"],
+    "BASSIN_VIE": ["TERRITOIRE", "FRANCE_ENTIERE"],
+    "ZONE_EMPLOI": ["TERRITOIRE", "FRANCE_ENTIERE"],
+    "UNITE_URBAINE": ["TERRITOIRE", "FRANCE_ENTIERE"],
+    "AIRE_ATTRACTION_VILLES": ["TERRITOIRE", "FRANCE_ENTIERE"]
 }
 
 
