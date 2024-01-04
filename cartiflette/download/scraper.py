@@ -428,14 +428,12 @@ class MasterScraper(HttpScraper, FtpScraper):
                 root_folder, files_locations = datafile.unpack(protocol="7z")
             elif "Zip archive" in filetype:
                 root_folder, files_locations = datafile.unpack(protocol="zip")
-            elif "Unicode text" in filetype:
+            elif "Unicode text" in filetype or "CSV text" in filetype:
                 # copy in temp directory without processing
                 root_folder = tempfile.mkdtemp()
                 with open(temp_archive_file_raw, "rb") as f:
                     filename = unidecode(datafile.__str__().upper()).strip()
-                    filename = "_".join(
-                        x for x in re.split(r"\W+", filename) if x
-                    )
+                    filename = "_".join(x for x in re.split(r"\W+", filename) if x)
                     path = os.path.join(root_folder, filename + ".csv")
                     with open(path, "wb") as out:
                         out.write(f.read())
@@ -471,20 +469,14 @@ class MasterScraper(HttpScraper, FtpScraper):
 
         layers = dict()
         for cluster_name, cluster_filtered in paths.items():
-            cluster_pattern = {
-                os.path.splitext(x)[0] for x in cluster_filtered
-            }.pop()
+            cluster_pattern = {os.path.splitext(x)[0] for x in cluster_filtered}.pop()
             all_files_cluster = glob(os.path.join(cluster_pattern + ".*"))
             all_files_cluster = [
                 self.pattern_path.sub("/", x) for x in all_files_cluster
             ]
-            cluster_filtered = {
-                self.pattern_path.sub("/", x) for x in cluster_filtered
-            }
+            cluster_filtered = {self.pattern_path.sub("/", x) for x in cluster_filtered}
 
-            dict_files = {
-                x: (x in cluster_filtered) for x in all_files_cluster
-            }
+            dict_files = {x: (x in cluster_filtered) for x in all_files_cluster}
 
             layers[cluster_name] = Layer(datafile, cluster_name, dict_files)
 

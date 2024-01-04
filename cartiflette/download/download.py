@@ -98,6 +98,7 @@ def _upload_raw_dataset_to_s3(
                         "dataset_family": layer.dataset_family,
                         "source": layer.source,
                         "territory": layer.territory,
+                        "simplification": None,
                         "filename": rename_basename,
                     }
                 )
@@ -113,9 +114,7 @@ def _upload_raw_dataset_to_s3(
                     errors_encountered = True
 
             if any(x.lower().endswith(".shp") for x in layer_paths):
-                layer_paths = [
-                    x for x in layer_paths if x.lower().endswith(".shp")
-                ]
+                layer_paths = [x for x in layer_paths if x.lower().endswith(".shp")]
 
             dataset_paths[key] = layer_paths
 
@@ -230,11 +229,7 @@ def _download_sources(
             kwargs[key] = [val]
         elif not val:
             kwargs[key] = [None]
-        elif (
-            isinstance(val, list)
-            or isinstance(val, tuple)
-            or isinstance(val, set)
-        ):
+        elif isinstance(val, list) or isinstance(val, tuple) or isinstance(val, set):
             kwargs[key] = list(val)
 
     combinations = list(product(*kwargs.values()))
@@ -288,9 +283,7 @@ def _download_sources(
                 result["paths"] = paths
 
                 this_result = {
-                    provider: {
-                        dataset_family: {source: {territory: {year: result}}}
-                    }
+                    provider: {dataset_family: {source: {territory: {year: result}}}}
                 }
 
             return this_result

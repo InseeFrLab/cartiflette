@@ -85,10 +85,7 @@ class Dataset:
         territory = self.territory
         provider = self.provider
 
-        name = (
-            f"<Dataset {provider} {dataset_family} {source} "
-            f"{territory} {year}>"
-        )
+        name = f"<Dataset {provider} {dataset_family} {source} " f"{territory} {year}>"
         return name
 
     def __repr__(self):
@@ -365,18 +362,14 @@ class Dataset:
         archives_to_process = [(self.temp_archive_path, protocol)]
         while archives_to_process:
             archive, protocol = archives_to_process.pop()
-            loader, list_files, extract, targets_kw = get_utils_from_protocol(
-                protocol
-            )
+            loader, list_files, extract, targets_kw = get_utils_from_protocol(protocol)
             with loader(archive, mode="r") as archive:
                 everything = getattr(archive, list_files)()
 
                 # Handle nested archives (and presume there is no mixup in
                 # formats...)
                 archives = [
-                    x
-                    for x in everything
-                    if x.endswith(".zip") or x.endswith(".7z")
+                    x for x in everything if x.endswith(".zip") or x.endswith(".7z")
                 ]
                 archives = [(x, x.split(".")[-1]) for x in archives]
                 for nested_archive, protocol in archives:
@@ -388,9 +381,7 @@ class Dataset:
                 files = filter_case_insensitive(self.pattern, everything)
 
                 if year <= 2020 and source.endswith("-TERRITOIRE"):
-                    territory_code = sources["territory"][territory].split(
-                        "_"
-                    )[0]
+                    territory_code = sources["territory"][territory].split("_")[0]
                     files = {x for x in files if territory_code in x}
 
                 # Find all auxiliary files sharing the same name as those found
@@ -423,24 +414,18 @@ class Dataset:
                 # when using dbf) -> return only target but extract all
                 patterns = {x.rsplit(".", maxsplit=1)[0] for x in targets}
                 real_extracts = {
-                    x
-                    for x in everything
-                    if x.rsplit(".", maxsplit=1)[0] in patterns
+                    x for x in everything if x.rsplit(".", maxsplit=1)[0] in patterns
                 }
 
                 kwargs = {"path": location, targets_kw: real_extracts}
                 getattr(archive, extract)(**kwargs)
-                extracted += [
-                    os.path.join(location, target) for target in targets
-                ]
+                extracted += [os.path.join(location, target) for target in targets]
 
         # self._list_levels(extracted)
 
         if any(x.lower().endswith(".shp") for x in extracted):
             shapefiles_pattern = {
-                os.path.splitext(x)[0]
-                for x in files
-                if x.lower().endswith(".shp")
+                os.path.splitext(x)[0] for x in files if x.lower().endswith(".shp")
             }
 
             extracted = [

@@ -1,14 +1,10 @@
 # -*- coding: utf-8 -*-
 
 from datetime import date
-import geopandas as gpd
 import io
 import logging
-import numpy as np
-import os
 import pandas as pd
 import s3fs
-import tempfile
 from typing import TypedDict
 
 
@@ -173,360 +169,121 @@ def get_cog_year(
     return dict_cog
 
 
-def get_vectorfile_ign(
-    dataset_family: str = "ADMINEXPRESS",
-    source: str = "EXPRESS-COG-TERRITOIRE",
-    year: str = None,
-    territory: str = "metropole",
-    borders: str = "COMMUNE",
-    provider: str = "IGN",
-    bucket: str = BUCKET,
-    path_within_bucket: str = PATH_WITHIN_BUCKET,
-    fs: s3fs.S3FileSystem = FS,
-) -> gpd.GeoDataFrame:
-    """
-    Retrieve IGN shapefiles from MinIO
-    Note that each parameter from 'dataset_family' to 'provider' can be
-    replaced by a joker using '*' instead.
+# def get_BV(
+#     year: int = None,
+#     bv_source: str = "FondsDeCarte_BV_2022",
+#     ign_source: str = "EXPRESS-COG-TERRITOIRE",
+#     bucket: str = BUCKET,
+#     path_within_bucket: str = PATH_WITHIN_BUCKET,
+#     fs: s3fs.S3FileSystem = FS,
+# ) -> gpd.GeoDataFrame:
+#     """
+#     Reconstruct living areas ("Bassins de vie") from AdminExpress' cities'
+#     geometries and Insee's inventory.
 
-    Parameters
-    ----------
-    dataset_family : str, optional
-        Family as described in the yaml file. The default is "ADMINEXPRESS".
-    source : str, optional
-        Source as described in the yaml file. The default is
-        "EXPRESS-COG-TERRITOIRE".
-    year : int, optional
-        Desired vintage. Will use the current year if set to None (which is
-        default).
-    territory : str, optional
-        Territory as described in the yaml file. The default is "metropole".
-    borders : str, optional
-        Desired "mesh" (ie available layers in the raw dataset : commune,
-        arrondissement, etc.). The default is "COMMUNE".
-    provider : str, optional
-        Provider described in the yaml file. The default is "IGN".
-    bucket : str, optional
-        Bucket to use. The default is BUCKET.
-    path_within_bucket : str, optional
-        path within bucket. The default is PATH_WITHIN_BUCKET.
-    fs : s3fs.S3FileSystem, optional
-        S3 file system to use. The default is FS.
+#     Parameters
+#     ----------
+#     year : int, optional
+#         Desired vintage. Will use the current year if set to None (which is
+#         default).
+#     bv_source : str, optional
+#         Dataset's source to use for living area. The default is
+#         "FondsDeCarte_BV_2022".
+#     ign_source : str, optional
+#         Dataset's source to use for geometries (should be a dataset from the
+#         dataset_family AdminExpress. The default is "EXPRESS-COG-TERRITOIRE".
+#     bucket : str, optional
+#         Bucket to use. The default is BUCKET.
+#     path_within_bucket : str, optional
+#         path within bucket. The default is PATH_WITHIN_BUCKET.
+#     fs : s3fs.S3FileSystem, optional
+#         S3 file system to use. The default is FS.
 
+#     Raises
+#     ------
+#     ValueError
+#         If no file has been found on S3 for the given parameters.
 
-    Raises
-    ------
-    ValueError
-        If the dataset is not found on MinIO
+#     Returns
+#     -------
+#     bv : gpd.GeoDataFrame
+#         GeoDataFrame of living areas, constructed from cities geometries
 
-    Returns
-    -------
-    gdf : gpd.GeoDataFrame
-        Raw dataset as extracted from IGN. The projection/encoding of the file
-        might have been standardised (ie projected to 4326 if the original
-        projection was not EPSG referenced and encoded to UTF8)
-        Ex. :
-                                 ID           NOM         NOM_M INSEE_COM  \
-        0  COMMUNE_0000000009754033    Connangles    CONNANGLES     43076
-        1  COMMUNE_0000000009760784       Vidouze       VIDOUZE     65462
-        2  COMMUNE_0000000009742077     Fouesnant     FOUESNANT     29058
-        3  COMMUNE_0000000009735245  Plougrescant  PLOUGRESCANT     22218
-        4  COMMUNE_0000000009752504     Montcarra     MONTCARRA     38250
+#           Ex.:
+#               bv              libbv dep reg  \
+#         0  01004  Ambérieu-en-Bugey  01  84
+#         1  01033         Valserhône  01  84
+#         2  01033         Valserhône  74  84
+#         3  01034             Belley  01  84
+#         4  01053    Bourg-en-Bresse  01  84
 
-                   STATUT  POPULATION INSEE_CAN INSEE_ARR INSEE_DEP INSEE_REG  \
-        0  Commune simple         137        11         1        43        84
-        1  Commune simple         243        13         3        65        76
-        2  Commune simple        9864        11         4        29        53
-        3  Commune simple        1166        27         3        22        53
-        4  Commune simple         569        24         2        38        84
+#                                                     geometry  POPULATION
+#         0  POLYGON ((5.31974 45.92194, 5.31959 45.92190, ...       46645
+#         1  POLYGON ((5.72192 46.03413, 5.72165 46.03449, ...       25191
+#         2  POLYGON ((5.85098 45.99099, 5.85094 45.99070, ...        4566
+#         3  POLYGON ((5.61963 45.66754, 5.61957 45.66773, ...       25620
+#         4  POLYGON ((5.18709 46.05114, 5.18692 46.05085, ...       83935
 
-          SIREN_EPCI                                           geometry  \
-        0  200073419  POLYGON ((748166.100 6463826.600, 748132.400 6...
-        1  200072106  POLYGON ((455022.600 6263681.900, 455008.000 6...
-        2  242900660  MULTIPOLYGON (((177277.800 6756845.800, 177275...
-        3  200065928  MULTIPOLYGON (((245287.300 6878865.100, 245288...
-        4  200068542  POLYGON ((889525.800 6504614.500, 889525.600 6...
+#     """
 
-                               source
-        0  IGN:EXPRESS-COG-TERRITOIRE
-        1  IGN:EXPRESS-COG-TERRITOIRE
-        2  IGN:EXPRESS-COG-TERRITOIRE
-        3  IGN:EXPRESS-COG-TERRITOIRE
-        4  IGN:EXPRESS-COG-TERRITOIRE
+#     if not year:
+#         year = date.today().year
 
-    """
+#     territory = "france_entiere"
+#     provider = "Insee"
+#     dataset_family = "BV"
+#     source = bv_source
+#     pattern = (
+#         f"{bucket}/{path_within_bucket}/{year=}/**/"
+#         f"{provider=}/{dataset_family=}/{source=}/{territory=}/**/"
+#         f"*.dbf"
+#     ).replace("'", "")
+#     files = fs.glob(pattern)  # , refresh=True)
+#     # see issue : https://github.com/fsspec/s3fs/issues/504
+#     if not files:
+#         raise ValueError(
+#             "No file retrieved with the set parameters, resulting to the "
+#             f"following {pattern=}"
+#         )
+#     data = []
+#     for file in files:
+#         with tempfile.TemporaryDirectory() as tempdir:
+#             tmp_dbf = os.path.join(tempdir, os.path.basename(file))
+#             with open(tmp_dbf, "wb") as tf:
+#                 with fs.open(file, "rb") as fsf:
+#                     tf.write(fsf.read())
 
-    if not year:
-        year = date.today().year
+#             df = gpd.read_file(tmp_dbf, encoding="utf8")
+#             df = df.drop("geometry", axis=1)
+#         data.append(df)
 
-    pattern = (
-        f"{bucket}/{path_within_bucket}/{year=}/**/"
-        f"{provider=}/{dataset_family=}/{source=}/{territory=}/**/"
-        f"{borders}.shp"
-    ).replace("'", "")
-    files = fs.glob(pattern)  # , refresh=True)
-    # see issue : https://github.com/fsspec/s3fs/issues/504
-    if not files:
-        raise ValueError(
-            "No file retrieved with the set parameters, resulting to the "
-            f"following {pattern=}"
-        )
+#     bv = pd.concat(data)
 
-    data = []
-    for file in files:
-        logger.info(f"retrieving {file=}")
-        with tempfile.TemporaryDirectory() as tempdir:
-            pattern = file.rsplit(".", maxsplit=1)[0]
-            all_files = fs.glob(pattern + "*")  # , refresh=True)
-            # see issue : https://github.com/fsspec/s3fs/issues/504
-            for temp in all_files:
-                with open(
-                    os.path.join(tempdir, os.path.basename(temp)), "wb"
-                ) as tf:
-                    with fs.open(temp, "rb") as fsf:
-                        tf.write(fsf.read())
-            gdf = gpd.read_file(os.path.join(tempdir, os.path.basename(file)))
-        if len(files) > 1:
-            # reproject all geodataframes before concatenation
-            gdf = gdf.to_crs(4326)
-        data.append(gdf)
-    gdf = gpd.pd.concat(data)
+#     communes = get_vectorfile_ign(
+#         borders="COMMUNE",
+#         year=year,
+#         territory="*",
+#         provider="IGN",
+#         source=ign_source,
+#     )
 
-    if borders == "ARRONDISSEMENT_MUNICIPAL":
-        gdf["INSEE_DEP"] = gdf["INSEE_COM"].str[:2]
+#     bv = communes.merge(bv, left_on="INSEE_COM", right_on="codgeo", how="right")
+#     if bv_source == "FondsDeCarte_BV_2022":
+#         rename = ["bv2022", "libbv2022"]
+#     elif bv_source == "FondsDeCarte_BV_2012":
+#         rename = ["bv2012", "libbv2012"]
+#     bv = bv.rename(dict(zip(rename, ["bv", "libbv"])), axis=1)
+#     by = ["bv", "libbv", "dep", "reg"]
 
-    gdf["source"] = f"{provider}:{source}"
+#     bv = bv.dissolve(by=by, aggfunc={"POPULATION": "sum"}, as_index=False, dropna=False)
 
-    return gdf
+#     return bv
 
 
-def get_vectorfile_communes_arrondissement(
-    year: int = None,
-    provider: str = "IGN",
-    source: str = "EXPRESS-COG-TERRITOIRE",
-    bucket: str = BUCKET,
-    path_within_bucket: str = PATH_WITHIN_BUCKET,
-    fs: s3fs.S3FileSystem = FS,
-) -> gpd.GeoDataFrame:
-    """
-    Retrieved "enriched" dataframe for cities, using also cities' districts.
-
-    Parameters
-    ----------
-    year : int, optional
-        Desired vintage. Will use the current year if set to None (which is
-        default).
-    provider : str, optional
-        Provider described in the yaml file. The default is "IGN".
-    source : str, optional
-        Source as described in the yaml file. The default is
-        "EXPRESS-COG-TERRITOIRE".
-    bucket : str, optional
-        Bucket to use. The default is BUCKET.
-    path_within_bucket : str, optional
-        path within bucket. The default is PATH_WITHIN_BUCKET.
-    fs : s3fs.S3FileSystem, optional
-        S3 file system to use. The default is FS.
-    Returns
-    -------
-    df_enrichi : gpd.GeoDataFrame
-        Ex:
-                                 ID           NOM         NOM_M INSEE_COM  \
-        0  COMMUNE_0000000009754033    Connangles    CONNANGLES     43076
-        1  COMMUNE_0000000009760784       Vidouze       VIDOUZE     65462
-        2  COMMUNE_0000000009742077     Fouesnant     FOUESNANT     29058
-        3  COMMUNE_0000000009735245  Plougrescant  PLOUGRESCANT     22218
-        4  COMMUNE_0000000009752504     Montcarra     MONTCARRA     38250
-
-                   STATUT  POPULATION INSEE_CAN INSEE_ARR INSEE_DEP INSEE_REG  \
-        0  Commune simple         137        11         1        43        84
-        1  Commune simple         243        13         3        65        76
-        2  Commune simple        9864        11         4        29        53
-        3  Commune simple        1166        27         3        22        53
-        4  Commune simple         569        24         2        38        84
-
-          SIREN_EPCI                                           geometry  \
-        0  200073419  POLYGON ((748166.100 6463826.600, 748132.400 6...
-        1  200072106  POLYGON ((455022.600 6263681.900, 455008.000 6...
-        2  242900660  MULTIPOLYGON (((177277.800 6756845.800, 177275...
-        3  200065928  MULTIPOLYGON (((245287.300 6878865.100, 245288...
-        4  200068542  POLYGON ((889525.800 6504614.500, 889525.600 6...
-
-                               source INSEE_COG
-        0  IGN:EXPRESS-COG-TERRITOIRE     43076
-        1  IGN:EXPRESS-COG-TERRITOIRE     65462
-        2  IGN:EXPRESS-COG-TERRITOIRE     29058
-        3  IGN:EXPRESS-COG-TERRITOIRE     22218
-        4  IGN:EXPRESS-COG-TERRITOIRE     38250
-
-    """
-
-    if not year:
-        year = date.today().year
-
-    arrondissements = get_vectorfile_ign(
-        borders="ARRONDISSEMENT_MUNICIPAL",
-        year=year,
-        territory="metropole",
-        provider=provider,
-        source=source,
-    )
-
-    communes = get_vectorfile_ign(
-        borders="COMMUNE",
-        year=year,
-        territory="metropole",
-        provider=provider,
-        source=source,
-    )
-    communes_sans_grandes_villes = communes.loc[
-        ~communes["NOM"].isin(["Marseille", "Lyon", "Paris"])
-    ]
-    communes_grandes_villes = communes.loc[
-        communes["NOM"].isin(["Marseille", "Lyon", "Paris"])
-    ]
-
-    arrondissement_extra_info = arrondissements.merge(
-        communes_grandes_villes, on="INSEE_DEP", suffixes=("", "_y")
-    )
-    arrondissement_extra_info = arrondissement_extra_info.loc[
-        :, ~arrondissement_extra_info.columns.str.endswith("_y")
-    ]
-
-    df_enrichi = pd.concat(
-        [communes_sans_grandes_villes, arrondissement_extra_info]
-    )
-
-    df_enrichi["INSEE_COG"] = np.where(
-        df_enrichi["INSEE_ARM"].isnull(),
-        df_enrichi["INSEE_COM"],
-        df_enrichi["INSEE_ARM"],
-    )
-
-    df_enrichi = df_enrichi.drop("INSEE_ARM", axis="columns")
-
-    return df_enrichi
-
-
-def get_BV(
-    year: int = None,
-    bv_source: str = "FondsDeCarte_BV_2022",
-    ign_source: str = "EXPRESS-COG-TERRITOIRE",
-    bucket: str = BUCKET,
-    path_within_bucket: str = PATH_WITHIN_BUCKET,
-    fs: s3fs.S3FileSystem = FS,
-) -> gpd.GeoDataFrame:
-    """
-    Reconstruct living areas ("Bassins de vie") from AdminExpress' cities' 
-    geometries and Insee's inventory.
-
-    Parameters
-    ----------
-    year : int, optional
-        Desired vintage. Will use the current year if set to None (which is
-        default).
-    bv_source : str, optional
-        Dataset's source to use for living area. The default is 
-        "FondsDeCarte_BV_2022".
-    ign_source : str, optional
-        Dataset's source to use for geometries (should be a dataset from the
-        dataset_family AdminExpress. The default is "EXPRESS-COG-TERRITOIRE".
-    bucket : str, optional
-        Bucket to use. The default is BUCKET.
-    path_within_bucket : str, optional
-        path within bucket. The default is PATH_WITHIN_BUCKET.
-    fs : s3fs.S3FileSystem, optional
-        S3 file system to use. The default is FS.
-
-    Raises
-    ------
-    ValueError
-        If no file has been found on S3 for the given parameters.
-
-    Returns
-    -------
-    bv : gpd.GeoDataFrame
-        GeoDataFrame of living areas, constructed from cities geometries
-
-          Ex.:
-              bv              libbv dep reg  \
-        0  01004  Ambérieu-en-Bugey  01  84
-        1  01033         Valserhône  01  84
-        2  01033         Valserhône  74  84
-        3  01034             Belley  01  84
-        4  01053    Bourg-en-Bresse  01  84
-
-                                                    geometry  POPULATION
-        0  POLYGON ((5.31974 45.92194, 5.31959 45.92190, ...       46645
-        1  POLYGON ((5.72192 46.03413, 5.72165 46.03449, ...       25191
-        2  POLYGON ((5.85098 45.99099, 5.85094 45.99070, ...        4566
-        3  POLYGON ((5.61963 45.66754, 5.61957 45.66773, ...       25620
-        4  POLYGON ((5.18709 46.05114, 5.18692 46.05085, ...       83935
-
-    """
-
-    if not year:
-        year = date.today().year
-
-    territory = "france_entiere"
-    provider = "Insee"
-    dataset_family = "BV"
-    source = bv_source
-    pattern = (
-        f"{bucket}/{path_within_bucket}/{year=}/**/"
-        f"{provider=}/{dataset_family=}/{source=}/{territory=}/**/"
-        f"*.dbf"
-    ).replace("'", "")
-    files = fs.glob(pattern)  # , refresh=True)
-    # see issue : https://github.com/fsspec/s3fs/issues/504
-    if not files:
-        raise ValueError(
-            "No file retrieved with the set parameters, resulting to the "
-            f"following {pattern=}"
-        )
-    data = []
-    for file in files:
-        with tempfile.TemporaryDirectory() as tempdir:
-            tmp_dbf = os.path.join(tempdir, os.path.basename(file))
-            with open(tmp_dbf, "wb") as tf:
-                with fs.open(file, "rb") as fsf:
-                    tf.write(fsf.read())
-
-            df = gpd.read_file(tmp_dbf, encoding="utf8")
-            df = df.drop("geometry", axis=1)
-        data.append(df)
-
-    bv = pd.concat(data)
-
-    communes = get_vectorfile_ign(
-        borders="COMMUNE",
-        year=year,
-        territory="*",
-        provider="IGN",
-        source=ign_source,
-    )
-
-    bv = communes.merge(
-        bv, left_on="INSEE_COM", right_on="codgeo", how="right"
-    )
-    if bv_source == "FondsDeCarte_BV_2022":
-        rename = ["bv2022", "libbv2022"]
-    elif bv_source == "FondsDeCarte_BV_2012":
-        rename = ["bv2012", "libbv2012"]
-    bv = bv.rename(dict(zip(rename, ["bv", "libbv"])), axis=1)
-    by = ["bv", "libbv", "dep", "reg"]
-
-    bv = bv.dissolve(
-        by=by, aggfunc={"POPULATION": "sum"}, as_index=False, dropna=False
-    )
-
-    return bv
-
-
-if __name__ == "__main__":
+# if __name__ == "__main__":
     # logging.basicConfig(level=logging.INFO)
 
     # ret = get_cog_year(2022)
     # ret = get_vectorfile_ign(source="EXPRESS-COG-TERRITOIRE", year=2022)
     # ret = get_vectorfile_communes_arrondissement(year=2022)
-    ret = get_BV(year=2022)
+    # ret = get_BV(year=2022)

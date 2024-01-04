@@ -2,6 +2,20 @@
 Collection of utils to reformat inputs
 """
 
+DICT_CORRESP_ADMINEXPRESS = {
+    "REGION": "INSEE_REG",
+    "DEPARTEMENT": "INSEE_DEP",
+    "FRANCE_ENTIERE": "PAYS",
+    "FRANCE_ENTIERE_DROM_RAPPROCHES": "PAYS",
+    "LIBELLE_REGION": "LIBELLE_REGION",
+    "LIBELLE_DEPARTEMENT": "LIBELLE_DEPARTEMENT",
+    'BASSIN_VIE': 'BV2012',
+    'AIRE_ATTRACTION_VILLES': 'AAV2020',
+    'UNITE_URBAINE': 'UU2020',
+    'ZONE_EMPLOI': 'ZE2020',
+    'TERRITOIRE': 'AREA'
+}
+
 
 def dict_corresp_filter_by() -> dict:
     """Transforms explicit administrative borders into relevant column
@@ -66,5 +80,7 @@ def official_epsg_codes() -> dict:
         "reunion": 2975,
         "guadeloupe": 5490,
         "guyane": 2972,
+        "mayotte": 4326,
+        "france_entiere": None,
     }
     return crs_list
