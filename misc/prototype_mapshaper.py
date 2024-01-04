@@ -14,7 +14,7 @@ from cartiflette.pipeline import (
 # DATA RETRIEVING STEP =========================
 
 bucket = BUCKET
-path_within_bucket = "test/test-bv"
+path_within_bucket = "test/test-territoire"
 year = 2022
 fs = FS
 # path_within_bucket = PATH_WITHIN_BUCKET
@@ -86,6 +86,15 @@ mapshaperize_split_from_s3(
         "path_within_bucket": path_within_bucket,
         "level_polygons": "BASSIN_VIE",
         "filter_by": "FRANCE_ENTIERE",
+        "simplification": 50,
+    }
+)
+
+mapshaperize_split_from_s3(
+    {
+        "path_within_bucket": path_within_bucket,
+        "level_polygons": "ZONE_EMPLOI",
+        "filter_by": "TERRITOIRE",
         "simplification": 50,
     }
 )
