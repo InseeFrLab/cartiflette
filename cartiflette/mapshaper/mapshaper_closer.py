@@ -8,7 +8,8 @@ logical_conditions = {
         "martinique": "INSEE_DEP == '972'",
         "guyane": "INSEE_DEP == '973'",
         "reunion": "INSEE_DEP == '974'",
-        "mayotte": "INSEE_DEP == '976'"
+        "mayotte": "INSEE_DEP == '976'",
+        "zoom idf": 4
     },
     "REGION": {
         "ile de france": "INSEE_REG == 11",
@@ -16,8 +17,18 @@ logical_conditions = {
         "martinique": "INSEE_REG == 2",
         "guyane": "INSEE_REG == 3",
         "reunion": "INSEE_REG == 4",
-        "mayotte": "INSEE_REG == 6"
-    }
+        "mayotte": "INSEE_REG == 6",
+        "zoom idf": 1.5
+    },
+    "BASSIN_VIE": {
+        "ile de france": "BV2012 == 75056",
+        "guadeloupe": "BV2012.startsWith(\"971\")",
+        "martinique": "BV2012.startsWith(\"972\")",
+        "guyane": "BV2012.startsWith(\"973\")",
+        "reunion": "BV2012.startsWith(\"974\")",
+        "mayotte": "BV2012.startsWith(\"976\")",
+        "zoom idf": 1.5
+    },
 }
 
 
@@ -34,12 +45,13 @@ def mapshaper_bring_closer(
     logical_guyane = logical_conditions[level_agreg]["guyane"]
     logical_reunion = logical_conditions[level_agreg]["reunion"]
     logical_mayotte = logical_conditions[level_agreg]["mayotte"]
+    zoom_idf = logical_conditions[level_agreg]["zoom idf"]
 
     idf_zoom = (
         f"mapshaper -i {france_vector_path} "
         f"-proj EPSG:3857 "
         f"-filter \"{logical_idf}\" "
-        f"-affine shift=-650000,275000 scale=4 "
+        f"-affine shift=-650000,275000 scale={zoom_idf} "
         f"-o {output_dir}/idf_zoom.geojson"
     )
 

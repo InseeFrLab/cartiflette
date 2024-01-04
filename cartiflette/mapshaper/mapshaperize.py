@@ -114,8 +114,12 @@ def mapshaperize_split(
         )
         subprocess.run(cmd_dissolve, shell=True, check=True)
 
+    # IF WE DESIRE TO BRING "DROM" CLOSER TO FRANCE
     if niveau_agreg.upper() == "FRANCE_ENTIERE_DROM_RAPPROCHES":
-        input_path = mapshaper_bring_closer(temp_filename)
+        niveau_filter_drom = "DEPARTEMENT"
+        if niveau_polygons != "COMMUNE":
+            niveau_filter_drom = niveau_polygons
+        input_path = mapshaper_bring_closer(temp_filename, level_agreg=niveau_filter_drom)
 
     # STEP 2: SPLIT ET SIMPLIFIE
     mapshaper_split(

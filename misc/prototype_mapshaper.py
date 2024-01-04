@@ -126,6 +126,16 @@ mapshaperize_merge_split_from_s3(
     }
 )
 
+mapshaperize_merge_split_from_s3(
+    {
+        "path_within_bucket": path_within_bucket,
+        "level_polygons": "BASSIN_VIE",
+        "format": "topojson", 
+        "filter_by": "FRANCE_ENTIERE_DROM_RAPPROCHES",
+        "simplification": 50,
+    }
+)
+
 # GENERALISATION
 
 croisement_decoupage_level = {
