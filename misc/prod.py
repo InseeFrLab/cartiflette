@@ -14,10 +14,10 @@ from cartiflette.pipeline import (
 # DATA RETRIEVING STEP =========================
 
 bucket = BUCKET
-path_within_bucket = "test/preprod"
+path_within_bucket = PATH_WITHIN_BUCKET
 year = 2022
 fs = FS
-# path_within_bucket = PATH_WITHIN_BUCKET
+
 
 # PART 1/ COMBINE RAW FILES TOGETHER AND WRITE TO S3
 
@@ -54,89 +54,6 @@ tagc_metadata.drop(columns=["LIBGEO"]).to_csv("temp/tagc.csv")
 # STEP 2: ENRICH AND SPLIT ----------------------
 # First a few tests
 
-mapshaperize_split_from_s3(
-    {
-        "path_within_bucket": path_within_bucket,
-        "level_polygons": "COMMUNE",
-        "filter_by": "REGION",
-        "simplification": 50,
-    }
-)
-
-mapshaperize_merge_split_from_s3(
-    {
-        "path_within_bucket": path_within_bucket,
-        "level_polygons": "COMMUNE",
-        "filter_by": "REGION",
-        "simplification": 50,
-    }
-)
-
-mapshaperize_split_from_s3(
-    {
-        "path_within_bucket": path_within_bucket,
-        "level_polygons": "COMMUNE",
-        "filter_by": "AIRE_ATTRACTION_VILLES",
-        "simplification": 50,
-    }
-)
-
-mapshaperize_split_from_s3(
-    {
-        "path_within_bucket": path_within_bucket,
-        "level_polygons": "BASSIN_VIE",
-        "filter_by": "FRANCE_ENTIERE",
-        "simplification": 50,
-    }
-)
-
-mapshaperize_split_from_s3(
-    {
-        "path_within_bucket": path_within_bucket,
-        "level_polygons": "ZONE_EMPLOI",
-        "filter_by": "TERRITOIRE",
-        "simplification": 50,
-    }
-)
-
-mapshaperize_split_from_s3(
-    {
-        "path_within_bucket": path_within_bucket,
-        "level_polygons": "COMMUNE",
-        "filter_by": "TERRITOIRE",
-        "simplification": 50,
-    }
-)
-
-mapshaperize_split_from_s3(
-    {
-        "path_within_bucket": path_within_bucket,
-        "level_polygons": "COMMUNE",
-        "filter_by": "FRANCE_ENTIERE_DROM_RAPPROCHES",
-        "simplification": 50,
-    }
-)
-
-mapshaperize_merge_split_from_s3(
-    {
-        "path_within_bucket": path_within_bucket,
-        "level_polygons": "COMMUNE_ARRONDISSEMENT",
-        "filter_by": "FRANCE_ENTIERE_DROM_RAPPROCHES",
-        "simplification": 50,
-    }
-)
-
-mapshaperize_merge_split_from_s3(
-    {
-        "path_within_bucket": path_within_bucket,
-        "level_polygons": "BASSIN_VIE",
-        "format": "topojson", 
-        "filter_by": "FRANCE_ENTIERE_DROM_RAPPROCHES",
-        "simplification": 50,
-    }
-)
-
-# GENERALISATION
 
 croisement_decoupage_level = {
     # structure -> niveau geo: [niveau decoupage macro],
