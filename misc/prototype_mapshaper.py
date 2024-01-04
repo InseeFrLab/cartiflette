@@ -99,6 +99,15 @@ mapshaperize_split_from_s3(
     }
 )
 
+mapshaperize_split_from_s3(
+    {
+        "path_within_bucket": path_within_bucket,
+        "level_polygons": "COMMUNE",
+        "filter_by": "TERRITOIRE",
+        "simplification": 50,
+    }
+)
+
 
 # GENERALISATION
 
