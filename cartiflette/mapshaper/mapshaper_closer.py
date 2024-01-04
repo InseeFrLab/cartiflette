@@ -1,30 +1,56 @@
 import subprocess
 import os
 
+logical_conditions = {
+    "DEPARTEMENT": {
+        "ile de france": "['75', '92', '93', '94'].includes(INSEE_DEP)",
+        "guadeloupe": "INSEE_DEP == '971'",
+        "martinique": "INSEE_DEP == '972'",
+        "guyane": "INSEE_DEP == '973'",
+        "reunion": "INSEE_DEP == '974'",
+        "mayotte": "INSEE_DEP == '976'"
+    },
+    "REGION": {
+        "ile de france": "INSEE_REG == 11",
+        "guadeloupe": "INSEE_REG == 1",
+        "martinique": "INSEE_REG == 2",
+        "guyane": "INSEE_REG == 3",
+        "reunion": "INSEE_REG == 4",
+        "mayotte": "INSEE_REG == 6"
+    }
+}
+
 
 def mapshaper_bring_closer(
-    france_vector_path
+    france_vector_path, level_agreg="DEPARTEMENT"
 ):
 
     output_path = "temp/preprocessed_transformed/idf_combined.geojson"
     output_dir = os.path.dirname(output_path)
 
+    logical_idf = logical_conditions[level_agreg]["ile de france"]
+    logical_guadeloupe = logical_conditions[level_agreg]["guadeloupe"]
+    logical_martinique = logical_conditions[level_agreg]["martinique"]
+    logical_guyane = logical_conditions[level_agreg]["guyane"]
+    logical_reunion = logical_conditions[level_agreg]["reunion"]
+    logical_mayotte = logical_conditions[level_agreg]["mayotte"]
+
     idf_zoom = (
         f"mapshaper -i {france_vector_path} "
         f"-proj EPSG:3857 "
-        f"-filter \"['75', '92', '93', '94'].includes(INSEE_DEP)\" "
-        f"-affine where=\"['75', '92', '93', '94'].includes(INSEE_DEP)\" shift=-650000,275000 scale=4 "
+        f"-filter \"{logical_idf}\" "
+        f"-affine shift=-650000,275000 scale=4 "
         f"-o {output_dir}/idf_zoom.geojson"
     )
 
     temp_france = (
         f"mapshaper -i {france_vector_path} "
         f"-proj EPSG:3857 "
-        f"-affine where=\"INSEE_DEP == '971'\" shift=6355000,3330000 scale=1.5 "
-        f"-affine where=\"INSEE_DEP == '972'\" shift=6480000,3505000 scale=1.5 "
-        f"-affine where=\"INSEE_DEP == '973'\" shift=5760000,4720000 scale=0.35 "
-        f"-affine where=\"INSEE_DEP == '974'\" shift=-6170000,7560000 scale=1.5 "
-        f"-affine where=\"INSEE_DEP == '976'\" shift=-4885000,6590000 scale=1.5 "
+        f"-affine where=\"{logical_guadeloupe}\" shift=6355000,3330000 scale=1.5 "
+        f"-affine where=\"{logical_martinique}\" shift=6480000,3505000 scale=1.5 "
+        f"-affine where=\"{logical_guyane}\" shift=5760000,4720000 scale=0.35 "
+        f"-affine where=\"{logical_reunion}\" shift=-6170000,7560000 scale=1.5 "
+        f"-affine where=\"{logical_mayotte}\" shift=-4885000,6590000 scale=1.5 "
         f"-o {output_dir}/temp_france.geojson "
     )
 
