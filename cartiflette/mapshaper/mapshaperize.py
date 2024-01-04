@@ -2,7 +2,10 @@ import os
 import subprocess
 
 from cartiflette.utils import DICT_CORRESP_ADMINEXPRESS
-from .mapshaper_wrangling import mapshaper_enrich, mapshaper_split
+from .mapshaper_wrangling import (
+    mapshaper_enrich, mapshaper_split
+)
+from .mapshaper_closer import mapshaper_bring_closer
 
 
 def mapshaperize_split(
@@ -76,13 +79,15 @@ def mapshaperize_split(
     else:
         option_simplify = ""
 
+    temp_filename = "temp.geojson"
+
     # STEP 1: ENRICHISSEMENT AVEC COG
     mapshaper_enrich(
         local_dir=directory_city,
         filename_initial=initial_filename_city,
         extension_initial=extension_initial_city,
         dict_corresp=dict_corresp,
-        output_path="temp.geojson",
+        output_path=temp_filename,
     )
 
     if niveau_polygons != initial_filename_city:
@@ -100,7 +105,7 @@ def mapshaperize_split(
 
         # STEP 1B: DISSOLVE IF NEEDED
         cmd_dissolve = (
-            f"mapshaper temp.geojson "
+            f"mapshaper {temp_filename} "
             f"name='' -proj EPSG:4326 "
             f"-dissolve {dict_corresp[niveau_polygons]} "
             f"calc='POPULATION=sum(POPULATION)' "
@@ -109,9 +114,12 @@ def mapshaperize_split(
         )
         subprocess.run(cmd_dissolve, shell=True, check=True)
 
+    if niveau_agreg.upper() == "FRANCE_ENTIERE_DROM_RAPPROCHES":
+        input_path = mapshaper_bring_closer(temp_filename)
+
     # STEP 2: SPLIT ET SIMPLIFIE
     mapshaper_split(
-        input_file="temp.geojson",
+        input_file=input_path,
         layer_name="",
         split_variable=dict_corresp[niveau_agreg],
         output_path=output_path,
@@ -225,9 +233,14 @@ def mapshaperize_split_merge(
         dict_corresp=DICT_CORRESP_ADMINEXPRESS,
     )
 
+    input_path = f"{output_path}/raw2.{format_intermediate}"
+
+    if niveau_agreg.upper() == "FRANCE_ENTIERE_DROM_RAPPROCHES":
+        input_path = mapshaper_bring_closer(input_path)
+
     # TRANSFORM AS NEEDED
     mapshaper_split(
-        input_file=f"{output_path}/raw2.{format_intermediate}",
+        input_file=input_path,
         layer_name="",
         split_variable=dict_corresp[niveau_agreg],
         output_path=output_path,
