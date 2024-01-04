@@ -6,7 +6,7 @@ import s3fs
 load_dotenv()
 
 BUCKET = "projet-cartiflette"
-PATH_WITHIN_BUCKET = "diffusion/shapefiles-test4"
+PATH_WITHIN_BUCKET = "test/preprod"
 ENDPOINT_URL = "https://minio.lab.sspcloud.fr"
 
 kwargs = {}
