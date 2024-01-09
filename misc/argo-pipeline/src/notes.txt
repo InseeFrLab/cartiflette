@@ -1,8 +1,5 @@
 # notes
 
-- j'ai du ajouté la fonction 'crossproduct_parameters_production' 
-à la liste des fonctions exportées du package s3
-
 - j'ai du ajouté
 pour importer le package 'cartiflette' local (avec mes modifications)
         env:

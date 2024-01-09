@@ -1,4 +1,4 @@
-import cartiflette.s3 as s3
+from cartiflette.pipeline import crossproduct_parameters_production
 import json
 
 # parameters
@@ -18,12 +18,12 @@ croisement_decoupage_level = {
 
 
 def main():
-    tempdf = s3.crossproduct_parameters_production(
+    tempdf = crossproduct_parameters_production(
         croisement_filter_by_borders=croisement_decoupage_level,
         list_format=formats,
         years=years,
         crs_list=crs_list,
-        sources=sources)
+        sources=sources, simplifications=[0, 50])
     output  = tempdf.to_json(orient="records")
     parsed = json.loads(output)
     print(json.dumps(parsed))
