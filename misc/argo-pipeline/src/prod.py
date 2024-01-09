@@ -20,4 +20,40 @@ parser.add_argument("-p", "--path", help="Path within bucket", default=PATH_WITH
 # Parse arguments
 args = parser.parse_args()
 
-print(args.path)
+bucket = BUCKET
+path_within_bucket = args.path
+
+year = 2022
+fs = FS
+
+
+# PART 1/ COMBINE RAW FILES TOGETHER AND WRITE TO S3
+
+path_combined_files = combine_adminexpress_territory(
+    path_within_bucket=path_within_bucket
+)
+
+path_raw_s3 = create_path_bucket(
+    {
+        "bucket": bucket,
+        "path_within_bucket": path_within_bucket,
+        "year": year,
+        "borders": "france",
+        "crs": 4326,
+        "filter_by": "preprocessed",
+        "value": "before_cog",
+        "vectorfile_format": "geojson",
+        "provider": "IGN",
+        "dataset_family": "ADMINEXPRESS",
+        "source": "EXPRESS-COG-CARTO-TERRITOIRE",
+        "territory": "france",
+        "filename": "raw.geojson",
+        "simplification": 0,
+    }
+)
+
+fs.put_file(path_combined_files, path_raw_s3)
+
+# Retrieve COG metadata
+tagc_metadata = prepare_cog_metadata(path_within_bucket)
+tagc_metadata.drop(columns=["LIBGEO"]).to_csv("temp/tagc.csv")

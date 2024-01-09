@@ -24,7 +24,7 @@ spec:
             template: duplicate-ign
             arguments:
               parameters:
-                name: pathbucket
+              - name: pathbucket
                 value: "test/test-argo1"
           - name: print
             template: print
@@ -47,18 +47,20 @@ spec:
 
     - name: duplicate-ign
       inputs:
+        parameters:
+          - name: pathbucket
         artifacts:
           - name: code
             path: /mnt/bin
             git:
-              repo: https://github.com/inseefrlab/cartogether
+              repo: https://github.com/inseefrlab/cartiflette
               revision: "docker"
       container:
         image: inseefrlab/cartiflette
         command: [sh, -c]
         args: ["mkdir -p /mnt/data ; mkdir -p /mnt/bin/src ; 
                 mv /mnt/bin/misc/argo-pipeline/src/* /mnt/bin/src ;
-                python /mnt/bin/src/prod.py"]
+                python /mnt/bin/src/prod.py --path {{inputs.parameters.pathbucket}}"]
         volumeMounts:
           - name: volume-workflow-tmp
             mountPath: /mnt
@@ -72,14 +74,14 @@ spec:
           - name: code
             path: /mnt/bin
             git:
-              repo: https://github.com/inseefrlab/cartogether
+              repo: https://github.com/inseefrlab/cartiflette
               revision: "docker"
       container:
         image: inseefrlab/cartiflette
         command: [sh, -c]
         args: ["mkdir -p /mnt/data ; mkdir -p /mnt/bin/src ; 
                 mv /mnt/bin/misc/argo-pipeline/src/* /mnt/bin/src ;
-                python /mnt/bin/src/crossproduct.py --path {{inputs.parameters.pathbucket}}"]
+                python /mnt/bin/src/crossproduct.py"]
         volumeMounts:
           - name: volume-workflow-tmp
             mountPath: /mnt
