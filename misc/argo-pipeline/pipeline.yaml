@@ -1,0 +1,81 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: cartiflette-pipeline-
+spec:
+  entrypoint: main
+  serviceAccountName: workflow
+  volumeClaimTemplates:
+    - metadata:
+        name: volume-workflow-tmp
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 10Gi
+  templates:
+    - name: main
+      dag:
+        tasks:
+          - name: crossproduct
+            template: crossproduct
+
+          - name: print
+            template: print
+            dependencies: [ crossproduct ]
+            arguments:
+              parameters:
+              - name: format
+                value: "{{item.format}}"
+              - name: year
+                value: "{{item.year}}"
+              - name: crs
+                value: "{{item.crs}}"
+              - name: source
+                value: "{{item.source}}"
+              - name: borders
+                value: "{{item.borders}}"
+              - name: filter_by
+                value: "{{item.filter_by}}"
+            withParam: "{{tasks.crossproduct.outputs.result}}"
+
+    - name: crossproduct
+      inputs:
+        artifacts:
+          - name: code
+            path: /mnt/bin
+            git:
+              repo: https://github.com/inseefrlab/cartogether
+              revision: "argo-pipeline"
+      container:
+        image: inseefrlab/cartiflette
+        command: [sh, -c]
+        args: ["mkdir -p /mnt/data ; mkdir -p /mnt/bin/src ; 
+                mv /mnt/bin/misc/argo-pipeline/src/* /mnt/bin/src ;
+                python /mnt/bin/src/crossproduct.py"]
+        volumeMounts:
+          - name: volume-workflow-tmp
+            mountPath: /mnt
+        env:
+          - name: PYTHONPATH
+            value: "${PYTHONPATH}:/mnt/bin"
+
+    - name: print
+      inputs:
+        parameters:
+        - name: format
+        - name: year
+        - name: crs
+        - name: source
+        - name: borders
+        - name: filter_by
+      container:
+        image: alpine:latest
+        command: [sh, -c]
+        args: ["echo 
+                {{inputs.parameters.format}} 
+                {{inputs.parameters.year}}
+                {{inputs.parameters.crs}}
+                {{inputs.parameters.source}}
+                {{inputs.parameters.borders}}
+                {{inputs.parameters.filter_by}}"]
