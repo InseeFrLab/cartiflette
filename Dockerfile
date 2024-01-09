@@ -1,8 +1,8 @@
 FROM python:3.11-slim-bullseye
 
 # Install mapshaper
-COPY docker .
-RUN ./install-mapshaper.py
+COPY docker/install-mapshaper.sh .
+RUN ./install-mapshaper.sh
 
 # Install project Python dependencies
 COPY requirements.txt .
