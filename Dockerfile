@@ -13,8 +13,8 @@ COPY cartiflette ./cartiflette
 COPY pyproject.toml .
 COPY setup.py .
 COPY README.md .
-COPY example/download.py .
+COPY docker/test.py .
 
 RUN pip install .
 
-CMD ["python", "download.py"]
+CMD ["python", "test.py"]
