@@ -11,7 +11,6 @@ RUN pip install -r requirements.txt
 # Create structure
 COPY cartiflette ./cartiflette
 COPY pyproject.toml .
-COPY setup.py .
 COPY README.md .
 COPY docker/test.py .
 
