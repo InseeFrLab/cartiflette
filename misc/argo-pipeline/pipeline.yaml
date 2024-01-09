@@ -2,6 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: cartiflette-pipeline-
+  namespace: projet-cartiflette
 spec:
   entrypoint: main
   serviceAccountName: workflow
@@ -19,7 +20,12 @@ spec:
         tasks:
           - name: crossproduct
             template: crossproduct
-
+          - name: duplicate-ign
+            template: duplicate-ign
+            arguments:
+              parameters:
+                name: pathbucket
+                value: "test/test-argo1"
           - name: print
             template: print
             dependencies: [ crossproduct ]
@@ -39,6 +45,27 @@ spec:
                 value: "{{item.filter_by}}"
             withParam: "{{tasks.crossproduct.outputs.result}}"
 
+    - name: duplicate-ign
+      inputs:
+        artifacts:
+          - name: code
+            path: /mnt/bin
+            git:
+              repo: https://github.com/inseefrlab/cartogether
+              revision: "docker"
+      container:
+        image: inseefrlab/cartiflette
+        command: [sh, -c]
+        args: ["mkdir -p /mnt/data ; mkdir -p /mnt/bin/src ; 
+                mv /mnt/bin/misc/argo-pipeline/src/* /mnt/bin/src ;
+                python /mnt/bin/src/prod.py"]
+        volumeMounts:
+          - name: volume-workflow-tmp
+            mountPath: /mnt
+        env:
+          - name: PYTHONPATH
+            value: "${PYTHONPATH}:/mnt/bin"
+
     - name: crossproduct
       inputs:
         artifacts:
@@ -46,13 +73,13 @@ spec:
             path: /mnt/bin
             git:
               repo: https://github.com/inseefrlab/cartogether
-              revision: "argo-pipeline"
+              revision: "docker"
       container:
         image: inseefrlab/cartiflette
         command: [sh, -c]
         args: ["mkdir -p /mnt/data ; mkdir -p /mnt/bin/src ; 
                 mv /mnt/bin/misc/argo-pipeline/src/* /mnt/bin/src ;
-                python /mnt/bin/src/crossproduct.py"]
+                python /mnt/bin/src/crossproduct.py --path {{inputs.parameters.pathbucket}}"]
         volumeMounts:
           - name: volume-workflow-tmp
             mountPath: /mnt
