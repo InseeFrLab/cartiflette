@@ -20,6 +20,7 @@ spec:
         tasks:
           - name: crossproduct
             template: crossproduct
+            dependencies: [ duplicate-ign ]
           - name: duplicate-ign
             template: duplicate-ign
             arguments:
