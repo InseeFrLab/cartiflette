@@ -28,7 +28,7 @@ path_within_bucket = args.path
 year = 2022
 fs = FS
 
-os.makedirs("tmp", exist_ok=True)
+os.makedirs("temp", exist_ok=True)
 
 # PART 1/ COMBINE RAW FILES TOGETHER AND WRITE TO S3
 
@@ -63,11 +63,11 @@ def main(
 
     # Retrieve COG metadata
     tagc_metadata = prepare_cog_metadata(path_within_bucket)
-    tagc_metadata.drop(columns=["LIBGEO"]).to_csv("tmp/tagc.csv")
+    tagc_metadata.drop(columns=["LIBGEO"]).to_csv("temp/tagc.csv")
 
     data = {
         "preprocessed": path_combined_files,
-        "metadata": "tmp/tagc.csv"
+        "metadata": "temp/tagc.csv"
     }
 
     import os
@@ -75,7 +75,7 @@ def main(
         os.getcwd()
     )
     print(
-        os.listdir("tmp")
+        os.listdir("temp")
     )
 
 

@@ -61,7 +61,7 @@ spec:
       outputs:
         artifacts:
           - name: items
-            path: /tmp/tagc.csv
+            path: /tmp/
       container:
         image: inseefrlab/cartiflette
         command: [sh, -c]
@@ -73,7 +73,8 @@ spec:
                 pwd ;
                 ls code/misc/argo-pipeline/src ;
                 python code/misc/argo-pipeline/src/duplicate_in_bucket.py --path {{inputs.parameters.pathbucket}} ;
-                ls tmp/
+                ls tmp/ ;
+                mkdir -p /var/run/argo/outputs/artifacts/
                 "]
         env:
           # env var for s3 connexion
