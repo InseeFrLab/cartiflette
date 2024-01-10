@@ -59,8 +59,8 @@ spec:
         parameters:
           - name: pathbucket
       outputs:
-        artifacts:
-          - name: items
+        parameters :
+          - name: path-temp-bucket
             path: /tmp/
       container:
         image: inseefrlab/cartiflette
@@ -73,8 +73,8 @@ spec:
                 pwd ;
                 ls code/misc/argo-pipeline/src ;
                 python code/misc/argo-pipeline/src/duplicate_in_bucket.py --path {{inputs.parameters.pathbucket}} ;
-                ls tmp/ ;
-                mkdir -p /var/run/argo/outputs/artifacts/
+                ls temp/ ;
+                mc cp -r temp/ s3/projet-cartiflette/{{inputs.parameters.pathbucket}}/temp_argo/
                 "]
         env:
           # env var for s3 connexion
