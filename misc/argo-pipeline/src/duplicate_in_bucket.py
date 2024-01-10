@@ -28,7 +28,7 @@ path_within_bucket = args.path
 year = 2022
 fs = FS
 
-os.makedirs("tmp", exists_ok=True)
+os.makedirs("tmp", exist_ok=True)
 
 # PART 1/ COMBINE RAW FILES TOGETHER AND WRITE TO S3
 
