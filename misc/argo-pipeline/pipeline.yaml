@@ -24,6 +24,8 @@ spec:
               parameters:
               - name: pathbucket
                 value: "test/test-argo"
+          - name: test-ign
+            template: test-ign
           - name: crossproduct
             template: crossproduct
             dependencies: [ duplicate-ign ]
@@ -89,6 +91,16 @@ spec:
           - name: AWS_S3_ENDPOINT
             value: minio.lab.sspcloud.fr
 
+    - name: test-ign
+      inputs:
+        artifacts:
+          - name: tagc
+            path: /tmp/tagc.csv
+      container:
+        image: inseefrlab/cartiflette
+        command: [sh, -c]
+        args: ["python /mnt/bin/src/enrichissement.py --path /tmp/tagc.csv"]
+        
     - name: crossproduct
       container:
         image: inseefrlab/cartiflette
