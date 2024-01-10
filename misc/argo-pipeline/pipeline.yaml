@@ -57,12 +57,16 @@ spec:
             git:
               repo: https://github.com/inseefrlab/cartiflette
               revision: "docker"
+      outputs:
+        artifacts:
+          - name: tagc
+            path: /tmp/tagc.csv
       container:
         image: inseefrlab/cartiflette
         command: [sh, -c]
         args: ["mkdir -p /mnt/data ; mkdir -p /mnt/bin/src ; 
                 mv /mnt/bin/misc/argo-pipeline/src/* /mnt/bin/src ;
-                python /mnt/bin/src/prod.py --path {{inputs.parameters.pathbucket}}"]
+                python /mnt/bin/src/duplicate_in_bucket.py --path {{inputs.parameters.pathbucket}}"]
         volumeMounts:
           - name: volume-workflow-tmp
             mountPath: /mnt
@@ -89,10 +93,13 @@ spec:
       container:
         image: inseefrlab/cartiflette
         command: [sh, -c]
-        args: ["ls"]
-        #args: ["python /mnt/bin/src/crossproduct.py"]
+        #args: ["ls"]
+        args: ["python /mnt/bin/src/crossproduct.py"]
     - name: print
       inputs:
+        artifacts:
+          - name: tagc
+            path: /tmp/tagc.csv      
         parameters:
         - name: format
         - name: year

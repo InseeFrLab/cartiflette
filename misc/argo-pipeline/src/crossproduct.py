@@ -24,7 +24,7 @@ def main():
         years=years,
         crs_list=crs_list,
         sources=sources, simplifications=[0, 50])
-    output  = tempdf.to_json(orient="records")
+    output = tempdf.to_json(orient="records")
     parsed = json.loads(output)
     print(json.dumps(parsed))
 
