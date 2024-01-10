@@ -61,7 +61,7 @@ def main(
 
     # Retrieve COG metadata
     tagc_metadata = prepare_cog_metadata(path_within_bucket)
-    tagc_metadata.drop(columns=["LIBGEO"]).to_csv("temp/tagc.csv")
+    tagc_metadata.drop(columns=["LIBGEO"]).to_csv("tmp/tagc.csv")
 
     data = {
         "preprocessed": path_combined_files,
@@ -73,7 +73,7 @@ def main(
         os.getcwd()
     )
     print(
-        os.listdir("temp")
+        os.listdir("tmp")
     )
 
 

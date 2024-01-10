@@ -3,7 +3,7 @@ import pandas as pd
 
 # Initialize ArgumentParser
 parser = argparse.ArgumentParser(description="Run Cartiflette pipeline script.")
-parser.add_argument("-p", "--path", help="Path within bucket", default="temp/tagc.csv")
+parser.add_argument("-p", "--path", help="Path within bucket", default="tmp/tagc.csv")
 
 # Parse arguments
 args = parser.parse_args()

@@ -61,21 +61,21 @@ spec:
       outputs:
         artifacts:
           - name: items
-            path: "/tmp/tagc.csv"
+            path: /tmp/tagc.csv
       container:
         image: inseefrlab/cartiflette
         command: [sh, -c]
         args: ["git clone https://github.com/inseefrlab/cartiflette.git code &&
                 cd code &&
-                git checkout docker -- &&
-                cd .. &
+                git checkout docker -- ;
+                cd .. &&
                 export MC_HOST_s3=https://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$AWS_S3_ENDPOINT &&
                 pwd ;
-                ls ;
-                python code/misc/argo-pipeline/src/duplicate_in_bucket.py --path {{inputs.parameters.pathbucket}}"]
+                ls code/misc/argo-pipeline/src ;
+                python code/misc/argo-pipeline/src/duplicate_in_bucket.py --path {{inputs.parameters.pathbucket}} ;
+                ls tmp/
+                "]
         env:
-          - name: PYTHONPATH
-            value: "${PYTHONPATH}:/mnt/bin"
           # env var for s3 connexion
           - name: AWS_ACCESS_KEY_ID
             valueFrom:
