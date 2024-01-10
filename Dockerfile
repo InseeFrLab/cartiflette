@@ -1,4 +1,6 @@
-FROM python:3.11-slim-bullseye
+FROM inseefrlab/onyxia-jupyter-python:py3.10.13
+
+USER root
 
 # Install project dependencies
 COPY requirements.txt .
