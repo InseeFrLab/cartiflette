@@ -1,4 +1,5 @@
 import argparse
+import pandas as pd
 
 # Initialize ArgumentParser
 parser = argparse.ArgumentParser(description="Run Cartiflette pipeline script.")
