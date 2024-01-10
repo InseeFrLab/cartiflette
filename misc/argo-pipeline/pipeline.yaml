@@ -18,31 +18,16 @@ spec:
     - name: main
       dag:
         tasks:
-          - name: crossproduct
-            template: crossproduct
-            dependencies: [ duplicate-ign ]
           - name: duplicate-ign
             template: duplicate-ign
             arguments:
               parameters:
               - name: pathbucket
-                value: "test/test-argo1"
-        env:
-          # env var for s3 connexion
-          - name: AWS_ACCESS_KEY_ID
-            valueFrom:
-              secretKeyRef:
-                name: my-s3-creds
-                key: accessKey
-          - name: AWS_SECRET_ACCESS_KEY
-            valueFrom:
-              secretKeyRef:
-                name: my-s3-creds
-                key: secretKey
-          - name: AWS_DEFAULT_REGION
-            value: us-east-1
-          - name: AWS_S3_ENDPOINT
-            value: minio.lab.sspcloud.fr
+                value: "test/test-argo"
+          - name: crossproduct
+            template: crossproduct
+            dependencies: [ duplicate-ign ]
+            withParam: "{{tasks.duplicate-ign.outputs.result}}"
           - name: print
             template: print
             dependencies: [ crossproduct ]
@@ -84,28 +69,28 @@ spec:
         env:
           - name: PYTHONPATH
             value: "${PYTHONPATH}:/mnt/bin"
+          # env var for s3 connexion
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: sa-cartiflette
+                key: accessKey
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: sa-cartiflette
+                key: secretKey
+          - name: AWS_DEFAULT_REGION
+            value: us-east-1
+          - name: AWS_S3_ENDPOINT
+            value: minio.lab.sspcloud.fr
 
     - name: crossproduct
-      inputs:
-        artifacts:
-          - name: code
-            path: /mnt/bin
-            git:
-              repo: https://github.com/inseefrlab/cartiflette
-              revision: "docker"
       container:
         image: inseefrlab/cartiflette
         command: [sh, -c]
-        args: ["mkdir -p /mnt/data ; mkdir -p /mnt/bin/src ; 
-                mv /mnt/bin/misc/argo-pipeline/src/* /mnt/bin/src ;
-                python /mnt/bin/src/crossproduct.py"]
-        volumeMounts:
-          - name: volume-workflow-tmp
-            mountPath: /mnt
-        env:
-          - name: PYTHONPATH
-            value: "${PYTHONPATH}:/mnt/bin"
-
+        args: ["ls"]
+        #args: ["python /mnt/bin/src/crossproduct.py"]
     - name: print
       inputs:
         parameters:
