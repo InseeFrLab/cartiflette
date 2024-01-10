@@ -29,9 +29,9 @@ spec:
             template: test-ign
             dependencies: [ duplicate-ign ]
             arguments:
-              artifacts:
-                - name: items
-                  from: "{{tasks.duplicate-ign.outputs.artifacts.items}}"
+              parameters:
+              - name: temporary-files
+                value: "test/test-argo"
           - name: crossproduct
             template: crossproduct
             dependencies: [ duplicate-ign ]
@@ -58,10 +58,11 @@ spec:
       inputs:
         parameters:
           - name: pathbucket
+            value: test/test-argo
       outputs:
         parameters :
           - name: path-temp-bucket
-            path: /tmp/
+            value: "{{inputs.parameters.pathbucket}}/temp_argo/"
       container:
         image: inseefrlab/cartiflette
         command: [sh, -c]
@@ -77,7 +78,6 @@ spec:
                 mc cp -r temp/ s3/projet-cartiflette/{{inputs.parameters.pathbucket}}/temp_argo/
                 "]
         env:
-          # env var for s3 connexion
           - name: AWS_ACCESS_KEY_ID
             valueFrom:
               secretKeyRef:
@@ -95,19 +95,41 @@ spec:
 
     - name: test-ign
       inputs:
-        artifacts:
-          - name: items
-            path: "/tmp/tagc.csv"
+        parameters:
+          - name: pathbucket
+            value: "test/test-argo"
       container:
         image: inseefrlab/cartiflette
         command: [sh, -c]
-        args: ["python /mnt/bin/src/enrichissement.py --path /tmp/tagc.csv"]
+        args: ["git clone https://github.com/inseefrlab/cartiflette.git code &&
+                cd code &&
+                git checkout docker -- ;
+                cd .. &&
+                export MC_HOST_s3=https://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$AWS_S3_ENDPOINT &&
+                pwd ;
+                ls code/misc/argo-pipeline/src ;
+                mc cp s3/projet-cartiflette/test/test-argo/temp_argo/tagc.csv tagc.csv ;
+                python code/misc/argo-pipeline/src/enrichissement.py --path tagc.csv"]
+        env:
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: sa-cartiflette
+                key: accessKey
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: sa-cartiflette
+                key: secretKey
+          - name: AWS_DEFAULT_REGION
+            value: us-east-1
+          - name: AWS_S3_ENDPOINT
+            value: minio.lab.sspcloud.fr
 
     - name: crossproduct
       container:
         image: inseefrlab/cartiflette
         command: [sh, -c]
-        #args: ["ls"]
         args: ["python /mnt/bin/src/crossproduct.py"]
     - name: print
       inputs:
