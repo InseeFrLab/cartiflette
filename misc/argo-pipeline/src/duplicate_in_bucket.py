@@ -1,5 +1,4 @@
 import argparse
-import json
 
 from cartiflette import BUCKET, PATH_WITHIN_BUCKET, FS
 from cartiflette.utils import create_path_bucket
@@ -69,7 +68,13 @@ def main(
         "metadata": "temp/tagc.csv"
     }
 
-    print(json.dumps(data))
+    import os
+    print(
+        os.getcwd()
+    )
+    print(
+        os.listdir("temp")
+    )
 
 
 if __name__ == "__main__":
