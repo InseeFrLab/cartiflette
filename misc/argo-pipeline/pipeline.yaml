@@ -58,12 +58,6 @@ spec:
       inputs:
         parameters:
           - name: pathbucket
-        artifacts:
-          - name: code
-            path: /mnt/bin
-            git:
-              repo: https://github.com/inseefrlab/cartiflette
-              revision: "docker"
       outputs:
         artifacts:
           - name: items
@@ -71,12 +65,14 @@ spec:
       container:
         image: inseefrlab/cartiflette
         command: [sh, -c]
-        args: ["mkdir -p /mnt/data ; mkdir -p /mnt/bin/src ; 
-                mv /mnt/bin/misc/argo-pipeline/src/* /mnt/bin/src ;
-                python /mnt/bin/src/duplicate_in_bucket.py --path {{inputs.parameters.pathbucket}}"]
-        volumeMounts:
-          - name: volume-workflow-tmp
-            mountPath: /mnt
+        args: ["git clone https://github.com/inseefrlab/cartiflette.git code &&
+                cd code &&
+                git checkout docker -- &&
+                cd .. &
+                export MC_HOST_s3=https://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$AWS_S3_ENDPOINT &&
+                pwd ;
+                ls ;
+                python code/misc/argo-pipeline/src/duplicate_in_bucket.py --path {{inputs.parameters.pathbucket}}"]
         env:
           - name: PYTHONPATH
             value: "${PYTHONPATH}:/mnt/bin"
