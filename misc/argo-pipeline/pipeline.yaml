@@ -14,6 +14,7 @@ spec:
         resources:
           requests:
             storage: 10Gi
+            
   templates:
     - name: main
       dag:
@@ -26,10 +27,14 @@ spec:
                 value: "test/test-argo"
           - name: test-ign
             template: test-ign
+            dependencies: [ duplicate-ign ]
+            arguments:
+              artifacts:
+                - name: items
+                  from: "{{tasks.duplicate-ign.outputs.artifacts.items}}"
           - name: crossproduct
             template: crossproduct
             dependencies: [ duplicate-ign ]
-            withParam: "{{tasks.duplicate-ign.outputs.result}}"
           - name: print
             template: print
             dependencies: [ crossproduct ]
@@ -61,8 +66,8 @@ spec:
               revision: "docker"
       outputs:
         artifacts:
-          - name: tagc
-            path: /tmp/tagc.csv
+          - name: items
+            path: "/tmp/tagc.csv"
       container:
         image: inseefrlab/cartiflette
         command: [sh, -c]
@@ -94,13 +99,13 @@ spec:
     - name: test-ign
       inputs:
         artifacts:
-          - name: tagc
-            path: /tmp/tagc.csv
+          - name: items
+            path: "/tmp/tagc.csv"
       container:
         image: inseefrlab/cartiflette
         command: [sh, -c]
         args: ["python /mnt/bin/src/enrichissement.py --path /tmp/tagc.csv"]
-        
+
     - name: crossproduct
       container:
         image: inseefrlab/cartiflette
@@ -109,9 +114,6 @@ spec:
         args: ["python /mnt/bin/src/crossproduct.py"]
     - name: print
       inputs:
-        artifacts:
-          - name: tagc
-            path: /tmp/tagc.csv      
         parameters:
         - name: format
         - name: year
