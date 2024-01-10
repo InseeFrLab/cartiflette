@@ -1,4 +1,5 @@
 import argparse
+import os
 
 from cartiflette import BUCKET, PATH_WITHIN_BUCKET, FS
 from cartiflette.utils import create_path_bucket
@@ -27,6 +28,7 @@ path_within_bucket = args.path
 year = 2022
 fs = FS
 
+os.makedirs("tmp", exists_ok=True)
 
 # PART 1/ COMBINE RAW FILES TOGETHER AND WRITE TO S3
 
@@ -65,7 +67,7 @@ def main(
 
     data = {
         "preprocessed": path_combined_files,
-        "metadata": "temp/tagc.csv"
+        "metadata": "tmp/tagc.csv"
     }
 
     import os
