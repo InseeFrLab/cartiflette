@@ -158,7 +158,7 @@ spec:
         - name: level_polygons
         - name: filter_by
       container:
-        image: inseefrlab:cartiflette
+        image: inseefrlab/cartiflette
         command: ["python", "/mnt/bin/src/split_tiles.py"]
         args: [
           "--format_output", "{{inputs.parameters.format_output}}",
