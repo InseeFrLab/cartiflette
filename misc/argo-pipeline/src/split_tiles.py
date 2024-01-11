@@ -32,7 +32,8 @@ args_dict = {
 
 def main(args_dict):
     mapshaperize_split_from_s3(args_dict)
+    return args_dict
 
 
 if __name__ == "__main__":
-    main()
+    main(args_dict)
