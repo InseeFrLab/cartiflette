@@ -2,18 +2,23 @@ from cartiflette.pipeline import crossproduct_parameters_production
 import json
 
 # parameters
-formats = ["topojson"]
+formats = ["topojson", "geojson"]
 years = [2022]
-crs_list = [4326, "official"]
+crs_list = [4326]
 sources = ["EXPRESS-COG-CARTO-TERRITOIRE"]
 
 croisement_decoupage_level = {
     # structure -> niveau geo: [niveau decoupage macro],
-    "REGION": ["FRANCE_ENTIERE"],
-    "ARRONDISSEMENT_MUNICIPAL" : ['DEPARTEMENT'], 
-    "COMMUNE_ARRONDISSEMENT": ["DEPARTEMENT", "REGION", "FRANCE_ENTIERE"],
-    "COMMUNE": ["DEPARTEMENT", "REGION", "FRANCE_ENTIERE"],
-    "DEPARTEMENT": ["REGION", "FRANCE_ENTIERE"]
+    "COMMUNE": [
+        "BASSIN_VIE", "ZONE_EMPLOI", "UNITE_URBAINE", "AIRE_ATTRACTION_VILLES",  # zonages d'études
+        "DEPARTEMENT", "REGION",  # zonages administratifs
+        "TERRITOIRE", "FRANCE_ENTIERE", "FRANCE_ENTIERE_DROM_RAPPROCHES"],
+    "DEPARTEMENT": ["REGION", "TERRITOIRE", "FRANCE_ENTIERE", "FRANCE_ENTIERE_DROM_RAPPROCHES"],
+    "REGION": ["TERRITOIRE", "FRANCE_ENTIERE", "FRANCE_ENTIERE_DROM_RAPPROCHES"],
+    "BASSIN_VIE": ["TERRITOIRE", "FRANCE_ENTIERE"],
+    "ZONE_EMPLOI": ["TERRITOIRE", "FRANCE_ENTIERE"],
+    "UNITE_URBAINE": ["TERRITOIRE", "FRANCE_ENTIERE"],
+    "AIRE_ATTRACTION_VILLES": ["TERRITOIRE", "FRANCE_ENTIERE"]
 }
 
 
@@ -24,6 +29,7 @@ def main():
         years=years,
         crs_list=crs_list,
         sources=sources, simplifications=[0, 50])
+    tempdf.columns = tempdf.columns.str.replace("_", "-")
     output = tempdf.to_json(orient="records")
     parsed = json.loads(output)
     print(json.dumps(parsed))
