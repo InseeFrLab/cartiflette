@@ -159,17 +159,37 @@ spec:
         - name: filter_by
       container:
         image: inseefrlab/cartiflette
-        command: ["python", "/mnt/bin/src/split_tiles.py"]
-        args: [
-          "--path", "test/test-argo", 
-          "--format_output", "{{inputs.parameters.format_output}}",
-          "--year", "{{inputs.parameters.year}}",
-          "--crs", "{{inputs.parameters.crs}}",
-          "--source", "{{inputs.parameters.source}}",
-          "--simplification", "{{inputs.parameters.simplification}}",
-          "--level_polygons", "{{inputs.parameters.level_polygons}}",
-          "--filter_by", "{{inputs.parameters.filter_by}}"
+        command: ["sh", "-c"]
+        args: ["
+          export MC_HOST_s3=https://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$AWS_S3_ENDPOINT ;
+          mkdir -p temp/ && cp /mnt/data/tagc.csv temp/tagc.csv ;
+          python /mnt/bin/src/split_tiles.py \
+          --path test/test-argo \
+          --format_output {{inputs.parameters.format_output}} \
+          --year {{inputs.parameters.year}} \
+          --crs {{inputs.parameters.crs}} \
+          --source {{inputs.parameters.source}} \
+          --simplification {{inputs.parameters.simplification}} \
+          --level_polygons {{inputs.parameters.level_polygons}} \
+          --filter_by {{inputs.parameters.filter_by}}"
         ]
         volumeMounts:
           - name: volume-workflow-tmp
             mountPath: /mnt
+        env:
+          - name: PYTHONPATH
+            value: "${PYTHONPATH}:/mnt/bin"
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: sa-cartiflette
+                key: accessKey
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: sa-cartiflette
+                key: secretKey
+          - name: AWS_DEFAULT_REGION
+            value: us-east-1
+          - name: AWS_S3_ENDPOINT
+            value: minio.lab.sspcloud.fr

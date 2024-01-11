@@ -120,6 +120,7 @@ def mapshaperize_split(
         if niveau_polygons != "COMMUNE":
             niveau_filter_drom = niveau_polygons
         input_path = mapshaper_bring_closer(temp_filename, level_agreg=niveau_filter_drom)
+        print(input_path)
 
     # STEP 2: SPLIT ET SIMPLIFIE
     mapshaper_split(
