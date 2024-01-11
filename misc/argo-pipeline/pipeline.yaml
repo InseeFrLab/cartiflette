@@ -158,13 +158,14 @@ spec:
         - name: level_polygons
         - name: filter_by
       container:
-        image: alpine:latest
-        command: [sh, -c]
-        args: ["echo 
-                {{inputs.parameters.format_output}} 
-                {{inputs.parameters.year}}
-                {{inputs.parameters.crs}}
-                {{inputs.parameters.source}}
-                {{inputs.parameters.simplification}}
-                {{inputs.parameters.level_polygons}}
-                {{inputs.parameters.filter_by}}"]
+        image: inseefrlab:cartiflette
+        command: ["python", "/mnt/bin/src/split_tiles.py"]
+        args: [
+          "--format_output", "{{inputs.parameters.format_output}}",
+          "--year", "{{inputs.parameters.year}}",
+          "--crs", "{{inputs.parameters.crs}}",
+          "--source", "{{inputs.parameters.source}}",
+          "--simplification", "{{inputs.parameters.simplification}}",
+          "--level_polygons", "{{inputs.parameters.level_polygons}}",
+          "--filter_by", "{{inputs.parameters.filter_by}}"
+        ]
