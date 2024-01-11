@@ -19,7 +19,7 @@ args = parser.parse_args()
 
 # Create a dictionary from the parsed arguments
 args_dict = {
-    'path_within_bucket': args.path_within_bucket,
+    'path_within_bucket': args.path,
     'format_output': args.format_output,
     'year': args.year,
     'crs': args.crs,

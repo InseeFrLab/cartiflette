@@ -161,6 +161,7 @@ spec:
         image: inseefrlab/cartiflette
         command: ["python", "/mnt/bin/src/split_tiles.py"]
         args: [
+          "--path", "test/test-argo", 
           "--format_output", "{{inputs.parameters.format_output}}",
           "--year", "{{inputs.parameters.year}}",
           "--crs", "{{inputs.parameters.crs}}",
@@ -169,3 +170,6 @@ spec:
           "--level_polygons", "{{inputs.parameters.level_polygons}}",
           "--filter_by", "{{inputs.parameters.filter_by}}"
         ]
+        volumeMounts:
+          - name: volume-workflow-tmp
+            mountPath: /mnt
