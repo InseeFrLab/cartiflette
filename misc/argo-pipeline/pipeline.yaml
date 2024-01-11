@@ -79,7 +79,7 @@ spec:
                 pwd ;
                 python /mnt/bin/src/duplicate_in_bucket.py --path {{inputs.parameters.pathbucket}} ;
                 ls temp/ ;
-                mc cp temp/tagc.csv mnt/data/tagc.csv
+                mv temp/tagc.csv /mnt/data/tagc.csv
                 #mc cp -r temp/ s3/projet-cartiflette/{{inputs.parameters.pathbucket}}/temp_argo/
                 "]
         volumeMounts:
@@ -111,15 +111,10 @@ spec:
       container:
         image: inseefrlab/cartiflette
         command: [sh, -c]
-        args: ["git clone https://github.com/inseefrlab/cartiflette.git code &&
-                cd code &&
-                git checkout docker -- ;
-                cd .. &&
-                export MC_HOST_s3=https://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$AWS_S3_ENDPOINT &&
-                pwd ;
-                ls code/misc/argo-pipeline/src ;
-                mc cp s3/projet-cartiflette/test/test-argo/temp_argo/tagc.csv tagc.csv ;
-                python code/misc/argo-pipeline/src/enrichissement.py --path mnt/data/tagc.csv"]
+        args: ["ls /mnt/data ;
+                head -n 1 /mnt/data/tagc.csv ;
+                #mc cp s3/projet-cartiflette/test/test-argo/temp_argo/tagc.csv tagc.csv ;
+                python code/misc/argo-pipeline/src/enrichissement.py --path /mnt/data/tagc.csv"]
         env:
           - name: AWS_ACCESS_KEY_ID
             valueFrom:
@@ -135,6 +130,9 @@ spec:
             value: us-east-1
           - name: AWS_S3_ENDPOINT
             value: minio.lab.sspcloud.fr
+        volumeMounts:
+          - name: volume-workflow-tmp
+            mountPath: /mnt
 
     - name: crossproduct
       container:
