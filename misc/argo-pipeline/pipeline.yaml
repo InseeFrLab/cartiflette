@@ -171,6 +171,15 @@ spec:
           --source {{inputs.parameters.source}} \
           --simplification {{inputs.parameters.simplification}} \
           --level_polygons {{inputs.parameters.level_polygons}} \
+          --filter_by {{inputs.parameters.filter_by}}" ;
+          python /mnt/bin/src/split_merge_tiles.py \
+          --path test/test-argo \
+          --format_output {{inputs.parameters.format_output}} \
+          --year {{inputs.parameters.year}} \
+          --crs {{inputs.parameters.crs}} \
+          --source {{inputs.parameters.source}} \
+          --simplification {{inputs.parameters.simplification}} \
+          --level_polygons {{inputs.parameters.level_polygons}} \
           --filter_by {{inputs.parameters.filter_by}}"
         ]
         volumeMounts:

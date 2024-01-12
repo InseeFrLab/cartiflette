@@ -1,8 +1,11 @@
 import argparse
 from cartiflette import PATH_WITHIN_BUCKET
 from cartiflette.pipeline import mapshaperize_merge_split_from_s3
+import logging
+
 
 parser = argparse.ArgumentParser(description='Process command line arguments.')
+logger = logging.getLogger(__name__)
 
 # Define the arguments with their default values
 parser.add_argument('--path', type=str, default=PATH_WITHIN_BUCKET, help='Path in bucket')
@@ -32,6 +35,7 @@ args_dict = {
 
 def main(args_dict):
     if args_dict['level_polygons'] != "COMMUNE":
+        logger.info("Level ignored for COMMUNE_ARRONDISSEMENT borders")
         return None
 
     args_dict['level_polygons'] = "COMMUNE_ARRONDISSEMENT"
