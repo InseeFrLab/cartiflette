@@ -145,7 +145,7 @@ spec:
           - name: volume-workflow-tmp
             mountPath: /mnt
         args: ["
-          python /mnt/bin/src/crossproduct.py"
+          python /mnt/bin/src/crossproduct.py --restrictfield"
           ]
     - name: print
       inputs:
