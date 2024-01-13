@@ -1,6 +1,8 @@
 import argparse
 from cartiflette import PATH_WITHIN_BUCKET
-from cartiflette.pipeline import mapshaperize_merge_split_from_s3
+from cartiflette.pipeline import (
+    mapshaperize_split_from_s3, mapshaperize_merge_split_from_s3
+)
 import logging
 
 
@@ -34,12 +36,17 @@ args_dict = {
 
 
 def main(args_dict):
+
+    logger.info("Processing with provided arguments")
+    mapshaperize_split_from_s3(args_dict)
+
     if args_dict['level_polygons'] != "COMMUNE":
-        logger.info("Level ignored for COMMUNE_ARRONDISSEMENT borders")
         return None
 
+    logger.info("Also processing for COMMUNE_ARRONDISSEMENT borders")
     args_dict['level_polygons'] = "COMMUNE_ARRONDISSEMENT"
     mapshaperize_merge_split_from_s3(args_dict)
+
     return args_dict
 
 

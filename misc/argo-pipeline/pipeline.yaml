@@ -14,9 +14,15 @@ spec:
         resources:
           requests:
             storage: 10Gi
-            
+
+
   templates:
     - name: main
+
+  # --------------------------
+  # DAG COMPONENTS
+  # ---------------------------
+
       dag:
         tasks:
           - name: duplicate-ign
@@ -32,12 +38,15 @@ spec:
               parameters:
               - name: temporary-files
                 value: "test/test-argo"
-          - name: crossproduct
-            template: crossproduct
+          - name: prepare-split-departement
+            template: prepare-split-departement
             dependencies: [ duplicate-ign ]
-          - name: print
-            template: print
-            dependencies: [ crossproduct ]
+          - name: prepare-split-commune
+            template: prepare-split-commune
+            dependencies: [ duplicate-ign ]
+          - name: split-departement
+            template: split-departement
+            dependencies: [ prepare-split-departement ]
             arguments:
               parameters:
               - name: format_output
@@ -54,7 +63,31 @@ spec:
                 value: "{{item.level-polygons}}"
               - name: filter_by
                 value: "{{item.filter-by}}"
-            withParam: "{{tasks.crossproduct.outputs.result}}"
+            withParam: "{{tasks.prepare-split-departement.outputs.result}}"
+          - name: split-commune
+            template: split-commune
+            dependencies: [ prepare-split-commune ]
+            arguments:
+              parameters:
+              - name: format_output
+                value: "{{item.format-output}}"
+              - name: year
+                value: "{{item.year}}"
+              - name: crs
+                value: "{{item.crs}}"
+              - name: source
+                value: "{{item.source}}"
+              - name: simplification
+                value: "{{item.simplification}}"
+              - name: level_polygons
+                value: "{{item.level-polygons}}"
+              - name: filter_by
+                value: "{{item.filter-by}}"
+            withParam: "{{tasks.prepare-split-commune.outputs.result}}"
+
+  # --------------------------
+  # TEMPLATES DEFINITION
+  # ---------------------------
 
     - name: duplicate-ign
       inputs:
@@ -77,19 +110,13 @@ spec:
         args: ["
                 mkdir -p /mnt/data ; mkdir -p /mnt/bin/src ;
                 mv /mnt/bin/misc/argo-pipeline/src/* /mnt/bin/src ;
-                export MC_HOST_s3=https://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$AWS_S3_ENDPOINT &&
-                pwd ;
                 python /mnt/bin/src/duplicate_in_bucket.py --path {{inputs.parameters.pathbucket}} ;
-                ls temp/ ;
                 mv temp/tagc.csv /mnt/data/tagc.csv ;
-                head -n 1 /mnt/data/tagc.csv ;
-                ls /mnt/bin/src ;
-                #mc cp -r temp/ s3/projet-cartiflette/{{inputs.parameters.pathbucket}}/temp_argo/
                 "]
         volumeMounts:
           - name: volume-workflow-tmp
             mountPath: /mnt
-        env:
+        env: &env_parameters
           - name: PYTHONPATH
             value: "${PYTHONPATH}:/mnt/bin"
           - name: AWS_ACCESS_KEY_ID
@@ -106,6 +133,8 @@ spec:
             value: us-east-1
           - name: AWS_S3_ENDPOINT
             value: minio.lab.sspcloud.fr
+          - name: MC_HOST_s3
+            value: https://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$AWS_S3_ENDPOINT
 
     - name: test-volume
       inputs:
@@ -118,26 +147,12 @@ spec:
         args: ["ls /mnt/data ;
                 head -n 1 /mnt/data/tagc.csv ;
                 python /mnt/bin/src/enrichissement.py --path /mnt/data/tagc.csv"]
-        env:
-          - name: AWS_ACCESS_KEY_ID
-            valueFrom:
-              secretKeyRef:
-                name: sa-cartiflette
-                key: accessKey
-          - name: AWS_SECRET_ACCESS_KEY
-            valueFrom:
-              secretKeyRef:
-                name: sa-cartiflette
-                key: secretKey
-          - name: AWS_DEFAULT_REGION
-            value: us-east-1
-          - name: AWS_S3_ENDPOINT
-            value: minio.lab.sspcloud.fr
+        env: *env_parameters
         volumeMounts:
           - name: volume-workflow-tmp
             mountPath: /mnt
 
-    - name: crossproduct
+    - name: prepare-split-departement
       container:
         image: inseefrlab/cartiflette
         command: [sh, -c]
@@ -147,7 +162,7 @@ spec:
         args: ["
           python /mnt/bin/src/crossproduct.py --restrictfield 'DEPARTEMENT'"
           ]
-    - name: print
+    - name: split-departement
       inputs:
         parameters:
         - name: format_output
@@ -161,17 +176,7 @@ spec:
         image: inseefrlab/cartiflette
         command: ["sh", "-c"]
         args: ["
-          export MC_HOST_s3=https://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$AWS_S3_ENDPOINT ;
           mkdir -p temp/ && cp /mnt/data/tagc.csv temp/tagc.csv ;
-          python /mnt/bin/src/split_tiles.py \
-          --path test/test-argo \
-          --format_output {{inputs.parameters.format_output}} \
-          --year {{inputs.parameters.year}} \
-          --crs {{inputs.parameters.crs}} \
-          --source {{inputs.parameters.source}} \
-          --simplification {{inputs.parameters.simplification}} \
-          --level_polygons {{inputs.parameters.level_polygons}} \
-          --filter_by {{inputs.parameters.filter_by}} ;
           python /mnt/bin/src/split_merge_tiles.py \
           --path test/test-argo \
           --format_output {{inputs.parameters.format_output}} \
@@ -185,20 +190,44 @@ spec:
         volumeMounts:
           - name: volume-workflow-tmp
             mountPath: /mnt
-        env:
-          - name: PYTHONPATH
-            value: "${PYTHONPATH}:/mnt/bin"
-          - name: AWS_ACCESS_KEY_ID
-            valueFrom:
-              secretKeyRef:
-                name: sa-cartiflette
-                key: accessKey
-          - name: AWS_SECRET_ACCESS_KEY
-            valueFrom:
-              secretKeyRef:
-                name: sa-cartiflette
-                key: secretKey
-          - name: AWS_DEFAULT_REGION
-            value: us-east-1
-          - name: AWS_S3_ENDPOINT
-            value: minio.lab.sspcloud.fr
+        env: *env_parameters
+
+    - name: prepare-split-commune
+      container:
+        image: inseefrlab/cartiflette
+        command: [sh, -c]
+        volumeMounts:
+          - name: volume-workflow-tmp
+            mountPath: /mnt
+        args: ["
+          python /mnt/bin/src/crossproduct.py --restrictfield 'COMMUNE'"
+          ]
+    - name: split-commune
+      inputs:
+        parameters:
+        - name: format_output
+        - name: year
+        - name: crs
+        - name: source
+        - name: simplification
+        - name: level_polygons
+        - name: filter_by
+      container:
+        image: inseefrlab/cartiflette
+        command: ["sh", "-c"]
+        args: ["
+          mkdir -p temp/ && cp /mnt/data/tagc.csv temp/tagc.csv ;
+          python /mnt/bin/src/split_merge_tiles.py \
+          --path test/test-argo \
+          --format_output {{inputs.parameters.format_output}} \
+          --year {{inputs.parameters.year}} \
+          --crs {{inputs.parameters.crs}} \
+          --source {{inputs.parameters.source}} \
+          --simplification {{inputs.parameters.simplification}} \
+          --level_polygons {{inputs.parameters.level_polygons}} \
+          --filter_by {{inputs.parameters.filter_by}}"
+        ]
+        volumeMounts:
+          - name: volume-workflow-tmp
+            mountPath: /mnt
+        env: *env_parameters
