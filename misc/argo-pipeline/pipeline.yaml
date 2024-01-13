@@ -89,6 +89,8 @@ spec:
   # TEMPLATES DEFINITION
   # ---------------------------
 
+
+  # First step: retrieving and duplicating IGN tiles ------------------
     - name: duplicate-ign
       inputs:
         parameters:
@@ -152,6 +154,9 @@ spec:
           - name: volume-workflow-tmp
             mountPath: /mnt
 
+  # Step 2: creating geographic levels for splitting ------------------
+
+  # 2.1. DEPARTEMENT
     - name: prepare-split-departement
       container:
         image: inseefrlab/cartiflette
@@ -192,6 +197,7 @@ spec:
             mountPath: /mnt
         env: *env_parameters
 
+  # 2.2. COMMUNE
     - name: prepare-split-commune
       container:
         image: inseefrlab/cartiflette
