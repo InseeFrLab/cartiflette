@@ -147,8 +147,7 @@ spec:
         image: inseefrlab/cartiflette
         command: [sh, -c]
         args: ["ls /mnt/data ;
-                head -n 1 /mnt/data/tagc.csv ;
-                python /mnt/bin/src/enrichissement.py --path /mnt/data/tagc.csv"]
+                head -n 1 /mnt/data/tagc.csv"]
         env: *env_parameters
         volumeMounts:
           - name: volume-workflow-tmp
