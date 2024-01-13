@@ -33,9 +33,6 @@ spec:
           - name: prepare-split-departement
             template: prepare-split-departement
             dependencies: [ duplicate-ign ]
-          - name: prepare-split-commune
-            template: prepare-split-commune
-            dependencies: [ duplicate-ign ]
           - name: split-departement
             template: split-departement
             dependencies: [ prepare-split-departement ]
@@ -56,6 +53,9 @@ spec:
               - name: filter_by
                 value: "{{item.filter-by}}"
             withParam: "{{tasks.prepare-split-departement.outputs.result}}"
+          - name: prepare-split-commune
+            template: prepare-split-commune
+            dependencies: [ duplicate-ign ]
           - name: split-commune
             template: split-commune
             dependencies: [ prepare-split-commune ]
@@ -76,6 +76,53 @@ spec:
               - name: filter_by
                 value: "{{item.filter-by}}"
             withParam: "{{tasks.prepare-split-commune.outputs.result}}"
+          - name: prepare-split-region
+            template: prepare-split-region
+            dependencies: [ duplicate-ign ]
+          - name: split-region
+            template: split-region
+            dependencies: [ prepare-split-region ]
+            arguments:
+              parameters:
+              - name: format_output
+                value: "{{item.format-output}}"
+              - name: year
+                value: "{{item.year}}"
+              - name: crs
+                value: "{{item.crs}}"
+              - name: source
+                value: "{{item.source}}"
+              - name: simplification
+                value: "{{item.simplification}}"
+              - name: level_polygons
+                value: "{{item.level-polygons}}"
+              - name: filter_by
+                value: "{{item.filter-by}}"
+            withParam: "{{tasks.prepare-split-region.outputs.result}}"
+          - name: prepare-split-bassin-vie
+            template: prepare-split-bassin-vie
+            dependencies: [ duplicate-ign ]
+          - name: split-bassin-vie
+            template: split-bassin-vie
+            dependencies: [ prepare-split-bassin-vie ]
+            arguments:
+              parameters:
+              - name: format_output
+                value: "{{item.format-output}}"
+              - name: year
+                value: "{{item.year}}"
+              - name: crs
+                value: "{{item.crs}}"
+              - name: source
+                value: "{{item.source}}"
+              - name: simplification
+                value: "{{item.simplification}}"
+              - name: level_polygons
+                value: "{{item.level-polygons}}"
+              - name: filter_by
+                value: "{{item.filter-by}}"
+            withParam: "{{tasks.prepare-split-bassin-vie.outputs.result}}"
+
 
   # --------------------------
   # TEMPLATES DEFINITION
@@ -191,6 +238,88 @@ spec:
           python /mnt/bin/src/crossproduct.py --restrictfield 'COMMUNE'"
           ]
     - name: split-commune
+      inputs:
+        parameters:
+        - name: format_output
+        - name: year
+        - name: crs
+        - name: source
+        - name: simplification
+        - name: level_polygons
+        - name: filter_by
+      container:
+        image: inseefrlab/cartiflette
+        command: ["sh", "-c"]
+        args: ["
+          mkdir -p temp/ && cp /mnt/data/tagc.csv temp/tagc.csv ;
+          python /mnt/bin/src/split_merge_tiles.py \
+          --path $PATH_WRITING_S3 \
+          --format_output {{inputs.parameters.format_output}} \
+          --year {{inputs.parameters.year}} \
+          --crs {{inputs.parameters.crs}} \
+          --source {{inputs.parameters.source}} \
+          --simplification {{inputs.parameters.simplification}} \
+          --level_polygons {{inputs.parameters.level_polygons}} \
+          --filter_by {{inputs.parameters.filter_by}}"
+        ]
+        volumeMounts:
+          - name: volume-workflow-tmp
+            mountPath: /mnt
+        env: *env_parameters
+
+  # 2.3. REGION
+    - name: prepare-split-region
+      container:
+        image: inseefrlab/cartiflette
+        command: [sh, -c]
+        volumeMounts:
+          - name: volume-workflow-tmp
+            mountPath: /mnt
+        args: ["
+          python /mnt/bin/src/crossproduct.py --restrictfield 'REGION'"
+          ]
+    - name: split-region
+      inputs:
+        parameters:
+        - name: format_output
+        - name: year
+        - name: crs
+        - name: source
+        - name: simplification
+        - name: level_polygons
+        - name: filter_by
+      container:
+        image: inseefrlab/cartiflette
+        command: ["sh", "-c"]
+        args: ["
+          mkdir -p temp/ && cp /mnt/data/tagc.csv temp/tagc.csv ;
+          python /mnt/bin/src/split_merge_tiles.py \
+          --path $PATH_WRITING_S3 \
+          --format_output {{inputs.parameters.format_output}} \
+          --year {{inputs.parameters.year}} \
+          --crs {{inputs.parameters.crs}} \
+          --source {{inputs.parameters.source}} \
+          --simplification {{inputs.parameters.simplification}} \
+          --level_polygons {{inputs.parameters.level_polygons}} \
+          --filter_by {{inputs.parameters.filter_by}}"
+        ]
+        volumeMounts:
+          - name: volume-workflow-tmp
+            mountPath: /mnt
+        env: *env_parameters
+
+  # 2.4. BASSIN_VIE
+    - name: prepare-split-bassin-vie
+      container:
+        image: inseefrlab/cartiflette
+        command: [sh, -c]
+        volumeMounts:
+          - name: volume-workflow-tmp
+            mountPath: /mnt
+        args: ["
+          python /mnt/bin/src/crossproduct.py --restrictfield 'BASSIN_VIE'"
+          ]
+    - name: split-bassin-vie
       inputs:
         parameters:
         - name: format_output
