@@ -9,7 +9,7 @@ logical_conditions = {
         "guyane": "INSEE_DEP == '973'",
         "reunion": "INSEE_DEP == '974'",
         "mayotte": "INSEE_DEP == '976'",
-        "zoom idf": 4
+        "zoom idf": 4,
     },
     "REGION": {
         "ile de france": "INSEE_REG == 11",
@@ -18,24 +18,21 @@ logical_conditions = {
         "guyane": "INSEE_REG == 3",
         "reunion": "INSEE_REG == 4",
         "mayotte": "INSEE_REG == 6",
-        "zoom idf": 1.5
+        "zoom idf": 1.5,
     },
     "BASSIN_VIE": {
         "ile de france": "BV2012 == 75056",
-        "guadeloupe": "BV2012.startsWith(\"971\")",
-        "martinique": "BV2012.startsWith(\"972\")",
-        "guyane": "BV2012.startsWith(\"973\")",
-        "reunion": "BV2012.startsWith(\"974\")",
-        "mayotte": "BV2012.startsWith(\"976\")",
-        "zoom idf": 1.5
+        "guadeloupe": 'BV2012.startsWith("971")',
+        "martinique": 'BV2012.startsWith("972")',
+        "guyane": 'BV2012.startsWith("973")',
+        "reunion": 'BV2012.startsWith("974")',
+        "mayotte": 'BV2012.startsWith("976")',
+        "zoom idf": 1.5,
     },
 }
 
 
-def mapshaper_bring_closer(
-    france_vector_path, level_agreg="DEPARTEMENT"
-):
-
+def mapshaper_bring_closer(france_vector_path, level_agreg="DEPARTEMENT"):
     output_path = "temp/preprocessed_transformed/idf_combined.geojson"
     output_dir = os.path.dirname(output_path)
 
@@ -50,7 +47,7 @@ def mapshaper_bring_closer(
     idf_zoom = (
         f"mapshaper -i {france_vector_path} "
         f"-proj EPSG:3857 "
-        f"-filter \"{logical_idf}\" "
+        f'-filter "{logical_idf}" '
         f"-affine shift=-650000,275000 scale={zoom_idf} "
         f"-o {output_dir}/idf_zoom.geojson"
     )
@@ -58,11 +55,11 @@ def mapshaper_bring_closer(
     temp_france = (
         f"mapshaper -i {france_vector_path} "
         f"-proj EPSG:3857 "
-        f"-affine where=\"{logical_guadeloupe}\" shift=6355000,3330000 scale=1.5 "
-        f"-affine where=\"{logical_martinique}\" shift=6480000,3505000 scale=1.5 "
-        f"-affine where=\"{logical_guyane}\" shift=5760000,4720000 scale=0.35 "
-        f"-affine where=\"{logical_reunion}\" shift=-6170000,7560000 scale=1.5 "
-        f"-affine where=\"{logical_mayotte}\" shift=-4885000,6590000 scale=1.5 "
+        f'-affine where="{logical_guadeloupe}" shift=6355000,3330000 scale=1.5 '
+        f'-affine where="{logical_martinique}" shift=6480000,3505000 scale=1.5 '
+        f'-affine where="{logical_guyane}" shift=5760000,4720000 scale=0.35 '
+        f'-affine where="{logical_reunion}" shift=-6170000,7560000 scale=1.5 '
+        f'-affine where="{logical_mayotte}" shift=-4885000,6590000 scale=1.5 '
         f"-o {output_dir}/temp_france.geojson "
     )
 
@@ -83,7 +80,7 @@ def mapshaper_bring_closer(
         f"{output_dir}/temp_france.geojson "
         f"{output_dir}/idf_zoom.geojson "
         f"snap combine-files "
-        f"-proj wgs84 init=\"EPSG:3857\" target=* "
+        f'-proj wgs84 init="EPSG:3857" target=* '
         f"-rename-layers FRANCE,IDF "
         f"-merge-layers target=FRANCE,IDF force "
         f"-rename-layers FRANCE_TRANSFORMED "

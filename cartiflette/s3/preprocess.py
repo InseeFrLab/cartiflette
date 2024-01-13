@@ -281,9 +281,9 @@ def get_cog_year(
 
 
 # if __name__ == "__main__":
-    # logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(level=logging.INFO)
 
-    # ret = get_cog_year(2022)
-    # ret = get_vectorfile_ign(source="EXPRESS-COG-TERRITOIRE", year=2022)
-    # ret = get_vectorfile_communes_arrondissement(year=2022)
-    # ret = get_BV(year=2022)
+# ret = get_cog_year(2022)
+# ret = get_vectorfile_ign(source="EXPRESS-COG-TERRITOIRE", year=2022)
+# ret = get_vectorfile_communes_arrondissement(year=2022)
+# ret = get_BV(year=2022)
