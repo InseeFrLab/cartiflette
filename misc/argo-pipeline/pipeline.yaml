@@ -27,17 +27,9 @@ spec:
         tasks:
           - name: duplicate-ign
             template: duplicate-ign
-            arguments:
-              parameters:
-              - name: pathbucket
-                value: "test/test-argo"
           - name: test-volume
             template: test-volume
             dependencies: [ duplicate-ign ]
-            arguments:
-              parameters:
-              - name: temporary-files
-                value: "test/test-argo"
           - name: prepare-split-departement
             template: prepare-split-departement
             dependencies: [ duplicate-ign ]
@@ -93,32 +85,27 @@ spec:
   # First step: retrieving and duplicating IGN tiles ------------------
     - name: duplicate-ign
       inputs:
-        parameters:
-          - name: pathbucket
-            value: test/test-argo
         artifacts:
           - name: code
             path: /mnt/bin
             git:
               repo: https://github.com/inseefrlab/cartiflette
               revision: "docker"
-      outputs:
-        parameters :
-          - name: path-temp-bucket
-            value: "{{inputs.parameters.pathbucket}}/temp_argo/"
       container:
         image: inseefrlab/cartiflette
         command: [sh, -c]
         args: ["
                 mkdir -p /mnt/data ; mkdir -p /mnt/bin/src ;
                 mv /mnt/bin/misc/argo-pipeline/src/* /mnt/bin/src ;
-                python /mnt/bin/src/duplicate_in_bucket.py --path {{inputs.parameters.pathbucket}} ;
+                python /mnt/bin/src/duplicate_in_bucket.py --path $PATH_WRITING_S3 ;
                 mv temp/tagc.csv /mnt/data/tagc.csv ;
                 "]
         volumeMounts:
           - name: volume-workflow-tmp
             mountPath: /mnt
         env: &env_parameters
+          - name: PATH_WRITING_S3
+            value: "test/test-argo"
           - name: PYTHONPATH
             value: "${PYTHONPATH}:/mnt/bin"
           - name: AWS_ACCESS_KEY_ID
@@ -139,14 +126,10 @@ spec:
             value: https://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$AWS_S3_ENDPOINT
 
     - name: test-volume
-      inputs:
-        parameters:
-          - name: pathbucket
-            value: "test/test-argo"
       container:
         image: inseefrlab/cartiflette
         command: [sh, -c]
-        args: ["ls /mnt/data ;
+        args: ["echo $PATH_WRITING_S3 ;
                 head -n 1 /mnt/data/tagc.csv"]
         env: *env_parameters
         volumeMounts:
@@ -182,7 +165,7 @@ spec:
         args: ["
           mkdir -p temp/ && cp /mnt/data/tagc.csv temp/tagc.csv ;
           python /mnt/bin/src/split_merge_tiles.py \
-          --path test/test-argo \
+          --path $PATH_WRITING_S3 \
           --format_output {{inputs.parameters.format_output}} \
           --year {{inputs.parameters.year}} \
           --crs {{inputs.parameters.crs}} \
@@ -223,7 +206,7 @@ spec:
         args: ["
           mkdir -p temp/ && cp /mnt/data/tagc.csv temp/tagc.csv ;
           python /mnt/bin/src/split_merge_tiles.py \
-          --path test/test-argo \
+          --path $PATH_WRITING_S3 \
           --format_output {{inputs.parameters.format_output}} \
           --year {{inputs.parameters.year}} \
           --crs {{inputs.parameters.crs}} \
