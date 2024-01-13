@@ -25,12 +25,13 @@ spec:
 
       dag:
         tasks:
+          # STEP 0: RETRIEVE IGN FILE AND DUPLICATE IN MINIO
           - name: duplicate-ign
             template: duplicate-ign
           - name: test-volume
             template: test-volume
             dependencies: [ duplicate-ign ]
-            # 1.1. DEPARTEMENT
+          # STEP 1.1. SPLIT BY DEPARTEMENT
           - name: prepare-split-departement
             template: prepare-split
             dependencies: [ duplicate-ign ]
@@ -60,7 +61,7 @@ spec:
               - name: filter_by
                 value: "{{item.filter-by}}"
             withParam: "{{tasks.prepare-split-departement.outputs.result}}"
-            # 1.2. COMMUNE
+          # STEP 1.2. SPLIT BY COMMUNE
           - name: prepare-split-commune
             template: prepare-split
             dependencies: [ duplicate-ign ]
@@ -90,7 +91,7 @@ spec:
               - name: filter_by
                 value: "{{item.filter-by}}"
             withParam: "{{tasks.prepare-split-commune.outputs.result}}"
-            # 1.3. REGION
+          # STEP 1.3. SPLIT BY REGION
           - name: prepare-split-region
             template: prepare-split
             dependencies: [ duplicate-ign ]
@@ -120,7 +121,7 @@ spec:
               - name: filter_by
                 value: "{{item.filter-by}}"
             withParam: "{{tasks.prepare-split-region.outputs.result}}"
-            # 1.4. BASSIN VIE
+          # STEP 1.4. SPLIT BY BASSIN VIE
           - name: prepare-split-bassin-vie
             template: prepare-split
             dependencies: [ duplicate-ign ]
@@ -151,10 +152,10 @@ spec:
                 value: "{{item.filter-by}}"
             withParam: "{{tasks.prepare-split-bassin-vie.outputs.result}}"
 
+
   # --------------------------
   # TEMPLATES DEFINITION
   # ---------------------------
-
 
   # First step: retrieving and duplicating IGN tiles ------------------
     - name: duplicate-ign

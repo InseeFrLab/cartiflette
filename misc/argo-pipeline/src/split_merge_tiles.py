@@ -48,8 +48,6 @@ args_dict = {
 }
 
 
-
-
 def main(args_dict):
     logger.info("Processing with provided arguments")
     mapshaperize_split_from_s3(args_dict)
