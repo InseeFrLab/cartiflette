@@ -151,6 +151,96 @@ spec:
               - name: filter_by
                 value: "{{item.filter-by}}"
             withParam: "{{tasks.prepare-split-bassin-vie.outputs.result}}"
+          # STEP 1.5. SPLIT BY ZONE_EMPLOI
+          - name: prepare-split-zone-emploi
+            template: prepare-split
+            dependencies: [ duplicate-ign ]
+            arguments:
+              parameters:
+              - name: restrict_field
+                value: "ZONE_EMPLOI"
+          - name: split-zone-emploi
+            template: split-dataset
+            dependencies: [ prepare-split-bassin-vie ]
+            arguments:
+              parameters:
+              - name: split_type
+                value: "ZONE_EMPLOI"
+              - name: format_output
+                value: "{{item.format-output}}"
+              - name: year
+                value: "{{item.year}}"
+              - name: crs
+                value: "{{item.crs}}"
+              - name: source
+                value: "{{item.source}}"
+              - name: simplification
+                value: "{{item.simplification}}"
+              - name: level_polygons
+                value: "{{item.level-polygons}}"
+              - name: filter_by
+                value: "{{item.filter-by}}"
+            withParam: "{{tasks.prepare-split-zone-emploi.outputs.result}}"
+          # STEP 1.6. SPLIT BY UNITE_URBAINE
+          - name: prepare-split-unite-urbaine
+            template: prepare-split
+            dependencies: [ duplicate-ign ]
+            arguments:
+              parameters:
+              - name: restrict_field
+                value: "UNITE_URBAINE"
+          - name: split-unite-urbaine
+            template: split-dataset
+            dependencies: [ prepare-split-unite-urbaine ]
+            arguments:
+              parameters:
+              - name: split_type
+                value: "UNITE_URBAINE"
+              - name: format_output
+                value: "{{item.format-output}}"
+              - name: year
+                value: "{{item.year}}"
+              - name: crs
+                value: "{{item.crs}}"
+              - name: source
+                value: "{{item.source}}"
+              - name: simplification
+                value: "{{item.simplification}}"
+              - name: level_polygons
+                value: "{{item.level-polygons}}"
+              - name: filter_by
+                value: "{{item.filter-by}}"
+            withParam: "{{tasks.prepare-split-unite-urbaine.outputs.result}}"
+          # STEP 1.6. SPLIT BY AIRE_ATTRACTION_VILLES
+          - name: prepare-split-aire-attraction
+            template: prepare-split
+            dependencies: [ duplicate-ign ]
+            arguments:
+              parameters:
+              - name: restrict_field
+                value: "AIRE_ATTRACTION_VILLES"
+          - name: split-aire-attraction
+            template: split-dataset
+            dependencies: [ prepare-split-aire-attraction ]
+            arguments:
+              parameters:
+              - name: split_type
+                value: "AIRE_ATTRACTION_VILLES"
+              - name: format_output
+                value: "{{item.format-output}}"
+              - name: year
+                value: "{{item.year}}"
+              - name: crs
+                value: "{{item.crs}}"
+              - name: source
+                value: "{{item.source}}"
+              - name: simplification
+                value: "{{item.simplification}}"
+              - name: level_polygons
+                value: "{{item.level-polygons}}"
+              - name: filter_by
+                value: "{{item.filter-by}}"
+            withParam: "{{tasks.prepare-split-aire-attraction.outputs.result}}"
 
 
   # --------------------------
