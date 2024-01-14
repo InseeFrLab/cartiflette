@@ -161,7 +161,7 @@ spec:
                 value: "ZONE_EMPLOI"
           - name: split-zone-emploi
             template: split-dataset
-            dependencies: [ prepare-split-bassin-vie ]
+            dependencies: [ prepare-split-zone-emploi ]
             arguments:
               parameters:
               - name: split_type
