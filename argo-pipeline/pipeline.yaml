@@ -261,7 +261,7 @@ spec:
         command: [sh, -c]
         args: ["
                 mkdir -p /mnt/data ; mkdir -p /mnt/bin/src ;
-                mv /mnt/bin/misc/argo-pipeline/src/* /mnt/bin/src ;
+                mv /mnt/bin/argo-pipeline/src/* /mnt/bin/src ;
                 python /mnt/bin/src/duplicate_in_bucket.py --path $PATH_WRITING_S3 ;
                 mv temp/tagc.csv /mnt/data/tagc.csv ;
                 "]
