@@ -39,7 +39,10 @@ def combine_adminexpress_territory(
         )
 
     for territ in list_territories:
-        mapshaper_convert_mercator(territory=territ, identifier=territ)
+        mapshaper_convert_mercator(
+            local_dir=local_dir,
+            territory=territ,
+            identifier=territ)
 
     output_path = f"{local_dir}/preprocessed_combined/raw.{format_intermediate}"
 

@@ -260,10 +260,10 @@ spec:
         image: inseefrlab/cartiflette
         command: [sh, -c]
         args: ["
-                mkdir -p /mnt/data ; mkdir -p /mnt/bin/src ;
+                mkdir -p $LOCAL_DATA_PATH ;
+                mkdir -p /mnt/bin/src ;
                 mv /mnt/bin/argo-pipeline/src/* /mnt/bin/src ;
-                python /mnt/bin/src/duplicate_in_bucket.py --path $PATH_WRITING_S3 ;
-                mv temp/tagc.csv /mnt/data/tagc.csv ;
+                python /mnt/bin/src/duplicate_in_bucket.py --path $PATH_WRITING_S3 --localpath $LOCAL_DATA_PATH ;
                 "]
         volumeMounts:
           - name: volume-workflow-tmp
@@ -273,6 +273,8 @@ spec:
             value: "test/test-argo"
           - name: PYTHONPATH
             value: "${PYTHONPATH}:/mnt/bin"
+          - name: LOCAL_DATA_PATH
+            value: "$/mnt/data"
           - name: AWS_ACCESS_KEY_ID
             valueFrom:
               secretKeyRef:
@@ -295,7 +297,7 @@ spec:
         image: inseefrlab/cartiflette
         command: [sh, -c]
         args: ["echo $PATH_WRITING_S3 ;
-                head -n 1 /mnt/data/tagc.csv"]
+                head -n 1 ${LOCAL_DATA_PATH}/tagc.csv"]
         env: *env_parameters
         volumeMounts:
           - name: volume-workflow-tmp

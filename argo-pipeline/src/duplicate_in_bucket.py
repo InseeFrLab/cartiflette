@@ -8,20 +8,13 @@ from cartiflette.pipeline.combine_adminexpress_france import (
 )
 from cartiflette.pipeline.prepare_cog_metadata import prepare_cog_metadata
 
-from cartiflette.pipeline import crossproduct_parameters_production
-from cartiflette.pipeline import (
-    mapshaperize_split_from_s3,
-    mapshaperize_merge_split_from_s3,
-)
-
-
 # Initialize ArgumentParser
 parser = argparse.ArgumentParser(description="Run Cartiflette pipeline script.")
 parser.add_argument(
     "-p", "--path", help="Path within bucket", default=PATH_WITHIN_BUCKET
 )
 parser.add_argument(
-    "-p", "--localpath", help="Path within bucket", default="temp"
+    "-lp", "--localpath", help="Path within bucket", default="temp"
 )
 
 # Parse arguments
@@ -40,8 +33,10 @@ os.makedirs(local_path, exist_ok=True)
 
 
 def main(path_within_bucket, localpath, bucket=BUCKET, year=year):
+    
     path_combined_files = combine_adminexpress_territory(
-        path_within_bucket=path_within_bucket
+        path_within_bucket=path_within_bucket,
+        intermediate_dir=localpath
     )
 
     path_raw_s3 = create_path_bucket(
@@ -66,16 +61,14 @@ def main(path_within_bucket, localpath, bucket=BUCKET, year=year):
     fs.put_file(path_combined_files, path_raw_s3)
 
     # Retrieve COG metadata
-    tagc_metadata = prepare_cog_metadata(path_within_bucket)
+    tagc_metadata = prepare_cog_metadata(
+        path_within_bucket, local_dir=localpath)
     tagc_metadata.drop(columns=["LIBGEO"]).to_csv(f"{localpath}/tagc.csv")
 
     data = {"preprocessed": path_combined_files, "metadata": f"{localpath}/tagc.csv"}
 
-    import os
-
-    print(os.getcwd())
-    print(os.listdir(local_path))
+    return data
 
 
 if __name__ == "__main__":
-    main(path_within_bucket)
+    main(path_within_bucket, localpath=local_path)
