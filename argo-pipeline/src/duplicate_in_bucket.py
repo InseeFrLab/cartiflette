@@ -20,22 +20,26 @@ parser = argparse.ArgumentParser(description="Run Cartiflette pipeline script.")
 parser.add_argument(
     "-p", "--path", help="Path within bucket", default=PATH_WITHIN_BUCKET
 )
+parser.add_argument(
+    "-p", "--localpath", help="Path within bucket", default="temp"
+)
 
 # Parse arguments
 args = parser.parse_args()
 
 bucket = BUCKET
 path_within_bucket = args.path
+local_path = args.localpath
 
 year = 2022
 fs = FS
 
-os.makedirs("temp", exist_ok=True)
+os.makedirs(local_path, exist_ok=True)
 
 # PART 1/ COMBINE RAW FILES TOGETHER AND WRITE TO S3
 
 
-def main(path_within_bucket, bucket=BUCKET, year=year):
+def main(path_within_bucket, localpath, bucket=BUCKET, year=year):
     path_combined_files = combine_adminexpress_territory(
         path_within_bucket=path_within_bucket
     )
@@ -63,14 +67,14 @@ def main(path_within_bucket, bucket=BUCKET, year=year):
 
     # Retrieve COG metadata
     tagc_metadata = prepare_cog_metadata(path_within_bucket)
-    tagc_metadata.drop(columns=["LIBGEO"]).to_csv("temp/tagc.csv")
+    tagc_metadata.drop(columns=["LIBGEO"]).to_csv(f"{localpath}/tagc.csv")
 
-    data = {"preprocessed": path_combined_files, "metadata": "temp/tagc.csv"}
+    data = {"preprocessed": path_combined_files, "metadata": f"{localpath}/tagc.csv"}
 
     import os
 
     print(os.getcwd())
-    print(os.listdir("temp"))
+    print(os.listdir(local_path))
 
 
 if __name__ == "__main__":
