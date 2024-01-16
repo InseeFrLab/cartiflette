@@ -2,9 +2,7 @@ import os
 import subprocess
 
 from cartiflette.utils import DICT_CORRESP_ADMINEXPRESS
-from .mapshaper_wrangling import (
-    mapshaper_enrich, mapshaper_split
-)
+from .mapshaper_wrangling import mapshaper_enrich, mapshaper_split
 from .mapshaper_closer import mapshaper_bring_closer
 
 
@@ -92,16 +90,17 @@ def mapshaperize_split(
 
     if niveau_polygons != initial_filename_city:
         csv_list_vars = (
-            f"{dict_corresp[niveau_polygons]},"
-            f"{dict_corresp[niveau_agreg]}"
+            f"{dict_corresp[niveau_polygons]}," f"{dict_corresp[niveau_agreg]}"
         )
-        libelle_niveau_polygons = dict_corresp.get('LIBELLE_' + niveau_polygons, '')
+        libelle_niveau_polygons = dict_corresp.get("LIBELLE_" + niveau_polygons, "")
         if libelle_niveau_polygons != "":
             libelle_niveau_polygons = f",{libelle_niveau_polygons}"
-        libelle_niveau_agreg = dict_corresp.get('LIBELLE_' + niveau_agreg, '')
+        libelle_niveau_agreg = dict_corresp.get("LIBELLE_" + niveau_agreg, "")
         if libelle_niveau_polygons != "":
             libelle_niveau_agreg = f",{libelle_niveau_agreg}"
-        csv_list_vars = f"{csv_list_vars}{libelle_niveau_polygons}{libelle_niveau_agreg}"
+        csv_list_vars = (
+            f"{csv_list_vars}{libelle_niveau_polygons}{libelle_niveau_agreg}"
+        )
 
         # STEP 1B: DISSOLVE IF NEEDED
         cmd_dissolve = (
@@ -119,7 +118,13 @@ def mapshaperize_split(
         niveau_filter_drom = "DEPARTEMENT"
         if niveau_polygons != "COMMUNE":
             niveau_filter_drom = niveau_polygons
-        input_path = mapshaper_bring_closer(temp_filename, level_agreg=niveau_filter_drom)
+        input_path = mapshaper_bring_closer(
+            temp_filename, level_agreg=niveau_filter_drom
+        )
+    else:
+        input_path = "temp.geojson"
+
+    print(input_path)
 
     # STEP 2: SPLIT ET SIMPLIFIE
     mapshaper_split(

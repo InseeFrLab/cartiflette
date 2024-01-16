@@ -14,5 +14,5 @@ __all__ = [
     "crossproduct_parameters_production",
     "prepare_local_directory_mapshaper",
     "mapshaperize_split_from_s3",
-    "mapshaperize_merge_split_from_s3"
+    "mapshaperize_merge_split_from_s3",
 ]
