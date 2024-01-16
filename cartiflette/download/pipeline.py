@@ -6,13 +6,13 @@ import logging
 from pebble import ThreadPool
 import s3fs
 
-from cartiflette import (
+from cartiflette.config import (
     BUCKET,
     PATH_WITHIN_BUCKET,
     FS,
-    THREADS_DOWNLOAD,
-    DOWNLOAD_PIPELINE_ARGS,
+    THREADS_DOWNLOAD
 )
+from cartiflette.constants import DOWNLOAD_PIPELINE_ARGS
 from cartiflette.download.download import _download_sources
 from cartiflette.utils import deep_dict_update
 

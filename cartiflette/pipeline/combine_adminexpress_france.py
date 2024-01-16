@@ -1,6 +1,6 @@
 import subprocess
 
-from cartiflette import FS, PATH_WITHIN_BUCKET
+from cartiflette.config import FS, PATH_WITHIN_BUCKET
 from cartiflette.utils import import_yaml_config
 from cartiflette.mapshaper import mapshaper_convert_mercator
 from cartiflette.s3 import upload_s3_raw

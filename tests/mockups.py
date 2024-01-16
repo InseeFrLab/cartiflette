@@ -11,7 +11,7 @@ from tests.conftest import (
     CONTENT_DUMMY,
 )
 
-from cartiflette import FS
+from cartiflette.config import FS
 from cartiflette.download.dataset import Dataset
 from cartiflette.download.scraper import MasterScraper
 

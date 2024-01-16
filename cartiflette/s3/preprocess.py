@@ -8,7 +8,7 @@ import s3fs
 from typing import TypedDict
 
 
-from cartiflette import BUCKET, PATH_WITHIN_BUCKET, FS
+from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
 from cartiflette.utils import magic_csv_reader
 
 logger = logging.getLogger(__name__)

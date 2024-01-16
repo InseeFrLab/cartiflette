@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import s3fs
 
-from cartiflette import FS
+from cartiflette.config import FS
 from cartiflette.s3 import upload_s3_raw
 
 

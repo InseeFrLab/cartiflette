@@ -3,7 +3,7 @@
 
 from typing import Optional, TypedDict
 
-from cartiflette import BUCKET, PATH_WITHIN_BUCKET
+from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET
 
 
 # CREATE STANDARDIZED PATHS ------------------------
