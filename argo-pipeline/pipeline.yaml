@@ -270,11 +270,11 @@ spec:
             mountPath: /mnt
         env: &env_parameters
           - name: PATH_WRITING_S3
-            value: "test/test-argo"
+            value: "production"
           - name: PYTHONPATH
             value: "${PYTHONPATH}:/mnt/bin"
           - name: LOCAL_DATA_PATH
-            value: "$/mnt/data"
+            value: "/mnt/data"
           - name: AWS_ACCESS_KEY_ID
             valueFrom:
               secretKeyRef:
