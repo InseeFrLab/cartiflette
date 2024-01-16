@@ -298,7 +298,7 @@ spec:
         command: [sh, -c]
         args: ["echo $PATH_WRITING_S3 ;
                 ls $LOCAL_DATA_PATH ;
-                head -n 3 $LOCAL_DATA_PATH/tagc.csv"]
+                head -n 3 \"$LOCAL_DATA_PATH/tagc.csv\""]
         env: *env_parameters
         volumeMounts:
           - name: volume-workflow-tmp
