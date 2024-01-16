@@ -296,8 +296,9 @@ spec:
       container:
         image: inseefrlab/cartiflette
         command: [sh, -c]
-        args: ["echo $PATH_WRITING_S3 && echo $LOCAL_DATA_PATH/tagc.csv ;
-                head -n 1 $LOCAL_DATA_PATH/tagc.csv"]
+        args: ["echo $PATH_WRITING_S3 ;
+                ls $LOCAL_DATA_PATH ;
+                head -n 3 $LOCAL_DATA_PATH/tagc.csv"]
         env: *env_parameters
         volumeMounts:
           - name: volume-workflow-tmp
@@ -334,7 +335,7 @@ spec:
         image: inseefrlab/cartiflette
         command: ["sh", "-c"]
         args: ["
-          mkdir -p temp/ && cp /mnt/data/tagc.csv temp/tagc.csv ;
+          mkdir -p temp/ && cp $LOCAL_DATA_PATH/tagc.csv temp/tagc.csv ;
           python /mnt/bin/src/split_merge_tiles.py \
           --path $PATH_WRITING_S3 \
           --format_output {{inputs.parameters.format_output}} \
