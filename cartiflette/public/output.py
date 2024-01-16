@@ -17,42 +17,39 @@ logger = logging.getLogger(__name__)
 
 def download_from_cartiflette(
     values: typing.List[typing.Union[str, int, float]],
+    borders: str = "COMMUNE",
+    filter_by: str = "region",
+    territory: str = "metropole",
+    vectorfile_format: str = "geojson",
+    year: typing.Union[str, int, float] = None,
+    crs: typing.Union[list, str, int, float] = 2154,
+    simplification: typing.Union[str, int, float] = None,
     bucket: str = cartiflette.BUCKET,
     path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
     provider: str = "IGN",
     dataset_family: str = "ADMINEXPRESS",
     source: str = "EXPRESS-COG-TERRITOIRE",
-    vectorfile_format: str = "geojson",
-    borders: str = "COMMUNE",
-    filter_by: str = "region",
-    territory: str = "metropole",
-    year: typing.Union[str, int, float] = None,
-    crs: typing.Union[list, str, int, float] = 2154,
-    simplification: typing.Union[str, int, float] = None,
 ) -> gpd.GeoDataFrame:
     """
-    Downloads GeoDataFrames from the Cartiflette service for specified values.
+    Downloads official geographic datasets using the Cartiflette API for a set of specified values.
+
+    This function aggregates data into a single GeoDataFrame.
+    It's useful for downloading and concatenating data related to different regions, communes, etc.
 
     Parameters:
-    - values (List[Union[str, int, float]]): A list of values to use in the 'value' parameter
-      when calling download_from_cartiflette_single for each iteration.
-    - bucket (str): The name of the S3 bucket.
-    - path_within_bucket (str): The path within the S3 bucket where the datasets are stored.
-    - provider (str): The data provider (default is "IGN").
-    - dataset_family (str): The dataset family (default is "ADMINEXPRESS").
-    - source (str): The data source (default is "EXPRESS-COG-TERRITOIRE").
-    - vectorfile_format (str): The file format for vector files (default is "geojson").
-    - borders (str): The type of borders (default is "COMMUNE").
-    - filter_by (str): The parameter to filter by (default is "region").
-    - territory (str): The territory (default is "metropole").
-    - year (Union[str, int, float]): The year of the dataset
-        (default is None, which uses the current year).
-    - crs (Union[list, str, int, float]): The coordinate reference system (default is 2154).
-    - simplification (Union[str, int, float]): The simplification parameter (default is None).
+    - values (List[Union[str, int, float]]): A list of values to filter data by the filter_by parameter.
+    - borders (str, optional): The type of borders (default is "COMMUNE").
+    - filter_by (str, optional): The parameter to filter by (default is "region").
+    - territory (str, optional): The territory (default is "metropole").
+    - vectorfile_format (str, optional): The file format for vector files (default is "geojson").
+    - year (Union[str, int, float], optional): The year of the dataset.
+        Defaults to the current year if not provided.
+    - crs (Union[list, str, int, float], optional): The coordinate reference system (default is 2154).
+    - simplification (Union[str, int, float], optional): The simplification parameter (default is None).
+    - bucket, path_within_bucket, provider, dataset_family, source: Other Cartiflette API parameters.
 
     Returns:
-    - gpd.GeoDataFrame: A GeoDataFrame containing concatenated data from the Cartiflette service
-      for the specified values.
+    - gpd.GeoDataFrame: A GeoDataFrame containing concatenated data from the specified parameters.
     """
 
     # Initialize an empty list to store individual GeoDataFrames
@@ -61,6 +58,9 @@ def download_from_cartiflette(
     # Set the year to the current year if not provided
     if not year:
         year = str(date.today().year)
+        
+    if isinstance(values) == "str" | isinstance(values) == "int":
+        values = [values]
 
     # Iterate over values and call download_from_cartiflette_single
     for value in values:
