@@ -7,7 +7,7 @@ import os
 from shapely.geometry import box
 
 from cartiflette.download.dataset import Dataset
-from cartiflette import REFERENCES
+from cartiflette.constants import REFERENCES
 
 logger = logging.getLogger(__name__)
 

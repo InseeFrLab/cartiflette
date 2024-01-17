@@ -1,6 +1,6 @@
 import subprocess
 
-from cartiflette import FS, PATH_WITHIN_BUCKET
+from cartiflette.config import FS, PATH_WITHIN_BUCKET
 from cartiflette.utils import import_yaml_config
 from cartiflette.mapshaper import mapshaper_convert_mercator
 from cartiflette.s3 import upload_s3_raw
@@ -40,9 +40,8 @@ def combine_adminexpress_territory(
 
     for territ in list_territories:
         mapshaper_convert_mercator(
-            local_dir=local_dir,
-            territory=territ,
-            identifier=territ)
+            local_dir=local_dir, territory=territ, identifier=territ
+        )
 
     output_path = f"{local_dir}/preprocessed_combined/raw.{format_intermediate}"
 

@@ -1,58 +1,74 @@
 # -*- coding: utf-8 -*-
 from datetime import date
-import geopandas as gpd
-import logging
 import os
-import s3fs
 import shutil
 import tempfile
+import logging
 import typing
+import s3fs
+import geopandas as gpd
 
-import cartiflette
 from cartiflette.download.scraper import MasterScraper
 from cartiflette.utils import create_path_bucket, standardize_inputs
+from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
 
 logger = logging.getLogger(__name__)
 
 
-def download_from_cartiflette(
+def download_from_cartiflette_inner(
     values: typing.List[typing.Union[str, int, float]],
-    bucket: str = cartiflette.BUCKET,
-    path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
-    provider: str = "IGN",
-    dataset_family: str = "ADMINEXPRESS",
-    source: str = "EXPRESS-COG-TERRITOIRE",
-    vectorfile_format: str = "geojson",
     borders: str = "COMMUNE",
     filter_by: str = "region",
     territory: str = "metropole",
+    vectorfile_format: str = "geojson",
     year: typing.Union[str, int, float] = None,
     crs: typing.Union[list, str, int, float] = 2154,
     simplification: typing.Union[str, int, float] = None,
-) -> gpd.GeoDataFrame:
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
+    provider: str = "IGN",
+    dataset_family: str = "ADMINEXPRESS",
+    source: str = "EXPRESS-COG-TERRITOIRE",
+    return_as_json: bool = False
+) -> typing.Union[gpd.GeoDataFrame, str]:
     """
-    Downloads GeoDataFrames from the Cartiflette service for specified values.
+    Downloads and aggregates official geographic datasets using the Cartiflette API
+    for a set of specified values.
+    Optionally returns the data as a JSON string.
+
+    This function is useful for downloading and concatenating data related to different regions,
+    communes, etc., into a single GeoDataFrame or JSON string.
 
     Parameters:
-    - values (List[Union[str, int, float]]): A list of values to use in the 'value' parameter
-      when calling download_from_cartiflette_single for each iteration.
-    - bucket (str): The name of the S3 bucket.
-    - path_within_bucket (str): The path within the S3 bucket where the datasets are stored.
-    - provider (str): The data provider (default is "IGN").
-    - dataset_family (str): The dataset family (default is "ADMINEXPRESS").
-    - source (str): The data source (default is "EXPRESS-COG-TERRITOIRE").
-    - vectorfile_format (str): The file format for vector files (default is "geojson").
-    - borders (str): The type of borders (default is "COMMUNE").
-    - filter_by (str): The parameter to filter by (default is "region").
-    - territory (str): The territory (default is "metropole").
-    - year (Union[str, int, float]): The year of the dataset
-        (default is None, which uses the current year).
-    - crs (Union[list, str, int, float]): The coordinate reference system (default is 2154).
-    - simplification (Union[str, int, float]): The simplification parameter (default is None).
+    - values (List[Union[str, int, float]]):
+        A list of values to filter data by the filter_by parameter.
+    - borders (str, optional):
+        The type of borders (default is "COMMUNE").
+    - filter_by (str, optional):
+        The parameter to filter by (default is "region").
+    - territory (str, optional):
+        The territory (default is "metropole").
+    - vectorfile_format (str, optional):
+        The file format for vector files (default is "geojson").
+    - year (Union[str, int, float], optional):
+        The year of the dataset. Defaults to the current year if not provided.
+    - crs (Union[list, str, int, float], optional):
+        The coordinate reference system (default is 2154).
+    - simplification (Union[str, int, float], optional):
+        The simplification parameter (default is None).
+    - bucket, path_within_bucket, provider, dataset_family, source:
+        Other parameters required for accessing the Cartiflette API.
+
+    - return_as_json (bool, optional):
+        If True, the function returns a JSON string representation of the aggregated GeoDataFrame.
+        If False, it returns a GeoDataFrame. Default is False.
 
     Returns:
-    - gpd.GeoDataFrame: A GeoDataFrame containing concatenated data from the Cartiflette service
-      for the specified values.
+    - Union[gpd.GeoDataFrame, str]:
+        A GeoDataFrame containing concatenated data from the
+            specified parameters if return_as_json is False.
+        A JSON string representation of the GeoDataFrame
+            if return_as_json is True.
     """
 
     # Initialize an empty list to store individual GeoDataFrames
@@ -62,9 +78,12 @@ def download_from_cartiflette(
     if not year:
         year = str(date.today().year)
 
-    # Iterate over values and call download_from_cartiflette_single
+    if isinstance(values, (str, int)):
+        values = [values]
+
+    # Iterate over values
     for value in values:
-        gdf_single = download_from_cartiflette_single(
+        gdf_single = download_cartiflette_single(
             value=value,
             bucket=bucket,
             path_within_bucket=path_within_bucket,
@@ -84,12 +103,15 @@ def download_from_cartiflette(
     # Concatenate the list of GeoDataFrames into a single GeoDataFrame
     concatenated_gdf = gpd.pd.concat(gdf_list, ignore_index=True)
 
+    if return_as_json is True:
+        return concatenated_gdf.to_json()
+
     return concatenated_gdf
 
 
-def download_from_cartiflette_single(
-    bucket: str = cartiflette.BUCKET,
-    path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
+def download_cartiflette_single(
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
     provider: str = "IGN",
     dataset_family: str = "ADMINEXPRESS",
     source: str = "EXPRESS-COG-TERRITOIRE",
@@ -136,9 +158,12 @@ def download_from_cartiflette_single(
     return gdf
 
 
+# ---------------------
+
+
 def download_vectorfile_single(
-    bucket: str = cartiflette.BUCKET,
-    path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
     provider: str = "IGN",
     dataset_family: str = "ADMINEXPRESS",
     source: str = "EXPRESS-COG-TERRITOIRE",
@@ -151,7 +176,7 @@ def download_vectorfile_single(
     crs: typing.Union[list, str, int, float] = 2154,
     simplification: typing.Union[str, int, float] = None,
     type_download: str = "https",
-    fs: s3fs.S3FileSystem = cartiflette.FS,
+    fs: s3fs.S3FileSystem = FS,
     *args,
     **kwargs,
 ) -> gpd.GeoDataFrame:
@@ -163,7 +188,7 @@ def download_vectorfile_single(
     ----------
     bucket : str, optional
         The name of the bucket where the file is stored. The default is
-        cartiflette.BUCKET.
+        cartiflette.config.BUCKET.
     path_within_bucket : str, optional
         The path within the bucket where the file will be stored. The default
         is cartiflette.PATH_WITHIN_BUCKET.
@@ -249,23 +274,24 @@ def download_vectorfile_single(
     )
 
     if type_download == "bucket":
+
         try:
             fs.exists(url)
         except Exception:
             raise IOError(f"File has not been found at path {url} on S3")
-        else:
-            if format_read == "shp":
-                tdir = tempfile.TemporaryDirectory()
-                files = fs.ls(url)
-                for remote_file in files:
-                    local_path = f"{tdir.name}/{remote_file.replace(url, '')}"
-                    fs.download(remote_file, local_path)
-                local_path = f"{tdir.name}/raw.shp"
 
-            else:
-                tfile = tempfile.TemporaryFile()
-                local_path = tfile.name
+        if format_read == "shp":
+            tdir = tempfile.TemporaryDirectory()
+            files = fs.ls(url)
+            for remote_file in files:
+                local_path = f"{tdir.name}/{remote_file.replace(url, '')}"
                 fs.download(remote_file, local_path)
+            local_path = f"{tdir.name}/raw.shp"
+
+        else:
+            tfile = tempfile.TemporaryFile()
+            local_path = tfile.name
+            fs.download(remote_file, local_path)
 
     else:
         with MasterScraper(*args, **kwargs) as s:
@@ -307,8 +333,8 @@ def download_vectorfile_single(
 
 
 def download_vectorfile_multiple(
-    bucket: str = cartiflette.BUCKET,
-    path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
     provider: str = "IGN",
     source: str = "EXPRESS-COG-TERRITOIRE",
     vectorfile_format: str = "geojson",
@@ -318,7 +344,7 @@ def download_vectorfile_multiple(
     values: typing.Union[list, str, int, float] = "28",
     crs: typing.Union[list, str, int, float] = 2154,
     type_download: str = "https",
-    fs: s3fs.S3FileSystem = cartiflette.FS,
+    fs: s3fs.S3FileSystem = FS,
     *args,
     **kwargs,
 ) -> gpd.GeoDataFrame:
@@ -331,7 +357,7 @@ def download_vectorfile_multiple(
     ----------
     bucket : str, optional
         The name of the bucket where the file is stored. The default is
-        cartiflette.BUCKET.
+        cartiflette.config.BUCKET.
     path_within_bucket : str, optional
         The path within the bucket where the file will be stored. The default
         is cartiflette.PATH_WITHIN_BUCKET.

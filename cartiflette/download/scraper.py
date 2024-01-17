@@ -17,7 +17,7 @@ from urllib3.util import parse_url
 from cartiflette.utils import hash_file
 from cartiflette.download.dataset import Dataset
 from cartiflette.download.layer import Layer
-from cartiflette import LEAVE_TQDM
+from cartiflette.config import LEAVE_TQDM
 
 logger = logging.getLogger(__name__)
 

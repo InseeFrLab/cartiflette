@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import s3fs
 
-from cartiflette import FS
+from cartiflette.config import FS
 from cartiflette.s3 import upload_s3_raw
 
 
@@ -34,7 +34,6 @@ def prepare_cog_metadata(
         territory="france_entiere",
         borders="DATASET_INSEE_COG_DEPARTEMENT_FRANCE_ENTIERE_2022",
         year=2022,
-        crs=None,
         vectorfile_format="csv",
         path_within_bucket=path_within_bucket,
     )
@@ -47,7 +46,6 @@ def prepare_cog_metadata(
         territory="france_entiere",
         borders="DATASET_INSEE_COG_REGION_FRANCE_ENTIERE_2022",
         year=2022,
-        crs=None,
         vectorfile_format="csv",
         path_within_bucket=path_within_bucket,
     )
@@ -60,7 +58,6 @@ def prepare_cog_metadata(
         territory="france_entiere",
         borders="table-appartenance-geo-communes-22",
         year=2022,
-        crs=None,
         vectorfile_format="xlsx",
         path_within_bucket=path_within_bucket,
     )

@@ -15,7 +15,7 @@ from typing import Tuple
 import zipfile
 
 from cartiflette.utils import import_yaml_config, hash_file, deep_dict_update
-import cartiflette
+from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
 
 logger = logging.getLogger(__name__)
 
@@ -35,9 +35,9 @@ class Dataset:
         year: int = None,
         provider: str = "IGN",
         territory: str = None,
-        bucket: str = cartiflette.BUCKET,
-        path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
-        fs: s3fs.S3FileSystem = cartiflette.FS,
+        bucket: str = BUCKET,
+        path_within_bucket: str = PATH_WITHIN_BUCKET,
+        fs: s3fs.S3FileSystem = FS,
     ):
         """
         Initialize a Dataset object.

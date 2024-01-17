@@ -1,5 +1,6 @@
 from cartiflette.download.download import _download_sources
 from cartiflette.utils import create_path_bucket, official_epsg_codes
+from cartiflette.config import PATH_WITHIN_BUCKET
 
 
 def upload_s3_raw(
@@ -9,8 +10,7 @@ def upload_s3_raw(
     dataset_family="ADMINEXPRESS",
     territory="metropole",
     borders="COMMUNE",
-    path_within_bucket="test-download6",
-    crs=2154,
+    path_within_bucket=PATH_WITHIN_BUCKET,
     vectorfile_format="shp",
     bucket="projet-cartiflette",
 ):
@@ -32,9 +32,7 @@ def upload_s3_raw(
     borders : str, optional
         The type of borders, by default "COMMUNE".
     path_within_bucket : str, optional
-        The path within the S3 bucket, by default "test-download6".
-    crs : int, optional
-        The coordinate reference system (CRS) code, by default 4326.
+        The path within the S3 bucket, by default cartiflette.config.PATH_WITHIN_BUCKET.
     bucket : str, optional
         The S3 bucket name, by default "projet-cartiflette".
 

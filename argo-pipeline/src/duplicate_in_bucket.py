@@ -1,7 +1,7 @@
 import argparse
 import os
 
-from cartiflette import BUCKET, PATH_WITHIN_BUCKET, FS
+from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
 from cartiflette.utils import create_path_bucket
 from cartiflette.pipeline.combine_adminexpress_france import (
     combine_adminexpress_territory,
@@ -33,7 +33,7 @@ os.makedirs(local_path, exist_ok=True)
 
 
 def main(path_within_bucket, localpath, bucket=BUCKET, year=year):
-    
+
     path_combined_files = combine_adminexpress_territory(
         path_within_bucket=path_within_bucket,
         intermediate_dir=localpath

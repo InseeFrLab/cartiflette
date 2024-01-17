@@ -14,7 +14,7 @@ import shutil
 import traceback
 from typing import Union
 
-from cartiflette import BUCKET, PATH_WITHIN_BUCKET, FS, THREADS_DOWNLOAD
+from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS, THREADS_DOWNLOAD
 from cartiflette.utils import (
     deep_dict_update,
     create_path_bucket,

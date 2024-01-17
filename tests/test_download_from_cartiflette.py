@@ -1,20 +1,22 @@
 import unittest
-from cartiflette.public import download_from_cartiflette
+from cartiflette import carti_download
+
+path_test = "test/preprod"
 
 
 class TestDownloadFromCartiflette(unittest.TestCase):
 
-    def test_download_from_cartiflette_single_value(self):
+    def test_carti_download_single_value(self):
         # Call the function to be tested
-        ile_de_france = download_from_cartiflette(
-            values=["11"],
+        ile_de_france = carti_download(
+            values="11",
             crs=4326,
             borders="DEPARTEMENT",
             vectorfile_format="topojson",
             filter_by="REGION",
             source="EXPRESS-COG-CARTO-TERRITOIRE",
             year=2022,
-            path_within_bucket="test-download28"
+            path_within_bucket=path_test
         )
 
         # Check the properties of the resulting GeoPandas DataFrame
@@ -25,9 +27,9 @@ class TestDownloadFromCartiflette(unittest.TestCase):
         expected_unique_values = ['75', '77', '78', '91', '92', '93', '94', '95']
         self.assertCountEqual(unique_insee_dep, expected_unique_values)
 
-    def test_download_from_cartiflette_multi_values(self):
+    def test_carti_download_multi_values(self):
         # Call the function to be tested with multiple values
-        ile_de_france_multi = download_from_cartiflette(
+        ile_de_france_multi = carti_download(
             values=["11", "32", "44"],
             crs=4326,
             borders="DEPARTEMENT",
@@ -35,7 +37,7 @@ class TestDownloadFromCartiflette(unittest.TestCase):
             filter_by="REGION",
             source="EXPRESS-COG-CARTO-TERRITOIRE",
             year=2022,
-            path_within_bucket="test-download28"
+            path_within_bucket=path_test
         )
 
         # Check the properties of the resulting GeoPandas DataFrame for multiple values
@@ -46,9 +48,9 @@ class TestDownloadFromCartiflette(unittest.TestCase):
         expected_unique_values_multi = [11, 32, 44]
         self.assertCountEqual(unique_insee_reg, expected_unique_values_multi)
 
-    def test_download_from_cartiflette_commune_arrondissement(self):
+    def test_carti_download_commune_arrondissement(self):
         # Call the function to be tested
-        ile_de_france_commune_arrondissement = download_from_cartiflette(
+        ile_de_france_commune_arrondissement = carti_download(
             values=["75"],
             crs=4326,
             borders="COMMUNE_ARRONDISSEMENT",
@@ -56,7 +58,7 @@ class TestDownloadFromCartiflette(unittest.TestCase):
             filter_by="DEPARTEMENT",
             source="EXPRESS-COG-CARTO-TERRITOIRE",
             year=2022,
-            path_within_bucket="test-download28"
+            path_within_bucket=path_test
         )
 
         # Check the properties of the resulting GeoPandas DataFrame for commune arrondissement

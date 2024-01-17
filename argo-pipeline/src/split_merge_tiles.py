@@ -1,5 +1,5 @@
 import argparse
-from cartiflette import PATH_WITHIN_BUCKET
+from cartiflette.config import PATH_WITHIN_BUCKET
 from cartiflette.pipeline import (
     mapshaperize_split_from_s3,
     mapshaperize_merge_split_from_s3,
