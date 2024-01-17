@@ -255,7 +255,7 @@ spec:
             path: /mnt/bin
             git:
               repo: https://github.com/inseefrlab/cartiflette
-              revision: "docker"
+              revision: "main"
       container:
         image: inseefrlab/cartiflette
         command: [sh, -c]
@@ -270,7 +270,7 @@ spec:
             mountPath: /mnt
         env: &env_parameters
           - name: PATH_WRITING_S3
-            value: "test/preprod"
+            value: "production"
           - name: PYTHONPATH
             value: "${PYTHONPATH}:/mnt/bin"
           - name: LOCAL_DATA_PATH
