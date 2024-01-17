@@ -58,7 +58,7 @@ def download_from_cartiflette(
     # Set the year to the current year if not provided
     if not year:
         year = str(date.today().year)
-        
+
     if isinstance(values) == "str" | isinstance(values) == "int":
         values = [values]
 
