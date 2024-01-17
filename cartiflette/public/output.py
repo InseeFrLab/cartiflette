@@ -8,9 +8,9 @@ import shutil
 import tempfile
 import typing
 
-import cartiflette
 from cartiflette.download.scraper import MasterScraper
 from cartiflette.utils import create_path_bucket, standardize_inputs
+from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +24,8 @@ def download_from_cartiflette(
     year: typing.Union[str, int, float] = None,
     crs: typing.Union[list, str, int, float] = 2154,
     simplification: typing.Union[str, int, float] = None,
-    bucket: str = cartiflette.BUCKET,
-    path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
     provider: str = "IGN",
     dataset_family: str = "ADMINEXPRESS",
     source: str = "EXPRESS-COG-TERRITOIRE",
@@ -59,7 +59,7 @@ def download_from_cartiflette(
     if not year:
         year = str(date.today().year)
 
-    if isinstance(values) == "str" | isinstance(values) == "int":
+    if isinstance(values, (str, int)):
         values = [values]
 
     # Iterate over values and call download_from_cartiflette_single
@@ -88,8 +88,8 @@ def download_from_cartiflette(
 
 
 def download_from_cartiflette_single(
-    bucket: str = cartiflette.BUCKET,
-    path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
     provider: str = "IGN",
     dataset_family: str = "ADMINEXPRESS",
     source: str = "EXPRESS-COG-TERRITOIRE",
@@ -137,8 +137,8 @@ def download_from_cartiflette_single(
 
 
 def download_vectorfile_single(
-    bucket: str = cartiflette.BUCKET,
-    path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
     provider: str = "IGN",
     dataset_family: str = "ADMINEXPRESS",
     source: str = "EXPRESS-COG-TERRITOIRE",
@@ -151,7 +151,7 @@ def download_vectorfile_single(
     crs: typing.Union[list, str, int, float] = 2154,
     simplification: typing.Union[str, int, float] = None,
     type_download: str = "https",
-    fs: s3fs.S3FileSystem = cartiflette.FS,
+    fs: s3fs.S3FileSystem = FS,
     *args,
     **kwargs,
 ) -> gpd.GeoDataFrame:
@@ -163,7 +163,7 @@ def download_vectorfile_single(
     ----------
     bucket : str, optional
         The name of the bucket where the file is stored. The default is
-        cartiflette.BUCKET.
+        cartiflette.config.BUCKET.
     path_within_bucket : str, optional
         The path within the bucket where the file will be stored. The default
         is cartiflette.PATH_WITHIN_BUCKET.
@@ -307,8 +307,8 @@ def download_vectorfile_single(
 
 
 def download_vectorfile_multiple(
-    bucket: str = cartiflette.BUCKET,
-    path_within_bucket: str = cartiflette.PATH_WITHIN_BUCKET,
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
     provider: str = "IGN",
     source: str = "EXPRESS-COG-TERRITOIRE",
     vectorfile_format: str = "geojson",
@@ -318,7 +318,7 @@ def download_vectorfile_multiple(
     values: typing.Union[list, str, int, float] = "28",
     crs: typing.Union[list, str, int, float] = 2154,
     type_download: str = "https",
-    fs: s3fs.S3FileSystem = cartiflette.FS,
+    fs: s3fs.S3FileSystem = FS,
     *args,
     **kwargs,
 ) -> gpd.GeoDataFrame:
@@ -331,7 +331,7 @@ def download_vectorfile_multiple(
     ----------
     bucket : str, optional
         The name of the bucket where the file is stored. The default is
-        cartiflette.BUCKET.
+        cartiflette.config.BUCKET.
     path_within_bucket : str, optional
         The path within the bucket where the file will be stored. The default
         is cartiflette.PATH_WITHIN_BUCKET.
