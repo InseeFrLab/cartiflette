@@ -270,7 +270,7 @@ spec:
             mountPath: /mnt
         env: &env_parameters
           - name: PATH_WRITING_S3
-            value: "production"
+            value: "test/preprod"
           - name: PYTHONPATH
             value: "${PYTHONPATH}:/mnt/bin"
           - name: LOCAL_DATA_PATH
