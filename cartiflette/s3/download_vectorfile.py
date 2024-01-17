@@ -4,7 +4,7 @@ from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET
 
 
 def download_vectorfile_url_all(*args, **kwargs):
-    
+
     warnings.warn(
         "download_vectorfile_url_all is deprecated and will be removed in a future version. "
         "Please use carti_download instead (from cartiflette import carti_download).",

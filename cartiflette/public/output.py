@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 from datetime import date
-import geopandas as gpd
-import logging
 import os
-import s3fs
 import shutil
 import tempfile
+import logging
 import typing
+import s3fs
+import geopandas as gpd
 
 from cartiflette.download.scraper import MasterScraper
 from cartiflette.utils import create_path_bucket, standardize_inputs
@@ -37,16 +37,21 @@ def download_from_cartiflette(
     It's useful for downloading and concatenating data related to different regions, communes, etc.
 
     Parameters:
-    - values (List[Union[str, int, float]]): A list of values to filter data by the filter_by parameter.
+    - values (List[Union[str, int, float]]):
+        A list of values to filter data by the filter_by parameter.
     - borders (str, optional): The type of borders (default is "COMMUNE").
     - filter_by (str, optional): The parameter to filter by (default is "region").
     - territory (str, optional): The territory (default is "metropole").
-    - vectorfile_format (str, optional): The file format for vector files (default is "geojson").
+    - vectorfile_format (str, optional):
+        The file format for vector files (default is "geojson").
     - year (Union[str, int, float], optional): The year of the dataset.
         Defaults to the current year if not provided.
-    - crs (Union[list, str, int, float], optional): The coordinate reference system (default is 2154).
-    - simplification (Union[str, int, float], optional): The simplification parameter (default is None).
-    - bucket, path_within_bucket, provider, dataset_family, source: Other Cartiflette API parameters.
+    - crs (Union[list, str, int, float], optional):
+        The coordinate reference system (default is 2154).
+    - simplification (Union[str, int, float], optional):
+        The simplification parameter (default is None).
+    - bucket, path_within_bucket, provider, dataset_family, source:
+        Other Cartiflette API parameters.
 
     Returns:
     - gpd.GeoDataFrame: A GeoDataFrame containing concatenated data from the specified parameters.
@@ -249,23 +254,24 @@ def download_vectorfile_single(
     )
 
     if type_download == "bucket":
+
         try:
             fs.exists(url)
         except Exception:
             raise IOError(f"File has not been found at path {url} on S3")
-        else:
-            if format_read == "shp":
-                tdir = tempfile.TemporaryDirectory()
-                files = fs.ls(url)
-                for remote_file in files:
-                    local_path = f"{tdir.name}/{remote_file.replace(url, '')}"
-                    fs.download(remote_file, local_path)
-                local_path = f"{tdir.name}/raw.shp"
 
-            else:
-                tfile = tempfile.TemporaryFile()
-                local_path = tfile.name
+        if format_read == "shp":
+            tdir = tempfile.TemporaryDirectory()
+            files = fs.ls(url)
+            for remote_file in files:
+                local_path = f"{tdir.name}/{remote_file.replace(url, '')}"
                 fs.download(remote_file, local_path)
+            local_path = f"{tdir.name}/raw.shp"
+
+        else:
+            tfile = tempfile.TemporaryFile()
+            local_path = tfile.name
+            fs.download(remote_file, local_path)
 
     else:
         with MasterScraper(*args, **kwargs) as s:

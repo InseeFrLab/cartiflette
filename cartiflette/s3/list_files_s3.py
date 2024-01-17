@@ -1,11 +1,3 @@
-import s3fs
-
-from cartiflette.config import ENDPOINT_URL
-
-
-fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL})
-
-
 def list_raw_files_level(fs, path_bucket, borders):
     """
     Lists raw files at a specific level within the file system.
