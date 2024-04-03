@@ -153,7 +153,11 @@ def download_cartiflette_single(
 
     url = f"https://minio.lab.sspcloud.fr/{url}"
 
-    gdf = gpd.read_file(url)
+    try:
+        gdf = gpd.read_file(url)
+    except Exception as e:
+        print(f"There was an error while reading the file from the URL: {url}")
+        print(f"Error message: {str(e)}")
 
     return gdf
 
