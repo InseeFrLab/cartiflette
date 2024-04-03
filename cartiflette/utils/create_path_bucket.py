@@ -59,6 +59,8 @@ def create_path_bucket(config: ConfigDict) -> str:
     if simplification is None:
         simplification = 0
 
+    simplification = int(simplification)
+
     filename = config.get("filename")
 
     write_path = (
