@@ -399,19 +399,27 @@ Insee:
         filename: pays2017-txt.zip  
 
   TAGC:
-    structure: https://www.insee.fr/fr/statistiques/fichier/2028028/{filename}    
-    APPARTENANCE:
+    structure: https://www.insee.fr/fr/statistiques/fichier/{article}/{filename}
+    APPARTENANCE:  
+      2024:
+        article: "7671844"
+        pattern: "*.xlsx"
+        filename: "table-appartenance-geo-communes-2024.zip"
       2023:
+        article: "7671844"
         pattern: "*.xlsx"
         filename: "table-appartenance-geo-communes-23.zip"
       2022:
+        article: "7671844"
         pattern: "*.xlsx"
         filename: "table-appartenance-geo-communes-22.zip"
+    
     PASSAGE_ANNUEL:
       # Pour cette source, juste besoin de la derniere version
-      2023:
+      2024:
+        article: "7671867"
         pattern: "*.xlsx"
-        filename: "table_passage_annuelle_2023.zip"
+        filename: "table_passage_annuelle_2024.zip"
 
   BV:
     pattern: "com_bv*.dbf"
@@ -421,9 +429,11 @@ Insee:
         file: https://www.insee.fr/fr/statistiques/fichier/6676988/fonds_bv2022_2023.zip
       2022:
         file: https://www.insee.fr/fr/statistiques/fichier/6676988/fonds_bv2022_2022.zip
-    FondsDeCarte_BV_2012:
-      2022:
-        file: https://www.insee.fr/fr/statistiques/fichier/2115016/fonds_bv2012_2022.zip
+    
+    # Source disparue :
+    # FondsDeCarte_BV_2012:
+    #   2022:
+    #     file: https://www.insee.fr/fr/statistiques/fichier/2115016/fonds_bv2012_2022.zip
       
   
   # UU2020:
