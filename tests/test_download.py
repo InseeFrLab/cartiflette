@@ -132,13 +132,6 @@ def test_download_ko_md5(
         result = dummy_scraper.download_to_tempfile_http("dummy")
 
 
-# def test_ftp_download():
-#     """
-#     download_to_tempfile_ftp
-#     """
-#     # TODO
-#     pass
-
 
 # def test_MasterScraper_ko():
 #     """

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import magic
-import ftplib
 from glob import glob
 import logging
 import numpy as np
@@ -217,113 +216,10 @@ class HttpScraper(
         return True, filetype, file_path
 
 
-class FtpScraper(BaseScraper, ftplib.FTP):
-    """
-    Scraper with specific download method for ftp protocol. Not meant to be
-    used by itself, but only when surcharged.
-    """
-
-    def __init__(self, *args, **kwargs):
-        try:
-            proxy = os.environ["ftp_proxy"]
-        except KeyError:
-            super().__init__(*args, **kwargs)
-        else:
-            parsed = parse_url(proxy)
-            if parsed.scheme == "http":
-                raise NotImplementedError(
-                    "Connection with protocol FTP through HTTP corporate "
-                    "proxy is not implemented yet; please create an issue "
-                    "refering https://stackoverflow.com/questions/45472577/"
-                    "#answer-58282569"
-                )
-            if parsed.scheme == "ftp":
-                raise NotImplementedError(
-                    "Connection with protocol FTP through FTP corporate "
-                    "proxy is not implemented yet; please create an issue "
-                    "refering https://stackoverflow.com/questions/45472577/"
-                    "#answer-51879035"
-                )
-
-    def download_to_tempfile_ftp(
-        self, url: str, hash: str = None, **kwargs
-    ) -> tuple[bool, str]:
-        """
-        Performs a FTP download that will ensure file integrity (through
-        the file's length) and that the file is a new one (if a previous md5
-        signature has been given)
-
-        The file will be written on a temporary file.
-
-        If the file has been updated, the first element of the tuple will be
-        True (False otherwise). If True, the path to the temporary file will be
-        returned as a second element
-
-        Parameters
-        ----------
-        url : str
-            url to download the file from
-        hash : str, optional
-            previous hash signature of the file at latest download. The default
-            is None.
-        **kwargs :
-            Will be ignored (set for consistency with HttpScraper)
-
-        Raises
-        ------
-        IOError
-            If validation of downloaded file fails
-
-        Returns
-        -------
-        tuple[bool, str, str]
-            bool : True if a new file has been downloaded, False in other cases
-            str : file type
-            str : path to the temporary file if bool was True (else None)
-        """
-
-        temp_file = tempfile.NamedTemporaryFile()
-        file_path = temp_file.name + ".7z"
-        logger.debug(f"Downloading to {file_path}")
-
-        expected_file_size = self.size(url)
-        logger.debug(f"File size is {expected_file_size}")
-
-        logger.debug(f"starting download at {url}")
-        with open(file_path, "wb") as file:
-            with tqdm(
-                desc="Downloading: ",
-                total=expected_file_size,
-                unit_scale=True,
-                miniters=1,
-                leave=LEAVE_TQDM,
-            ) as pbar:
-
-                def download_write(data):
-                    pbar.update(len(data))
-                    file.write(data)
-
-                self.retrbinary(f"RETR {url}", download_write)
-
-        # check that the downloaded file is the expected size
-        if not expected_file_size == os.path.getsize(file_path):
-            raise IOError("download failed (corrupted file)")
-
-        # if there's a hash value, check if there are any changes
-        if hash and self.__validate_file__(file_path, hash):
-            # unchanged file -> exit (after deleting the downloaded file)
-            os.unlink(file_path)
-            return False, None, None
-
-        filetype = magic.from_file(file_path)
-
-        return True, filetype, file_path
-
-
-class MasterScraper(HttpScraper, FtpScraper):
+class MasterScraper(HttpScraper):
     """
     Scraper main class which could be used to perform either http/https get
-    downloads of ftp downloads.
+    downloads.
     """
 
     class DownloadReturn(TypedDict):
@@ -334,7 +230,7 @@ class MasterScraper(HttpScraper, FtpScraper):
 
     def download_unpack(self, datafile: Dataset, **kwargs) -> DownloadReturn:
         """
-        Performs a download (through http, https of ftp protocol) to a tempfile
+        Performs a download (through http, https) to a tempfile
         which will be cleaned automatically ; unzip targeted files to a 2nd
         temporary file which ** WILL ** need manual cleanup.
         In case of an actual download (success of download AND the file is a
@@ -396,11 +292,6 @@ class MasterScraper(HttpScraper, FtpScraper):
 
         if url.startswith(("http", "https")):
             func = self.download_to_tempfile_http
-        else:
-            params_ftp = datafile.sources["FTP"]
-            self.connect(host=params_ftp["hostname"])
-            self.login(user=params_ftp["username"], passwd=params_ftp["pwd"])
-            func = self.download_to_tempfile_ftp
 
         # Download to temporary file
         downloaded, filetype, temp_archive_file_raw = func(url, hash, **kwargs)
