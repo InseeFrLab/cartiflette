@@ -66,7 +66,6 @@ DOWNLOAD_PIPELINE_ARGS = {
         "france_entiere",
     ],
     "BV 2022": ["Insee", "BV", "FondsDeCarte_BV_2022", "france_entiere"],
-    "BV 2012": ["Insee", "BV", "FondsDeCarte_BV_2012", "france_entiere"],
 }
 
 # EXPRESS-COG ?
