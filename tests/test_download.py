@@ -183,11 +183,8 @@ def test_sources_yaml(mock_Dataset_without_s3):
                                 f"yaml {str_yaml} contains '{source_yaml}'"
                             )
                             continue
-                    elif "FTP" in set(source_yaml.keys()):
-                        logger.info("yaml {str_yaml} not checked (FTP)")
-                        continue
 
-                    years = set(source_yaml.keys()) - {"territory", "FTP"}
+                    years = set(source_yaml.keys()) - {"territory"}
                     try:
                         territories = set(source_yaml["territory"].keys())
                     except KeyError:
