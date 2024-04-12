@@ -6,6 +6,7 @@ import logging
 import numpy as np
 import os
 import re
+import requests
 import requests_cache
 import tempfile
 from tqdm import tqdm
@@ -228,7 +229,7 @@ class MasterScraper(HttpScraper):
         layers: dict
         root_cleanup: str
 
-    def download_unpack(self, datafile: Dataset, **kwargs) -> DownloadReturn:
+    def download_unpack(self, datafile: Dataset, validate, **kwargs) -> DownloadReturn:
         """
         Performs a download (through http, https) to a tempfile
         which will be cleaned automatically ; unzip targeted files to a 2nd
@@ -290,11 +291,10 @@ class MasterScraper(HttpScraper):
         hash = datafile.md5
         url = datafile.get_path_from_provider()
 
-        if url.startswith(("http", "https")):
-            func = self.download_to_tempfile_http
-
         # Download to temporary file
-        downloaded, filetype, temp_archive_file_raw = func(url, hash, **kwargs)
+        downloaded, filetype, temp_archive_file_raw = download_to_tempfile_http(
+            url, hash, validate, **kwargs
+            )
 
         if not downloaded:
             # Suppression du fichier temporaire
@@ -377,3 +377,94 @@ class MasterScraper(HttpScraper):
             "layers": layers,
             "root_cleanup": root_folder,
         }
+
+
+# FUNCTIONS USED ABOVE ------------------
+
+def validate_file(file_path, hash):
+    """
+    https://gist.github.com/mjohnsullivan/9322154
+    Validates a file against an MD5 hash value
+    :param file_path: path to the file for hash validation
+    :type file_path:  string
+    :param hash:      expected hash value of the file
+    :type hash:       string -- MD5 hash value
+    """
+    return hash_file(file_path) == hash
+
+
+def download_to_tempfile_http(url: str, hash: str = None, validate=True, **kwargs) -> tuple[bool, str]:
+
+    try:
+        del kwargs["stream"]
+    except KeyError:
+        pass
+
+    block_size = 1024 * 1024  # 1MiB
+
+    r = requests.head(url, stream=True, **kwargs)
+    head = r.headers
+
+    if not r.ok:
+        raise IOError(f"download failed with {r.status_code} code")
+
+    try:
+        expected_md5 = head["content-md5"]
+        logger.debug(f"File MD5 is {expected_md5}")
+    except KeyError:
+        expected_md5 = None
+        logger.debug(f"md5 not found in header at url {url}")
+    else:
+        if hash and expected_md5 == hash:
+            logger.info(f"md5 matched at {url} - download prevented")
+            return False, None, None
+    finally:
+        try:
+            expected_file_size = int(head["Content-length"])
+            logger.debug(f"File size is {expected_file_size}")
+        except KeyError:
+            expected_file_size = None
+            logger.debug(f"Content-Length not found in header at url {url}")
+
+    with tempfile.NamedTemporaryFile("wb", delete=False) as temp_file:
+        file_path = temp_file.name
+        logger.debug(f"Downloading to {file_path}")
+
+        r = requests.get(url, stream=True, **kwargs)
+        if not r.ok:
+            raise IOError(f"download failed with {r.status_code} code")
+
+        if expected_file_size:
+            total = int(np.ceil(expected_file_size / block_size))
+        else:
+            total = None
+        with tqdm(
+            desc="Downloading: ",
+            total=total,
+            unit="iB",
+            unit_scale=True,
+            unit_divisor=1024,
+        ) as pbar:
+            for chunk in r.iter_content(chunk_size=block_size):
+                if chunk:
+                    size = temp_file.write(chunk)
+                    pbar.update(size)
+
+    if expected_md5:
+        if not validate_file(file_path, expected_md5):
+            os.unlink(file_path)
+            raise IOError("download failed (corrupted file)")
+    elif expected_file_size:
+        if not expected_file_size == os.path.getsize(file_path):
+            os.unlink(file_path)
+            raise IOError("download failed (corrupted file)")
+
+    if validate:
+        if hash and validate_file(file_path, hash):
+            logger.debug(f"md5 matched at {url} after download")
+            os.unlink(file_path)
+            return False, None, None
+
+    filetype = magic.from_file(file_path)
+
+    return True, filetype, file_path
