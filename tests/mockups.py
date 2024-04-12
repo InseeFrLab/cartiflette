@@ -29,7 +29,7 @@ def mock_Dataset_without_s3(monkeypatch):
 def total_mock_s3(monkeypatch):
     monkeypatch.setattr(Dataset, "_get_last_md5", lambda x: None)
 
-    def mock_unpack(self, x):
+    def mock_unpack(self, x, validate=True):
         return {
             "downloaded": False,
             "layers": None,
