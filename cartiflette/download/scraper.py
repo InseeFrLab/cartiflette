@@ -60,6 +60,7 @@ class MasterScraper(requests_cache.CachedSession):
             db_path=cache_name, wal=True, check_same_thread=False
         )
 
+        # Initialisation de la session requests
         super().__init__(
             backend=backend,
             expire_after=expire_after,
@@ -76,7 +77,7 @@ class MasterScraper(requests_cache.CachedSession):
                 continue
 
     def download_unpack(
-        self, datafile: Dataset, validate=True, **kwargs
+        self, datafile: Dataset, session=None, **kwargs
     ) -> DownloadReturn:
         """
         Performs a download (through http, https) to a tempfile
@@ -99,9 +100,6 @@ class MasterScraper(requests_cache.CachedSession):
         ----------
         datafile : Dataset
             Dataset object to download.
-        validate : bool, optional
-            Set to False to avoid performing a file validation through md5.
-            Default is True.
         **kwargs :
             Optional arguments to pass to requests.Session object.
 
@@ -139,18 +137,15 @@ class MasterScraper(requests_cache.CachedSession):
 
         """
 
-        if validate:
-            hash_ = datafile.md5
-        else:
-            hash_ = None
+        hash_ = None
         url = datafile.get_path_from_provider()
-
+        
         # Download to temporary file
         (
             downloaded,
             filetype,
             temp_archive_file_raw,
-        ) = download_to_tempfile_http(url, hash_, validate, **kwargs)
+        ) = download_to_tempfile_http(url, hash_, self, **kwargs)
 
         if not downloaded:
             # Suppression du fichier temporaire

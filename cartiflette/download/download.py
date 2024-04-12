@@ -145,7 +145,6 @@ def _download_sources(
     path_within_bucket: str = PATH_WITHIN_BUCKET,
     fs: s3fs.S3FileSystem = FS,
     upload: bool = True,
-    validate: bool = True
 ) -> dict:
     # TODO : contrôler return
     """
@@ -250,7 +249,7 @@ def _download_sources(
                 path_within_bucket,
             )
             try:
-                result = s.download_unpack(datafile, validate=validate)
+                result = s.download_unpack(datafile)
             except ValueError as e:
                 logger.warning(e)
 
