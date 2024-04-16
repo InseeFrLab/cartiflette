@@ -29,7 +29,7 @@ def download_from_cartiflette_inner(
     provider: str = "IGN",
     dataset_family: str = "ADMINEXPRESS",
     source: str = "EXPRESS-COG-TERRITOIRE",
-    return_as_json: bool = False
+    return_as_json: bool = False,
 ) -> typing.Union[gpd.GeoDataFrame, str]:
     """
     Downloads and aggregates official geographic datasets using the Cartiflette API
@@ -156,10 +156,12 @@ def download_cartiflette_single(
     try:
         gdf = gpd.read_file(url)
     except Exception as e:
-        print(f"There was an error while reading the file from the URL: {url}")
-        print(f"Error message: {str(e)}")
-
-    return gdf
+        logger.error(
+            f"There was an error while reading the file from the URL: {url}"
+        )
+        logger.error(f"Error message: {str(e)}")
+    else:
+        return gdf
 
 
 # ---------------------
@@ -278,7 +280,6 @@ def download_vectorfile_single(
     )
 
     if type_download == "bucket":
-
         try:
             fs.exists(url)
         except Exception:
@@ -307,7 +308,9 @@ def download_vectorfile_single(
                     successes = []
                     for remote_file in files:
                         remote = os.path.splitext(url)[0] + f".{ext}"
-                        success, tmp = s.download_to_tempfile_http(url=remote)
+                        success, tmp = s.download_to_tempfile_http(
+                            url=remote
+                        )
                         successes.append(success)
                         shutil.copy(tmp, f"{tdir.name}/raw.{ext}")
                     local_path = f"{tdir.name}/raw.shp"
