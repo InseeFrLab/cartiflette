@@ -93,15 +93,14 @@ def test_http_download(mock_httpscraper_download_success):
 
     # Fourniture du même hash -> pas de téléchargement
     result = download_to_tempfile_http(
-        url=dummy, hash=HASH_DUMMY, session=dummy_scraper
+        url=dummy, hash_=HASH_DUMMY, session=dummy_scraper
     )
     downloaded, filetype, path = result
-    print(result)
     assert not downloaded
 
     # Fourniture d'un hash changé -> téléchargement
     result = download_to_tempfile_http(
-        url=dummy, hash="BLAH", session=dummy_scraper
+        url=dummy, hash_="BLAH", session=dummy_scraper
     )
     downloaded, filetype, path = result
     assert downloaded
