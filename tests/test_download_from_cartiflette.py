@@ -1,7 +1,7 @@
 import unittest
-from cartiflette import carti_download
 
-path_test = "test/preprod"
+from cartiflette import carti_download
+from cartiflette.config import PATH_WITHIN_BUCKET
 
 
 class TestDownloadFromCartiflette(unittest.TestCase):
@@ -15,7 +15,7 @@ class TestDownloadFromCartiflette(unittest.TestCase):
             filter_by="REGION",
             source="EXPRESS-COG-CARTO-TERRITOIRE",
             year=2022,
-            path_within_bucket=path_test,
+            path_within_bucket=PATH_WITHIN_BUCKET,
         )
 
         print(ile_de_france)
@@ -46,7 +46,7 @@ class TestDownloadFromCartiflette(unittest.TestCase):
             filter_by="REGION",
             source="EXPRESS-COG-CARTO-TERRITOIRE",
             year=2022,
-            path_within_bucket=path_test,
+            path_within_bucket=PATH_WITHIN_BUCKET,
         )
 
         # Check the properties of the resulting GeoPandas DataFrame for multiple values
@@ -69,7 +69,7 @@ class TestDownloadFromCartiflette(unittest.TestCase):
             filter_by="DEPARTEMENT",
             source="EXPRESS-COG-CARTO-TERRITOIRE",
             year=2022,
-            path_within_bucket=path_test,
+            path_within_bucket=PATH_WITHIN_BUCKET,
         )
 
         # Check the properties of the resulting GeoPandas DataFrame for commune arrondissement
