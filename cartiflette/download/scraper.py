@@ -76,9 +76,7 @@ class MasterScraper(requests_cache.CachedSession):
             except KeyError:
                 continue
 
-    def download_unpack(
-        self, datafile: Dataset, session=None, **kwargs
-    ) -> DownloadReturn:
+    def download_unpack(self, datafile: Dataset, **kwargs) -> DownloadReturn:
         """
         Performs a download (through http, https) to a tempfile
         which will be cleaned automatically ; unzip targeted files to a 2nd
@@ -139,7 +137,7 @@ class MasterScraper(requests_cache.CachedSession):
 
         hash_ = None
         url = datafile.get_path_from_provider()
-        
+
         # Download to temporary file
         (
             downloaded,
