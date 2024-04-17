@@ -34,8 +34,8 @@ logical_conditions = {
         "guadeloupe": 'UU2020.startsWith("9A")',
         "martinique": 'UU2020.startsWith("9B")',
         "guyane": 'UU2020.startsWith("9C")',
-        "reunion": 'BV2012.startsWith("9D")',
-        "mayotte": 'BV2012.startsWith("9F")',
+        "reunion": 'UU2020.startsWith("9D")',
+        "mayotte": 'UU2020.startsWith("9F")',
         "zoom idf": 1.5,
     },
     "ZONE_EMPLOI": {
