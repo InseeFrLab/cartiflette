@@ -29,6 +29,35 @@ logical_conditions = {
         "mayotte": 'BV2012.startsWith("976")',
         "zoom idf": 1.5,
     },
+    "UNITE_URBAINE": {
+        "ile de france": 'UU2020 == "00851"',
+        "guadeloupe": 'UU2020.startsWith("9A")',
+        "martinique": 'UU2020.startsWith("9B")',
+        "guyane": 'UU2020.startsWith("9C")',
+        "reunion": 'BV2012.startsWith("9D")',
+        "mayotte": 'BV2012.startsWith("9F")',
+        "zoom idf": 1.5,
+    },
+    "ZONE_EMPLOI": {
+        "ile de france": 'ZE2020 == 1109',
+        "guadeloupe": "ZE2020 >= 101 && ZE2020 <= 199",
+        "martinique": 'ZE2020 >= 201 && ZE2020 <= 299',
+        "guyane": 'ZE2020 >= 301 && ZE2020 <= 399',
+        "reunion": 'ZE2020 >= 401 && ZE2020 <= 499',
+        "mayotte": 'ZE2020 >= 601 && ZE2020 <= 699',
+        "zoom idf": 1.5,
+    },
+    "AIRE_ATTRACTION_VILLES": {
+        "ile de france": 'AAV2020 == "001"',
+        "guadeloupe": "bbox=-61.809838617769586,15.832018691051982,-61.00195903530406,16.5144923",
+        "martinique": 'bbox=-61.229041406022,14.388645936281867,-60.809689675610294,14.878723294',
+        "guyane": "bbox=-54.602415544766714,2.1110756518764164,-51.619065827085045,5.7486817",
+        "reunion": 'bbox=55.21652599769405,-21.389630761373162,55.83662922671029,-20.87182715411622',
+        "mayotte": 'bbox=45.01834084274206,-13.005416986647482,45.29999165446574,-12.636590163616876',
+        "zoom idf": 1.5,
+
+    }
+
 }
 
 
