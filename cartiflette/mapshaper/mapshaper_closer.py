@@ -93,44 +93,42 @@ def mapshaper_bring_closer(
         check=True,
     )
 
-    # Generate commands using the shift dictionary
-    commands = {}
-
     for region, shift_value in shift.items():
-        commands[region] = (
+        print(f"Processing {region}")
+        cmd = (
             f"mapshaper -i {france_vector_path} "
             f"-proj EPSG:3857 "
             f'-filter "{logical_conditions["EMPRISES"][region]}" '
             f'-affine shift={shift_value} scale={scale[region]} '
             f"-o {output_dir}/{region}.geojson"
         )
-
-    for region, cmd in commands.items():
         subprocess.run(
             cmd,
             shell=True,
             check=True,
         )
 
-        cmd_combined = (
-            f"mapshaper "
-            f"{output_dir}/metropole.geojson "
-            f"{output_dir}/idf_zoom.geojson "
-            f"{output_dir}/guadeloupe.geojson "
-            f"{output_dir}/martinique.geojson "
-            f"{output_dir}/guyane.geojson "
-            f"{output_dir}/reunion.geojson "
-            f"{output_dir}/mayotte.geojson "
-            f"snap combine-files "
-            f'-proj wgs84 init="EPSG:3857" target=* '
-            f"-rename-layers FRANCE,IDF,GDP,MTQ,GUY,REU,MAY "
-            f"-merge-layers target=FRANCE,IDF,GDP,MTQ,GUY,REU,MAY force "
-            f"-rename-layers FRANCE_TRANSFORMED "
-            f"-o {output_dir}/idf_combined.geojson "
-        )
+    cmd_combined = (
+        f"mapshaper "
+        f"{output_dir}/metropole.geojson "
+        f"{output_dir}/idf_zoom.geojson "
+        f"{output_dir}/guadeloupe.geojson "
+        f"{output_dir}/martinique.geojson "
+        f"{output_dir}/guyane.geojson "
+        f"{output_dir}/reunion.geojson "
+        f"{output_dir}/mayotte.geojson "
+        f"snap combine-files "
+        f'-proj wgs84 init="EPSG:3857" target=* '
+        f"-rename-layers FRANCE,IDF,GDP,MTQ,GUY,REU,MAY "
+        f"-merge-layers target=FRANCE,IDF,GDP,MTQ,GUY,REU,MAY force "
+        f"-rename-layers FRANCE_TRANSFORMED "
+        f"-o {output_dir}/idf_combined.geojson "
+    )
 
-        subprocess.run(
-            cmd_combined,
-            shell=True,
-            check=True,
-        )
+    subprocess.run(
+        cmd_combined,
+        shell=True,
+        check=True,
+    )
+
+    return f"{output_dir}/idf_combined.geojson"
