@@ -30,12 +30,12 @@ logical_conditions = {
         "zoom idf": 1.5,
     },
     "UNITE_URBAINE": {
-        "ile de france": 'UU2020 == "00851"',
-        "guadeloupe": 'UU2020.startsWith("9A")',
-        "martinique": 'UU2020.startsWith("9B")',
-        "guyane": 'UU2020.startsWith("9C")',
-        "reunion": 'UU2020.startsWith("9D")',
-        "mayotte": 'UU2020.startsWith("9F")',
+        "ile de france": "UU2020 == '00851'",
+        "guadeloupe": "UU2020.startsWith('9A')",
+        "martinique": "UU2020.startsWith('9B')",
+        "guyane": "UU2020.startsWith('9C')",
+        "reunion": "UU2020.startsWith('9D')",
+        "mayotte": "UU2020.startsWith('9F')",
         "zoom idf": 1.5,
     },
     "ZONE_EMPLOI": {
@@ -48,7 +48,7 @@ logical_conditions = {
         "zoom idf": 1.5,
     },
     "AIRE_ATTRACTION_VILLES": {
-        "ile de france": 'AAV2020 == "001"',
+        "ile de france": "AAV2020 == '001'",
         "guadeloupe": "bbox=-6880639.760944527,1785277.734007631,-6790707.017202182,1864381.5053494961",
         "martinique": 'bbox=-6815985.711078632,1618842.9696702233,-6769303.6899859235,1675227.3853840816',
         "guyane": "bbox=-6078313.094526156,235057.05702474713,-5746208.123095576,641016.7211362486",

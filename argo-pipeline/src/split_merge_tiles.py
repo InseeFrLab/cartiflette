@@ -50,6 +50,7 @@ args_dict = {
 
 def main(args_dict):
     logger.info("Processing with provided arguments")
+    logger.info("Arguments for mapshaperize_split_from_s3 ---> {0}".format(args_dict))
     mapshaperize_split_from_s3(args_dict)
 
     if args_dict["level_polygons"] != "COMMUNE":
