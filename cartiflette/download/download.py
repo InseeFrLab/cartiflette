@@ -114,7 +114,9 @@ def _upload_raw_dataset_to_s3(
                     errors_encountered = True
 
             if any(x.lower().endswith(".shp") for x in layer_paths):
-                layer_paths = [x for x in layer_paths if x.lower().endswith(".shp")]
+                layer_paths = [
+                    x for x in layer_paths if x.lower().endswith(".shp")
+                ]
 
             dataset_paths[key] = layer_paths
 
@@ -135,12 +137,12 @@ def _upload_raw_dataset_to_s3(
         return {}
 
 
-def _download_sources(
+def _download_and_store_sources(
     providers: Union[list[str, ...], str],
     dataset_families: Union[list[str, ...], str],
     sources: Union[list[str, ...], str],
-    territories: Union[list[str, ...], str],
     years: Union[list[str, ...], str],
+    territories: Union[list[str, ...], str] = None,
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
     fs: s3fs.S3FileSystem = FS,
@@ -162,10 +164,12 @@ def _download_sources(
         List of datasets family in the yaml file
     sources : list[str, ...]
         List of sources in the yaml file
-    territories : list[str, ...]
-        List of territoires in the yaml file
     years : list[int, ...]
         List of years in the yaml file
+    territories : list[str, ...], optional
+        List of territoires in the yaml file. The default is None (corresponds
+        to datasets where that field is absent), which will set
+        "territory=france_entiere" when uploading to the S3 FileSystem.
     bucket : str, optional
         Bucket to use. The default is BUCKET.
     path_within_bucket : str, optional
@@ -216,6 +220,10 @@ def _download_sources(
                 }
             }
     """
+
+    if not territories:
+        territories = "france_entiere"
+
     kwargs = OrderedDict()
     items = [
         ("sources", sources),
@@ -229,7 +237,11 @@ def _download_sources(
             kwargs[key] = [val]
         elif not val:
             kwargs[key] = [None]
-        elif isinstance(val, list) or isinstance(val, tuple) or isinstance(val, set):
+        elif (
+            isinstance(val, list)
+            or isinstance(val, tuple)
+            or isinstance(val, set)
+        ):
             kwargs[key] = list(val)
 
     combinations = list(product(*kwargs.values()))
@@ -283,7 +295,9 @@ def _download_sources(
                 result["paths"] = paths
 
                 this_result = {
-                    provider: {dataset_family: {source: {territory: {year: result}}}}
+                    provider: {
+                        dataset_family: {source: {territory: {year: result}}}
+                    }
                 }
 
             return this_result

@@ -3,10 +3,10 @@ import os
 from dotenv import load_dotenv
 import s3fs
 
-load_dotenv()
+load_dotenv(override=True)
 
 BUCKET = "projet-cartiflette"
-PATH_WITHIN_BUCKET = "production"
+PATH_WITHIN_BUCKET = "test"
 ENDPOINT_URL = "https://minio.lab.sspcloud.fr"
 
 kwargs = {}

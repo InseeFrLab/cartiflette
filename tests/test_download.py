@@ -11,7 +11,7 @@ from cartiflette.download.scraper import (
     validate_file,
     download_to_tempfile_http,
 )
-from cartiflette.download.download import _download_sources
+from cartiflette.download.download import _download_and_store_sources
 from cartiflette.download import download_all
 from cartiflette.utils import import_yaml_config
 from tests.conftest import (
@@ -250,9 +250,7 @@ def test_sources_yaml(mock_Dataset_without_s3):
                                     f"got code {r.status_code} on {url}"
                                 )
     if errors_type0:
-        logger.warning(
-            "Champs du YAML non testés\n" + "\n".join(errors_type0)
-        )
+        logger.warning("Champs du YAML non testés\n" + "\n".join(errors_type0))
 
     if errors_type1 + errors_type2 + errors_type3 + errors_type4:
         if errors_type1:
@@ -265,9 +263,7 @@ def test_sources_yaml(mock_Dataset_without_s3):
 
         if errors_type2:
             logger.error("=" * 50)
-            logger.error(
-                "URL non reconstituées:\n" + "\n".join(errors_type2)
-            )
+            logger.error("URL non reconstituées:\n" + "\n".join(errors_type2))
             logger.error("-" * 50)
 
         if errors_type3:
@@ -278,14 +274,11 @@ def test_sources_yaml(mock_Dataset_without_s3):
         if errors_type4:
             logger.error("=" * 50)
             logger.error(
-                "Requête HTTP avec code d'erreur:\n"
-                + "\n".join(errors_type4)
+                "Requête HTTP avec code d'erreur:\n" + "\n".join(errors_type4)
             )
             logger.error("-" * 50)
 
-    assert (
-        len(errors_type1 + errors_type2 + errors_type3 + errors_type4) == 0
-    )
+    assert len(errors_type1 + errors_type2 + errors_type3 + errors_type4) == 0
 
 
 def test_download_all(total_mock_s3):

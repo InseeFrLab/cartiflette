@@ -35,6 +35,39 @@ REFERENCES = [
 
 REFERENCES = gpd.GeoDataFrame(REFERENCES, crs=4326)
 
+# DOWNLOAD_PIPELINE_ARGS = {
+#     "ADMIN-EXPRESS": [
+#         "IGN",
+#         "ADMINEXPRESS",
+#         "EXPRESS-COG-TERRITOIRE",
+#         [
+#             "guadeloupe",
+#             "martinique",
+#             "guyane",
+#             "reunion",
+#             "mayotte",
+#             "metropole",
+#         ],
+#     ],
+#     "BDTOPO": ["IGN", "BDTOPO", "ROOT", "france_entiere"],
+#     "IRIS": ["IGN", "CONTOUR-IRIS", "ROOT", None],
+#     "COG": [
+#         "Insee",
+#         "COG",
+#         [
+#             "COMMUNE",
+#             "CANTON",
+#             "ARRONDISSEMENT",
+#             "DEPARTEMENT",
+#             "REGION",
+#             "COLLECTIVITE",
+#             "PAYS",
+#         ],
+#         "france_entiere",
+#     ],
+#     "BV 2022": ["Insee", "BV", "FondsDeCarte_BV_2022", "france_entiere"],
+# }
+
 DOWNLOAD_PIPELINE_ARGS = {
     "ADMIN-EXPRESS": [
         "IGN",
@@ -49,25 +82,19 @@ DOWNLOAD_PIPELINE_ARGS = {
             "metropole",
         ],
     ],
-    "BDTOPO": ["IGN", "BDTOPO", "ROOT", "france_entiere"],
-    "IRIS": ["IGN", "CONTOUR-IRIS", "ROOT", None],
     "COG": [
         "Insee",
         "COG",
         [
-            "COMMUNE",
-            "CANTON",
-            "ARRONDISSEMENT",
+            # "COMMUNE",
+            # "CANTON",
+            # "ARRONDISSEMENT",
             "DEPARTEMENT",
             "REGION",
-            "COLLECTIVITE",
-            "PAYS",
+            # "COLLECTIVITE",
+            # "PAYS",
         ],
         "france_entiere",
     ],
-    "BV 2022": ["Insee", "BV", "FondsDeCarte_BV_2022", "france_entiere"],
+    "TAGC": ["Insee", "TAGC", "APPARTENANCE"],
 }
-
-# EXPRESS-COG ?
-# EXPRESS-COG-CARTO-TERRITOIRE ?
-# EXPRESS-COG-CARTO ?

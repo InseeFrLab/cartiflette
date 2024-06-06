@@ -1,4 +1,4 @@
-from cartiflette.download.download import _download_sources
+from cartiflette.download.download import _download_and_store_sources
 from cartiflette.utils import create_path_bucket, official_epsg_codes
 from cartiflette.config import PATH_WITHIN_BUCKET
 
@@ -43,7 +43,7 @@ def upload_s3_raw(
 
     """
 
-    x = _download_sources(
+    x = _download_and_store_sources(
         upload=True,
         providers=provider,
         dataset_families=dataset_family,
@@ -55,6 +55,9 @@ def upload_s3_raw(
 
     rawpaths = x[provider][dataset_family][source][territory][year]["paths"]
 
+    # TODO : vérifier si c'est vraiment nécessaire d'avoir cette couche ?
+    # Ou alors faire un refacto de _download_and_store_sources pour obtenir
+    # directement ce résultat ?
     if rawpaths is None:
         path_raw_s3 = create_path_bucket(
             {

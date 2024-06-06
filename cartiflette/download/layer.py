@@ -63,14 +63,18 @@ class Layer:
         return self.__str__()
 
     def _get_format(self):
-        if any(x.lower().split(".")[-1] == "shp" for x in self.files_to_upload):
+        if any(
+            x.lower().split(".")[-1] == "shp" for x in self.files_to_upload
+        ):
             self.format = "shp"
         else:
             # assume there is only one file
             self.format = list(self.files_to_upload)[0].split(".")[-1]
 
     def _get_encoding(self):
-        ref_cpg_file = [x for x in self.files if x.lower().split(".")[-1] == "cpg"]
+        ref_cpg_file = [
+            x for x in self.files if x.lower().split(".")[-1] == "cpg"
+        ]
         try:
             ref_cpg_file = ref_cpg_file[0]
         except IndexError:
@@ -81,7 +85,9 @@ class Layer:
         return encoding.lower()
 
     def _get_gis_file(self):
-        ref_gis_file = [x for x in self.files if x.lower().split(".")[-1] == "shp"]
+        ref_gis_file = [
+            x for x in self.files if x.lower().split(".")[-1] == "shp"
+        ]
         try:
             ref_gis_file = ref_gis_file[0]
         except IndexError:
@@ -96,7 +102,15 @@ class Layer:
         ref_gis_file = self._get_gis_file()
         try:
             # Note : read all rows to evaluate bbox / territory
+
+            # Disable fiona logger
+            fiona_logger = logging.getLogger("fiona")
+            init = fiona_logger.level
+            fiona_logger.setLevel(logging.CRITICAL)
             gdf = gpd.read_file(ref_gis_file, **kwargs)
+
+            fiona_logger.setLevel(init)
+
             self.crs = gdf.crs.to_epsg()
 
             if not self.crs:
@@ -114,7 +128,8 @@ class Layer:
 
             elif encoding and encoding != "utf-8":
                 logger.warning(
-                    f"{self} - encoding={encoding}, " "layer will be re-encoded to UTF8"
+                    f"{self} - encoding={encoding}, "
+                    "layer will be re-encoded to UTF8"
                 )
                 # let's overwrite initial files with utf8...
                 gdf.to_file(ref_gis_file, encoding="utf-8")
@@ -122,6 +137,7 @@ class Layer:
         except (AttributeError, fiona.errors.DriverError):
             # Non-native-GIS dataset
             self.crs = None
+            fiona_logger.setLevel(init)
 
         if self.crs:
             bbox = box(*gdf.total_bounds)
