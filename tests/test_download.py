@@ -6,7 +6,11 @@ import requests_cache
 import logging
 
 from cartiflette.download.dataset import Dataset
-from cartiflette.download.scraper import MasterScraper
+from cartiflette.download.scraper import (
+    MasterScraper,
+    validate_file,
+    download_to_tempfile_http,
+)
 from cartiflette.download.download import _download_sources
 from cartiflette.download import download_all
 from cartiflette.utils import import_yaml_config
@@ -45,8 +49,8 @@ def test_file_validation():
     """
     test la validation des fichiers (méthode statique)
     """
-    assert MasterScraper.__validate_file__(DUMMY_FILE_1, HASH_DUMMY)
-    assert not MasterScraper.__validate_file__(DUMMY_FILE_2, HASH_DUMMY)
+    assert validate_file(DUMMY_FILE_1, HASH_DUMMY)
+    assert not validate_file(DUMMY_FILE_2, HASH_DUMMY)
 
 
 def test_http_proxy():
@@ -80,7 +84,7 @@ def test_http_proxy():
 
 def test_http_download(mock_httpscraper_download_success):
     """
-    test de self.download_to_tempfile_http
+    test de download_to_tempfile_http
     """
 
     # Initialisation
@@ -88,19 +92,21 @@ def test_http_download(mock_httpscraper_download_success):
     dummy = "https://dummy"
 
     # Fourniture du même hash -> pas de téléchargement
-    result = dummy_scraper.download_to_tempfile_http(
-        url=dummy, hash=HASH_DUMMY
+    result = download_to_tempfile_http(
+        url=dummy, hash_=HASH_DUMMY, session=dummy_scraper
     )
     downloaded, filetype, path = result
     assert not downloaded
 
     # Fourniture d'un hash changé -> téléchargement
-    result = dummy_scraper.download_to_tempfile_http(url=dummy, hash="BLAH")
+    result = download_to_tempfile_http(
+        url=dummy, hash_="BLAH", session=dummy_scraper
+    )
     downloaded, filetype, path = result
     assert downloaded
 
     # Pas de hash fourni : valide le fichier a posteriori avec sa longueur
-    result = dummy_scraper.download_to_tempfile_http(url=dummy)
+    result = download_to_tempfile_http(url=dummy, session=dummy_scraper)
     downloaded, filetype, path = result
     assert downloaded
     assert path
@@ -116,7 +122,7 @@ def test_download_ko_length(
     """
     dummy_scraper = MasterScraper()
     with pytest.raises(IOError):
-        result = dummy_scraper.download_to_tempfile_http("dummy")
+        result = download_to_tempfile_http("dummy", session=dummy_scraper)
 
 
 def test_download_ko_md5(
@@ -129,15 +135,7 @@ def test_download_ko_md5(
     """
     dummy_scraper = MasterScraper()
     with pytest.raises(IOError):
-        result = dummy_scraper.download_to_tempfile_http("dummy")
-
-
-# def test_ftp_download():
-#     """
-#     download_to_tempfile_ftp
-#     """
-#     # TODO
-#     pass
+        result = download_to_tempfile_http("dummy", session=dummy_scraper)
 
 
 # def test_MasterScraper_ko():
@@ -190,11 +188,8 @@ def test_sources_yaml(mock_Dataset_without_s3):
                                 f"yaml {str_yaml} contains '{source_yaml}'"
                             )
                             continue
-                    elif "FTP" in set(source_yaml.keys()):
-                        logger.info("yaml {str_yaml} not checked (FTP)")
-                        continue
 
-                    years = set(source_yaml.keys()) - {"territory", "FTP"}
+                    years = set(source_yaml.keys()) - {"territory"}
                     try:
                         territories = set(source_yaml["territory"].keys())
                     except KeyError:
@@ -255,7 +250,9 @@ def test_sources_yaml(mock_Dataset_without_s3):
                                     f"got code {r.status_code} on {url}"
                                 )
     if errors_type0:
-        logger.warning("Champs du YAML non testés\n" + "\n".join(errors_type0))
+        logger.warning(
+            "Champs du YAML non testés\n" + "\n".join(errors_type0)
+        )
 
     if errors_type1 + errors_type2 + errors_type3 + errors_type4:
         if errors_type1:
@@ -268,7 +265,9 @@ def test_sources_yaml(mock_Dataset_without_s3):
 
         if errors_type2:
             logger.error("=" * 50)
-            logger.error("URL non reconstituées:\n" + "\n".join(errors_type2))
+            logger.error(
+                "URL non reconstituées:\n" + "\n".join(errors_type2)
+            )
             logger.error("-" * 50)
 
         if errors_type3:
@@ -279,11 +278,14 @@ def test_sources_yaml(mock_Dataset_without_s3):
         if errors_type4:
             logger.error("=" * 50)
             logger.error(
-                "Requête HTTP avec code d'erreur:\n" + "\n".join(errors_type4)
+                "Requête HTTP avec code d'erreur:\n"
+                + "\n".join(errors_type4)
             )
             logger.error("-" * 50)
 
-    assert len(errors_type1 + errors_type2 + errors_type3 + errors_type4) == 0
+    assert (
+        len(errors_type1 + errors_type2 + errors_type3 + errors_type4) == 0
+    )
 
 
 def test_download_all(total_mock_s3):
