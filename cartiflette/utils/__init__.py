@@ -17,7 +17,7 @@ from .hash import hash_file
 from .dict_update import deep_dict_update
 
 from .csv_magic import magic_csv_reader
-from .create_path_bucket import create_path_bucket
+from .create_path_bucket import create_path_bucket, ConfigDict
 from .standardize_inputs import standardize_inputs
 
 
