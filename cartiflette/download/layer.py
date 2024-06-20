@@ -17,7 +17,7 @@ class Layer:
         """
         Layer present in a dataset. A layer is defined by a distinctive
         combination of path and basename (without extension). To that effect,
-        each auxialary file associated to a shapefile shall be present in the
+        each auxiliary file associated to a shapefile shall be present in the
         same layer.
 
         Nota : distinction between selected and unselected files in `files`
