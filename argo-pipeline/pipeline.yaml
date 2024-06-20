@@ -255,7 +255,7 @@ spec:
             path: /mnt/bin
             git:
               repo: https://github.com/inseefrlab/cartiflette
-              revision: "main"
+              revision: "feat/refacto_pipeline_first_steps"
       container:
         image: inseefrlab/cartiflette
         command: [sh, -c]
