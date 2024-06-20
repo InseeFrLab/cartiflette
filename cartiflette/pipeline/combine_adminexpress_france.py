@@ -1,60 +1,73 @@
+import os
+import re
 import subprocess
 
-from cartiflette.config import FS, PATH_WITHIN_BUCKET
-from cartiflette.utils import import_yaml_config
-from cartiflette.mapshaper import mapshaper_convert_mercator
-from cartiflette.s3 import upload_s3_raw
-from .prepare_mapshaper import prepare_local_directory_mapshaper
+
+from cartiflette.config import FS, BUCKET, PATH_WITHIN_BUCKET
+from cartiflette.s3 import BaseGISDataset
+
+
+COMPILED_YEAR = re.compile("year=([0-9]{4})")
+COMPILED_TERRITORY = re.compile("territory=([a-z]*)/", flags=re.IGNORECASE)
 
 
 def combine_adminexpress_territory(
-    intermediate_dir="temp", path_within_bucket=PATH_WITHIN_BUCKET, fs=FS
+    intermediate_dir="temp",
+    bucket=BUCKET,
+    path_within_bucket=PATH_WITHIN_BUCKET,
+    fs=FS,
 ):
-    local_dir = intermediate_dir
-    format_intermediate = "geojson"
-
-    yaml = import_yaml_config()
-
-    list_territories = yaml["IGN"]["ADMINEXPRESS"]["EXPRESS-COG-TERRITOIRE"][
-        "territory"
-    ].keys()
-
-    list_location_raw = {
-        territ: upload_s3_raw(
-            path_within_bucket=path_within_bucket, year=2022, territory=territ
-        )
-        for territ in list_territories
+    config = {
+        "bucket": BUCKET,
+        "path_within_bucket": PATH_WITHIN_BUCKET,
+        "provider": "IGN",
+        "dataset_family": "ADMINEXPRESS",
+        "source": "EXPRESS-COG-TERRITOIRE",
+        "borders": None,
+        "crs": "*",
+        "filter_by": "origin",
+        "value": "raw",
+        "vectorfile_format": "shp",
+        "simplification": 0,
+        "intermediate_dir": intermediate_dir,
     }
-
-    for territory, path_bucket in list_location_raw.items():
-        prepare_local_directory_mapshaper(
-            path_bucket,
-            borders="COMMUNE",
-            territory=territory,
-            niveau_agreg="COMMUNE",
-            format_output="geojson",
-            simplification=0,
-            local_dir=local_dir,
-            fs=fs,
-        )
-
-    for territ in list_territories:
-        mapshaper_convert_mercator(
-            local_dir=local_dir, territory=territ, identifier=territ
-        )
-
-    output_path = f"{local_dir}/preprocessed_combined/raw.{format_intermediate}"
-
-    subprocess.run(
-        (
-            f"mapshaper -i {local_dir}/preprocessed/*.geojson combine-files name='COMMUNE' "
-            f"-proj EPSG:4326 "
-            f"-merge-layers "
-            f"-o {output_path} "
-            f'format={format_intermediate} extension=".{format_intermediate}" singles'
-        ),
-        shell=True,
-        check=True,
+    path = (
+        f"{bucket}/{path_within_bucket}/"
+        "provider=IGN/dataset_family=ADMINEXPRESS/"
+        "source=EXPRESS-COG-TERRITOIRE/**/COMMUNE.*"
     )
 
+    format_intermediate = "geojson"
+
+    communes_paths = fs.glob(path)
+    dirs = {os.path.dirname(x) for x in communes_paths}
+    years = {y for x in dirs for y in COMPILED_YEAR.findall(x)}
+    territories = {t for x in dirs for t in COMPILED_TERRITORY.findall(x)}
+
+    for year in years:
+        for territory in territories:
+            with BaseGISDataset(
+                year=year, territory=territory, **config
+            ) as dset:
+                dset.to_mercator()
+
+        output_path = f"{intermediate_dir}/preprocessed_combined/raw.{format_intermediate}"
+
+        subprocess.run(
+            (
+                f"mapshaper -i {intermediate_dir}/preprocessed/*.geojson combine-files name='COMMUNE' "
+                f"-proj EPSG:4326 "
+                f"-merge-layers "
+                f"-o {output_path} "
+                f'format={format_intermediate} extension=".{format_intermediate}" singles'
+            ),
+            shell=True,
+            check=True,
+        )
+        raise Exception("Stopping here !")
+
     return output_path
+
+
+if __name__ == "__main__":
+    combine_adminexpress_territory()
