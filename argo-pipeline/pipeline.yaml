@@ -26,7 +26,7 @@ spec:
       dag:
         tasks:
           - name: download-all-sources
-            templace: download-all-sources
+            template: download-all-sources
             
           # STEP 0: RETRIEVE IGN FILE AND DUPLICATE IN MINIO
           - name: duplicate-ign
