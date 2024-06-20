@@ -25,9 +25,14 @@ spec:
 
       dag:
         tasks:
+          - name: download-all-sources
+            templace: download-all-sources
+            
           # STEP 0: RETRIEVE IGN FILE AND DUPLICATE IN MINIO
           - name: duplicate-ign
             template: duplicate-ign
+            dependencies: [ download-all-sources ]
+            
           - name: test-volume
             template: test-volume
             dependencies: [ duplicate-ign ]
@@ -248,7 +253,7 @@ spec:
   # ---------------------------
 
   # First step: retrieving and duplicating IGN tiles ------------------
-    - name: duplicate-ign
+    - name: download-all-sources
       inputs:
         artifacts:
           - name: code
@@ -263,7 +268,7 @@ spec:
                 mkdir -p $LOCAL_DATA_PATH ;
                 mkdir -p /mnt/bin/src ;
                 mv /mnt/bin/argo-pipeline/src/* /mnt/bin/src ;
-                python /mnt/bin/src/duplicate_in_bucket.py --path $PATH_WRITING_S3 --localpath $LOCAL_DATA_PATH ;
+                python /mnt/bin/src/download_all_sources.py --path $PATH_WRITING_S3 --localpath $LOCAL_DATA_PATH ;
                 "]
         volumeMounts:
           - name: volume-workflow-tmp
@@ -291,6 +296,19 @@ spec:
             value: minio.lab.sspcloud.fr
           - name: MC_HOST_s3
             value: https://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$AWS_S3_ENDPOINT
+
+    - name: duplicate-ign
+      container:
+        image: inseefrlab/cartiflette
+        command: [sh, -c]
+        volumeMounts:
+          - name: volume-workflow-tmp
+            mountPath: /mnt
+        args: ["
+                python /mnt/bin/src/duplicate_in_bucket.py --path $PATH_WRITING_S3 --localpath $LOCAL_DATA_PATH ;
+                "]
+        env: *env_parameters
+          
 
     - name: test-volume
       container:

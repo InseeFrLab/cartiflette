@@ -37,8 +37,6 @@ os.makedirs(local_path, exist_ok=True)
 
 
 def main(path_within_bucket, localpath, bucket=BUCKET, year=year):
-    paths = download_all(bucket, path_within_bucket, fs=fs, upload=True)
-
     # TODO : voir où effectuer les jointures type banatic, etc.
 
     # TODO : passer les chemins directement à combine_adminexpress_territory
