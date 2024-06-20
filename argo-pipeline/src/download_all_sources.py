@@ -1,12 +1,34 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""
+First step of pipeline
+
+Performs a full pipeline to download data and store them on MinIO. The
+target files are described in cartiflette/constants.py under the
+constant DOWNLOAD_PIPELINE_ARGS. Those files' characteristics must also be
+described in the cartiflette/utils/sources.yaml file.
+
+Note: to perform an easy debugging task, please overwrite
+cartiflette.config.THREADS_DOWNLOAD to 1 (to avoid multithreading which
+could be gruesome to debug).
+
+During the operation:
+    * GIS files should be reprojected to 4326 if curent projection has no EPSG
+      code
+    * each file should be re-encoded in UTF-8
+
+"""
 
 import argparse
 import os
 
 from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
-
 from cartiflette.download import download_all
+
+print("=" * 50)
+print(__doc__)
+print("=" * 50)
+
 
 # Initialize ArgumentParser
 parser = argparse.ArgumentParser(
@@ -30,5 +52,4 @@ fs = FS
 
 os.makedirs(local_path, exist_ok=True)
 
-# PART 1/ COMBINE RAW FILES TOGETHER AND WRITE TO S3
 paths = download_all(bucket, path_within_bucket, fs=fs, upload=True)
