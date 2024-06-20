@@ -1,7 +1,7 @@
 """Module for communication with Minio S3 Storage
 """
 
-from typing import Optional, TypedDict
+from typing import Optional, TypedDict, Union
 
 from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET
 
@@ -13,13 +13,16 @@ class ConfigDict(TypedDict):
     bucket: Optional[str]
     path_within_bucket: Optional[str]
     provider: str
+    dataset_family: str
     source: str
-    vectorfile_format: str
-    borders: str
-    filter_by: str
     year: str
-    crs: Optional[int]
+    borders: str
+    crs: Optional[Union[int, str]]
+    filter_by: str
     value: str
+    vectorfile_format: str
+    territory: str
+    simplification: Optional[Union[int, str]]
 
 
 def create_path_bucket(config: ConfigDict) -> str:
@@ -44,16 +47,15 @@ def create_path_bucket(config: ConfigDict) -> str:
     path_within_bucket = config.get("path_within_bucket", PATH_WITHIN_BUCKET)
 
     provider = config.get("provider")
-    source = config.get("source")
-
-    vectorfile_format = config.get("vectorfile_format")
-    borders = config.get("borders")
     dataset_family = config.get("dataset_family")
-    territory = config.get("territory")
-    filter_by = config.get("filter_by")
+    source = config.get("source")
     year = config.get("year")
-    value = config.get("value")
+    borders = config.get("borders")
     crs = config.get("crs", 2154)
+    filter_by = config.get("filter_by")
+    value = config.get("value")
+    vectorfile_format = config.get("vectorfile_format")
+    territory = config.get("territory")
     simplification = config.get("simplification", 0)
 
     if simplification is None:
