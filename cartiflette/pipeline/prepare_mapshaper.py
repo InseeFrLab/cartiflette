@@ -1,7 +1,10 @@
 import os
 
 from cartiflette.config import FS
-from cartiflette.s3 import list_raw_files_level, download_files_from_list
+from cartiflette.s3.list_files_s3 import (
+    list_raw_files_level,
+    download_files_from_list,
+)
 
 
 def prepare_local_directory_mapshaper(
@@ -52,5 +55,8 @@ def prepare_local_directory_mapshaper(
         f"{local_dir}/{niveau_agreg}/{format_output}/{simplification=}"
     )
     os.makedirs(local_path_destination, exist_ok=True)
-    paths = {"path_origin": local_dir, "path_destination": local_path_destination}
+    paths = {
+        "path_origin": local_dir,
+        "path_destination": local_path_destination,
+    }
     return paths
