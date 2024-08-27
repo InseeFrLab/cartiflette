@@ -34,6 +34,7 @@ class BaseGISDataset:
         self.local_dir = intermediate_dir
 
     def get_path_of_dataset(self):
+        "retrieve dataset's full path (including auxiliary files for shp)"
         path = os.path.dirname(create_path_bucket(self.config))
         search = os.path.join(path, "**/*")
         self.files = self.fs.glob(search)
@@ -44,6 +45,7 @@ class BaseGISDataset:
         return os.path.dirname(self.files[0])
 
     def to_local_folder_for_mapshaper(self):
+        "download to local dir and prepare for use with mapshaper"
         prepare_local_directory_mapshaper(
             self.s3_dirpath,
             borders="COMMUNE",
@@ -64,6 +66,7 @@ class BaseGISDataset:
         pass
 
     def to_mercator(self):
+        "project to mercator using mapshaper"
         mapshaper_convert_mercator(
             local_dir=self.local_dir,
             territory=self.config["territory"],
@@ -71,20 +74,20 @@ class BaseGISDataset:
         )
 
 
-if __name__ == "__main__":
-    with BaseGISDataset(
-        bucket=BUCKET,
-        path_within_bucket=PATH_WITHIN_BUCKET,
-        provider="IGN",
-        dataset_family="ADMINEXPRESS",
-        source="EXPRESS-COG-TERRITOIRE",
-        year=2024,
-        borders=None,
-        crs="*",
-        filter_by="origin",
-        value="raw",
-        vectorfile_format="shp",
-        territory="mayotte",
-        simplification=0,
-    ) as dset:
-        dset.to_mercator()
+# if __name__ == "__main__":
+#     with BaseGISDataset(
+#         bucket=BUCKET,
+#         path_within_bucket=PATH_WITHIN_BUCKET,
+#         provider="IGN",
+#         dataset_family="ADMINEXPRESS",
+#         source="EXPRESS-COG-TERRITOIRE",
+#         year=2024,
+#         borders=None,
+#         crs="*",
+#         filter_by="origin",
+#         value="raw",
+#         vectorfile_format="shp",
+#         territory="mayotte",
+#         simplification=0,
+#     ) as dset:
+#         dset.to_mercator()
