@@ -1,14 +1,29 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Second step of pipeline
+
+Retrieve all territorial cities' files and merge those into single files
+for each vintage. Add additional metadata from COG.
+"""
+
 import argparse
+import json
 import os
+import shutil
 
 from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
 from cartiflette.utils import create_path_bucket
+
 from cartiflette.pipeline.combine_adminexpress_france import (
     combine_adminexpress_territory,
 )
+
 from cartiflette.pipeline.prepare_cog_metadata import prepare_cog_metadata
 
-from cartiflette.download import download_all
+print("=" * 50)
+print(__doc__)
+print("=" * 50)
 
 # Initialize ArgumentParser
 parser = argparse.ArgumentParser(
@@ -28,7 +43,6 @@ bucket = BUCKET
 path_within_bucket = args.path
 local_path = args.localpath
 
-year = 2022
 fs = FS
 
 os.makedirs(local_path, exist_ok=True)
@@ -36,48 +50,84 @@ os.makedirs(local_path, exist_ok=True)
 # PART 1/ COMBINE RAW FILES TOGETHER AND WRITE TO S3
 
 
-def main(path_within_bucket, localpath, bucket=BUCKET, year=year):
+def main(
+    path_within_bucket,
+    localpath,
+    bucket=BUCKET,
+    year: int = None,
+):
     # TODO : voir où effectuer les jointures type banatic, etc.
 
-    # TODO : passer les chemins directement à combine_adminexpress_territory
-    path_combined_files = combine_adminexpress_territory(
-        path_within_bucket=path_within_bucket, intermediate_dir=localpath
-    )
-
-    path_raw_s3 = create_path_bucket(
-        {
-            "bucket": bucket,
-            "path_within_bucket": path_within_bucket,
-            "year": year,
-            "borders": "france",
-            "crs": 4326,
-            "filter_by": "preprocessed",
-            "value": "before_cog",
-            "vectorfile_format": "geojson",
-            "provider": "IGN",
-            "dataset_family": "ADMINEXPRESS",
-            "source": "EXPRESS-COG-CARTO-TERRITOIRE",
-            "territory": "france",
-            "filename": "raw.geojson",
-            "simplification": 0,
+    if not year:
+        # Perform on all years
+        json_md5 = f"{bucket}/{path_within_bucket}/md5.json"
+        with fs.open(json_md5, "r") as f:
+            all_md5 = json.load(f)
+        datasets = all_md5["IGN"]["ADMINEXPRESS"]["EXPRESS-COG-TERRITOIRE"]
+        years = {
+            year
+            for (_territory, vintaged_datasets) in datasets.items()
+            for year in vintaged_datasets.keys()
         }
-    )
 
-    fs.put_file(path_combined_files, path_raw_s3)
+    else:
+        years = [year]
 
-    # Retrieve COG metadata
-    tagc_metadata = prepare_cog_metadata(
-        path_within_bucket, local_dir=localpath
-    )
-    tagc_metadata.drop(columns=["LIBGEO"]).to_csv(f"{localpath}/tagc.csv")
+    for year in years:
+        print(f"Merging territorial files of cities for {year=}")
+        print("-" * 50)
 
-    data = {
-        "preprocessed": path_combined_files,
-        "metadata": f"{localpath}/tagc.csv",
-    }
+        try:
+            # Merge all territorial cities files into a single file
+            path_combined_files = combine_adminexpress_territory(
+                year=year,
+                path_within_bucket=path_within_bucket,
+                intermediate_dir=localpath,
+                bucket=bucket,
+                fs=fs,
+            )
+
+            # Upload file to S3 file system
+            path_raw_s3 = create_path_bucket(
+                {
+                    "bucket": bucket,
+                    "path_within_bucket": path_within_bucket,
+                    "year": year,
+                    "borders": "france",
+                    "crs": 4326,
+                    "filter_by": "preprocessed",
+                    "value": "before_cog",
+                    "vectorfile_format": "geojson",
+                    "provider": "IGN",
+                    "dataset_family": "ADMINEXPRESS",
+                    "source": "EXPRESS-COG-CARTO-TERRITOIRE",
+                    "territory": "france",
+                    "filename": "raw.geojson",
+                    "simplification": 0,
+                }
+            )
+
+            fs.put_file(path_combined_files, path_raw_s3)
+
+        except Exception:
+            raise
+        finally:
+            # clean up tempfiles whatever happens
+            shutil.rmtree(localpath, ignore_errors=True)
+
+        # Retrieve COG metadata
+        tagc_metadata = prepare_cog_metadata(
+            path_within_bucket, local_dir=localpath
+        )
+        tagc_metadata.drop(columns=["LIBGEO"]).to_csv(f"{localpath}/tagc.csv")
+
+        data = {
+            "preprocessed": path_combined_files,
+            "metadata": f"{localpath}/tagc.csv",
+        }
 
     return data
 
 
 if __name__ == "__main__":
-    main(path_within_bucket, localpath=local_path)
+    js = main(path_within_bucket, localpath=local_path)
