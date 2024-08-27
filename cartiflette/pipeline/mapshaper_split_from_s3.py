@@ -4,7 +4,12 @@ import shutil
 from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
 from cartiflette.utils import create_path_bucket
 from cartiflette.mapshaper import mapshaperize_split, mapshaperize_split_merge
-from .prepare_mapshaper import prepare_local_directory_mapshaper
+
+# from cartiflette.pipeline.prepare_mapshaper import (
+#     prepare_local_directory_mapshaper,
+# )
+
+from cartiflette.s3.dataset import BaseGISDataset
 
 
 def mapshaperize_split_from_s3(config, fs=FS):
@@ -45,7 +50,9 @@ def mapshaperize_split_from_s3(config, fs=FS):
         }
     )
 
-    fs.download(path_raw_s3_combined, "temp/preprocessed_combined/COMMUNE.geojson")
+    fs.download(
+        path_raw_s3_combined, "temp/preprocessed_combined/COMMUNE.geojson"
+    )
 
     output_path = mapshaperize_split(
         local_dir=local_dir,
@@ -122,40 +129,28 @@ def mapshaperize_merge_split_from_s3(config, fs=FS):
         }
     )
 
-    fs.download(path_raw_s3_combined, "temp/preprocessed_combined/COMMUNE.geojson")
-
-    path_raw_s3_arrondissement = create_path_bucket(
-        {
-            "bucket": bucket,
-            "path_within_bucket": path_within_bucket,
-            "year": year,
-            "borders": None,
-            "crs": 2154,
-            "filter_by": "origin",
-            "value": "raw",
-            "vectorfile_format": "shp",
-            "provider": "IGN",
-            "dataset_family": "ADMINEXPRESS",
-            "source": "EXPRESS-COG-CARTO-TERRITOIRE",
-            "territory": "metropole",
-            "filename": "ARRONDISSEMENT_MUNICIPAL.shp",
-            "simplification": 0,
-        }
+    fs.download(
+        path_raw_s3_combined, "temp/preprocessed_combined/COMMUNE.geojson"
     )
 
-    path_raw_s3_arrondissement = path_raw_s3_arrondissement.rsplit("/", maxsplit=1)[0]
-
-    # retrieve arrondissement
-    prepare_local_directory_mapshaper(
-        path_raw_s3_arrondissement,
-        borders="ARRONDISSEMENT_MUNICIPAL",
+    with BaseGISDataset(
+        fs=fs,
+        intermediate_dir="temp",
+        bucket=bucket,
+        path_within_bucket=path_within_bucket,
+        provider="IGN",
+        dataset_family="ADMINEXPRESS",
+        source="EXPRESS-COG-CARTO-TERRITOIRE",
+        year=year,
+        borders=None,
+        crs=2154,
+        filter_by="origin",
+        value="raw",
+        vectorfile_format="shp",
         territory="metropole",
-        niveau_agreg=filter_by,
-        format_output="topojson",
-        simplification=simplification,
-        local_dir="temp",
-        fs=FS,
-    )
+        simplification=0,
+    ) as dset:
+        dset.to_local_folder_for_mapshaper()
 
     output_path = mapshaperize_split_merge(
         local_dir=local_dir,
