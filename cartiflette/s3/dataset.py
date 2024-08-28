@@ -71,7 +71,7 @@ class BaseGISDataset:
             local_dir=self.local_dir,
             territory=self.config["territory"],
             identifier=self.config["territory"],
-            format_intermediate="geojson",
+            format_intermediate=format_intermediate,
         )
 
 
