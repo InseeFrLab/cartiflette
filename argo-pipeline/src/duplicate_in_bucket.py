@@ -73,6 +73,8 @@ def main(
     else:
         years = [year]
 
+    format_intermediate = "topojson"
+
     for year in years:
         print("-" * 50)
         print(f"Merging territorial files of cities for {year=}")
@@ -84,6 +86,7 @@ def main(
                 year=year,
                 path_within_bucket=path_within_bucket,
                 intermediate_dir=localpath,
+                format_intermediate=format_intermediate,
                 bucket=bucket,
                 fs=fs,
             )
@@ -102,12 +105,12 @@ def main(
                     "crs": 4326,
                     "filter_by": "preprocessed",
                     "value": "before_cog",
-                    "vectorfile_format": "geojson",
+                    "vectorfile_format": format_intermediate,
                     "provider": "IGN",
                     "dataset_family": "ADMINEXPRESS",
                     "source": "EXPRESS-COG-CARTO-TERRITOIRE",
                     "territory": "france",
-                    "filename": "raw.geojson",
+                    "filename": f"raw.{format_intermediate}",
                     "simplification": 0,
                 }
             )
