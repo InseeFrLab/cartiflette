@@ -80,6 +80,8 @@ def combine_adminexpress_territory(
     if not territories:
         return
 
+    print("\n" + "\n".join(territories))
+
     try:
         for territory in territories:
             with BaseGISDataset(
