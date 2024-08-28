@@ -92,6 +92,8 @@ def combine_adminexpress_territory(
             f"{intermediate_dir}/{year}/preprocessed_combined/"
             f"raw.{format_intermediate}"
         )
+        
+        
 
         subprocess.run(
             (
@@ -101,7 +103,7 @@ def combine_adminexpress_territory(
                 f"-merge-layers "
                 f"-o {output_path} "
                 f"format={format_intermediate} "
-                'extension=".{format_intermediate}" singles'
+                f'extension=".{format_intermediate}" singles'
             ),
             shell=True,
             check=True,
