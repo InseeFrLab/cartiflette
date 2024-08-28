@@ -91,7 +91,7 @@ def combine_adminexpress_territory(
                 territory=territory,
                 **config,
             ) as dset:
-                dset.to_mercator()
+                dset.to_mercator(format_intermediate=format_intermediate)
 
         output_path = (
             f"{intermediate_dir}/{year}/preprocessed_combined/"
@@ -100,7 +100,8 @@ def combine_adminexpress_territory(
 
         subprocess.run(
             (
-                f"mapshaper -i {intermediate_dir}/{year}/preprocessed/*.geojson"
+                f"mapshaper -i {intermediate_dir}/{year}/preprocessed/"
+                f"*.{format_intermediate}"
                 " combine-files name='COMMUNE' "
                 f"-proj EPSG:4326 "
                 f"-merge-layers "

@@ -65,12 +65,13 @@ class BaseGISDataset:
         shutil.rmtree(os.path.join(self.local_dir, self.config["territory"]))
         pass
 
-    def to_mercator(self):
+    def to_mercator(self, format_intermediate: str = "geojson"):
         "project to mercator using mapshaper"
         mapshaper_convert_mercator(
             local_dir=self.local_dir,
             territory=self.config["territory"],
             identifier=self.config["territory"],
+            format_intermediate="geojson",
         )
 
 
