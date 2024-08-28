@@ -71,7 +71,7 @@ def combine_adminexpress_territory(
         "**/COMMUNE.*"
     )
 
-    format_intermediate = "geojson"
+    format_intermediate = "topojson"
 
     communes_paths = fs.glob(path)
     dirs = {os.path.dirname(x) for x in communes_paths}
