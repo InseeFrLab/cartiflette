@@ -74,6 +74,7 @@ def main(
         years = [year]
 
     for year in years:
+        print("-" * 50)
         print(f"Merging territorial files of cities for {year=}")
         print("-" * 50)
 
@@ -86,6 +87,10 @@ def main(
                 bucket=bucket,
                 fs=fs,
             )
+
+            if not path_combined_files:
+                # No files merged
+                continue
 
             # Upload file to S3 file system
             path_raw_s3 = create_path_bucket(
@@ -130,4 +135,4 @@ def main(
 
 
 if __name__ == "__main__":
-    js = main(path_within_bucket, localpath=local_path)
+    data = main(path_within_bucket, localpath=local_path)
