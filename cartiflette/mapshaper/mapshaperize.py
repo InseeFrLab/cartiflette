@@ -20,6 +20,9 @@ def mapshaperize_split(
     dict_corresp=DICT_CORRESP_ADMINEXPRESS,
 ):
     """
+
+    TODO: docstring not up-to-date
+
     Processes shapefiles and splits them based on specified parameters using Mapshaper.
 
     Parameters
@@ -59,16 +62,16 @@ def mapshaperize_split(
 
     """
 
-    simplification_percent = simplification if simplification is not None else 0
+    simplification_percent = (
+        simplification if simplification is not None else 0
+    )
 
     # City level borders, file location
     directory_city = config_file_city.get("location", local_dir)
     initial_filename_city = config_file_city.get("filename", "COMMUNE")
     extension_initial_city = config_file_city.get("extension", "shp")
 
-    output_path = (
-        f"{local_dir}/{territory}/{niveau_agreg}/{format_output}/{simplification=}"
-    )
+    output_path = f"{local_dir}/{territory}/{niveau_agreg}/{format_output}/{simplification=}"
 
     os.makedirs(output_path, exist_ok=True)
 
@@ -92,7 +95,9 @@ def mapshaperize_split(
         csv_list_vars = (
             f"{dict_corresp[niveau_polygons]}," f"{dict_corresp[niveau_agreg]}"
         )
-        libelle_niveau_polygons = dict_corresp.get("LIBELLE_" + niveau_polygons, "")
+        libelle_niveau_polygons = dict_corresp.get(
+            "LIBELLE_" + niveau_polygons, ""
+        )
         if libelle_niveau_polygons != "":
             libelle_niveau_polygons = f",{libelle_niveau_polygons}"
         libelle_niveau_agreg = dict_corresp.get("LIBELLE_" + niveau_agreg, "")
@@ -154,7 +159,9 @@ def mapshaperize_split_merge(
     simplification=0,
     dict_corresp=DICT_CORRESP_ADMINEXPRESS,
 ):
-    simplification_percent = simplification if simplification is not None else 0
+    simplification_percent = (
+        simplification if simplification is not None else 0
+    )
 
     # City level borders, file location
     directory_city = config_file_city.get("location", local_dir)
@@ -162,7 +169,9 @@ def mapshaperize_split_merge(
     extension_initial_city = config_file_city.get("extension", "shp")
 
     # Arrondissement level borders, file location
-    directory_arrondissement = config_file_arrondissement.get("location", local_dir)
+    directory_arrondissement = config_file_arrondissement.get(
+        "location", local_dir
+    )
     initial_filename_arrondissement = config_file_arrondissement.get(
         "filename", "ARRONDISSEMENT_MUNICIPAL"
     )
@@ -171,9 +180,7 @@ def mapshaperize_split_merge(
     )
 
     # Intermediate output location
-    output_path = (
-        f"{local_dir}/{territory}/{niveau_agreg}/{format_output}/{simplification=}"
-    )
+    output_path = f"{local_dir}/{territory}/{niveau_agreg}/{format_output}/{simplification=}"
 
     if simplification_percent != 0:
         option_simplify = f"-simplify {simplification_percent}% "
@@ -183,7 +190,9 @@ def mapshaperize_split_merge(
     format_intermediate = "geojson"
 
     # PREPROCESS CITIES
-    file_city = f"{directory_city}/{initial_filename_city}.{extension_initial_city}"
+    file_city = (
+        f"{directory_city}/{initial_filename_city}.{extension_initial_city}"
+    )
     subprocess.run(
         (
             f"mapshaper {file_city} name='COMMUNE' "

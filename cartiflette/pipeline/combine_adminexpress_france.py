@@ -77,6 +77,9 @@ def combine_adminexpress_territory(
     dirs = {os.path.dirname(x) for x in communes_paths}
     territories = {t for x in dirs for t in COMPILED_TERRITORY.findall(x)}
 
+    if not territories:
+        return
+
     try:
         for territory in territories:
             with BaseGISDataset(
@@ -92,8 +95,6 @@ def combine_adminexpress_territory(
             f"{intermediate_dir}/{year}/preprocessed_combined/"
             f"raw.{format_intermediate}"
         )
-        
-        
 
         subprocess.run(
             (
@@ -103,7 +104,7 @@ def combine_adminexpress_territory(
                 f"-merge-layers "
                 f"-o {output_path} "
                 f"format={format_intermediate} "
-                f'extension=".{format_intermediate}" singles'
+                'extension=".{format_intermediate}" singles'
             ),
             shell=True,
             check=True,
