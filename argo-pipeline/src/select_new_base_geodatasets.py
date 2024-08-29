@@ -26,6 +26,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 download_results = args.download_results
+print(download_results)
 
 # Example of download_results
 # {
