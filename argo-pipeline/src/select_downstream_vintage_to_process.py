@@ -29,8 +29,6 @@ args = parser.parse_args()
 download_results = args.download_results
 
 
-print(download_results)
-
 download_results = json.loads(download_results)
 
 # Example of download_results
