@@ -113,6 +113,23 @@ def combine_adminexpress_territory(
             shell=True,
             check=True,
         )
+
+        if os.path.exists(
+            output_path.replace(
+                f"raw.{format_intermediate}", f"COMMUNE.{format_intermediate}"
+            )
+        ):
+            # with topojson format, specifying a name for layer seems to rename
+            # the file, overriding the -o command
+
+            os.rename(
+                output_path.replace(
+                    f"raw.{format_intermediate}",
+                    f"COMMUNE.{format_intermediate}",
+                ),
+                output_path,
+            )
+
     except Exception:
         raise
     finally:
