@@ -286,7 +286,29 @@ spec:
         args: ["echo $PATH_WRITING_S3 ;
                 echo 'Ceci est un test d'ecriture;' > ${LOCAL_DATA_PATH}/dummy.csv;
                 head -n 1 ${LOCAL_DATA_PATH}/tagc.csv"]
-        env: *env_parameters
+        env: &env_parameters
+          - name: PATH_WRITING_S3
+            value: "test"
+          - name: PYTHONPATH
+            value: "${PYTHONPATH}:/mnt/bin"
+          - name: LOCAL_DATA_PATH
+            value: "/mnt/data"
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: sa-cartiflette
+                key: accessKey
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: sa-cartiflette
+                key: secretKey
+          - name: AWS_DEFAULT_REGION
+            value: us-east-1
+          - name: AWS_S3_ENDPOINT
+            value: minio.lab.sspcloud.fr
+          - name: MC_HOST_s3
+            value: https://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$AWS_S3_ENDPOINT
         volumeMounts:
           - name: volume-workflow-tmp
             mountPath: /mnt
@@ -316,29 +338,7 @@ spec:
         volumeMounts:
           - name: volume-workflow-tmp
             mountPath: /mnt
-        env: &env_parameters
-          - name: PATH_WRITING_S3
-            value: "test"
-          - name: PYTHONPATH
-            value: "${PYTHONPATH}:/mnt/bin"
-          - name: LOCAL_DATA_PATH
-            value: "/mnt/data"
-          - name: AWS_ACCESS_KEY_ID
-            valueFrom:
-              secretKeyRef:
-                name: sa-cartiflette
-                key: accessKey
-          - name: AWS_SECRET_ACCESS_KEY
-            valueFrom:
-              secretKeyRef:
-                name: sa-cartiflette
-                key: secretKey
-          - name: AWS_DEFAULT_REGION
-            value: us-east-1
-          - name: AWS_S3_ENDPOINT
-            value: minio.lab.sspcloud.fr
-          - name: MC_HOST_s3
-            value: https://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$AWS_S3_ENDPOINT
+        env: *env_parameters
 
     - name: select_downstream_vintage_to_process
       inputs:
