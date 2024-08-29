@@ -8,14 +8,24 @@ Select which geodatasets should be updated (those where raw datasets components
 have been re-downloaded)
 """
 
-import json
+import argparse
 
 print("=" * 50)
 print(__doc__)
 print("=" * 50)
 
-with open("download_all_results.json", "r") as f:
-    download_results = json.load(f)
+parser = argparse.ArgumentParser(
+    description="Select vintage geodatasets to update"
+)
+parser.add_argument(
+    "--download_results",
+    type=str,
+    default=None,
+    help="Results of download pipeline",
+)
+
+args = parser.parse_args()
+download_results = args.download_results
 
 # Example of download_results
 # {
