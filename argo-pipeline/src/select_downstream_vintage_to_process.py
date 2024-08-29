@@ -67,8 +67,7 @@ else:
                         years_metadata.add(year)
         except KeyError:
             continue
-finally:
     years_metadata = sorted(list(years_metadata))
-
-with open("metadata_years.json", "w") as out:
-    json.dump(years_metadata, out)
+finally:
+    with open("metadata_years.json", "w") as out:
+        json.dump(years_metadata, out)
