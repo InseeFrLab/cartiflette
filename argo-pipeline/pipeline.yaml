@@ -285,7 +285,7 @@ spec:
         command: [sh, -c]
         args: ["echo $PATH_WRITING_S3 ;
                 echo "Ceci est un test d'ecriture;" > ${LOCAL_DATA_PATH}/dummy.csv";
-                head -n 1 ${LOCAL_DATA_PATH}/tagc.csv"];
+                head -n 1 ${LOCAL_DATA_PATH}/tagc.csv";]
         env: *env_parameters
         volumeMounts:
           - name: volume-workflow-tmp
