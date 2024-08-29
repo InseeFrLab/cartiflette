@@ -281,6 +281,13 @@ spec:
   # ---------------------------
 
     - name: init-and-test-volume
+      inputs:
+        artifacts:
+          - name: code
+            path: /mnt/bin
+            git:
+              repo: https://github.com/inseefrlab/cartiflette
+              revision: "feat/refacto_pipeline_first_steps"
       container:
         image: inseefrlab/cartiflette
         command: [sh, -c]
@@ -318,13 +325,6 @@ spec:
             value: https://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$AWS_S3_ENDPOINT
             
     - name: download-all-sources
-      inputs:
-        artifacts:
-          - name: code
-            path: /mnt/bin
-            git:
-              repo: https://github.com/inseefrlab/cartiflette
-              revision: "feat/refacto_pipeline_first_steps"
       outputs:
         parameters:
         - name: download_all_results
