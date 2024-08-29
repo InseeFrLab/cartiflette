@@ -43,7 +43,7 @@ spec:
           # STEP 0: RETRIEVE IGN FILE AND DUPLICATE IN MINIO
           - name: duplicate-ign
             template: duplicate-ign
-            dependencies: [ select-new-base-geo-datasets ]
+            dependencies: [ select-new-base-geodatasets ]
             
           - name: test-volume
             template: test-volume
