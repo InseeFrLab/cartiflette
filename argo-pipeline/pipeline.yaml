@@ -25,13 +25,25 @@ spec:
 
       dag:
         tasks:
+        
+          # STEP 1 : RETRIEVE ALL (NEW) FILES FROM SOURCES AND UPLOAD TO MINIO
           - name: download-all-sources
             template: download-all-sources
+            
+          # STEP 2 : CHECK WICH VINTAGE OF BASE GEODATASETS SHOULD BE RE-PROCESSED FROM (NEW) RAW SOURCES
+          - name: select-new-base-geo-datasets
+            template: select-new-base-geo-datasets
+            dependencies: [ download-all-sources ]
+            arguments:
+              parameters:
+              - name: download_results
+                value: "{{item}}"
+            withParam: "{{tasks.download-all-sources.outputs}}"
             
           # STEP 0: RETRIEVE IGN FILE AND DUPLICATE IN MINIO
           - name: duplicate-ign
             template: duplicate-ign
-            dependencies: [ download-all-sources ]
+            dependencies: [ select-new-base-geo-datasets ]
             
           - name: test-volume
             template: test-volume
@@ -296,6 +308,21 @@ spec:
             value: minio.lab.sspcloud.fr
           - name: MC_HOST_s3
             value: https://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$AWS_S3_ENDPOINT
+
+    - name: select-new-base-geodatasets
+      inputs:
+        parameters:
+          - name: download_results
+      container:
+        image: inseefrlab/cartiflette
+        command: [sh, -c]
+        volumeMounts:
+          - name: volume-workflow-tmp
+            mountPath: /mnt
+        args: ["
+          python /mnt/bin/src/select_new_base_geodatasets.py --download_results '{{inputs.parameters.download_results}}'
+          "]
+        env: *env_parameters
 
     - name: duplicate-ign
       container:
