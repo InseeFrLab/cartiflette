@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Second step of pipeline
+3rd step of pipeline - part 2
 
-Retrieve all territorial cities' files and merge those into single files
-for each vintage. Add additional metadata from COG.
+Update/create vintaged metadata files and send those to S3
 """
 
 import argparse
@@ -36,29 +35,32 @@ parser.add_argument(
     "-lp", "--localpath", help="Path within bucket", default="temp"
 )
 
+parser.add_argument(
+    "-y", "--years", help="Vintage to perform computation on", default=None
+)
+
 # Parse arguments
 args = parser.parse_args()
 
 bucket = BUCKET
 path_within_bucket = args.path
 local_path = args.localpath
+years = args.years
 
 fs = FS
 
 os.makedirs(local_path, exist_ok=True)
-
-# PART 1/ COMBINE RAW FILES TOGETHER AND WRITE TO S3
 
 
 def main(
     path_within_bucket,
     localpath,
     bucket=BUCKET,
-    year: int = None,
+    years: int = None,
 ):
     # TODO : voir où effectuer les jointures type banatic, etc.
 
-    if not year:
+    if not years:
         # Perform on all years
         json_md5 = f"{bucket}/{path_within_bucket}/md5.json"
         with fs.open(json_md5, "r") as f:
@@ -70,32 +72,12 @@ def main(
             for year in vintaged_datasets.keys()
         }
 
-    else:
-        years = [year]
-
-    format_intermediate = "topojson"
-
     for year in years:
         print("-" * 50)
-        print(f"Merging territorial files of cities for {year=}")
+        print(f"Computing metadata for {year=}")
         print("-" * 50)
 
         try:
-            # Merge all territorial cities files into a single file
-            path_combined_files = combine_adminexpress_territory(
-                year=year,
-                path_within_bucket=path_within_bucket,
-                intermediate_dir=localpath,
-                format_intermediate=format_intermediate,
-                bucket=bucket,
-                fs=fs,
-            )
-
-            if not path_combined_files:
-                # No files merged
-                continue
-
-            # Upload file to S3 file system
             path_raw_s3 = create_path_bucket(
                 {
                     "bucket": bucket,
@@ -104,38 +86,35 @@ def main(
                     "borders": "france",
                     "crs": 4326,
                     "filter_by": "preprocessed",
-                    "value": "before_cog",
-                    "vectorfile_format": format_intermediate,
+                    "value": "tagc",
+                    "vectorfile_format": "csv",
                     "provider": "IGN",
                     "dataset_family": "ADMINEXPRESS",
                     "source": "EXPRESS-COG-CARTO-TERRITOIRE",
                     "territory": "france",
-                    "filename": f"raw.{format_intermediate}",
+                    "filename": "tagc.csv",
                     "simplification": 0,
                 }
             )
 
-            fs.put_file(path_combined_files, path_raw_s3)
+            # Retrieve COG metadata
+            tagc_metadata = prepare_cog_metadata(
+                path_within_bucket, local_dir=localpath
+            )
+            tagc_metadata.drop(columns=["LIBGEO"]).to_csv(
+                f"{localpath}/tagc.csv"
+            )
+            fs.put_file(f"{localpath}/tagc.csv", path_raw_s3)
 
         except Exception:
             raise
+
         finally:
             # clean up tempfiles whatever happens
             shutil.rmtree(localpath, ignore_errors=True)
-
-        # Retrieve COG metadata
-        tagc_metadata = prepare_cog_metadata(
-            path_within_bucket, local_dir=localpath
-        )
-        tagc_metadata.drop(columns=["LIBGEO"]).to_csv(f"{localpath}/tagc.csv")
-
-        data = {
-            "preprocessed": path_combined_files,
-            "metadata": f"{localpath}/tagc.csv",
-        }
 
     return data
 
 
 if __name__ == "__main__":
-    data = main(path_within_bucket, localpath=local_path)
+    data = main(path_within_bucket, localpath=local_path, years=years)

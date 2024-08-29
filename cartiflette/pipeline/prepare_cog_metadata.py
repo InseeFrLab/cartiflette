@@ -7,13 +7,17 @@ from cartiflette.s3 import upload_s3_raw
 
 
 def prepare_cog_metadata(
-    path_within_bucket: str, local_dir: str = "temp", fs: s3fs.core.S3FileSystem = FS
+    year: int,
+    path_within_bucket: str,
+    local_dir: str = "temp",
+    fs: s3fs.core.S3FileSystem = FS,
 ) -> pd.DataFrame:
     """
     Prepares and retrieves COG (French Census Geographic Code) metadata by fetching and merging
     relevant datasets from remote sources, such as DEPARTEMENT, REGION, and TAGC (Appartenance).
 
     Parameters:
+    - year (int): The COG metadata's vintage
     - path_within_bucket (str): The path within the S3 bucket where the datasets will be stored.
     - local_dir (str): Local directory where the datasets will be downloaded.
     - fs (s3fs.core.S3FileSystem): An S3FileSystem object for interacting with the S3 bucket.
@@ -33,7 +37,7 @@ def prepare_cog_metadata(
         source="DEPARTEMENT",
         territory="france_entiere",
         borders="DATASET_INSEE_COG_DEPARTEMENT_FRANCE_ENTIERE_2022",
-        year=2022,
+        year=year,
         vectorfile_format="csv",
         path_within_bucket=path_within_bucket,
     )
@@ -45,7 +49,7 @@ def prepare_cog_metadata(
         source="REGION",
         territory="france_entiere",
         borders="DATASET_INSEE_COG_REGION_FRANCE_ENTIERE_2022",
-        year=2022,
+        year=year,
         vectorfile_format="csv",
         path_within_bucket=path_within_bucket,
     )
@@ -57,7 +61,7 @@ def prepare_cog_metadata(
         source="APPARTENANCE",
         territory="france_entiere",
         borders="table-appartenance-geo-communes-22",
-        year=2022,
+        year=year,
         vectorfile_format="xlsx",
         path_within_bucket=path_within_bucket,
     )
@@ -78,12 +82,16 @@ def prepare_cog_metadata(
 
     with fs.open(path_bucket_cog_departement, mode="rb") as remote_file:
         cog_dep = pd.read_csv(
-            remote_file, dtype_backend="pyarrow", dtype={"REG": "string[pyarrow]"}
+            remote_file,
+            dtype_backend="pyarrow",
+            dtype={"REG": "string[pyarrow]"},
         )
 
     with fs.open(path_bucket_cog_region, mode="rb") as remote_file:
         cog_region = pd.read_csv(
-            remote_file, dtype_backend="pyarrow", dtype={"REG": "string[pyarrow]"}
+            remote_file,
+            dtype_backend="pyarrow",
+            dtype={"REG": "string[pyarrow]"},
         )
 
     # Merge DEPARTEMENT and REGION COG metadata

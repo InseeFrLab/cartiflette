@@ -26,32 +26,44 @@ spec:
       dag:
         tasks:
         
+          - name: test-volume
+            template: test-volume
+            
           # STEP 1 : RETRIEVE ALL (NEW) FILES FROM SOURCES AND UPLOAD TO MINIO
           - name: download-all-sources
             template: download-all-sources
             
-          # STEP 2 : CHECK WICH VINTAGE OF BASE GEODATASETS SHOULD BE RE-PROCESSED FROM (NEW) RAW SOURCES
-          - name: select-new-base-geodatasets
-            template: select-new-base-geodatasets
+          # STEP 2 : CHECK WICH VINTAGE SHOULD BE RE-PROCESSED FROM (NEW) RAW SOURCES
+          - name: select_downstream_vintage_to_process
+            template: select_downstream_vintage_to_process
             dependencies: [ download-all-sources ]
             arguments:
               parameters:
               - name: download_results
                 value: "{{tasks.download-all-sources.outputs.parameters.download_all_results}}"
             
+          # STEP 3.1 : CREATE BASE GEODATASETS ON MINIO FROM RAW TERRITORIAL FILES
+          - name: make-base-geodatasets
+            template: make-base-geodatasets
+            dependencies: [ select_downstream_vintage_to_process ]
+            arguments:
+              parameters:
+              - name: years
+                value: "{{tasks.select_downstream_vintage_to_process.outputs.parameters.geodatasets_vintage_to_update}}"
+          
+          # STEP 3.2 : CREATE METADATA FILES ON MINIO FROM RAW INSEE FILES
+          - name: make-metadata
+            template: make-metadata
+            dependencies: [ select_downstream_vintage_to_process ]
+            arguments:
+              parameters:
+              - name: years
+                value: "{{tasks.select_downstream_vintage_to_process.outputs.parameters.metadata_vintage_to_update}}"
             
-          # STEP 0: RETRIEVE IGN FILE AND DUPLICATE IN MINIO
-          - name: duplicate-ign
-            template: duplicate-ign
-            dependencies: [ select-new-base-geodatasets ]
-            
-          - name: test-volume
-            template: test-volume
-            dependencies: [ duplicate-ign ]
-          # STEP 1.1. SPLIT BY DEPARTEMENT
+          # STEP 4.1. SPLIT BY DEPARTEMENT
           - name: prepare-split-departement
             template: prepare-split
-            dependencies: [ duplicate-ign ]
+            dependencies: [ make-base-geodatasets, make-metadata ]
             arguments:
               parameters:
               - name: restrict_field
@@ -78,10 +90,10 @@ spec:
               - name: filter_by
                 value: "{{item.filter-by}}"
             withParam: "{{tasks.prepare-split-departement.outputs.result}}"
-          # STEP 1.2. SPLIT BY COMMUNE
+          # STEP 4.2. SPLIT BY COMMUNE
           - name: prepare-split-commune
             template: prepare-split
-            dependencies: [ duplicate-ign ]
+            dependencies: [ make-base-geodatasets, make-metadata ]
             arguments:
               parameters:
               - name: restrict_field
@@ -108,10 +120,10 @@ spec:
               - name: filter_by
                 value: "{{item.filter-by}}"
             withParam: "{{tasks.prepare-split-commune.outputs.result}}"
-          # STEP 1.3. SPLIT BY REGION
+          # STEP 4.3. SPLIT BY REGION
           - name: prepare-split-region
             template: prepare-split
-            dependencies: [ duplicate-ign ]
+            dependencies: [ make-base-geodatasets, make-metadata ]
             arguments:
               parameters:
               - name: restrict_field
@@ -138,10 +150,10 @@ spec:
               - name: filter_by
                 value: "{{item.filter-by}}"
             withParam: "{{tasks.prepare-split-region.outputs.result}}"
-          # STEP 1.4. SPLIT BY BASSIN VIE
+          # STEP 4.4. SPLIT BY BASSIN VIE
           - name: prepare-split-bassin-vie
             template: prepare-split
-            dependencies: [ duplicate-ign ]
+            dependencies: [ make-base-geodatasets, make-metadata ]
             arguments:
               parameters:
               - name: restrict_field
@@ -168,10 +180,10 @@ spec:
               - name: filter_by
                 value: "{{item.filter-by}}"
             withParam: "{{tasks.prepare-split-bassin-vie.outputs.result}}"
-          # STEP 1.5. SPLIT BY ZONE_EMPLOI
+          # STEP 4.5. SPLIT BY ZONE_EMPLOI
           - name: prepare-split-zone-emploi
             template: prepare-split
-            dependencies: [ duplicate-ign ]
+            dependencies: [ make-base-geodatasets, make-metadata ]
             arguments:
               parameters:
               - name: restrict_field
@@ -198,10 +210,10 @@ spec:
               - name: filter_by
                 value: "{{item.filter-by}}"
             withParam: "{{tasks.prepare-split-zone-emploi.outputs.result}}"
-          # STEP 1.6. SPLIT BY UNITE_URBAINE
+          # STEP 4.6. SPLIT BY UNITE_URBAINE
           - name: prepare-split-unite-urbaine
             template: prepare-split
-            dependencies: [ duplicate-ign ]
+            dependencies: [ make-base-geodatasets, make-metadata ]
             arguments:
               parameters:
               - name: restrict_field
@@ -228,10 +240,10 @@ spec:
               - name: filter_by
                 value: "{{item.filter-by}}"
             withParam: "{{tasks.prepare-split-unite-urbaine.outputs.result}}"
-          # STEP 1.6. SPLIT BY AIRE_ATTRACTION_VILLES
+          # STEP 4.7. SPLIT BY AIRE_ATTRACTION_VILLES
           - name: prepare-split-aire-attraction
             template: prepare-split
-            dependencies: [ duplicate-ign ]
+            dependencies: [ make-base-geodatasets, make-metadata ]
             arguments:
               parameters:
               - name: restrict_field
@@ -264,7 +276,19 @@ spec:
   # TEMPLATES DEFINITION
   # ---------------------------
 
-  # First step: retrieving and duplicating IGN tiles ------------------
+
+    - name: test-volume
+      container:
+        image: inseefrlab/cartiflette
+        command: [sh, -c]
+        args: ["echo $PATH_WRITING_S3 ;
+                echo "Ceci est un test d'ecriture;" > ${LOCAL_DATA_PATH}/dummy.csv"
+                head -n 1 ${LOCAL_DATA_PATH}/tagc.csv"]
+        env: *env_parameters
+        volumeMounts:
+          - name: volume-workflow-tmp
+            mountPath: /mnt
+            
     - name: download-all-sources
       inputs:
         artifacts:
@@ -314,10 +338,18 @@ spec:
           - name: MC_HOST_s3
             value: https://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$AWS_S3_ENDPOINT
 
-    - name: select-new-base-geodatasets
+    - name: select_downstream_vintage_to_process
       inputs:
         parameters:
           - name: download_results
+      outputs:
+        parameters:
+        - name: geodatasets_vintage_to_update
+          valueFrom:
+            path: geodatasets_years.json
+        - name: metadata_vintage_to_update
+          valueFrom:
+            path: metadata_years.json
       container:
         image: inseefrlab/cartiflette
         command: [sh, -c]
@@ -325,11 +357,14 @@ spec:
           - name: volume-workflow-tmp
             mountPath: /mnt
         args: ["
-          python /mnt/bin/src/select_new_base_geodatasets.py --download_results '{{inputs.parameters.download_results}}'
+          python /mnt/bin/src/select_downstream_vintage_to_process.py --download_results '{{inputs.parameters.download_results}}'
           "]
         env: *env_parameters
 
-    - name: duplicate-ign
+    - name: make-base-geodatasets
+      inputs:
+        parameters:
+          - name: years
       container:
         image: inseefrlab/cartiflette
         command: [sh, -c]
@@ -337,21 +372,24 @@ spec:
           - name: volume-workflow-tmp
             mountPath: /mnt
         args: ["
-                python /mnt/bin/src/duplicate_in_bucket.py --path $PATH_WRITING_S3 --localpath $LOCAL_DATA_PATH ;
+                python /mnt/bin/src/make_unified_base_geodatasets.py --path $PATH_WRITING_S3 --localpath $LOCAL_DATA_PATH --years '{{inputs.parameters.years}}';
                 "]
         env: *env_parameters
-          
-
-    - name: test-volume
+        
+    - name: make-metadata
+      inputs:
+        parameters:
+          - name: years
       container:
         image: inseefrlab/cartiflette
         command: [sh, -c]
-        args: ["echo $PATH_WRITING_S3 ;
-                head -n 1 ${LOCAL_DATA_PATH}/tagc.csv"]
-        env: *env_parameters
         volumeMounts:
           - name: volume-workflow-tmp
             mountPath: /mnt
+        args: ["
+                python /mnt/bin/src/make_metadata_datasets.py --path $PATH_WRITING_S3 --localpath $LOCAL_DATA_PATH --years '{{inputs.parameters.years}}';
+                "]
+        env: *env_parameters
 
   # Step 2: creating template task for splitting ------------------
 

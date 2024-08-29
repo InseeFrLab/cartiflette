@@ -1,16 +1,38 @@
+"""
+4th step of pipeline
+
+Prepare arguments for next step
+"""
+
 import json
 import argparse
 from cartiflette.pipeline import crossproduct_parameters_production
 
 parser = argparse.ArgumentParser(description="Crossproduct Script")
 parser.add_argument(
-    "--restrictfield", type=str, default=None, help="Field to restrict level-polygons"
+    "--restrictfield",
+    type=str,
+    default=None,
+    help="Field to restrict level-polygons",
+)
+
+parser.add_argument(
+    "--years_geodatasets",
+    type=str,
+    default=None,
+    help="Updated geodataset's vintages",
+)
+
+parser.add_argument(
+    "--years_metadata",
+    type=str,
+    default=None,
+    help="Updated metadata's vintages",
 )
 
 
 # parameters
 formats = ["topojson", "geojson"]
-years = [2022]
 crs_list = [4326]
 sources = ["EXPRESS-COG-CARTO-TERRITOIRE"]
 
@@ -33,14 +55,35 @@ croisement_decoupage_level = {
         "FRANCE_ENTIERE",
         "FRANCE_ENTIERE_DROM_RAPPROCHES",
     ],
-    "REGION": ["TERRITOIRE", "FRANCE_ENTIERE", "FRANCE_ENTIERE_DROM_RAPPROCHES"],
-    "BASSIN_VIE": ["TERRITOIRE", "FRANCE_ENTIERE", "FRANCE_ENTIERE_DROM_RAPPROCHES"],
-    "ZONE_EMPLOI": ["TERRITOIRE", "FRANCE_ENTIERE", "FRANCE_ENTIERE_DROM_RAPPROCHES"],
-    "UNITE_URBAINE": ["TERRITOIRE", "FRANCE_ENTIERE", "FRANCE_ENTIERE_DROM_RAPPROCHES"],
-    "AIRE_ATTRACTION_VILLES": ["TERRITOIRE", "FRANCE_ENTIERE", "FRANCE_ENTIERE_DROM_RAPPROCHES"],
+    "REGION": [
+        "TERRITOIRE",
+        "FRANCE_ENTIERE",
+        "FRANCE_ENTIERE_DROM_RAPPROCHES",
+    ],
+    "BASSIN_VIE": [
+        "TERRITOIRE",
+        "FRANCE_ENTIERE",
+        "FRANCE_ENTIERE_DROM_RAPPROCHES",
+    ],
+    "ZONE_EMPLOI": [
+        "TERRITOIRE",
+        "FRANCE_ENTIERE",
+        "FRANCE_ENTIERE_DROM_RAPPROCHES",
+    ],
+    "UNITE_URBAINE": [
+        "TERRITOIRE",
+        "FRANCE_ENTIERE",
+        "FRANCE_ENTIERE_DROM_RAPPROCHES",
+    ],
+    "AIRE_ATTRACTION_VILLES": [
+        "TERRITOIRE",
+        "FRANCE_ENTIERE",
+        "FRANCE_ENTIERE_DROM_RAPPROCHES",
+    ],
 }
 
 args = parser.parse_args()
+years = sorted(list(set(args.years_geodatasets) | set(parser.years_metadata)))
 
 
 def main():
@@ -60,6 +103,7 @@ def main():
 
     output = tempdf.to_json(orient="records")
     parsed = json.loads(output)
+
     print(json.dumps(parsed))
 
 
