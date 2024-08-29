@@ -46,8 +46,8 @@ else:
             if dict_results_this_year["downloaded"]:
                 years_geodata.add(year)
 
-    years_geodata = sorted(list(years_geodata))
 finally:
+    years_geodata = sorted(list(years_geodata))
     with open("geodatasets_years.json", "w") as out:
         json.dump(years_geodata, out)
 
@@ -66,8 +66,8 @@ else:
                     if dict_results_this_year["downloaded"]:
                         years_metadata.add(year)
         except KeyError:
-            continue
-    years_metadata = sorted(list(years_metadata))
+            pass
 finally:
+    years_metadata = sorted(list(years_metadata))
     with open("metadata_years.json", "w") as out:
         json.dump(years_metadata, out)
