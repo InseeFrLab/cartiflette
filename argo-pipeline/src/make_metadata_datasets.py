@@ -47,6 +47,8 @@ path_within_bucket = args.path
 local_path = args.localpath
 years = args.years
 
+years = json.loads(years)
+
 fs = FS
 
 os.makedirs(local_path, exist_ok=True)
@@ -99,12 +101,14 @@ def main(
 
             # Retrieve COG metadata
             tagc_metadata = prepare_cog_metadata(
-                path_within_bucket, local_dir=localpath
+                path_within_bucket,
+                local_dir=localpath,
+                year=year,
             )
             tagc_metadata.drop(columns=["LIBGEO"]).to_csv(
-                f"{localpath}/tagc.csv"
+                f"{localpath}/{year}/tagc.csv"
             )
-            fs.put_file(f"{localpath}/tagc.csv", path_raw_s3)
+            fs.put_file(f"{localpath}/{year}/tagc.csv", path_raw_s3)
 
         except Exception:
             raise

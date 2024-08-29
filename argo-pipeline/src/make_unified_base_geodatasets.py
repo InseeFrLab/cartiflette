@@ -48,6 +48,8 @@ path_within_bucket = args.path
 local_path = args.localpath
 years = args.years
 
+years = json.loads(years)
+
 fs = FS
 
 os.makedirs(local_path, exist_ok=True)
@@ -125,18 +127,18 @@ def main(
             # clean up tempfiles whatever happens
             shutil.rmtree(localpath, ignore_errors=True)
 
-        # Retrieve COG metadata
-        tagc_metadata = prepare_cog_metadata(
-            path_within_bucket,
-            local_dir=localpath,
-            year=year,
-        )
-        tagc_metadata.drop(columns=["LIBGEO"]).to_csv(f"{localpath}/tagc.csv")
+        # # Retrieve COG metadata
+        # tagc_metadata = prepare_cog_metadata(
+        #     path_within_bucket,
+        #     local_dir=localpath,
+        #     year=year,
+        # )
+        # tagc_metadata.drop(columns=["LIBGEO"]).to_csv(f"{localpath}/tagc.csv")
 
-        data = {
-            "preprocessed": path_combined_files,
-            "metadata": f"{localpath}/tagc.csv",
-        }
+        # data = {
+        #     "preprocessed": path_combined_files,
+        #     "metadata": f"{localpath}/tagc.csv",
+        # }
 
     return data
 
