@@ -37,7 +37,7 @@ spec:
             arguments:
               parameters:
               - name: download_results
-                value: "{{steps.download-all-sources.outputs.parameters.download_all_results}}"
+                value: "{{tasks.download-all-sources.outputs.parameters.download_all_results}}"
             
             
           # STEP 0: RETRIEVE IGN FILE AND DUPLICATE IN MINIO
