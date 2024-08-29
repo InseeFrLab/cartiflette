@@ -68,6 +68,7 @@ spec:
               parameters:
               - name: restrict_field
                 value: "DEPARTEMENT"
+
           - name: split-departement
             template: split-dataset
             dependencies: [ prepare-split-departement ]
@@ -90,6 +91,7 @@ spec:
               - name: filter_by
                 value: "{{item.filter-by}}"
             withParam: "{{tasks.prepare-split-departement.outputs.result}}"
+
           # STEP 4.2. SPLIT BY COMMUNE
           - name: prepare-split-commune
             template: prepare-split
@@ -309,7 +311,7 @@ spec:
                 mkdir -p $LOCAL_DATA_PATH ;
                 mkdir -p /mnt/bin/src ;
                 mv /mnt/bin/argo-pipeline/src/* /mnt/bin/src ;
-                python /mnt/bin/src/download_all_sources.py --path $PATH_WRITING_S3 --localpath $LOCAL_DATA_PATH --years 2024;
+                python /mnt/bin/src/download_all_sources.py --path $PATH_WRITING_S3 --localpath $LOCAL_DATA_PATH --years 2024,2023;
                 "]
         volumeMounts:
           - name: volume-workflow-tmp
