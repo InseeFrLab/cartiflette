@@ -2,7 +2,7 @@ IGN:
   
   ADMINEXPRESS:
   
-    pattern: "*DONNEES_LIVRAISON*.shp"
+    pattern: "*DONNEES_LIVRAISON*/COMMUNE.shp"
   
     EXPRESS-COG-TERRITOIRE:
       
