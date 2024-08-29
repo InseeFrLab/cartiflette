@@ -268,7 +268,7 @@ spec:
                 mkdir -p $LOCAL_DATA_PATH ;
                 mkdir -p /mnt/bin/src ;
                 mv /mnt/bin/argo-pipeline/src/* /mnt/bin/src ;
-                python /mnt/bin/src/download_all_sources.py --path $PATH_WRITING_S3 --localpath $LOCAL_DATA_PATH ;
+                python /mnt/bin/src/download_all_sources.py --path $PATH_WRITING_S3 --localpath $LOCAL_DATA_PATH --years 2023,2024;
                 "]
         volumeMounts:
           - name: volume-workflow-tmp

@@ -3,6 +3,8 @@
 from datetime import date
 import json
 import logging
+from typing import List
+
 from pebble import ThreadPool
 import s3fs
 
@@ -19,6 +21,7 @@ def download_all(
     path_within_bucket: str = PATH_WITHIN_BUCKET,
     fs: s3fs.S3FileSystem = FS,
     upload: bool = True,
+    years: List[int] = None,
 ) -> dict:
     """
     Performs a full pipeline to download data and store them on MinIO. The
@@ -42,6 +45,9 @@ def download_all(
         Whether to store data on MinIO or not. This argument should only be
         used for debugging purposes. The default is True, to upload data on
         MinIO.
+    years : List[int], optional
+        Years to perform download on. If not set, will result to
+        range(2015, date.today().year + 1). The default is None.
 
     Returns
     -------
@@ -100,6 +106,9 @@ def download_all(
 
     """
 
+    if not years:
+        years = list(range(2015, date.today().year + 1))[-1::-1]
+
     if not upload:
         logger.warning(
             "no upload to s3 will be done, set upload=True to upload"
@@ -119,7 +128,7 @@ def download_all(
         "fs": fs,
         "upload": upload,
     }
-    years = list(range(2015, date.today().year + 1))[-1::-1]
+
     results = {}
 
     logger.info("Synchronize raw sources")
