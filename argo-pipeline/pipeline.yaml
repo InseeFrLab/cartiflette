@@ -31,8 +31,8 @@ spec:
             template: download-all-sources
             
           # STEP 2 : CHECK WICH VINTAGE OF BASE GEODATASETS SHOULD BE RE-PROCESSED FROM (NEW) RAW SOURCES
-          - name: select-new-base-geo-datasets
-            template: select-new-base-geo-datasets
+          - name: select-new-base-geodatasets
+            template: select-new-base-geodatasets
             dependencies: [ download-all-sources ]
             arguments:
               parameters:
