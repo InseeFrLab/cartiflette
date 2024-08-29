@@ -315,7 +315,7 @@ spec:
             value: https://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$AWS_S3_ENDPOINT
 
     - name: select-new-base-geodatasets
-      input:
+      inputs:
         parameters:
           - name: download_results
       container:
