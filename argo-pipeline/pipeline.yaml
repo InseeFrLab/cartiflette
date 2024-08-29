@@ -34,11 +34,6 @@ spec:
           - name: select-new-base-geodatasets
             template: select-new-base-geodatasets
             dependencies: [ download-all-sources ]
-            arguments:
-              parameters:
-              - name: download_results
-                value: "{{item}}"
-            withParam: "{{tasks.download-all-sources.outputs}}"
             
           # STEP 0: RETRIEVE IGN FILE AND DUPLICATE IN MINIO
           - name: duplicate-ign
@@ -310,9 +305,6 @@ spec:
             value: https://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$AWS_S3_ENDPOINT
 
     - name: select-new-base-geodatasets
-      inputs:
-        parameters:
-          - name: download_results
       container:
         image: inseefrlab/cartiflette
         command: [sh, -c]
@@ -320,7 +312,7 @@ spec:
           - name: volume-workflow-tmp
             mountPath: /mnt
         args: ["
-          python /mnt/bin/src/select_new_base_geodatasets.py --download_results '{{inputs.parameters.download_results}}'
+          python /mnt/bin/src/select_new_base_geodatasets.py
           "]
         env: *env_parameters
 

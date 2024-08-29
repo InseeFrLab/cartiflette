@@ -21,6 +21,7 @@ During the operation:
 
 import argparse
 import os
+import json
 
 from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
 from cartiflette.download import download_all
@@ -61,6 +62,16 @@ fs = FS
 
 os.makedirs(local_path, exist_ok=True)
 
-paths = download_all(
-    bucket, path_within_bucket, fs=fs, upload=True, years=years
-)
+try:
+    paths = download_all(
+        bucket, path_within_bucket, fs=fs, upload=True, years=years
+    )
+
+    with open("download_all_results.json", "w") as out:
+        json.dump(paths, out)
+except Exception:
+    try:
+        os.unlink("download_all_results.json")
+    except FileNotFoundError:
+        pass
+    raise
