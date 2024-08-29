@@ -34,30 +34,41 @@ download_results = args.download_results
 # Only need to update geodata if IGN files fom EXPRESS-COG-TERRITOIRE have been
 # updated
 years_geodata = set()
-raw_geodatasets = download_results["IGN"]["ADMINEXPRESS"][
-    "EXPRESS-COG-TERRITOIRE"
-]
-for _territory, dict_results in raw_geodatasets.items():
-    for year, dict_results_this_year in dict_results.items():
-        if dict_results_this_year["downloaded"]:
-            years_geodata.add(year)
+try:
+    raw_geodatasets = download_results["IGN"]["ADMINEXPRESS"][
+        "EXPRESS-COG-TERRITOIRE"
+    ]
+except KeyError:
+    years_geodata = []
+else:
+    for _territory, dict_results in raw_geodatasets.items():
+        for year, dict_results_this_year in dict_results.items():
+            if dict_results_this_year["downloaded"]:
+                years_geodata.add(year)
 
-years_geodata = sorted(list(years_geodata))
-
-with open("geodatasets_years.json", "w") as out:
-    json.dump(years_geodata, out)
+    years_geodata = sorted(list(years_geodata))
+finally:
+    with open("geodatasets_years.json", "w") as out:
+        json.dump(years_geodata, out)
 
 
 years_metadata = set()
-raw_datasets = download_results["Insee"]["COG"]
-targets = ["DEPARTEMENT", "REGION", "TAGC"]
-for target in targets:
-    for _territory, dict_results in raw_datasets[target].items():
-        for year, dict_results_this_year in dict_results.items():
-            if dict_results_this_year["downloaded"]:
-                years_metadata.add(year)
-
-years_metadata = sorted(list(years_metadata))
+try:
+    raw_datasets = download_results["Insee"]["COG"]
+except KeyError:
+    years_metadata = []
+else:
+    targets = ["DEPARTEMENT", "REGION", "TAGC"]
+    for target in targets:
+        try:
+            for _territory, dict_results in raw_datasets[target].items():
+                for year, dict_results_this_year in dict_results.items():
+                    if dict_results_this_year["downloaded"]:
+                        years_metadata.add(year)
+        except KeyError:
+            continue
+finally:
+    years_metadata = sorted(list(years_metadata))
 
 with open("metadata_years.json", "w") as out:
     json.dump(years_metadata, out)
