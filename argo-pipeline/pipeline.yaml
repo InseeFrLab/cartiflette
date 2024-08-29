@@ -34,8 +34,8 @@ spec:
             template: download-all-sources
             
           # STEP 2 : CHECK WICH VINTAGE SHOULD BE RE-PROCESSED FROM (NEW) RAW SOURCES
-          - name: select_downstream_vintage_to_process
-            template: select_downstream_vintage_to_process
+          - name: select-downstream-vintage-to-process
+            template: select-downstream-vintage-to-process
             dependencies: [ download-all-sources ]
             arguments:
               parameters:
@@ -45,20 +45,20 @@ spec:
           # STEP 3.1 : CREATE BASE GEODATASETS ON MINIO FROM RAW TERRITORIAL FILES
           - name: make-base-geodatasets
             template: make-base-geodatasets
-            dependencies: [ select_downstream_vintage_to_process ]
+            dependencies: [ select-downstream-vintage-to-process ]
             arguments:
               parameters:
               - name: years
-                value: "{{tasks.select_downstream_vintage_to_process.outputs.parameters.geodatasets_vintage_to_update}}"
+                value: "{{tasks.select-downstream-vintage-to-process.outputs.parameters.geodatasets_vintage_to_update}}"
           
           # STEP 3.2 : CREATE METADATA FILES ON MINIO FROM RAW INSEE FILES
           - name: make-metadata
             template: make-metadata
-            dependencies: [ select_downstream_vintage_to_process ]
+            dependencies: [ select-downstream-vintage-to-process ]
             arguments:
               parameters:
               - name: years
-                value: "{{tasks.select_downstream_vintage_to_process.outputs.parameters.metadata_vintage_to_update}}"
+                value: "{{tasks.select-downstream-vintage-to-process.outputs.parameters.metadata_vintage_to_update}}"
             
           # STEP 4.1. SPLIT BY DEPARTEMENT
           - name: prepare-split-departement
@@ -340,7 +340,7 @@ spec:
             mountPath: /mnt
         env: *env_parameters
 
-    - name: select_downstream_vintage_to_process
+    - name: select-downstream-vintage-to-process
       inputs:
         parameters:
           - name: download_results
