@@ -55,7 +55,7 @@ path_within_bucket = args.path
 local_path = args.localpath
 years = args.years
 if years:
-    years = [int(x) for x in ",".split(years)]
+    years = [int(x) for x in years.split(",")]
 
 fs = FS
 
