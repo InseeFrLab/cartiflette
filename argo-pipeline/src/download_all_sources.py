@@ -63,15 +63,17 @@ fs = FS
 os.makedirs(local_path, exist_ok=True)
 
 try:
-    paths = download_all(
+    results = download_all(
         bucket, path_within_bucket, fs=fs, upload=True, years=years
     )
 
     with open("download_all_results.json", "w") as out:
-        json.dump(paths, out)
+        json.dump(results, out)
 except Exception:
     try:
         os.unlink("download_all_results.json")
     except FileNotFoundError:
         pass
     raise
+
+print(results)
