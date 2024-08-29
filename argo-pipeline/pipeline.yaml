@@ -26,12 +26,14 @@ spec:
       dag:
         tasks:
         
-          - name: test-volume
-            template: test-volume
-            
+          
           # STEP 1 : RETRIEVE ALL (NEW) FILES FROM SOURCES AND UPLOAD TO MINIO
           - name: download-all-sources
             template: download-all-sources
+          
+          - name: test-volume
+            template: test-volume
+            dependencies: [ download-all-sources ]
             
           # STEP 2 : CHECK WICH VINTAGE SHOULD BE RE-PROCESSED FROM (NEW) RAW SOURCES
           - name: select-downstream-vintage-to-process
@@ -278,41 +280,6 @@ spec:
   # TEMPLATES DEFINITION
   # ---------------------------
 
-
-    - name: test-volume
-      container:
-        image: inseefrlab/cartiflette
-        command: [sh, -c]
-        args: ["echo $PATH_WRITING_S3 ;
-                echo 'Ceci est un test d ecriture;' > ${LOCAL_DATA_PATH}/dummy.csv;
-                head -n 1 ${LOCAL_DATA_PATH}/tagc.csv"]
-        env: &env_parameters
-          - name: PATH_WRITING_S3
-            value: "test"
-          - name: PYTHONPATH
-            value: "${PYTHONPATH}:/mnt/bin"
-          - name: LOCAL_DATA_PATH
-            value: "/mnt/data"
-          - name: AWS_ACCESS_KEY_ID
-            valueFrom:
-              secretKeyRef:
-                name: sa-cartiflette
-                key: accessKey
-          - name: AWS_SECRET_ACCESS_KEY
-            valueFrom:
-              secretKeyRef:
-                name: sa-cartiflette
-                key: secretKey
-          - name: AWS_DEFAULT_REGION
-            value: us-east-1
-          - name: AWS_S3_ENDPOINT
-            value: minio.lab.sspcloud.fr
-          - name: MC_HOST_s3
-            value: https://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$AWS_S3_ENDPOINT
-        volumeMounts:
-          - name: volume-workflow-tmp
-            mountPath: /mnt
-            
     - name: download-all-sources
       inputs:
         artifacts:
@@ -338,7 +305,43 @@ spec:
         volumeMounts:
           - name: volume-workflow-tmp
             mountPath: /mnt
+        env: &env_parameters
+          - name: PATH_WRITING_S3
+            value: "test"
+          - name: PYTHONPATH
+            value: "${PYTHONPATH}:/mnt/bin"
+          - name: LOCAL_DATA_PATH
+            value: "/mnt/data"
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: sa-cartiflette
+                key: accessKey
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: sa-cartiflette
+                key: secretKey
+          - name: AWS_DEFAULT_REGION
+            value: us-east-1
+          - name: AWS_S3_ENDPOINT
+            value: minio.lab.sspcloud.fr
+          - name: MC_HOST_s3
+            value: https://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$AWS_S3_ENDPOINT
+
+    - name: test-volume
+      container:
+        image: inseefrlab/cartiflette
+        command: [sh, -c]
+        args: ["echo $PATH_WRITING_S3 ;
+                echo 'Ceci est un test d ecriture;' > ${LOCAL_DATA_PATH}/dummy.csv;
+                head -n 1 ${LOCAL_DATA_PATH}/tagc.csv"]
         env: *env_parameters
+        volumeMounts:
+          - name: volume-workflow-tmp
+            mountPath: /mnt
+            
+
 
     - name: select-downstream-vintage-to-process
       inputs:
