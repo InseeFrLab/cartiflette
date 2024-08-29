@@ -105,7 +105,7 @@ def _upload_raw_dataset_to_s3(
 
                 layer_paths.append(path_within)
 
-                print(f"upload to {path_within}")
+                logger.info(f"upload to {path_within}")
 
                 try:
                     fs.put(path, path_within, recursive=True)
