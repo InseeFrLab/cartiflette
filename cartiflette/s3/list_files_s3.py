@@ -43,6 +43,8 @@ def download_files_from_list(fs, list_raw_files, local_dir="temp"):
     str
         The path of the local directory where the files are downloaded.
     """
+    print(f"downloading {list_raw_files=} to {local_dir=}")
     for files in list_raw_files:
         fs.download(files, f"{local_dir}/{files.rsplit('/', maxsplit=1)[-1]}")
+        print(f"written to {local_dir}/{files.rsplit('/', maxsplit=1)[-1]}")
     return local_dir
