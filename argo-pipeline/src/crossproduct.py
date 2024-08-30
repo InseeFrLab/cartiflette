@@ -18,18 +18,33 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--years-geodatasets", default=None, help="Updated geodataset's vintages"
+    "-yg",
+    "--years-geodatasets",
+    default=None,
+    help="Updated geodataset's vintages",
 )
 
 parser.add_argument(
-    "--years-metadata", default=None, help="Updated metadata's vintages"
+    "-ym", "--years-metadata", default=None, help="Updated metadata's vintages"
 )
 
+args = parser.parse_args()
+
+years_geodatasets = set(json.loads(args.years_geodatasets))
+years_metadata = set(json.loads(args.years_metadata))
+
+years = sorted(list(years_geodatasets | years_metadata))
+
+# TODO : convert to parsable arguments
+bucket = BUCKET
+path_within_bucket = PATH_WITHIN_BUCKET
+fs = FS
 
 # parameters
 formats = ["topojson", "geojson"]
 crs_list = [4326]
-sources = ["EXPRESS-COG-CARTO-TERRITOIRE"]
+# sources = ["EXPRESS-COG-CARTO-TERRITOIRE"]
+sources = ["EXPRESS-COG-TERRITOIRE"]
 
 croisement_decoupage_level = {
     # structure -> niveau geo: [niveau decoupage macro],
@@ -77,34 +92,24 @@ croisement_decoupage_level = {
     ],
 }
 
-args = parser.parse_args()
 
-years = sorted(
-    list(
-        set(json.loads(args.years_geodatasets))
-        | set(json.loads(parser.years_metadata))
-    )
-)
+def main(
+    path_within_bucket: str,
+    bucket: str,
+    years: list = None,
+):
+    if not years:
+        # Perform on all COG years
+        json_md5 = f"{bucket}/{path_within_bucket}/md5.json"
+        with fs.open(json_md5, "r") as f:
+            all_md5 = json.load(f)
+        datasets = all_md5["IGN"]["ADMINEXPRESS"]["EXPRESS-COG-TERRITOIRE"]
+        years = {
+            year
+            for (_territory, vintaged_datasets) in datasets.items()
+            for year in vintaged_datasets.keys()
+        }
 
-# TODO : convert to parsable arguments
-bucket = BUCKET
-path_within_bucket = PATH_WITHIN_BUCKET
-fs = FS
-
-if not years:
-    # Perform on all COG years
-    json_md5 = f"{bucket}/{path_within_bucket}/md5.json"
-    with fs.open(json_md5, "r") as f:
-        all_md5 = json.load(f)
-    datasets = all_md5["IGN"]["ADMINEXPRESS"]["EXPRESS-COG-TERRITOIRE"]
-    years = {
-        year
-        for (_territory, vintaged_datasets) in datasets.items()
-        for year in vintaged_datasets.keys()
-    }
-
-
-def main():
     tempdf = crossproduct_parameters_production(
         croisement_filter_by_borders=croisement_decoupage_level,
         list_format=formats,
@@ -126,4 +131,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(path_within_bucket=path_within_bucket, bucket=bucket, years=years)
