@@ -10,21 +10,21 @@ from cartiflette.pipeline import crossproduct_parameters_production
 
 parser = argparse.ArgumentParser(description="Crossproduct Script")
 parser.add_argument(
-    "--restrictfield",
+    "--restrict-field",
     type=str,
     default=None,
     help="Field to restrict level-polygons",
 )
 
 parser.add_argument(
-    "--years_geodatasets",
+    "--years-geodatasets",
     type=str,
     default=None,
     help="Updated geodataset's vintages",
 )
 
 parser.add_argument(
-    "--years_metadata",
+    "--years-metadata",
     type=str,
     default=None,
     help="Updated metadata's vintages",
