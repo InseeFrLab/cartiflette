@@ -77,7 +77,7 @@ try:
             bucket, path_within_bucket, fs=fs, upload=True, years=years
         )
     else:
-        results = []
+        results = dict()
         print(
             "Download skipped! "
             "To reset download, remove --skip flag from pipeline yaml (from "
