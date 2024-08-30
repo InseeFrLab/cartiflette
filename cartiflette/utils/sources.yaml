@@ -255,7 +255,10 @@ IGN:
 Insee:
   COG:
     structure: https://www.insee.fr/fr/statistiques/fichier/{id}/{filename}
-    COMMUNE: 
+    COMMUNE:
+      2024:
+        id: 7766585
+        filename: v_commune_2024.csv
       2023:
         id: 6800675
         filename: v_commune_2023.csv
@@ -283,6 +286,9 @@ Insee:
         id: 2666684
         filename: comsimp2017-txt.zip
     CANTON:
+      2024:
+        id: 7766585
+        filename: v_canton_2024.csv
       2023:
         id: 6800675
         filename: v_canton_2023.csv
@@ -310,6 +316,9 @@ Insee:
         id: 2666684
         filename: canton2017-txt.zip
     ARRONDISSEMENT:
+      2024:
+        id: 7766585
+        filename: v_arrondissement_2024.csv
       2023:
         id: 6800675
         filename: v_arrondissement_2023.csv
@@ -337,6 +346,9 @@ Insee:
         id: 2666684
         filename: arrond2017-txt.zip
     DEPARTEMENT:
+      2024:
+        id: 7766585
+        filename: v_departement_2024.csv
       2023:
         id: 6800675
         filename: v_departement_2023.csv
@@ -364,6 +376,9 @@ Insee:
         id: 2666684
         filename: depts2017-txt.zip
     REGION:
+      2024:
+        id: 7766585
+        filename: v_region_2024.csv
       2023:
         id: 6800675
         filename: v_region_2023.csv
@@ -391,6 +406,9 @@ Insee:
         id: 2666684
         filename: reg2017-txt.zip
     COLLECTIVITE:
+      2024:
+        id: 7766585
+        filename: v_ctcd_2024.csv
       2023:
         id: 6800675
         filename: v_CTCD_2023.csv
@@ -402,6 +420,9 @@ Insee:
         id: 5057840
         filename: CTCD2021-csv.zip
     PAYS:
+      2024:
+        id: 7766585
+        filename: v_pays_territoire_2024.csv
       2023:
         id: 6800675
         filename: v_pays_2023.csv
