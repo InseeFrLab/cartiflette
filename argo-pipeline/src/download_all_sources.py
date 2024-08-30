@@ -79,7 +79,7 @@ try:
     else:
         results = dict()
         print(
-            "Download skipped! "
+            "\n\n!!!! Download skipped !!!\n\n"
             "To reset download, remove --skip flag from pipeline yaml (from "
             "download-all-sources template)!"
         )
