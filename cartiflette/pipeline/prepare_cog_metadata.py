@@ -88,12 +88,17 @@ def prepare_cog_metadata(
 
     # Read datasets from S3 into Pandas DataFrames
     with fs.open(path_tagc, mode="rb") as remote_file:
-        tagc = pd.read_excel(
-            remote_file,
-            skiprows=5,
-            dtype_backend="pyarrow",
-            dtype={"REG": "string[pyarrow]"},
-        )
+        try:
+            tagc = pd.read_excel(
+                remote_file,
+                skiprows=5,
+                dtype_backend="pyarrow",
+                dtype={"REG": "string[pyarrow]"},
+            )
+        except Exception as e:
+            warnings.warn(f"could not read TAGC file: {e}")
+            warnings.warn(f"{year=} metadata not constructed!")
+            return
 
     with fs.open(path_bucket_cog_departement, mode="rb") as remote_file:
         cog_dep = pd.read_csv(
