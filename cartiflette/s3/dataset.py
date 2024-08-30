@@ -34,7 +34,7 @@ class BaseGISDataset:
         self.local_dir = intermediate_dir
 
     def get_path_of_dataset(self):
-        "retrieve dataset's full path (including auxiliary files for shp)"
+        "retrieve dataset's full paths"
         path = os.path.dirname(create_path_bucket(self.config))
         search = os.path.join(path, "**/*")
         self.files = self.fs.glob(search)
