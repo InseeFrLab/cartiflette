@@ -126,8 +126,12 @@ def main(
         except Exception as e:
             warnings.warn(f"geodataset {year=} not created: {e}")
 
-    # clean up tempfiles whatever happens
-    shutil.rmtree(localpath, ignore_errors=True)
+        finally:
+            # clean up tempfiles whatever happens
+            print(os.path.dirname(path_combined_files))
+            shutil.rmtree(
+                os.path.dirname(path_combined_files), ignore_errors=True
+            )
 
     return created
 

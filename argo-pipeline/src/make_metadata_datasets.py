@@ -118,7 +118,7 @@ def main(
 
         finally:
             # clean up tempfiles whatever happens
-            shutil.rmtree(localpath, ignore_errors=True)
+            os.unlink(f"{localpath}/{year}/tagc.csv")s
 
     return created
 
