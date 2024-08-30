@@ -74,6 +74,7 @@ def main(
             for year in vintaged_datasets.keys()
         }
 
+    created = []
     for year in years:
         print("-" * 50)
         print(f"Computing metadata for {year=}")
@@ -90,9 +91,9 @@ def main(
                     "filter_by": "preprocessed",
                     "value": "tagc",
                     "vectorfile_format": "csv",
-                    "provider": "IGN",
-                    "dataset_family": "ADMINEXPRESS",
-                    "source": "EXPRESS-COG-CARTO-TERRITOIRE",
+                    "provider": "Insee",
+                    "dataset_family": "COG-TAGC",
+                    "source": "COG-TAGC",
                     "territory": "france",
                     "filename": "tagc.csv",
                     "simplification": 0,
@@ -101,7 +102,7 @@ def main(
 
             # Retrieve COG metadata
             tagc_metadata = prepare_cog_metadata(
-                path_within_bucket,
+                path_within_bucket=path_within_bucket,
                 local_dir=localpath,
                 year=year,
             )
@@ -110,6 +111,8 @@ def main(
             )
             fs.put_file(f"{localpath}/{year}/tagc.csv", path_raw_s3)
 
+            created.append(path_raw_s3)
+
         except Exception:
             raise
 
@@ -117,7 +120,7 @@ def main(
             # clean up tempfiles whatever happens
             shutil.rmtree(localpath, ignore_errors=True)
 
-    return data
+    return created
 
 
 if __name__ == "__main__":

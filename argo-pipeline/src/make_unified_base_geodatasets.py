@@ -79,6 +79,7 @@ def main(
 
     format_intermediate = "topojson"
 
+    created = []
     for year in years:
         print("-" * 50)
         print(f"Merging territorial files of cities for {year=}")
@@ -121,26 +122,15 @@ def main(
 
             fs.put_file(path_combined_files, path_raw_s3)
 
+            created.append(path_raw_s3)
+
         except Exception:
             raise
         finally:
             # clean up tempfiles whatever happens
             shutil.rmtree(localpath, ignore_errors=True)
 
-        # # Retrieve COG metadata
-        # tagc_metadata = prepare_cog_metadata(
-        #     path_within_bucket,
-        #     local_dir=localpath,
-        #     year=year,
-        # )
-        # tagc_metadata.drop(columns=["LIBGEO"]).to_csv(f"{localpath}/tagc.csv")
-
-        # data = {
-        #     "preprocessed": path_combined_files,
-        #     "metadata": f"{localpath}/tagc.csv",
-        # }
-
-    return data
+    return created
 
 
 if __name__ == "__main__":
