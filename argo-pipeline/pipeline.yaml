@@ -334,7 +334,7 @@ spec:
         image: inseefrlab/cartiflette
         command: [sh, -c]
         args: ["
-          python /mnt/bin/src/download_all_sources.py --path $PATH_WRITING_S3 --localpath $LOCAL_DATA_PATH --years 2024,2023 --skip;
+          python /mnt/bin/src/download_all_sources.py --path $PATH_WRITING_S3 --localpath $LOCAL_DATA_PATH --years 2024,2023;
           "]
         volumeMounts:
           - name: volume-workflow-tmp
