@@ -112,6 +112,8 @@ def combine_adminexpress_territory(
             ),
             shell=True,
             check=True,
+            capture_output=True,
+            text=True,
         )
 
         if os.path.exists(

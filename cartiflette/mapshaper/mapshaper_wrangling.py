@@ -47,7 +47,13 @@ def mapshaper_enrich(
     )
 
     # Run Mapshaper command
-    subprocess.run(cmd_step1, shell=True, check=True)
+    subprocess.run(
+        cmd_step1,
+        shell=True,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
 
 
 def mapshaper_split(
@@ -89,4 +95,10 @@ def mapshaper_split(
     )
 
     # Run Mapshaper command
-    subprocess.run(cmd_step2, shell=True, check=True)
+    subprocess.run(
+        cmd_step2,
+        shell=True,
+        check=True,
+        capture_output=True,
+        text=True,
+    )

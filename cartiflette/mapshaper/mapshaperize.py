@@ -116,7 +116,13 @@ def mapshaperize_split(
             f"copy-fields={csv_list_vars} "
             "-o temp.geojson force"
         )
-        subprocess.run(cmd_dissolve, shell=True, check=True)
+        subprocess.run(
+            cmd_dissolve,
+            shell=True,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
 
     # IF WE DESIRE TO BRING "DROM" CLOSER TO FRANCE
     if niveau_agreg.upper() == "FRANCE_ENTIERE_DROM_RAPPROCHES":
@@ -204,6 +210,8 @@ def mapshaperize_split_merge(
         ),
         shell=True,
         check=True,
+        capture_output=True,
+        text=True,
     )
 
     # PREPROCESS ARRONDISSEMENT
@@ -223,6 +231,8 @@ def mapshaperize_split_merge(
         ),
         shell=True,
         check=True,
+        capture_output=True,
+        text=True,
     )
 
     # MERGE CITIES AND ARRONDISSEMENT
@@ -240,6 +250,8 @@ def mapshaperize_split_merge(
         ),
         shell=True,
         check=True,
+        capture_output=True,
+        text=True,
     )
 
     # STEP 1: ENRICHISSEMENT AVEC COG
