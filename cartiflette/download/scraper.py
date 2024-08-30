@@ -135,7 +135,7 @@ class MasterScraper(requests_cache.CachedSession):
 
         """
 
-        hash_ = None
+        hash_ = datafile.md5
         url = datafile.get_path_from_provider()
 
         # Download to temporary file
