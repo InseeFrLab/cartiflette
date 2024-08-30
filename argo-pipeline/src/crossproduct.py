@@ -18,17 +18,11 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--years-geodatasets",
-    type=str,
-    default=None,
-    help="Updated geodataset's vintages",
+    "--years-geodatasets", default=None, help="Updated geodataset's vintages"
 )
 
 parser.add_argument(
-    "--years-metadata",
-    type=str,
-    default=None,
-    help="Updated metadata's vintages",
+    "--years-metadata", default=None, help="Updated metadata's vintages"
 )
 
 
