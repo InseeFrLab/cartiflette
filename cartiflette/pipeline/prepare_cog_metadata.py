@@ -4,14 +4,13 @@ import warnings
 import pandas as pd
 import s3fs
 
-from cartiflette.config import FS
-from cartiflette.s3 import upload_s3_raw
+from cartiflette.config import FS, BUCKET, PATH_WITHIN_BUCKET
 
 
 def prepare_cog_metadata(
     year: int,
-    bucket: str,
-    path_within_bucket: str,
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
     local_dir: str = "temp",
     fs: s3fs.core.S3FileSystem = FS,
 ) -> pd.DataFrame:
@@ -63,7 +62,7 @@ def prepare_cog_metadata(
     path = (
         f"{bucket}/{path_within_bucket}/"
         f"provider=Insee/dataset_family=TAGC/source=APPARTENANCE/year={year}/"
-        "**/*.csv"
+        "**/*.xlsx"
     )
     try:
         path_bucket_tagc_appartenance = fs.glob(path)[0]
