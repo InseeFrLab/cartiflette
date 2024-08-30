@@ -102,10 +102,13 @@ def main(
 
             # Retrieve COG metadata
             tagc_metadata = prepare_cog_metadata(
+                bucket=bucket,
                 path_within_bucket=path_within_bucket,
                 local_dir=localpath,
                 year=year,
             )
+            if not tagc_metadata:
+                continue
             tagc_metadata.drop(columns=["LIBGEO"]).to_csv(
                 f"{localpath}/{year}/tagc.csv"
             )

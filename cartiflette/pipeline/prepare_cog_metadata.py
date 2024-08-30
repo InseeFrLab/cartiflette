@@ -1,4 +1,6 @@
 import os
+import warnings
+
 import pandas as pd
 import s3fs
 
@@ -8,16 +10,19 @@ from cartiflette.s3 import upload_s3_raw
 
 def prepare_cog_metadata(
     year: int,
+    bucket: str,
     path_within_bucket: str,
     local_dir: str = "temp",
     fs: s3fs.core.S3FileSystem = FS,
 ) -> pd.DataFrame:
     """
-    Prepares and retrieves COG (French Census Geographic Code) metadata by fetching and merging
-    relevant datasets from remote sources, such as DEPARTEMENT, REGION, and TAGC (Appartenance).
+    Prepares and retrieves COG (French Census Geographic Code) metadata by
+    merging relevant datasets from raw sources stored on S3, such as
+    DEPARTEMENT, REGION, and TAGC (Appartenance).
 
     Parameters:
     - year (int): The COG metadata's vintage
+    - bucket (str): The bucket where the dataset are stored
     - path_within_bucket (str): The path within the S3 bucket where the datasets will be stored.
     - local_dir (str): Local directory where the datasets will be downloaded.
     - fs (s3fs.core.S3FileSystem): An S3FileSystem object for interacting with the S3 bucket.
@@ -30,41 +35,52 @@ def prepare_cog_metadata(
     # Create the local directory if it does not exist
     os.makedirs(local_dir, exist_ok=True)
 
-    # Fetch and upload DEPARTEMENT dataset to S3
-    path_bucket_cog_departement = upload_s3_raw(
-        provider="Insee",
-        dataset_family="COG",
-        source="DEPARTEMENT",
-        territory="france_entiere",
-        borders="DATASET_INSEE_COG_DEPARTEMENT_FRANCE_ENTIERE_2022",
-        year=year,
-        vectorfile_format="csv",
-        path_within_bucket=path_within_bucket,
+    # Find DEPARTEMENT dataset on S3
+    path = (
+        f"{bucket}/{path_within_bucket}/"
+        f"provider=Insee/dataset_family=COG/source=DEPARTEMENT/year={year}/"
+        "**/*.csv"
     )
+    try:
+        path_bucket_cog_departement = fs.glob(path)[0]
+    except IndexError:
+        warnings.warn(f"missing DEPARTEMENT file for {year=}")
+        path_bucket_cog_departement = None
 
-    # Fetch and upload REGION dataset to S3
-    path_bucket_cog_region = upload_s3_raw(
-        provider="Insee",
-        dataset_family="COG",
-        source="REGION",
-        territory="france_entiere",
-        borders="DATASET_INSEE_COG_REGION_FRANCE_ENTIERE_2022",
-        year=year,
-        vectorfile_format="csv",
-        path_within_bucket=path_within_bucket,
+    # Find REGION dataset on S3
+    path = (
+        f"{bucket}/{path_within_bucket}/"
+        f"provider=Insee/dataset_family=COG/source=REGION/year={year}/"
+        "**/*.csv"
     )
+    try:
+        path_bucket_cog_region = fs.glob(path)[0]
+    except IndexError:
+        warnings.warn(f"missing REGION file for {year=}")
+        path_bucket_cog_region = None
 
-    # Fetch and upload TAGC APPARTENANCE dataset to S3
-    path_bucket_tagc_appartenance = upload_s3_raw(
-        provider="Insee",
-        dataset_family="TAGC",
-        source="APPARTENANCE",
-        territory="france_entiere",
-        borders="table-appartenance-geo-communes-22",
-        year=year,
-        vectorfile_format="xlsx",
-        path_within_bucket=path_within_bucket,
+    # Find TAGC APPARTENANCE dataset on S3
+    path = (
+        f"{bucket}/{path_within_bucket}/"
+        f"provider=Insee/dataset_family=TAGC/source=APPARTENANCE/year={year}/"
+        "**/*.csv"
     )
+    try:
+        path_bucket_tagc_appartenance = fs.glob(path)[0]
+    except IndexError:
+        warnings.warn(f"missing APPARTENANCE file for {year=}")
+        path_bucket_tagc_appartenance = None
+
+    if any(
+        x is None
+        for x in (
+            path_bucket_tagc_appartenance,
+            path_bucket_cog_region,
+            path_bucket_cog_departement,
+        )
+    ):
+        warnings.warn(f"{year=} metadata not constructed!")
+        return
 
     # Retrieve paths for the uploaded datasets
     path_tagc = fs.ls(path_bucket_tagc_appartenance)[0]
