@@ -37,7 +37,7 @@ download_results = json.loads(download_results)
 years_geodata = set()
 try:
     raw_geodatasets = download_results["IGN"]["ADMINEXPRESS"][
-        "EXPRESS-COG-TERRITOIRE"
+        "EXPRESS-COG-CARTO-TERRITOIRE"
     ]
 except KeyError:
     years_geodata = []

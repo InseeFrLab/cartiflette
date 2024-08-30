@@ -72,7 +72,7 @@ DOWNLOAD_PIPELINE_ARGS = {
     "ADMIN-EXPRESS": [
         "IGN",
         "ADMINEXPRESS",
-        "EXPRESS-COG-TERRITOIRE",
+        "EXPRESS-COG-CARTO-TERRITOIRE",
         [
             "guadeloupe",
             "martinique",

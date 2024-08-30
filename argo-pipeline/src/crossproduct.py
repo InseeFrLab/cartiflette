@@ -45,8 +45,7 @@ fs = FS
 # parameters
 formats = ["topojson", "geojson"]
 crs_list = [4326]
-# sources = ["EXPRESS-COG-CARTO-TERRITOIRE"]
-sources = ["EXPRESS-COG-TERRITOIRE"]
+sources = ["EXPRESS-COG-CARTO-TERRITOIRE"]
 
 croisement_decoupage_level = {
     # structure -> niveau geo: [niveau decoupage macro],
@@ -105,7 +104,9 @@ def main(
         json_md5 = f"{bucket}/{path_within_bucket}/md5.json"
         with fs.open(json_md5, "r") as f:
             all_md5 = json.load(f)
-        datasets = all_md5["IGN"]["ADMINEXPRESS"]["EXPRESS-COG-TERRITOIRE"]
+        datasets = all_md5["IGN"]["ADMINEXPRESS"][
+            "EXPRESS-COG-CARTO-TERRITOIRE"
+        ]
         years = {
             year
             for (_territory, vintaged_datasets) in datasets.items()
