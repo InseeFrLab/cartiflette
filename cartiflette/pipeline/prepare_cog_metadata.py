@@ -65,26 +65,21 @@ def prepare_cog_metadata(
         "**/*.xlsx"
     )
     try:
-        path_bucket_tagc_appartenance = fs.glob(path)[0]
+        path_tagc = fs.glob(path)[0]
     except IndexError:
         warnings.warn(f"missing APPARTENANCE file for {year=}")
-        path_bucket_tagc_appartenance = None
+        path_tagc = None
 
     if any(
         x is None
         for x in (
-            path_bucket_tagc_appartenance,
+            path_tagc,
             path_bucket_cog_region,
             path_bucket_cog_departement,
         )
     ):
         warnings.warn(f"{year=} metadata not constructed!")
         return
-
-    # Retrieve paths for the uploaded datasets
-    path_tagc = fs.ls(path_bucket_tagc_appartenance)[0]
-    path_bucket_cog_departement = fs.ls(path_bucket_cog_departement)[0]
-    path_bucket_cog_region = fs.ls(path_bucket_cog_region)[0]
 
     # Read datasets from S3 into Pandas DataFrames
     with fs.open(path_tagc, mode="rb") as remote_file:
