@@ -9,7 +9,6 @@ Update/create vintaged metadata files and send those to S3
 import argparse
 import json
 import os
-import shutil
 
 from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
 from cartiflette.utils import create_path_bucket
@@ -29,7 +28,7 @@ parser.add_argument(
     "-p", "--path", help="Path within bucket", default=PATH_WITHIN_BUCKET
 )
 parser.add_argument(
-    "-lp", "--localpath", help="Path within bucket", default="temp"
+    "-lp", "--localpath", help="Local temporary file", default="temp"
 )
 
 parser.add_argument(
