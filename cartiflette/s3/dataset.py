@@ -9,7 +9,7 @@ import os
 from s3fs import S3FileSystem
 import shutil
 
-from cartiflette.config import FS, BUCKET, PATH_WITHIN_BUCKET
+from cartiflette.config import FS
 from cartiflette.utils import create_path_bucket, ConfigDict
 from cartiflette.pipeline.prepare_mapshaper import (
     prepare_local_directory_mapshaper,
@@ -46,7 +46,7 @@ class BaseGISDataset:
 
     def to_local_folder_for_mapshaper(self):
         "download to local dir and prepare for use with mapshaper"
-        prepare_local_directory_mapshaper(
+        paths = prepare_local_directory_mapshaper(
             self.s3_dirpath,
             borders="COMMUNE",
             territory=self.config["territory"],
@@ -56,6 +56,7 @@ class BaseGISDataset:
             local_dir=self.local_dir,
             fs=self.fs,
         )
+        logger.warning(paths)
 
     def __enter__(self):
         self.to_local_folder_for_mapshaper()
