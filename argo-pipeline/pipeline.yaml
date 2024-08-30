@@ -45,8 +45,8 @@ spec:
                 value: "{{tasks.download-all-sources.outputs.parameters.download_all_results}}"
 
           # STEP 3.1 : CREATE BASE GEODATASETS ON MINIO FROM RAW TERRITORIAL FILES
-          - name: make-base-geodatasets
-            template: make-base-geodatasets
+          - name: make-geodatasets
+            template: make-geodatasets
             dependencies: [ select-downstream-vintage-to-process ]
             arguments:
               parameters:
@@ -71,9 +71,9 @@ spec:
               - name: restrict_field
                 value: "DEPARTEMENT"
               - name: years_geodatasets
-                value: "{{tasks.select-downstream-vintage-to-process.outputs.parameters.geodatasets_vintage_to_update}}"
+                value: "{{tasks.make-geodatasets.outputs.parameters.updated_geodata}}"
               - name: years_metadata
-                value: "{{tasks.select-downstream-vintage-to-process.outputs.parameters.metadata_vintage_to_update}}"
+                value: "{{tasks.make-metadata.outputs.parameters.updated_metadata}}"
 
           - name: split-departement
             template: split-dataset
@@ -107,9 +107,9 @@ spec:
               - name: restrict_field
                 value: "COMMUNE"
               - name: years_geodatasets
-                value: "{{tasks.select-downstream-vintage-to-process.outputs.parameters.geodatasets_vintage_to_update}}"
+                value: "{{tasks.make-geodatasets.outputs.parameters.updated_geodata}}"
               - name: years_metadata
-                value: "{{tasks.select-downstream-vintage-to-process.outputs.parameters.metadata_vintage_to_update}}"
+                value: "{{tasks.make-metadata.outputs.parameters.updated_metadata}}"
           - name: split-commune
             template: split-dataset
             dependencies: [ prepare-split-commune ]
@@ -142,9 +142,9 @@ spec:
               - name: restrict_field
                 value: "REGION"
               - name: years_geodatasets
-                value: "{{tasks.select-downstream-vintage-to-process.outputs.parameters.geodatasets_vintage_to_update}}"
+                value: "{{tasks.make-geodatasets.outputs.parameters.updated_geodata}}"
               - name: years_metadata
-                value: "{{tasks.select-downstream-vintage-to-process.outputs.parameters.metadata_vintage_to_update}}"
+                value: "{{tasks.make-metadata.outputs.parameters.updated_metadata}}"
           - name: split-region
             template: split-dataset
             dependencies: [ prepare-split-region ]
@@ -177,9 +177,9 @@ spec:
               - name: restrict_field
                 value: "BASSIN_VIE"
               - name: years_geodatasets
-                value: "{{tasks.select-downstream-vintage-to-process.outputs.parameters.geodatasets_vintage_to_update}}"
+                value: "{{tasks.make-geodatasets.outputs.parameters.updated_geodata}}"
               - name: years_metadata
-                value: "{{tasks.select-downstream-vintage-to-process.outputs.parameters.metadata_vintage_to_update}}"
+                value: "{{tasks.make-metadata.outputs.parameters.updated_metadata}}"
           - name: split-bassin-vie
             template: split-dataset
             dependencies: [ prepare-split-bassin-vie ]
@@ -212,9 +212,9 @@ spec:
               - name: restrict_field
                 value: "ZONE_EMPLOI"
               - name: years_geodatasets
-                value: "{{tasks.select-downstream-vintage-to-process.outputs.parameters.geodatasets_vintage_to_update}}"
+                value: "{{tasks.make-geodatasets.outputs.parameters.updated_geodata}}"
               - name: years_metadata
-                value: "{{tasks.select-downstream-vintage-to-process.outputs.parameters.metadata_vintage_to_update}}"
+                value: "{{tasks.make-metadata.outputs.parameters.updated_metadata}}"
           - name: split-zone-emploi
             template: split-dataset
             dependencies: [ prepare-split-zone-emploi ]
@@ -247,9 +247,9 @@ spec:
               - name: restrict_field
                 value: "UNITE_URBAINE"
               - name: years_geodatasets
-                value: "{{tasks.select-downstream-vintage-to-process.outputs.parameters.geodatasets_vintage_to_update}}"
+                value: "{{tasks.make-geodatasets.outputs.parameters.updated_geodata}}"
               - name: years_metadata
-                value: "{{tasks.select-downstream-vintage-to-process.outputs.parameters.metadata_vintage_to_update}}"
+                value: "{{tasks.make-metadata.outputs.parameters.updated_metadata}}"
           - name: split-unite-urbaine
             template: split-dataset
             dependencies: [ prepare-split-unite-urbaine ]
@@ -282,9 +282,9 @@ spec:
               - name: restrict_field
                 value: "AIRE_ATTRACTION_VILLES"
               - name: years_geodatasets
-                value: "{{tasks.select-downstream-vintage-to-process.outputs.parameters.geodatasets_vintage_to_update}}"
+                value: "{{tasks.make-geodatasets.outputs.parameters.updated_geodata}}"
               - name: years_metadata
-                value: "{{tasks.select-downstream-vintage-to-process.outputs.parameters.metadata_vintage_to_update}}"
+                value: "{{tasks.make-metadata.outputs.parameters.updated_metadata}}"
           - name: split-aire-attraction
             template: split-dataset
             dependencies: [ prepare-split-aire-attraction ]
@@ -397,10 +397,15 @@ spec:
           "]
         env: *env_parameters
 
-    - name: make-base-geodatasets
+    - name: make-geodatasets
       inputs:
         parameters:
           - name: years
+      outputs:
+        parameters:
+        - name: updated_geodata
+          valueFrom:
+            path: geodatasets_years.json
       container:
         image: inseefrlab/cartiflette
         command: [sh, -c]
@@ -408,7 +413,7 @@ spec:
           - name: volume-workflow-tmp
             mountPath: /mnt
         args: ["
-                python /mnt/bin/src/make_unified_base_geodatasets.py --path $PATH_WRITING_S3 --localpath $LOCAL_DATA_PATH --years '{{inputs.parameters.years}}';
+                python /mnt/bin/src/make_geodata_datasets.py --path $PATH_WRITING_S3 --localpath $LOCAL_DATA_PATH --years '{{inputs.parameters.years}}';
                 "]
         env: *env_parameters
         
@@ -416,6 +421,11 @@ spec:
       inputs:
         parameters:
           - name: years
+      outputs:
+        parameters:
+        - name: updated_metadata
+          valueFrom:
+            path: metadata_years.json
       container:
         image: inseefrlab/cartiflette
         command: [sh, -c]

@@ -20,7 +20,6 @@ from cartiflette.pipeline.combine_adminexpress_france import (
     combine_adminexpress_territory,
 )
 
-from cartiflette.pipeline.prepare_cog_metadata import prepare_cog_metadata
 
 print("=" * 50)
 print(__doc__)
@@ -28,7 +27,7 @@ print("=" * 50)
 
 # Initialize ArgumentParser
 parser = argparse.ArgumentParser(
-    description="Run Cartiflette pipeline script."
+    description="Preprocess geodatasets from raw sources"
 )
 parser.add_argument(
     "-p", "--path", help="Path within bucket", default=PATH_WITHIN_BUCKET
@@ -132,6 +131,9 @@ def main(
             shutil.rmtree(
                 os.path.dirname(path_combined_files), ignore_errors=True
             )
+
+    with open("geodatasets_years.json", "w") as out:
+        json.dump(created, out)
 
     return created
 

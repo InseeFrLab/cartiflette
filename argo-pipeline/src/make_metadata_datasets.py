@@ -22,7 +22,7 @@ print("=" * 50)
 
 # Initialize ArgumentParser
 parser = argparse.ArgumentParser(
-    description="Run Cartiflette pipeline script."
+    description="Preprocess metadata from raw sources"
 )
 parser.add_argument(
     "-p", "--path", help="Path within bucket", default=PATH_WITHIN_BUCKET
@@ -121,6 +121,9 @@ def main(
             except FileNotFoundError:
                 # generation failed
                 pass
+
+    with open("metadata_years.json", "w") as out:
+        json.dump(created, out)
 
     return created
 
