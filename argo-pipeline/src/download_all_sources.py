@@ -48,6 +48,12 @@ parser.add_argument(
     default=None,
 )
 
+parser.add_argument(
+    "--skip",
+    action="store_true",
+    help="Skip download for speeding debugging purposes",
+)
+
 # Parse arguments
 args = parser.parse_args()
 
@@ -55,6 +61,8 @@ bucket = BUCKET
 path_within_bucket = args.path
 local_path = args.localpath
 years = args.years
+skip = args.skip
+
 if years:
     years = [int(x) for x in years.split(",")]
 
@@ -62,18 +70,25 @@ fs = FS
 
 os.makedirs(local_path, exist_ok=True)
 
-try:
-    results = download_all(
-        bucket, path_within_bucket, fs=fs, upload=True, years=years
-    )
-
-    with open("download_all_results.json", "w") as out:
-        json.dump(results, out)
-except Exception:
+if not skip:
     try:
-        os.unlink("download_all_results.json")
-    except FileNotFoundError:
-        pass
-    raise
+        results = download_all(
+            bucket, path_within_bucket, fs=fs, upload=True, years=years
+        )
 
-print(results)
+        with open("download_all_results.json", "w") as out:
+            json.dump(results, out)
+    except Exception:
+        try:
+            os.unlink("download_all_results.json")
+        except FileNotFoundError:
+            pass
+        raise
+
+    print(results)
+
+else:
+    print(
+        "Download skipped! "
+        "To reset download, remove --skip flag from pipeline yaml (from download-all-sources)!"
+    )
