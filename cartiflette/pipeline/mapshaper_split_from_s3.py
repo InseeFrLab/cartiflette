@@ -5,10 +5,6 @@ from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
 from cartiflette.utils import create_path_bucket
 from cartiflette.mapshaper import mapshaperize_split, mapshaperize_split_merge
 
-# from cartiflette.pipeline.prepare_mapshaper import (
-#     prepare_local_directory_mapshaper,
-# )
-
 from cartiflette.s3.dataset import BaseGISDataset
 
 
