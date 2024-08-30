@@ -15,9 +15,7 @@ print("=" * 50)
 print(__doc__)
 print("=" * 50)
 
-parser = argparse.ArgumentParser(
-    description="Select vintage geodatasets to update"
-)
+parser = argparse.ArgumentParser(description="Select vintage to update")
 parser.add_argument(
     "--download_results",
     type=str,

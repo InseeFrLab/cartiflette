@@ -33,7 +33,7 @@ print("=" * 50)
 
 # Initialize ArgumentParser
 parser = argparse.ArgumentParser(
-    description="Run Cartiflette pipeline script."
+    description="Run Cartiflette pipeline download script."
 )
 parser.add_argument(
     "-p", "--path", help="Path within bucket", default=PATH_WITHIN_BUCKET
