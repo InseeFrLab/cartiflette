@@ -441,6 +441,7 @@ spec:
         volumeMounts:
           - name: volume-workflow-tmp
             mountPath: /mnt
+        env: *env_parameters
         args: ["
           python /mnt/bin/src/crossproduct.py --restrict-field '{{inputs.parameters.restrict_field}}' --years-geodatasets '{{inputs.parameters.years_geodatasets}}' --years-metadata '{{inputs.parameters.years_metadata}}';
           "]
