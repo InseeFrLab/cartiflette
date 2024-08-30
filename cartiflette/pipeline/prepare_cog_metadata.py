@@ -11,7 +11,6 @@ def prepare_cog_metadata(
     year: int,
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
-    local_dir: str = "temp",
     fs: s3fs.core.S3FileSystem = FS,
 ) -> pd.DataFrame:
     """
@@ -22,8 +21,7 @@ def prepare_cog_metadata(
     Parameters:
     - year (int): The COG metadata's vintage
     - bucket (str): The bucket where the dataset are stored
-    - path_within_bucket (str): The path within the S3 bucket where the datasets will be stored.
-    - local_dir (str): Local directory where the datasets will be downloaded.
+    - path_within_bucket (str): The path within the S3 bucket where the datasets are stored.
     - fs (s3fs.core.S3FileSystem): An S3FileSystem object for interacting with the S3 bucket.
 
     Returns:
@@ -31,8 +29,7 @@ def prepare_cog_metadata(
                     and TAGC information.
     """
 
-    # Create the local directory if it does not exist
-    os.makedirs(local_dir, exist_ok=True)
+    # TODO : calcul des tables BANATIC, etc.
 
     # Find DEPARTEMENT dataset on S3
     path = (

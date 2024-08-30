@@ -57,8 +57,6 @@ def main(
     bucket=BUCKET,
     years: int = None,
 ):
-    # TODO : calcul des tables BANATIC, etc.
-
     if not years:
         # Perform on all years
         json_md5 = f"{bucket}/{path_within_bucket}/md5.json"
@@ -76,6 +74,8 @@ def main(
         print("-" * 50)
         print(f"Computing metadata for {year=}")
         print("-" * 50)
+
+        os.makedirs(f"{local_path}/{year}", exist_ok=True)
 
         try:
             path_raw_s3 = create_path_bucket(
@@ -101,7 +101,6 @@ def main(
             tagc_metadata = prepare_cog_metadata(
                 bucket=bucket,
                 path_within_bucket=path_within_bucket,
-                local_dir=localpath,
                 year=year,
             )
             if tagc_metadata is None:
@@ -118,7 +117,11 @@ def main(
 
         finally:
             # clean up tempfiles whatever happens
-            os.unlink(f"{localpath}/{year}/tagc.csv")s
+            try:
+                os.unlink(f"{localpath}/{year}/tagc.csv")
+            except FileNotFoundError:
+                # generation failed
+                pass
 
     return created
 
