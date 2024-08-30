@@ -167,9 +167,7 @@ class MasterScraper(requests_cache.CachedSession):
             if "7-zip" in filetype:
                 root_folder, files_locations = datafile.unpack(protocol="7z")
             elif "Zip archive" in filetype:
-                root_folder, files_locations = datafile.unpack(
-                    protocol="zip"
-                )
+                root_folder, files_locations = datafile.unpack(protocol="zip")
             elif "Unicode text" in filetype or "CSV text" in filetype:
                 # copy in temp directory without processing
                 root_folder = tempfile.mkdtemp()
@@ -376,9 +374,13 @@ def download_to_tempfile_http(
     # if there's a hash value, check if there are any changes
     if hash_ and validate_file(file_path, hash_):
         # unchanged file -> exit (after deleting the downloaded file)
-        logger.debug(f"md5 matched at {url} after download")
+        logger.warning(f"md5 matched at {url} after download")
         os.unlink(file_path)
         return False, None, None
+    else:
+        logger.error(
+            f"NO md5 match at {url} after download : {hash_=} and {hash_file(file_path)}"
+        )
 
     filetype = magic.from_file(file_path)
 
