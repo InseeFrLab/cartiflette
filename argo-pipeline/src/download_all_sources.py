@@ -70,25 +70,27 @@ fs = FS
 
 os.makedirs(local_path, exist_ok=True)
 
-if not skip:
-    try:
+
+try:
+    if not skip:
         results = download_all(
             bucket, path_within_bucket, fs=fs, upload=True, years=years
         )
+    else:
+        results = []
+        print(
+            "Download skipped! "
+            "To reset download, remove --skip flag from pipeline yaml (from "
+            "download-all-sources template)!"
+        )
 
-        with open("download_all_results.json", "w") as out:
-            json.dump(results, out)
-    except Exception:
-        try:
-            os.unlink("download_all_results.json")
-        except FileNotFoundError:
-            pass
-        raise
+    with open("download_all_results.json", "w") as out:
+        json.dump(results, out)
+except Exception:
+    try:
+        os.unlink("download_all_results.json")
+    except FileNotFoundError:
+        pass
+    raise
 
-    print(results)
-
-else:
-    print(
-        "Download skipped! "
-        "To reset download, remove --skip flag from pipeline yaml (from download-all-sources)!"
-    )
+print(results)
