@@ -11,10 +11,12 @@ import shutil
 
 from cartiflette.config import FS
 from cartiflette.utils import create_path_bucket, ConfigDict
-from cartiflette.pipeline.prepare_mapshaper import (
-    prepare_local_directory_mapshaper,
-)
 from cartiflette.mapshaper import mapshaper_convert_mercator
+from cartiflette.s3.list_files_s3 import (
+    list_raw_files_level,
+    download_files_from_list,
+)
+
 
 logger = logging.getLogger(__name__)
 
@@ -46,17 +48,14 @@ class BaseGISDataset:
 
     def to_local_folder_for_mapshaper(self):
         "download to local dir and prepare for use with mapshaper"
-        paths = prepare_local_directory_mapshaper(
-            self.s3_dirpath,
-            borders="COMMUNE",
-            territory=self.config["territory"],
-            niveau_agreg="COMMUNE",
-            format_output="geojson",
-            simplification=0,
-            local_dir=self.local_dir,
-            fs=self.fs,
+
+        local_dir = f"{self.local_dir}/{self.config['territory']}"
+        os.makedirs(local_dir, exist_ok=True)
+        # Get all raw shapefiles from Minio
+        list_raw_files = list_raw_files_level(
+            self.fs, self.s3_dirpath, borders="COMMUNE"
         )
-        logger.warning(paths)
+        download_files_from_list(self.fs, list_raw_files, local_dir=local_dir)
 
     def __enter__(self):
         self.to_local_folder_for_mapshaper()
