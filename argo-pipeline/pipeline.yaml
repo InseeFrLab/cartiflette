@@ -65,7 +65,7 @@ spec:
           # STEP 4.1. SPLIT BY DEPARTEMENT
           - name: prepare-split-departement
             template: prepare-split
-            dependencies: [ make-base-geodatasets, make-metadata ]
+            dependencies: [ make-geodatasets, make-metadata ]
             arguments:
               parameters:
               - name: restrict_field
@@ -101,7 +101,7 @@ spec:
           # STEP 4.2. SPLIT BY COMMUNE
           - name: prepare-split-commune
             template: prepare-split
-            dependencies: [ make-base-geodatasets, make-metadata ]
+            dependencies: [ make-geodatasets, make-metadata ]
             arguments:
               parameters:
               - name: restrict_field
@@ -136,7 +136,7 @@ spec:
           # STEP 4.3. SPLIT BY REGION
           - name: prepare-split-region
             template: prepare-split
-            dependencies: [ make-base-geodatasets, make-metadata ]
+            dependencies: [ make-geodatasets, make-metadata ]
             arguments:
               parameters:
               - name: restrict_field
@@ -171,7 +171,7 @@ spec:
           # STEP 4.4. SPLIT BY BASSIN VIE
           - name: prepare-split-bassin-vie
             template: prepare-split
-            dependencies: [ make-base-geodatasets, make-metadata ]
+            dependencies: [ make-geodatasets, make-metadata ]
             arguments:
               parameters:
               - name: restrict_field
@@ -206,7 +206,7 @@ spec:
           # STEP 4.5. SPLIT BY ZONE_EMPLOI
           - name: prepare-split-zone-emploi
             template: prepare-split
-            dependencies: [ make-base-geodatasets, make-metadata ]
+            dependencies: [ make-geodatasets, make-metadata ]
             arguments:
               parameters:
               - name: restrict_field
@@ -241,7 +241,7 @@ spec:
           # STEP 4.6. SPLIT BY UNITE_URBAINE
           - name: prepare-split-unite-urbaine
             template: prepare-split
-            dependencies: [ make-base-geodatasets, make-metadata ]
+            dependencies: [ make-geodatasets, make-metadata ]
             arguments:
               parameters:
               - name: restrict_field
@@ -276,7 +276,7 @@ spec:
           # STEP 4.7. SPLIT BY AIRE_ATTRACTION_VILLES
           - name: prepare-split-aire-attraction
             template: prepare-split
-            dependencies: [ make-base-geodatasets, make-metadata ]
+            dependencies: [ make-geodatasets, make-metadata ]
             arguments:
               parameters:
               - name: restrict_field
