@@ -104,7 +104,7 @@ def main(
                 local_dir=localpath,
                 year=year,
             )
-            if tagc_metadata is not None:
+            if tagc_metadata is None:
                 continue
             tagc_metadata.drop(columns=["LIBGEO"]).to_csv(
                 f"{localpath}/{year}/tagc.csv"
