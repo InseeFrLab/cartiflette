@@ -60,7 +60,7 @@ def main(
     bucket=BUCKET,
     years: int = None,
 ):
-    # TODO : voir où effectuer les jointures type banatic, etc.
+    # TODO : calcul des tables BANATIC, etc.
 
     if not years:
         # Perform on all years
