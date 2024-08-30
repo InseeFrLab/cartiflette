@@ -7,6 +7,7 @@ Prepare arguments for next step
 import json
 import argparse
 from cartiflette.pipeline import crossproduct_parameters_production
+from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
 
 parser = argparse.ArgumentParser(description="Crossproduct Script")
 parser.add_argument(
@@ -83,7 +84,30 @@ croisement_decoupage_level = {
 }
 
 args = parser.parse_args()
-years = sorted(list(set(args.years_geodatasets) | set(parser.years_metadata)))
+
+years = sorted(
+    list(
+        set(json.loads(args.years_geodatasets))
+        | set(json.loads(parser.years_metadata))
+    )
+)
+
+# TODO : convert to parsable arguments
+bucket = BUCKET
+path_within_bucket = PATH_WITHIN_BUCKET
+fs = FS
+
+if not years:
+    # Perform on all COG years
+    json_md5 = f"{bucket}/{path_within_bucket}/md5.json"
+    with fs.open(json_md5, "r") as f:
+        all_md5 = json.load(f)
+    datasets = all_md5["IGN"]["ADMINEXPRESS"]["EXPRESS-COG-TERRITOIRE"]
+    years = {
+        year
+        for (_territory, vintaged_datasets) in datasets.items()
+        for year in vintaged_datasets.keys()
+    }
 
 
 def main():
