@@ -120,9 +120,9 @@ def main(
     )
     tempdf.columns = tempdf.columns.str.replace("_", "-")
 
-    # Apply filtering if restrictfield is provided
-    if args.restrictfield:
-        tempdf = tempdf.loc[tempdf["level-polygons"] == args.restrictfield]
+    # Apply filtering if restrict_field is provided
+    if args.restrict_field:
+        tempdf = tempdf.loc[tempdf["level-polygons"] == args.restrict_field]
 
     output = tempdf.to_json(orient="records")
     parsed = json.loads(output)
