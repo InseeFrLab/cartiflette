@@ -14,9 +14,6 @@ import shutil
 from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
 from cartiflette.utils import create_path_bucket
 
-from cartiflette.pipeline.combine_adminexpress_france import (
-    combine_adminexpress_territory,
-)
 
 from cartiflette.pipeline.prepare_cog_metadata import prepare_cog_metadata
 
@@ -107,7 +104,7 @@ def main(
                 local_dir=localpath,
                 year=year,
             )
-            if not tagc_metadata:
+            if tagc_metadata is not None:
                 continue
             tagc_metadata.drop(columns=["LIBGEO"]).to_csv(
                 f"{localpath}/{year}/tagc.csv"
