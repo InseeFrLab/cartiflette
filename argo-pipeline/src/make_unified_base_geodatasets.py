@@ -11,6 +11,7 @@ import argparse
 import json
 import os
 import shutil
+import warnings
 
 from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
 from cartiflette.utils import create_path_bucket
@@ -122,11 +123,11 @@ def main(
 
             created.append(path_raw_s3)
 
-        except Exception:
-            raise
-        finally:
-            # clean up tempfiles whatever happens
-            shutil.rmtree(localpath, ignore_errors=True)
+        except Exception as e:
+            warnings.warn(f"geodataset {year=} not created: {e}")
+
+    # clean up tempfiles whatever happens
+    shutil.rmtree(localpath, ignore_errors=True)
 
     return created
 
