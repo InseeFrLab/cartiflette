@@ -28,6 +28,8 @@ def mapshaper_convert_mercator(
         ),
         shell=True,
         check=True,
+        capture_output=True,
+        text=True,
     )
 
     return output_name
