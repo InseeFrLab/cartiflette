@@ -63,8 +63,6 @@ def main(
     bucket=BUCKET,
     years: int = None,
 ):
-    # TODO : voir où effectuer les jointures type banatic, etc.
-
     if not years:
         # Perform on all years
         json_md5 = f"{bucket}/{path_within_bucket}/md5.json"
