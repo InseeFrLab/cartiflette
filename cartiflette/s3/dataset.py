@@ -4,9 +4,13 @@
 Classe générique pour travailler autour d'un dataset présent sur le S3
 """
 
+from glob import glob
 import logging
 import os
 import shutil
+import subprocess
+from tempfile import TemporaryDirectory
+import warnings
 
 import pandas as pd
 from s3fs import S3FileSystem
@@ -28,6 +32,48 @@ from cartiflette.s3.list_files_s3 import (
 logger = logging.getLogger(__name__)
 
 
+def concat(
+    datasets: list = None,
+    format_intermediate: str = "topjson",
+    fs: S3FileSystem = FS,
+    **config_new_dset: ConfigDict,
+):
+    with TemporaryDirectory() as tempdir:
+        for k, dset in enumerate(datasets):
+            with dset:
+                dset.to_mercator()
+                shutil.copy(dset.local_dir, f"{tempdir}/{k}")
+
+        output_path = (
+            f"{tempdir}/preprocessed_combined/COMMUNE.{format_intermediate}"
+        )
+        subprocess.run(
+            (
+                f"mapshaper -i {tempdir}/preprocessed/"
+                f"*.{format_intermediate}"
+                " combine-files name='COMMUNE' "
+                f"-proj EPSG:4326 "
+                f"-merge-layers "
+                f"-o {output_path} "
+                f"format={format_intermediate} "
+                f'extension=".{format_intermediate}" singles'
+            ),
+            shell=True,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        new_dset = BaseGISDataset(
+            fs,
+            intermediate_dir=f"{tempdir}/preprocessed_combined",
+            **config_new_dset,
+        )
+        new_dset.to_s3()
+
+        return new_dset
+
+
 class BaseGISDataset:
     files = None
 
@@ -46,19 +92,26 @@ class BaseGISDataset:
         "retrieve dataset's full paths on S3"
         path = os.path.dirname(create_path_bucket(self.config))
         search = os.path.join(path, "**/*")
-        self.files = self.fs.glob(search)
-        if not self.files:
+        self.s3_files = self.fs.glob(search)
+        if not self.s3_files:
             raise ValueError("this dataset is not available")
 
-        if len(self.files) > 1:
+        if len(self.s3_files) > 1:
             self.main_filename = (
-                self.files[0].rsplit(".", maxsplit=1)[0] + ".shp"
+                self.s3_files[0].rsplit(".", maxsplit=1)[0] + ".shp"
             )
         else:
-            self.main_filename = self.files[0].rsplit(".", maxsplit=1)[0]
+            self.main_filename = self.s3_files[0].rsplit(".", maxsplit=1)[0]
 
         # return exact path (without glob expression):
-        return os.path.dirname(self.files[0])
+        return os.path.dirname(self.s3_files[0])
+
+    def to_s3(self):
+        "upload file to S3"
+        target = self.s3_dirpath
+        if not target.endswith("/"):
+            target += "/"
+        self.fs.put(self.local_dir, target, recursive=True)
 
     def to_local_folder_for_mapshaper(self):
         "download to local dir and prepare for use with mapshaper"
@@ -80,8 +133,12 @@ class BaseGISDataset:
 
     def __exit__(self, *args, **kwargs):
         "remove tempfiles as exit"
-        shutil.rmtree(os.path.join(self.local_dir, self.config["territory"]))
-        pass
+        try:
+            shutil.rmtree(
+                os.path.join(self.local_dir, self.config["territory"])
+            )
+        except Exception as e:
+            warnings.warn(e)
 
     def to_mercator(self, format_intermediate: str = "geojson"):
         "project to mercator using mapshaper"

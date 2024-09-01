@@ -7,7 +7,7 @@ from typing import Union
 import s3fs
 
 from cartiflette.config import FS, BUCKET, PATH_WITHIN_BUCKET
-from cartiflette.s3 import BaseGISDataset
+from cartiflette.s3.dataset import BaseGISDataset, concat
 
 
 COMPILED_TERRITORY = re.compile("territory=([a-z]*)/", flags=re.IGNORECASE)
@@ -64,6 +64,7 @@ def combine_adminexpress_territory(
         "value": "raw",
         "vectorfile_format": "shp",
         "simplification": 0,
+        "year": year,
     }
 
     path = (
@@ -83,63 +84,18 @@ def combine_adminexpress_territory(
 
     print("Territoires récupérés:\n" + "\n".join(territories))
 
-    try:
-        for territory in territories:
-            with BaseGISDataset(
-                fs=fs,
-                intermediate_dir=f"{intermediate_dir}/{year}",
-                year=year,
-                territory=territory,
-                **config,
-            ) as dset:
-                dset.to_mercator(format_intermediate=format_intermediate)
+    datasets = [{"territory": territory} for territory in territories]
+    for d in datasets:
+        d.update(config)
 
-        output_path = (
-            f"{intermediate_dir}/{year}/preprocessed_combined/"
-            f"raw.{format_intermediate}"
-        )
+    concat(
+        [BaseGISDataset(fs=fs, **config) for config in datasets],
+        format_intermediate=format_intermediate,
+        fs=fs,
+        **config,
+    )
 
-        subprocess.run(
-            (
-                f"mapshaper -i {intermediate_dir}/{year}/preprocessed/"
-                f"*.{format_intermediate}"
-                " combine-files name='COMMUNE' "
-                f"-proj EPSG:4326 "
-                f"-merge-layers "
-                f"-o {output_path} "
-                f"format={format_intermediate} "
-                f'extension=".{format_intermediate}" singles'
-            ),
-            shell=True,
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-
-        if os.path.exists(
-            output_path.replace(
-                f"raw.{format_intermediate}", f"COMMUNE.{format_intermediate}"
-            )
-        ):
-            # with topojson format, specifying a name for layer seems to rename
-            # the file, overriding the -o command
-
-            os.rename(
-                output_path.replace(
-                    f"raw.{format_intermediate}",
-                    f"COMMUNE.{format_intermediate}",
-                ),
-                output_path,
-            )
-
-    except Exception:
-        raise
-    finally:
-        shutil.rmtree(
-            f"{intermediate_dir}/{year}/preprocessed", ignore_errors=True
-        )
-
-    return output_path
+    return
 
 
 # if __name__ == "__main__":
