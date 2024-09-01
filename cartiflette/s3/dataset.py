@@ -51,7 +51,7 @@ def concat(
         )
         subprocess.run(
             (
-                f"mapshaper -i {tempdir}/preprocessed/**/"
+                f"mapshaper -i {tempdir}/**/"
                 f"*.{format_intermediate}"
                 " combine-files name='COMMUNE' "
                 f"-proj EPSG:4326 "
@@ -104,7 +104,9 @@ class BaseGISDataset:
         search = f"{path}/**/*"
         self.s3_files = self.fs.glob(search)
         if not self.s3_files:
-            raise ValueError("this dataset is not available")
+            warnings.warn("this dataset is not available on S3")
+
+            return path
 
         if len(self.s3_files) > 1:
             self.main_filename = (
@@ -127,6 +129,9 @@ class BaseGISDataset:
     def to_local_folder_for_mapshaper(self):
         "download to local dir and prepare for use with mapshaper"
 
+        if not self.s3_files:
+            raise ValueError("this dataset is not available on S3")
+
         self.local_dir = f"{self.local_dir}/{self.config['territory']}"
         os.makedirs(self.local_dir, exist_ok=True)
         # Get all files (plural in case of shapefile) from Minio
@@ -146,9 +151,7 @@ class BaseGISDataset:
         "remove tempfiles as exit"
         try:
             try:
-                shutil.rmtree(
-                    os.path.join(self.local_dir, self.config["territory"])
-                )
+                shutil.rmtree(os.path.join(self.local_dir))
             except FileNotFoundError:
                 pass
         except Exception as e:
