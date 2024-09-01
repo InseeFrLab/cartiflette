@@ -63,6 +63,8 @@ def concat(
             capture_output=True,
             text=True,
         )
+        
+        print(output_path)
 
         new_dset = BaseGISDataset(
             fs,
@@ -111,6 +113,7 @@ class BaseGISDataset:
         target = self.s3_dirpath
         if not target.endswith("/"):
             target += "/"
+        print(self.s3_dirpath, target)
         self.fs.put(self.local_dir, target, recursive=True)
 
     def to_local_folder_for_mapshaper(self):
