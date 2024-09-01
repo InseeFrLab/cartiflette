@@ -1,8 +1,7 @@
 import os
 import re
-import shutil
-import subprocess
 from typing import Union
+import warnings
 
 import s3fs
 
@@ -57,7 +56,7 @@ def combine_adminexpress_territory(
         "path_within_bucket": path_within_bucket,
         "provider": "IGN",
         "dataset_family": "ADMINEXPRESS",
-        "source": "EXPRESS-COG-TERRITOIRE",
+        "source": "EXPRESS-COG-CARTO-TERRITOIRE",
         "borders": None,
         "crs": "*",
         "filter_by": "origin",
@@ -70,16 +69,18 @@ def combine_adminexpress_territory(
     path = (
         f"{bucket}/{path_within_bucket}/"
         "provider=IGN/dataset_family=ADMINEXPRESS/"
-        "source=EXPRESS-COG-TERRITOIRE/"
+        "source=EXPRESS-COG-CARTO-TERRITOIRE/"
         f"year={year}/"
         "**/COMMUNE.*"
     )
 
     communes_paths = fs.glob(path)
     dirs = {os.path.dirname(x) for x in communes_paths}
+    print(dirs)
     territories = {t for x in dirs for t in COMPILED_TERRITORY.findall(x)}
 
     if not territories:
+        warnings.warn(f"{year} not constructed (no territories)")
         return
 
     print("Territoires récupérés:\n" + "\n".join(territories))
