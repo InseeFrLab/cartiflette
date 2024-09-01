@@ -4,7 +4,6 @@
 Classe générique pour travailler autour d'un dataset présent sur le S3
 """
 
-from glob import glob
 import logging
 import os
 import shutil
@@ -23,10 +22,6 @@ from cartiflette.utils import (
     DICT_CORRESP_ADMINEXPRESS,
 )
 from cartiflette.mapshaper import mapshaper_convert_mercator, mapshaper_enrich
-from cartiflette.s3.list_files_s3 import (
-    list_raw_files_level,
-    download_files_from_list,
-)
 
 
 logger = logging.getLogger(__name__)
@@ -78,7 +73,7 @@ def concat(
         return new_dset
 
 
-class BaseGISDataset:
+class Dataset:
     files = None
 
     def __init__(
@@ -93,7 +88,7 @@ class BaseGISDataset:
         self.local_dir = intermediate_dir
 
     def __str__(self):
-        return f"<cartiflette.s3.dataset.BaseGISDataset({self.config})>"
+        return f"<cartiflette.s3.dataset.Dataset({self.config})>"
 
     def __repr__(self):
         return self.__str__()
@@ -104,7 +99,7 @@ class BaseGISDataset:
         search = f"{path}/**/*"
         self.s3_files = self.fs.glob(search)
         if not self.s3_files:
-            warnings.warn("this dataset is not available on S3")
+            warnings.warn(f"this dataset is not available on S3 on {search}")
 
             return path
 
@@ -123,26 +118,31 @@ class BaseGISDataset:
         target = self.s3_dirpath
         if not target.endswith("/"):
             target += "/"
-        print(self.s3_dirpath, target)
-        self.fs.put(self.local_dir, target, recursive=True)
+        logger.warning(self.s3_dirpath, target)
+        self.fs.put(self.local_dir + "/*", target, recursive=True)
 
     def to_local_folder_for_mapshaper(self):
         "download to local dir and prepare for use with mapshaper"
 
         if not self.s3_files:
             raise ValueError(
-                f"this dataset is not available on S3 : {self.config}"
+                f"this dataset is not available on S3 : {self.s3_dirpath}"
             )
 
         self.local_dir = f"{self.local_dir}/{self.config['territory']}"
         os.makedirs(self.local_dir, exist_ok=True)
+
+        files = []
+
         # Get all files (plural in case of shapefile) from Minio
-        list_raw_files = list_raw_files_level(
-            self.fs, self.s3_dirpath, borders="COMMUNE"
-        )
-        download_files_from_list(
-            self.fs, list_raw_files, local_dir=self.local_dir
-        )
+        logger.info(f"downloading {self.s3_files} to {self.local_dir}")
+        for file in self.s3_files:
+            path = f"{self.local_dir}/{file.rsplit('/', maxsplit=1)[-1]}"
+            self.fs.download(file, path)
+            logger.warning(f"file written to {path}")
+            files.append(path)
+
+        self.local_files = files
 
     def __enter__(self):
         "download file into local folder at enter"
@@ -158,6 +158,13 @@ class BaseGISDataset:
                 pass
         except Exception as e:
             warnings.warn(e)
+
+
+class BaseGISDataset(Dataset):
+    files = None
+
+    def __str__(self):
+        return f"<cartiflette.s3.dataset.BaseGISDataset({self.config})>"
 
     def to_mercator(self, format_intermediate: str = "geojson"):
         "project to mercator using mapshaper"
@@ -181,7 +188,7 @@ class BaseGISDataset:
         self,
         # local_dir="temp",
         # config_file_city={},
-        metadata: pd.DataFrame(),
+        metadata: Dataset,
         format_output="topojson",
         niveau_polygons="COMMUNE",
         niveau_agreg="DEPARTEMENT",
@@ -254,11 +261,8 @@ class BaseGISDataset:
 
         temp_filename = "temp.geojson"
 
-        # Write metadata to tempdir
-        metadata_path = f"{self.local_dir}/metadata.csv"
-        metadata.to_csv(metadata_path, encoding="utf8", sep=";", index=False)
-
         # STEP 1: ENRICHISSEMENT AVEC COG
+        metadata_path = metadata.local_files[0]
         try:
             self.enrich(
                 metadata_file=metadata_path,
