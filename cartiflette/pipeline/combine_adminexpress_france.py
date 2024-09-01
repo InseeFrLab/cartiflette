@@ -87,7 +87,15 @@ def combine_adminexpress_territory(
     for d in datasets:
         d.update(config)
 
-    config.update({"vectorfile_format": format_intermediate})
+    config.update(
+        {
+            "vectorfile_format": format_intermediate,
+            "crs": 4326,
+            "borders": "france",
+            "filter_by": "preprocessed",
+            "value": "before_cog",
+        }
+    )
 
     dset = concat(
         [BaseGISDataset(fs=fs, **config) for config in datasets],
