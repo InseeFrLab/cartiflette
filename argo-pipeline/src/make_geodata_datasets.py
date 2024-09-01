@@ -127,13 +127,6 @@ def main(
         except Exception as e:
             warnings.warn(f"geodataset {year=} not created: {e}")
 
-        finally:
-            # clean up tempfiles whatever happens
-            print(os.path.dirname(path_combined_files))
-            shutil.rmtree(
-                os.path.dirname(path_combined_files), ignore_errors=True
-            )
-
     with open("geodatasets_years.json", "w") as out:
         json.dump(created, out)
 
