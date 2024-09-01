@@ -69,7 +69,8 @@ def combine_adminexpress_territory(
         f"{bucket}/{path_within_bucket}/"
         "provider=IGN/dataset_family=ADMINEXPRESS/"
         "source=EXPRESS-COG-CARTO-TERRITOIRE/"
-        f"year={year}/"
+        f"year={year}/**"
+        "origin=raw/**"
         "**/COMMUNE.*"
     )
 
@@ -107,5 +108,5 @@ def combine_adminexpress_territory(
     return dset.s3_dirpath
 
 
-if __name__ == "__main__":
-    combine_adminexpress_territory(2024)
+# if __name__ == "__main__":
+#     combine_adminexpress_territory(2023)
