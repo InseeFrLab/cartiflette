@@ -86,7 +86,7 @@ def main(
 
         try:
             # Merge all territorial cities files into a single file
-            path_combined_files = combine_adminexpress_territory(
+            dset_s3_dir = combine_adminexpress_territory(
                 year=year,
                 path_within_bucket=path_within_bucket,
                 intermediate_dir=localpath,
@@ -95,33 +95,11 @@ def main(
                 fs=fs,
             )
 
-            if not path_combined_files:
+            if not dset_s3_dir:
                 # No files merged
                 continue
 
-            # Upload file to S3 file system
-            path_raw_s3 = create_path_bucket(
-                {
-                    "bucket": bucket,
-                    "path_within_bucket": path_within_bucket,
-                    "year": year,
-                    "borders": "france",
-                    "crs": 4326,
-                    "filter_by": "preprocessed",
-                    "value": "before_cog",
-                    "vectorfile_format": format_intermediate,
-                    "provider": "IGN",
-                    "dataset_family": "ADMINEXPRESS",
-                    "source": "EXPRESS-COG-CARTO-TERRITOIRE",
-                    "territory": "france",
-                    "filename": f"raw.{format_intermediate}",
-                    "simplification": 0,
-                }
-            )
-
-            fs.put_file(path_combined_files, path_raw_s3)
-
-            created.append(path_raw_s3)
+            created.append(dset_s3_dir)
 
         except Exception as e:
             warnings.warn(f"geodataset {year=} not created: {e}")
