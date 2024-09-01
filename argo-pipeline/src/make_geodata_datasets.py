@@ -111,7 +111,7 @@ def main(
                     "filter_by": "preprocessed",
                     "value": "before_cog",
                     "vectorfile_format": format_intermediate,
-                    "provider": "CARTIFLETTE",
+                    "provider": "IGN",
                     "dataset_family": "ADMINEXPRESS",
                     "source": "EXPRESS-COG-CARTO-TERRITOIRE",
                     "territory": "france",

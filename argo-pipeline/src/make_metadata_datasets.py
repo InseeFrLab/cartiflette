@@ -89,7 +89,7 @@ def main(
                     "filter_by": "preprocessed",
                     "value": "tagc",
                     "vectorfile_format": "csv",
-                    "provider": "CARTIFLETTE",
+                    "provider": "Insee",
                     "dataset_family": "COG-TAGC",
                     "source": "COG-TAGC",
                     "territory": "france",
