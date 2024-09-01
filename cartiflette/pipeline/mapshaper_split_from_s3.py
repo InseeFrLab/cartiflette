@@ -8,7 +8,9 @@ from cartiflette.mapshaper import mapshaperize_split, mapshaperize_split_merge
 from cartiflette.s3.dataset import BaseGISDataset
 
 
-def mapshaperize_split_from_s3(config, fs=FS):
+def mapshaperize_split_from_s3(
+    config, format_intermediate: str = "topojson", fs=FS
+):
     format_output = config.get("format_output", "topojson")
     filter_by = config.get("filter_by", "DEPARTEMENT")
     territory = config.get("territory", "metropole")
@@ -36,12 +38,12 @@ def mapshaperize_split_from_s3(config, fs=FS):
             "crs": 4326,
             "filter_by": "preprocessed",
             "value": "before_cog",
-            "vectorfile_format": "geojson",
-            "provider": "IGN",
-            "dataset_family": "ADMINEXPRESS",
-            "source": "EXPRESS-COG-CARTO-TERRITOIRE",
+            "vectorfile_format": format_intermediate,
+            "provider": provider,
+            "dataset_family": dataset_family,
+            "source": source,
             "territory": "france",
-            "filename": "raw.geojson",
+            "filename": f"raw.{format_intermediate}",
             "simplification": 0,
         }
     )
