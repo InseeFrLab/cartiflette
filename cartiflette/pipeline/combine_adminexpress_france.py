@@ -46,8 +46,7 @@ def combine_adminexpress_territory(
     Returns
     -------
     output_path : str
-        Path of merged dataset. Should be
-        f"{intermediate_dir}/{year}/preprocessed_combined/raw.geojson"
+        Path of uploaded dataset on S3.
 
     """
 
@@ -76,7 +75,6 @@ def combine_adminexpress_territory(
 
     communes_paths = fs.glob(path)
     dirs = {os.path.dirname(x) for x in communes_paths}
-    print(dirs)
     territories = {t for x in dirs for t in COMPILED_TERRITORY.findall(x)}
 
     if not territories:
@@ -89,15 +87,17 @@ def combine_adminexpress_territory(
     for d in datasets:
         d.update(config)
 
-    concat(
+    config.update({"vectorfile_format": format_intermediate})
+
+    dset = concat(
         [BaseGISDataset(fs=fs, **config) for config in datasets],
         format_intermediate=format_intermediate,
         fs=fs,
         **config,
     )
 
-    return
+    return dset.s3_dirpath
 
 
-# if __name__ == "__main__":
-#     combine_adminexpress_territory(2022)
+if __name__ == "__main__":
+    combine_adminexpress_territory(2024)

@@ -20,7 +20,7 @@ def mapshaper_convert_mercator(
 
     subprocess.run(
         (
-            f"mapshaper {local_dir}/{territory}/COMMUNE.{extension_initial} name='COMMUNE' "
+            f"mapshaper {local_dir}/COMMUNE.{extension_initial} name='COMMUNE' "
             f"-proj EPSG:4326 "
             f"{identifier}"
             f"-o {output_name} "
