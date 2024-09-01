@@ -10,7 +10,6 @@ for each vintage.
 import argparse
 import json
 import os
-import shutil
 import warnings
 
 from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
@@ -126,6 +125,7 @@ def main(
 
         except Exception as e:
             warnings.warn(f"geodataset {year=} not created: {e}")
+            raise
 
     with open("geodatasets_years.json", "w") as out:
         json.dump(created, out)
