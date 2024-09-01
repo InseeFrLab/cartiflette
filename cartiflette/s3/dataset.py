@@ -41,15 +41,17 @@ def concat(
     with TemporaryDirectory() as tempdir:
         for k, dset in enumerate(datasets):
             with dset:
-                dset.to_mercator()
-                shutil.copy(dset.local_dir, f"{tempdir}/{k}")
+                dset.to_mercator(format_intermediate="topojson")
+                shutil.copytree(
+                    dset.local_dir + "/preprocessed", f"{tempdir}/{k}"
+                )
 
         output_path = (
             f"{tempdir}/preprocessed_combined/COMMUNE.{format_intermediate}"
         )
         subprocess.run(
             (
-                f"mapshaper -i {tempdir}/preprocessed/"
+                f"mapshaper -i {tempdir}/preprocessed/**/"
                 f"*.{format_intermediate}"
                 " combine-files name='COMMUNE' "
                 f"-proj EPSG:4326 "
@@ -63,7 +65,7 @@ def concat(
             capture_output=True,
             text=True,
         )
-        
+
         print(output_path)
 
         new_dset = BaseGISDataset(
@@ -90,10 +92,16 @@ class BaseGISDataset:
         self.s3_dirpath = self.get_path_of_dataset()
         self.local_dir = intermediate_dir
 
+    def __str__(self):
+        return f"<cartiflette.s3.dataset.BaseGISDataset({self.config})>"
+
+    def __repr__(self):
+        return self.__str__()
+
     def get_path_of_dataset(self):
         "retrieve dataset's full paths on S3"
         path = os.path.dirname(create_path_bucket(self.config))
-        search = os.path.join(path, "**/*")
+        search = f"{path}/**/*"
         self.s3_files = self.fs.glob(search)
         if not self.s3_files:
             raise ValueError("this dataset is not available")
@@ -137,9 +145,12 @@ class BaseGISDataset:
     def __exit__(self, *args, **kwargs):
         "remove tempfiles as exit"
         try:
-            shutil.rmtree(
-                os.path.join(self.local_dir, self.config["territory"])
-            )
+            try:
+                shutil.rmtree(
+                    os.path.join(self.local_dir, self.config["territory"])
+                )
+            except FileNotFoundError:
+                pass
         except Exception as e:
             warnings.warn(e)
 
