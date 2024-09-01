@@ -3,14 +3,14 @@ Data wrangling (geo)operations wrappers from mapshaper.
 """
 
 import subprocess
+
 from cartiflette.utils import DICT_CORRESP_ADMINEXPRESS
 
 
 def mapshaper_enrich(
     local_dir: str = "temp",
-    filename_initial: str = "COMMUNE",
-    extension_initial: str = "shp",
-    output_path: str = "temp.geojson",
+    filename_initial: str = "COMMUNE.shp",
+    output_path: str = None,
     metadata_file: str = "temp/tagc.csv",
     dict_corresp: dict = DICT_CORRESP_ADMINEXPRESS,
 ) -> None:
@@ -23,9 +23,11 @@ def mapshaper_enrich(
       Mapshaper will be executed (default is "temp").
     - filename_initial (str): The name of the initial shapefile without extension
       (default is "COMMUNE").
-    - extension_initial (str): The extension of the initial shapefile (default is "shp").
-    - output_path (str): The path for the output GeoJSON file after enrichment
-      (default is "temp.geojson").
+    - output_path (str): The path for the output file after enrichment. If
+      None, the file will be overwritten (default is None).
+    - metadata_file (str): The local path to a metadata
+      datafile to join to the initial geodata file.
+      metadatafile or a DataFrame object of the metadatafile to enrich
     - dict_corresp (dict): A dictionary containing correspondences for field renaming
       and value assignment (default is DICT_CORRESP_ADMINEXPRESS).
 
@@ -36,7 +38,7 @@ def mapshaper_enrich(
 
     # Mapshaper command for the enrichment process
     cmd_step1 = (
-        f"mapshaper {local_dir}/{filename_initial}.{extension_initial} "
+        f"mapshaper {local_dir}/{filename_initial} "
         f"name='' -proj EPSG:4326 "
         f"-join {metadata_file} "
         f"keys=INSEE_COM,CODGEO field-types=INSEE_COM:str,CODGEO:str "
