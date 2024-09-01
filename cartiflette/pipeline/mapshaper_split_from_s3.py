@@ -1,11 +1,15 @@
 import os
 import shutil
+import tempfile
+
+import pandas as pd
 
 from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
 from cartiflette.utils import create_path_bucket
 from cartiflette.mapshaper import mapshaperize_split, mapshaperize_split_merge
+from cartiflette.s3 import BaseGISDataset
 
-from cartiflette.s3.dataset import BaseGISDataset
+from cartiflette.s3.dataset import BaseGISDataset, Dataset
 
 
 def mapshaperize_split_from_s3(
@@ -19,7 +23,7 @@ def mapshaperize_split_from_s3(
 
     provider = config.get("provider", "IGN")
     source = config.get("source", "EXPRESS-COG-CARTO-TERRITOIRE")
-    year = config.get("year", 2022)
+    year = config.get("year", 2024)
     dataset_family = config.get("dataset_family", "ADMINEXPRESS")
     territory = config.get("territory", "metropole")
     crs = config.get("crs", 4326)
@@ -29,30 +33,47 @@ def mapshaperize_split_from_s3(
     path_within_bucket = config.get("path_within_bucket", PATH_WITHIN_BUCKET)
     local_dir = config.get("local_dir", "temp")
 
-    path_raw_s3_combined = create_path_bucket(
-        {
+    with tempfile.TemporaryDirectory() as tempdir:
+        kwargs = {
+            "fs": fs,
+            "intermediate_dir": tempdir,
             "bucket": bucket,
             "path_within_bucket": path_within_bucket,
             "year": year,
             "borders": "france",
-            "crs": 4326,
             "filter_by": "preprocessed",
-            "value": "before_cog",
-            "vectorfile_format": format_intermediate,
-            "provider": provider,
-            "dataset_family": dataset_family,
-            "source": source,
             "territory": "france",
-            "filename": f"raw.{format_intermediate}",
-            "simplification": 0,
         }
-    )
-
-    fs.download(
-        path_raw_s3_combined, "temp/preprocessed_combined/COMMUNE.geojson"
-    )
+        with Dataset(
+            provider="Insee",
+            dataset_family="COG-TAGC",
+            source="COG-TAGC",
+            crs=None,
+            value="tagc",
+            vectorfile_format="csv",
+            **kwargs,
+        ) as metadata, BaseGISDataset(
+            provider=provider,
+            dataset_family=dataset_family,
+            source=source,
+            crs=4326,
+            value="before_cog",
+            vectorfile_format=format_intermediate,
+            **kwargs,
+        ) as gis_file:
+            gis_file.mapshaperize_split(
+                metadata,
+                format_output=format_output,
+                niveau_agreg=filter_by,
+                niveau_polygons=level_polygons,
+                provider=provider,
+                source=source,
+                crs=crs,
+                simplification=simplification,
+            )
 
     output_path = mapshaperize_split(
+        gis_file,
         local_dir=local_dir,
         config_file_city={
             "location": "temp/preprocessed_combined",
@@ -191,3 +212,7 @@ def mapshaperize_merge_split_from_s3(config, fs=FS):
         fs.put(f"{output_path}/{values}", path_s3)
 
     shutil.rmtree(output_path)
+
+
+if __name__ == "__main__":
+    mapshaperize_split_from_s3({"year": 2023})
