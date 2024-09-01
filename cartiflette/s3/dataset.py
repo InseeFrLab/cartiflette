@@ -130,7 +130,9 @@ class BaseGISDataset:
         "download to local dir and prepare for use with mapshaper"
 
         if not self.s3_files:
-            raise ValueError("this dataset is not available on S3")
+            raise ValueError(
+                f"this dataset is not available on S3 : {self.config}"
+            )
 
         self.local_dir = f"{self.local_dir}/{self.config['territory']}"
         os.makedirs(self.local_dir, exist_ok=True)
