@@ -69,8 +69,13 @@ def combine_adminexpress_territory(
         f"{bucket}/{path_within_bucket}/"
         "provider=IGN/dataset_family=ADMINEXPRESS/"
         "source=EXPRESS-COG-CARTO-TERRITOIRE/"
-        f"year={year}/**"
-        "origin=raw/**"
+        f"year={year}/"
+        "administrative_level=*/"
+        "crs=*/"
+        "origin=raw/"
+        "vectorfile_format=*/"
+        "territory=*/"
+        "simplification=*/"
         "COMMUNE.*"
     )
 
