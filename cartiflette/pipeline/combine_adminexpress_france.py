@@ -71,7 +71,7 @@ def combine_adminexpress_territory(
         "source=EXPRESS-COG-CARTO-TERRITOIRE/"
         f"year={year}/**"
         "origin=raw/**"
-        "**/COMMUNE.*"
+        "COMMUNE.*"
     )
 
     communes_paths = fs.glob(path)
@@ -109,4 +109,4 @@ def combine_adminexpress_territory(
 
 
 # if __name__ == "__main__":
-#     combine_adminexpress_territory(2023)
+#     combine_adminexpress_territory(2024)
