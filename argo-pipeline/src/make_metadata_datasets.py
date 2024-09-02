@@ -111,7 +111,7 @@ def main(
             )
             fs.put_file(f"{localpath}/{year}/tagc.csv", path_raw_s3)
 
-            created.append(path_raw_s3)
+            created.append(year)
 
         except Exception:
             raise
