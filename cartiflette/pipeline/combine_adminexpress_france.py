@@ -100,6 +100,7 @@ def combine_adminexpress_territory(
             "borders": "france",
             "filter_by": "preprocessed",
             "value": "before_cog",
+            "territory": "france",
         }
     )
 
