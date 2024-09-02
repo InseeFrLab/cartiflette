@@ -13,7 +13,6 @@ import os
 import warnings
 
 from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
-from cartiflette.utils import create_path_bucket
 
 from cartiflette.pipeline.combine_adminexpress_france import (
     combine_adminexpress_territory,
@@ -99,7 +98,7 @@ def main(
                 # No files merged
                 continue
 
-            created.append(dset_s3_dir)
+            created.append(year)
 
         except Exception as e:
             warnings.warn(f"geodataset {year=} not created: {e}")
