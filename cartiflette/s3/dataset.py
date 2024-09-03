@@ -57,7 +57,6 @@ def concat(
             ),
             shell=True,
             check=True,
-            capture_output=True,
             text=True,
         )
 
@@ -108,10 +107,10 @@ class Dataset:
                 self.s3_files[0].rsplit(".", maxsplit=1)[0] + ".shp"
             )
         else:
-            self.main_filename = self.s3_files[0].rsplit(".", maxsplit=1)[0]
+            self.main_filename = self.s3_files[0]
 
         # return exact path (without glob expression):
-        return os.path.dirname(self.s3_files[0])
+        return os.path.dirname(self.main_filename)
 
     def to_s3(self):
         "upload file to S3"
@@ -179,7 +178,7 @@ class BaseGISDataset(Dataset):
         "enrich with metadata using mapshaper"
         mapshaper_enrich(
             local_dir=self.local_dir,
-            filename_initial=self.main_filename,
+            filename_initial=os.path.basename(self.main_filename),
             metadata_file=metadata_file,
             dict_corresp=dict_corresp,
         )
@@ -303,7 +302,6 @@ class BaseGISDataset(Dataset):
                 cmd_dissolve,
                 shell=True,
                 check=True,
-                capture_output=True,
                 text=True,
             )
 
