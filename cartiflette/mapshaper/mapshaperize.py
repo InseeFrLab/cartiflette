@@ -120,7 +120,6 @@ def mapshaperize_split(
             cmd_dissolve,
             shell=True,
             check=True,
-            capture_output=True,
             text=True,
         )
 
@@ -210,7 +209,6 @@ def mapshaperize_split_merge(
         ),
         shell=True,
         check=True,
-        capture_output=True,
         text=True,
     )
 
@@ -231,7 +229,6 @@ def mapshaperize_split_merge(
         ),
         shell=True,
         check=True,
-        capture_output=True,
         text=True,
     )
 
@@ -250,7 +247,6 @@ def mapshaperize_split_merge(
         ),
         shell=True,
         check=True,
-        capture_output=True,
         text=True,
     )
 

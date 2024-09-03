@@ -57,7 +57,6 @@ def concat(
             ),
             shell=True,
             check=True,
-            capture_output=True,
             text=True,
         )
 
@@ -111,7 +110,7 @@ class Dataset:
             self.main_filename = os.path.basename(self.s3_files[0])
 
         # return exact path (without glob expression):
-        return os.path.dirname(self.s3_files[0])
+        return os.path.dirname(self.main_filename)
 
     def to_s3(self):
         "upload file to S3"
@@ -179,7 +178,7 @@ class BaseGISDataset(Dataset):
         "enrich with metadata using mapshaper"
         mapshaper_enrich(
             local_dir=self.local_dir,
-            filename_initial=self.main_filename,
+            filename_initial=os.path.basename(self.main_filename),
             metadata_file=metadata_file,
             dict_corresp=dict_corresp,
         )
@@ -359,7 +358,7 @@ class BaseGISDataset(Dataset):
                 copy_fields=csv_list_vars,
                 calc=["POPULATION=sum(POPULATION)"],
                 format_output=format_output,
-            )
+
 
         # IF WE DESIRE TO BRING "DROM" CLOSER TO FRANCE
         if niveau_agreg.upper() == "FRANCE_ENTIERE_DROM_RAPPROCHES":
