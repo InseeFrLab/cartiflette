@@ -13,4 +13,6 @@ ile_de_france = carti_download(
 
 ile_de_france.to_file("idf.json")
 
-subprocess.run("mapshaper idf.json -o idf.topojson", check=False, shell=True)
+subprocess.run(
+    "mapshaper idf.json -o idf.topojson", check=False, shell=True, text=True
+)

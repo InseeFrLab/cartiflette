@@ -36,8 +36,13 @@ def mapshaper_enrich(
       the initial shapefile.
     """
 
+    force = False
+    if not output_path:
+        force = True
+        output_path = f"{local_dir}/{filename_initial}"
+
     # Mapshaper command for the enrichment process
-    cmd_step1 = (
+    cmd = (
         f"mapshaper {local_dir}/{filename_initial} "
         f"name='' -proj EPSG:4326 "
         f"-join {metadata_file} "
@@ -47,13 +52,14 @@ def mapshaper_enrich(
         f"-each \"{dict_corresp['FRANCE_ENTIERE']}='France'\" "
         f"-o {output_path}"
     )
+    if force:
+        cmd += " force"
 
     # Run Mapshaper command
     subprocess.run(
-        cmd_step1,
+        cmd,
         shell=True,
         check=True,
-        capture_output=True,
         text=True,
     )
 
@@ -101,6 +107,5 @@ def mapshaper_split(
         cmd_step2,
         shell=True,
         check=True,
-        capture_output=True,
         text=True,
     )

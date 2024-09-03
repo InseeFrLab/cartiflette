@@ -29,8 +29,6 @@ def mapshaper_convert_mercator(
         shell=True,
         check=True,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
     )
 
     return output_name

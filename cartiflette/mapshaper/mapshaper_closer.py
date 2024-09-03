@@ -70,7 +70,6 @@ def mapshaper_bring_closer(
         idf_zoom,
         shell=True,
         check=True,
-        capture_output=True,
         text=True,
     )
 
@@ -78,7 +77,6 @@ def mapshaper_bring_closer(
         france_metropolitaine,
         shell=True,
         check=True,
-        capture_output=True,
         text=True,
     )
 
@@ -95,7 +93,6 @@ def mapshaper_bring_closer(
             cmd,
             shell=True,
             check=True,
-            capture_output=True,
             text=True,
         )
 
@@ -120,7 +117,6 @@ def mapshaper_bring_closer(
         cmd_combined,
         shell=True,
         check=True,
-        capture_output=True,
         text=True,
     )
 
