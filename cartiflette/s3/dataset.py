@@ -9,9 +9,9 @@ import os
 import shutil
 import subprocess
 from tempfile import TemporaryDirectory
+from typing import List
 import warnings
 
-import pandas as pd
 from s3fs import S3FileSystem
 
 
@@ -104,11 +104,11 @@ class Dataset:
             return path
 
         if len(self.s3_files) > 1:
-            self.main_filename = (
+            self.main_filename = os.path.basename(
                 self.s3_files[0].rsplit(".", maxsplit=1)[0] + ".shp"
             )
         else:
-            self.main_filename = self.s3_files[0].rsplit(".", maxsplit=1)[0]
+            self.main_filename = os.path.basename(self.s3_files[0])
 
         # return exact path (without glob expression):
         return os.path.dirname(self.s3_files[0])
@@ -183,6 +183,68 @@ class BaseGISDataset(Dataset):
             metadata_file=metadata_file,
             dict_corresp=dict_corresp,
         )
+
+    def dissolve(
+        self,
+        by: str,
+        copy_fields: List[str] = None,
+        calc: List[str] = None,
+        format_output: str = "geojson",
+    ):
+        """
+        Dissolve geometries and rename local file using mapshaper.
+
+        Dissolve geometries on field `bv`, keeping fields `copy_fields`. Other
+        fields should be computaded using javascript functions with `calc`
+        argument. The original file will be overwritten, then renamed to
+        {by}.{formate_intermediate}. self.main_filename will be updated.
+
+
+        Parameters
+        ----------
+        by : str
+            Field used to dissolve
+        calc : Listr[str], optional
+            Fields on which computed should be operated, describing valid js
+            functions. For instance ["POPULATION=sum(POPULATION)"]. The default
+            is None.
+        copy_fields : List[str], optional
+            Copies values from the first feature in each group of dissolved
+            features. The default is None.
+        format_output : str, optional
+            Output format. The default is geojson
+
+        Returns
+        -------
+        None.
+
+        """
+        init = f"{self.local_dir}/{self.main_filename}"
+        out = f"{self.local_dir}/{by}.{format_output}"
+
+        cmd = (
+            f"mapshaper {init} "
+            f"name='by' "
+            "-proj EPSG:4326 "
+            f"-dissolve {by} "
+        )
+        if calc:
+            calc = ",".join(calc)
+            cmd += f"calc='{calc}' "
+        if copy_fields:
+            cmd += f"copy-fields={copy_fields} "
+
+        cmd += f"-o {init} force"
+
+        subprocess.run(
+            cmd,
+            shell=True,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        os.rename(init, out)
+        self.main_filename = os.path.basename(out)
 
     def mapshaperize_split(
         self,
@@ -273,7 +335,9 @@ class BaseGISDataset(Dataset):
         finally:
             os.unlink(metadata_path)
 
-        if niveau_polygons != initial_filename_city:
+        if niveau_polygons != self.main_filename:
+            # STEP 1B: DISSOLVE IF NEEDED
+
             csv_list_vars = (
                 f"{dict_corresp[niveau_polygons]},"
                 f"{dict_corresp[niveau_agreg]}"
@@ -290,21 +354,11 @@ class BaseGISDataset(Dataset):
                 libelle_niveau_agreg = f",{libelle_niveau_agreg}"
             csv_list_vars = f"{csv_list_vars}{libelle_niveau_polygons}{libelle_niveau_agreg}"
 
-            # STEP 1B: DISSOLVE IF NEEDED
-            cmd_dissolve = (
-                f"mapshaper {temp_filename} "
-                f"name='' -proj EPSG:4326 "
-                f"-dissolve {dict_corresp[niveau_polygons]} "
-                f"calc='POPULATION=sum(POPULATION)' "
-                f"copy-fields={csv_list_vars} "
-                "-o temp.geojson force"
-            )
-            subprocess.run(
-                cmd_dissolve,
-                shell=True,
-                check=True,
-                capture_output=True,
-                text=True,
+            self.dissolve(
+                by=dict_corresp[niveau_polygons],
+                copy_fields=csv_list_vars,
+                calc=["POPULATION=sum(POPULATION)"],
+                format_output=format_output,
             )
 
         # IF WE DESIRE TO BRING "DROM" CLOSER TO FRANCE
