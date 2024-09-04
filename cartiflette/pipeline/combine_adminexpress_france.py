@@ -106,7 +106,6 @@ def combine_adminexpress_territory(
 
     dset = concat(
         [S3GeoDataset(fs=fs, **config) for config in datasets],
-        format_intermediate=format_intermediate,
         fs=fs,
         **config,
     )

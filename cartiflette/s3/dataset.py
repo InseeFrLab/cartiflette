@@ -41,6 +41,13 @@ logger = logging.getLogger(__name__)
 
 
 class S3Dataset:
+    """
+    Base class representing a dataset stored on the S3
+
+    This class is used on it's own only for tabular datasets (to be joined to
+    S3GeoDataset for enrichment)
+    """
+
     files = None
     main_filename = None
 
@@ -130,11 +137,20 @@ class S3Dataset:
                 shutil.rmtree(os.path.join(self.local_dir))
             except FileNotFoundError:
                 pass
-        except Exception as e:
-            warnings.warn(e)
+        except Exception as exc:
+            warnings.warn(exc)
 
 
 class S3GeoDataset(S3Dataset):
+    """
+    Base class representing a geodataset stored on the S3
+
+    An instance can either be an existing file loaded from the S3 or a new
+    geodataset in the process of creation. In that case, a warning will be
+    displayed at creation to alert that the file is not present on the S3
+    (yet).
+    """
+
     def __str__(self):
         return f"<cartiflette.s3.dataset.S3GeoDataset({self.config})>"
 
@@ -221,18 +237,40 @@ class S3GeoDataset(S3Dataset):
     def bring_drom_closer(
         self,
         level_agreg: str = "DEPARTEMENT",
-        format_intermediate: str = "geojson",
+        format_output: str = "geojson",
     ):
+        """
+        Bring ultramarine territories closer to France. This method is executed
+        **IN PLACE** and the attribute self.main_file will reference the new
+        geodataset.
+
+        Parameters
+        ----------
+        level_agreg : str, optional
+            The desired agregation. The default is "DEPARTEMENT".
+            Should be among ['AIRE_ATTRACTION_VILLES', 'BASSIN_VIE',
+             'DEPARTEMENT', 'EMPRISES', 'REGION', 'UNITE_URBAINE',
+             'ZONE_EMPLOI']
+        format_output : str, optional
+            The desired output format (which will also be used for intermediate
+            files creation). The default is "geojson".
+
+        Returns
+        -------
+        None.
+
+        """
+
         init = f"{self.local_dir}/{self.main_filename}"
         filename_output = "idf_combined"
-        out = f"{self.local_dir}/{filename_output}.{format_intermediate}"
+        out = f"{self.local_dir}/{filename_output}.{format_output}"
 
         mapshaper_bring_closer(
             filename_initial=self.main_filename,
             local_dir=self.local_dir,
-            format_intermediate=format_intermediate,
+            format_intermediate=format_output,
             level_agreg=level_agreg,
-            filename_output=f"idf_combined.{format_intermediate}",
+            filename_output=f"idf_combined.{format_output}",
         )
         os.unlink(init)
         self.main_filename = os.path.basename(out)
@@ -425,7 +463,7 @@ class S3GeoDataset(S3Dataset):
 
             self.bring_drom_closer(
                 level_agreg=niveau_filter_drom,
-                format_intermediate=format_output,
+                format_output=format_output,
             )
 
         # Split datasets, based on the desired "niveau_agreg" and proceed to
@@ -447,11 +485,36 @@ class S3GeoDataset(S3Dataset):
 
 
 def concat(
-    datasets: list = None,
-    format_intermediate: str = "topjson",
+    datasets: List[S3GeoDataset],
+    vectorfile_format: str = "geojson",
     fs: S3FileSystem = FS,
     **config_new_dset: ConfigDict,
 ) -> S3GeoDataset:
+    """
+    Concatenate S3GeoDataset in the manner of a geopandas.concat using
+    mapshaper. The result is a new S3GeoDataset which will be uploaded on S3
+    at the end.
+
+    Parameters
+    ----------
+    datasets : List[S3GeoDataset]
+        The list of S3GeoDataset instances to concatenate.
+    vectorfile_format : str, optional
+        The file format to use for creating the new S3GeoDataset. The default
+        is "geojson".
+    fs : S3FileSystem, optional
+        The S3FileSystem used ultimately to upload the new S3GeoDataset. The
+        default is FS.
+    **config_new_dset : ConfigDict
+        Configuration reprensenting the new S3GeoDataset (used for initiation).
+        This will determine the path on the S3FileSystem during storage.
+
+    Returns
+    -------
+    S3GeoDataset
+        New S3GeoDataset being the concatenation of .
+
+    """
     with TemporaryDirectory() as tempdir:
         for k, dset in enumerate(datasets):
             with dset:
@@ -461,25 +524,25 @@ def concat(
                 )
 
         output_path = (
-            f"{tempdir}/preprocessed_combined/COMMUNE.{format_intermediate}"
+            f"{tempdir}/preprocessed_combined/COMMUNE.{vectorfile_format}"
         )
         subprocess.run(
             (
                 f"mapshaper -i {tempdir}/**/"
-                f"*.{format_intermediate}"
+                f"*.{vectorfile_format}"
                 " combine-files name='COMMUNE' "
                 f"-proj EPSG:4326 "
                 f"-merge-layers "
                 f"-o {output_path} "
-                f"format={format_intermediate} "
-                f'extension=".{format_intermediate}" singles'
+                f"format={vectorfile_format} "
+                f'extension=".{vectorfile_format}" singles'
             ),
             shell=True,
             check=True,
             text=True,
         )
 
-        print(output_path)
+        logger.info("new S3GeoDataset created at %s", output_path)
 
         new_dset = S3GeoDataset(
             fs,
