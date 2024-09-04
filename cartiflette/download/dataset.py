@@ -298,7 +298,7 @@ class RawDataset:
         the decompressed files. Note that this folder will be stored in the
         temporary cache, but requires manual cleanup.
         If nested archives (ie zip in zip), will unpack all nested data and
-        look for target pattern **INSIDE** the nested archive only
+        look for target pattern(s) **INSIDE** the nested archive only
 
         Every file Path
 
@@ -385,7 +385,16 @@ class RawDataset:
                             (io.BytesIO(nested.read()), protocol)
                         )
 
-                files = filter_case_insensitive(self.pattern, everything)
+                if isinstance(self.pattern, str):
+                    files = filter_case_insensitive(self.pattern, everything)
+                else:
+                    files = [
+                        file
+                        for pattern in self.pattern
+                        for file in filter_case_insensitive(
+                            pattern, everything
+                        )
+                    ]
 
                 if year <= 2020 and source.endswith("-TERRITOIRE"):
                     territory_code = sources["territory"][territory].split(
