@@ -68,7 +68,7 @@ def mapshaper_split(
     input_file: str = "temp.geojson",
     layer_name: str = "",
     split_variable: str = "DEPARTEMENT",
-    output_path: str = "temp2.geojson",
+    output_dir: str = "temp",
     format_output: str = "geojson",
     crs: int = 4326,
     option_simplify: str = "",
@@ -82,8 +82,8 @@ def mapshaper_split(
     - layer_name (str): The name of the layer within the GeoJSON file (default is "").
     - split_variable (str): The variable used for splitting the GeoJSON file
       (default is "DEPARTEMENT").
-    - output_path (str): The path for the output GeoJSON file after splitting
-      (default is "temp2.geojson").
+    - output_dir (str): The dir for the output file file after splitting
+      (default is "temp").
     - format_output (str): The format for the output GeoJSON file (default is "geojson").
     - crs (int): The coordinate reference system EPSG code (default is 4326).
     - option_simplify (str): Additional options for simplifying geometries (default is "").
@@ -94,17 +94,18 @@ def mapshaper_split(
     """
 
     # Mapshaper command for the splitting process
-    cmd_step2 = (
+    cmd = (
         f"mapshaper {input_file} name='{layer_name}' -proj EPSG:{crs} "
         f"{option_simplify}"
         f"-each \"SOURCE='{source_identifier}'\" "
         f"-split {split_variable} "
-        f'-o {output_path} format={format_output} extension=".{format_output}" singles'
+        f"-o {output_dir}/file.{format_output} "
+        f'format={format_output} extension=".{format_output}" singles'
     )
 
     # Run Mapshaper command
     subprocess.run(
-        cmd_step2,
+        cmd,
         shell=True,
         check=True,
         text=True,
