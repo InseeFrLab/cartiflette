@@ -14,7 +14,7 @@ from typing import TypedDict
 from unidecode import unidecode
 
 from cartiflette.utils import hash_file
-from cartiflette.download.dataset import Dataset
+from cartiflette.download.dataset import RawDataset
 from cartiflette.download.layer import Layer
 from cartiflette.config import LEAVE_TQDM
 
@@ -76,7 +76,9 @@ class MasterScraper(requests_cache.CachedSession):
             except KeyError:
                 continue
 
-    def download_unpack(self, datafile: Dataset, **kwargs) -> DownloadReturn:
+    def download_unpack(
+        self, datafile: RawDataset, **kwargs
+    ) -> DownloadReturn:
         """
         Performs a download (through http, https) to a tempfile
         which will be cleaned automatically ; unzip targeted files to a 2nd
@@ -96,8 +98,8 @@ class MasterScraper(requests_cache.CachedSession):
 
         Parameters
         ----------
-        datafile : Dataset
-            Dataset object to download.
+        datafile : RawDataset
+            RawDataset object to download.
         **kwargs :
             Optional arguments to pass to requests.Session object.
 
@@ -117,17 +119,17 @@ class MasterScraper(requests_cache.CachedSession):
                 'hash': '5435fca3e488ca0372505b9bcacfde30',
                 'layers': {
                     'CONTOURS-IRIS_2-1_SHP_RGR92UTM40S_REU-2022_CONTOURS-IRIS':
-                        < Layer CONTOURS - IRIS_2 - 1_SHP_RGR92UTM40S_REU - 2022_CONTOURS - IRIS from < Dataset IGN CONTOUR - IRIS ROOT None 2022 >> ,
+                        < Layer CONTOURS - IRIS_2 - 1_SHP_RGR92UTM40S_REU - 2022_CONTOURS - IRIS from < RawDataset IGN CONTOUR - IRIS ROOT None 2022 >> ,
                     'CONTOURS-IRIS_2-1_SHP_RGAF09UTM20_GLP-2022_CONTOURS-IRIS':
-                        < Layer CONTOURS - IRIS_2 - 1_SHP_RGAF09UTM20_GLP - 2022_CONTOURS - IRIS from < Dataset IGN CONTOUR - IRIS ROOT None 2022 >> ,
+                        < Layer CONTOURS - IRIS_2 - 1_SHP_RGAF09UTM20_GLP - 2022_CONTOURS - IRIS from < RawDataset IGN CONTOUR - IRIS ROOT None 2022 >> ,
                     'CONTOURS-IRIS_2-1_SHP_RGAF09UTM20_MTQ-2022_CONTOURS-IRIS':
-                        < Layer CONTOURS - IRIS_2 - 1_SHP_RGAF09UTM20_MTQ - 2022_CONTOURS - IRIS from < Dataset IGN CONTOUR - IRIS ROOT None 2022 >> ,
+                        < Layer CONTOURS - IRIS_2 - 1_SHP_RGAF09UTM20_MTQ - 2022_CONTOURS - IRIS from < RawDataset IGN CONTOUR - IRIS ROOT None 2022 >> ,
                     'CONTOURS-IRIS_2-1_SHP_LAMB93_FXX-2022_CONTOURS-IRIS':
-                        < Layer CONTOURS - IRIS_2 - 1_SHP_LAMB93_FXX - 2022_CONTOURS - IRIS from < Dataset IGN CONTOUR - IRIS ROOT None 2022 >> ,
+                        < Layer CONTOURS - IRIS_2 - 1_SHP_LAMB93_FXX - 2022_CONTOURS - IRIS from < RawDataset IGN CONTOUR - IRIS ROOT None 2022 >> ,
                     'CONTOURS-IRIS_2-1_SHP_UTM22RGFG95_GUF-2022_CONTOURS-IRIS':
-                        < Layer CONTOURS - IRIS_2 - 1_SHP_UTM22RGFG95_GUF - 2022_CONTOURS - IRIS from < Dataset IGN CONTOUR - IRIS ROOT None 2022 >> ,
+                        < Layer CONTOURS - IRIS_2 - 1_SHP_UTM22RGFG95_GUF - 2022_CONTOURS - IRIS from < RawDataset IGN CONTOUR - IRIS ROOT None 2022 >> ,
                     'CONTOURS-IRIS_2-1_SHP_RGM04UTM38S_MYT-2022_CONTOURS-IRIS':
-                        < Layer CONTOURS - IRIS_2 - 1_SHP_RGM04UTM38S_MYT - 2022_CONTOURS - IRIS from < Dataset IGN CONTOUR - IRIS ROOT None 2022 >>
+                        < Layer CONTOURS - IRIS_2 - 1_SHP_RGM04UTM38S_MYT - 2022_CONTOURS - IRIS from < RawDataset IGN CONTOUR - IRIS ROOT None 2022 >>
                 },
                 'root_cleanup': 'C:\\Users\\tintin.milou\\AppData\\Local\\Temp\\tmpnbvoes9g'
             }

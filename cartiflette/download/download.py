@@ -20,13 +20,13 @@ from cartiflette.utils import (
     create_path_bucket,
 )
 from cartiflette.download.scraper import MasterScraper
-from cartiflette.download.dataset import Dataset
+from cartiflette.download.dataset import RawDataset
 
 logger = logging.getLogger(__name__)
 
 
 def _upload_raw_dataset_to_s3(
-    dataset: Dataset,
+    dataset: RawDataset,
     result: dict,
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
@@ -40,8 +40,8 @@ def _upload_raw_dataset_to_s3(
 
     Parameters
     ----------
-    dataset : Dataset
-        Dataset object to store into s3
+    dataset : RawDataset
+        RawDataset object to store into s3
     result : dict
         result of the dataset's download
     bucket : str, optional
@@ -251,7 +251,7 @@ def _download_and_store_sources(
 
         def func(args):
             source, territory, year, provider, dataset_family = args
-            datafile = Dataset(
+            datafile = RawDataset(
                 dataset_family,
                 source,
                 year,

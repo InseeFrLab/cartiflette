@@ -5,7 +5,7 @@ import os
 import requests_cache
 import logging
 
-from cartiflette.download.dataset import Dataset
+from cartiflette.download.dataset import RawDataset
 from cartiflette.download.scraper import (
     MasterScraper,
     validate_file,
@@ -24,14 +24,14 @@ from tests.mockups import (
     mock_httpscraper_download_success,
     mock_httpscraper_download_success_corrupt_hash,
     mock_httpscraper_download_success_corrupt_length,
-    mock_Dataset_without_s3,
+    mock_RawDataset_without_s3,
     total_mock_s3,
 )
 
 logger = logging.getLogger(__name__)
 
 
-def test_Dataset():
+def test_RawDataset():
     """
     __md5__
     __get_last_md5__
@@ -159,7 +159,7 @@ def test_download_ko_md5(
 #     pass
 
 
-def test_sources_yaml(mock_Dataset_without_s3):
+def test_sources_yaml(mock_RawDataset_without_s3):
     yaml = import_yaml_config()
 
     errors_type0 = []
@@ -208,7 +208,7 @@ def test_sources_yaml(mock_Dataset_without_s3):
                                 territory = None
                             try:
                                 print(str_yaml)
-                                ds = Dataset(
+                                ds = RawDataset(
                                     dataset_family,
                                     source,
                                     int(year),
@@ -256,7 +256,7 @@ def test_sources_yaml(mock_Dataset_without_s3):
         if errors_type1:
             logger.error("=" * 50)
             logger.error(
-                "Objet(s) Dataset(s) non instancié(s)\n"
+                "Objet(s) RawDataset(s) non instancié(s)\n"
                 + "\n".join(errors_type1)
             )
             logger.error("-" * 50)

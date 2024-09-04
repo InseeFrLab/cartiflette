@@ -6,14 +6,14 @@ import logging
 import os
 from shapely.geometry import box
 
-from cartiflette.download.dataset import Dataset
+from cartiflette.download.dataset import RawDataset
 from cartiflette.constants import REFERENCES
 
 logger = logging.getLogger(__name__)
 
 
 class Layer:
-    def __init__(self, dataset: Dataset, cluster_name: str, files: dict):
+    def __init__(self, dataset: RawDataset, cluster_name: str, files: dict):
         """
         Layer present in a dataset. A layer is defined by a distinctive
         combination of path and basename (without extension). To that effect,
@@ -26,8 +26,8 @@ class Layer:
 
         Parameters
         ----------
-        dataset : Dataset
-            Dataset containing layers
+        dataset : RawDataset
+            RawDataset containing layers
         cluster_name : str
             Unique name for a layer (computed by the scraper after data
             unpacking) and corresponding to the minimum recursive distinct path

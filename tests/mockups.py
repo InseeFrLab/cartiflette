@@ -2,7 +2,6 @@
 import pytest
 import requests
 from requests_cache import CachedSession
-import s3fs
 import logging
 
 from tests.conftest import (
@@ -12,7 +11,7 @@ from tests.conftest import (
 )
 
 from cartiflette.config import FS
-from cartiflette.download.dataset import Dataset
+from cartiflette.download.dataset import RawDataset
 from cartiflette.download.scraper import MasterScraper
 
 
@@ -20,14 +19,14 @@ logging.basicConfig(level=logging.INFO)
 
 
 @pytest.fixture
-def mock_Dataset_without_s3(monkeypatch):
-    monkeypatch.setattr(Dataset, "_get_last_md5", lambda x: None)
+def mock_RawDataset_without_s3(monkeypatch):
+    monkeypatch.setattr(RawDataset, "_get_last_md5", lambda x: None)
     # monkeypatch.setattr("FS")
 
 
 @pytest.fixture
 def total_mock_s3(monkeypatch):
-    monkeypatch.setattr(Dataset, "_get_last_md5", lambda x: None)
+    monkeypatch.setattr(RawDataset, "_get_last_md5", lambda x: None)
 
     def mock_unpack(self, x, validate=True):
         return {
