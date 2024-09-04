@@ -4,12 +4,20 @@
 Classe générique pour travailler autour d'un dataset présent sur le S3
 """
 
+from copy import deepcopy
+from glob import glob
 import logging
 import os
 import shutil
 import subprocess
 from tempfile import TemporaryDirectory
 from typing import List
+
+try:
+    from typing import Self
+except ImportError:
+    # python < 3.11
+    Self = "BaseGISDataset"
 import warnings
 
 from s3fs import S3FileSystem
@@ -21,7 +29,12 @@ from cartiflette.utils import (
     ConfigDict,
     DICT_CORRESP_ADMINEXPRESS,
 )
-from cartiflette.mapshaper import mapshaper_convert_mercator, mapshaper_enrich
+from cartiflette.mapshaper import (
+    mapshaper_convert_mercator,
+    mapshaper_enrich,
+    mapshaper_bring_closer,
+    mapshaper_split,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -86,6 +99,10 @@ class Dataset:
         self.s3_dirpath = self.get_path_of_dataset()
         self.local_dir = intermediate_dir
 
+        self.source = (
+            f"{config.get('provider', '')}:{config.get('source', '')}"
+        )
+
     def __str__(self):
         return f"<cartiflette.s3.dataset.Dataset({self.config})>"
 
@@ -117,7 +134,7 @@ class Dataset:
         target = self.s3_dirpath
         if not target.endswith("/"):
             target += "/"
-        logger.warning(f"{self.s3_dirpath}-> {target}")
+        logger.warning(f"{self.local_dir} -> {target}")
         self.fs.put(self.local_dir + "/*", target, recursive=True)
 
     def to_local_folder_for_mapshaper(self):
@@ -168,6 +185,7 @@ class BaseGISDataset(Dataset):
     def to_mercator(self, format_intermediate: str = "geojson"):
         "project to mercator using mapshaper"
         mapshaper_convert_mercator(
+            filename_initial=self.main_filename,
             local_dir=self.local_dir,
             territory=self.config["territory"],
             identifier=self.config["territory"],
@@ -231,19 +249,116 @@ class BaseGISDataset(Dataset):
             calc = ",".join(calc)
             cmd += f"calc='{calc}' "
         if copy_fields:
-            cmd += f"copy-fields={copy_fields} "
+            cmd += "copy-fields=" + ",".join(copy_fields)
 
-        cmd += f"-o {init} force"
+        cmd += f" -o {init} force"
 
         subprocess.run(
             cmd,
             shell=True,
             check=True,
-            capture_output=True,
             text=True,
         )
         os.rename(init, out)
         self.main_filename = os.path.basename(out)
+
+    def bring_drom_closer(
+        self,
+        level_agreg: str = "DEPARTEMENT",
+        format_intermediate: str = "geojson",
+    ):
+        init = f"{self.local_dir}/{self.main_filename}"
+        filename_output = "idf_combined"
+        out = f"{self.local_dir}/{filename_output}.{format_intermediate}"
+
+        mapshaper_bring_closer(
+            filename_initial=self.main_filename,
+            local_dir=self.local_dir,
+            format_intermediate=format_intermediate,
+            level_agreg=level_agreg,
+            filename_output=f"idf_combined.{format_intermediate}",
+        )
+        os.unlink(init)
+        self.main_filename = os.path.basename(out)
+
+    def split_file(
+        self,
+        split_variable: str,
+        crs: int = 4326,
+        format_output: str = "geojson",
+        simplification: int = 0,
+        **kwargs,
+    ) -> list[Self]:
+        """
+        Split a file into singleton, based on one field (including
+        reprojection, simplification and format conversion if need be)
+
+        Parameters
+        ----------
+        split_variable : str
+            Variable to split files onto
+        crs : int, optional
+            EPSG to project the splitted file onto. The default is 4326.
+        format_output : str, optional
+            Choosen format to write the output on. The default is "geojson".
+        simplification : int, optional
+            Degree of simplification. The default is 0.
+        kwargs :
+            Optional values for ConfigDict to ensure the correct generation of
+            the afferant geodatasets. For instance, `borders='DEPARTEMENT`
+
+        Returns
+        -------
+        list[BaseGISDataset]
+            return a list of BaseGISDataset objects
+
+        """
+
+        if simplification != 0:
+            option_simplify = f"-simplify {simplification}% "
+        else:
+            option_simplify = ""
+
+        mapshaper_split(
+            input_file=f"{self.local_dir}/{self.main_filename}",
+            format_output=format_output,
+            output_dir=f"{self.local_dir}/splitted",
+            crs=crs,
+            option_simplify=option_simplify,
+            source_identifier=self.source,
+            split_variable=split_variable,
+        )
+        files = glob(f"{self.local_dir}/splitted/*.{format_output}")
+
+        geodatasets = []
+
+        for file in files:
+            new_config = deepcopy(self.config)
+            new_config.update(kwargs)
+            new_config.update(
+                {
+                    "crs": crs,
+                    "value": os.path.basename(file).replace(
+                        f".{format_output}", ""
+                    ),
+                    "vectorfile_format": format_output,
+                    "simplification": simplification,
+                }
+            )
+            # place file into a unique folder
+            new_dir = f"{self.local_dir}/splitted/{new_config['value']}"
+            os.makedirs(new_dir)
+            shutil.move(file, new_dir)
+
+            geodatasets.append(
+                BaseGISDataset(
+                    fs=self.fs,
+                    intermediate_dir=new_dir,
+                    **new_config,
+                )
+            )
+
+        return geodatasets
 
     def mapshaperize_split(
         self,
@@ -276,8 +391,16 @@ class BaseGISDataset(Dataset):
             The initial file extension, by default "shp".
         format_output : str, optional
             The output format, by default "topojson".
+
+        # TODO
+        niveau_polygons:
+            a priori la géométrie souhaitée au final ?
+
         niveau_agreg : str, optional
             The level of aggregation for the split, by default "DEPARTEMENT".
+            A priori le niveau de filtre ???
+
+
         provider : str, optional
             The data provider, by default "IGN".
         source : str, optional
@@ -303,87 +426,61 @@ class BaseGISDataset(Dataset):
 
         """
 
-        simplification_percent = (
-            simplification if simplification is not None else 0
-        )
+        niveau_agreg = niveau_agreg.upper()
+        niveau_polygons = niveau_polygons.upper()
 
-        # # City level borders, file location
-        # directory_city = config_file_city.get("location", local_dir)
-        # initial_filename_city = config_file_city.get("filename", "COMMUNE")
-        # extension_initial_city = config_file_city.get("extension", "shp")
-
-        output_path = f"{self.local_dir}/{niveau_agreg}/{format_output}/{simplification=}"
-        os.makedirs(output_path, exist_ok=True)
-
-        if simplification_percent != 0:
-            option_simplify = f"-simplify {simplification_percent}% "
-        else:
-            option_simplify = ""
-
-        temp_filename = "temp.geojson"
+        simplification = simplification if simplification else 0
 
         # STEP 1: ENRICHISSEMENT AVEC COG
-        metadata_path = metadata.local_files[0]
-        try:
-            self.enrich(
-                metadata_file=metadata_path,
-                dict_corresp=dict_corresp,
-            )
-        except Exception:
-            raise
-        finally:
-            os.unlink(metadata_path)
+        self.enrich(
+            metadata_file=metadata.local_files[0],
+            dict_corresp=dict_corresp,
+        )
 
-        if niveau_polygons != self.main_filename:
-            # STEP 1B: DISSOLVE IF NEEDED
+        if niveau_polygons != "COMMUNE":
+            # STEP 1B: DISSOLVE GEOMETRIES IF NEEDED (GENERATING GDF WITH
+            # NON-CITIES GEOMETRIES)
 
-            csv_list_vars = (
-                f"{dict_corresp[niveau_polygons]},"
-                f"{dict_corresp[niveau_agreg]}"
-            )
-            libelle_niveau_polygons = dict_corresp.get(
-                "LIBELLE_" + niveau_polygons, ""
-            )
-            if libelle_niveau_polygons != "":
-                libelle_niveau_polygons = f",{libelle_niveau_polygons}"
-            libelle_niveau_agreg = dict_corresp.get(
-                "LIBELLE_" + niveau_agreg, ""
-            )
-            if libelle_niveau_polygons != "":
-                libelle_niveau_agreg = f",{libelle_niveau_agreg}"
-            csv_list_vars = f"{csv_list_vars}{libelle_niveau_polygons}{libelle_niveau_agreg}"
+            # Identify which fields should be copied from the first feature in
+            # each group of dissolved features.
+            copy_fields = [
+                dict_corresp[niveau_polygons],
+                dict_corresp[niveau_agreg],
+                dict_corresp.get(f"LIBELLE_{niveau_polygons}"),
+                dict_corresp.get(f"LIBELLE_{niveau_agreg}"),
+            ]
+            copy_fields = [x for x in copy_fields if x]
 
             self.dissolve(
                 by=dict_corresp[niveau_polygons],
-                copy_fields=csv_list_vars,
+                copy_fields=copy_fields,
                 calc=["POPULATION=sum(POPULATION)"],
                 format_output=format_output,
-
+            )
 
         # IF WE DESIRE TO BRING "DROM" CLOSER TO FRANCE
-        if niveau_agreg.upper() == "FRANCE_ENTIERE_DROM_RAPPROCHES":
+        if niveau_agreg == "FRANCE_ENTIERE_DROM_RAPPROCHES":
             niveau_filter_drom = "DEPARTEMENT"
             if niveau_polygons != "COMMUNE":
                 niveau_filter_drom = niveau_polygons
-            input_path = mapshaper_bring_closer(
-                temp_filename, level_agreg=niveau_filter_drom
-            )
-        else:
-            input_path = "temp.geojson"
 
-        print(input_path)
+            self.bring_drom_closer(
+                level_agreg=niveau_filter_drom,
+                format_intermediate=format_output,
+            )
 
         # STEP 2: SPLIT ET SIMPLIFIE
-        mapshaper_split(
-            input_file=input_path,
-            layer_name="",
-            split_variable=dict_corresp[niveau_agreg],
-            output_path=output_path,
-            format_output=format_output,
+        new_datasets = self.split_file(
             crs=crs,
-            option_simplify=option_simplify,
-            source_identifier=f"{provider}:{source}",
+            format_output=format_output,
+            simplification=simplification,
+            split_variable=dict_corresp[niveau_agreg],
+            filter_by=niveau_agreg,
+            borders=niveau_polygons,
         )
+
+        for dataset in new_datasets:
+            dataset.to_s3()
 
 
 # if __name__ == "__main__":
