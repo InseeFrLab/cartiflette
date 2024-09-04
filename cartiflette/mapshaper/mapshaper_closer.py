@@ -1,5 +1,5 @@
-import subprocess
 import os
+import subprocess
 
 logical_conditions = {
     "EMPRISES": {
@@ -42,82 +42,127 @@ scale = {
 
 
 def mapshaper_bring_closer(
-    france_vector_path="temp.geojson", level_agreg="DEPARTEMENT"
+    local_dir: str = "temp",
+    filename_initial: str = "COMMUNE.geojson",
+    format_intermediate: str = "geojson",
+    level_agreg: str = "DEPARTEMENT",
+    filename_output: str = "idf_combined.geojson",
 ):
-    output_path = "temp/preprocessed_transformed/idf_combined.geojson"
-    output_dir = os.path.dirname(output_path)
+    """
+    Bring DROM closer and zoom over IDF.
+
+    Parameters
+    ----------
+    local_dir : str, optional
+        Local working directory. The default is "temp".
+    filename_initial : str, optional
+        Filename of initial geodataset. The default is "COMMUNE.geojson".
+    format_intermediate : str, optional
+        Intermediate format used for processing each regional geodataset. The
+        default is "geojson".
+    level_agreg : str, optional
+        Desired aggregation configuration. The default is "DEPARTEMENT".
+    filename_output : str, optional
+        Output filename to use. The default is "idf_combined.geojson".
+
+    Returns
+    -------
+    str
+        Local path to the output file
+
+    """
 
     logical_idf = logical_conditions[level_agreg]["ile de france"]
     zoom_idf = logical_conditions[level_agreg]["zoom idf"]
     logical_metropole = logical_conditions["EMPRISES"]["metropole"]
 
-    idf_zoom = (
-        f"mapshaper -i {france_vector_path} "
-        f"-proj EPSG:3857 "
-        f'-filter "{logical_idf}" '
-        f"-affine shift=-650000,275000 scale={zoom_idf} "
-        f"-o {output_dir}/idf_zoom.geojson"
-    )
+    input_file = f"{local_dir}/{filename_initial}"
 
-    france_metropolitaine = (
-        f"mapshaper -i {france_vector_path} "
-        f"-proj EPSG:3857 "
-        f'-filter "{logical_metropole}" '
-        f"-o {output_dir}/metropole.geojson"
-    )
-
-    subprocess.run(
-        idf_zoom,
-        shell=True,
-        check=True,
-        text=True,
-    )
-
-    subprocess.run(
-        france_metropolitaine,
-        shell=True,
-        check=True,
-        text=True,
-    )
-
-    for region, shift_value in shift.items():
-        print(f"Processing {region}")
-        cmd = (
-            f"mapshaper -i {france_vector_path} "
+    try:
+        idf_zoom = (
+            f"mapshaper -i {input_file} "
             f"-proj EPSG:3857 "
-            f'-filter "{logical_conditions["EMPRISES"][region]}" '
-            f"-affine shift={shift_value} scale={scale[region]} "
-            f"-o {output_dir}/{region}.geojson"
+            f'-filter "{logical_idf}" '
+            f"-affine shift=-650000,275000 scale={zoom_idf} "
+            f"-o {local_dir}/idf_zoom.{format_intermediate}"
         )
+
+        france_metropolitaine = (
+            f"mapshaper -i {input_file} "
+            f"-proj EPSG:3857 "
+            f'-filter "{logical_metropole}" '
+            f"-o {local_dir}/metropole.{format_intermediate}"
+        )
+
         subprocess.run(
-            cmd,
+            idf_zoom,
             shell=True,
             check=True,
             text=True,
         )
 
-    cmd_combined = (
-        f"mapshaper "
-        f"{output_dir}/metropole.geojson "
-        f"{output_dir}/idf_zoom.geojson "
-        f"{output_dir}/guadeloupe.geojson "
-        f"{output_dir}/martinique.geojson "
-        f"{output_dir}/guyane.geojson "
-        f"{output_dir}/reunion.geojson "
-        f"{output_dir}/mayotte.geojson "
-        f"snap combine-files "
-        f'-proj wgs84 init="EPSG:3857" target=* '
-        f"-rename-layers FRANCE,IDF,GDP,MTQ,GUY,REU,MAY "
-        f"-merge-layers target=FRANCE,IDF,GDP,MTQ,GUY,REU,MAY force "
-        f"-rename-layers FRANCE_TRANSFORMED "
-        f"-o {output_dir}/idf_combined.geojson "
-    )
+        subprocess.run(
+            france_metropolitaine,
+            shell=True,
+            check=True,
+            text=True,
+        )
 
-    subprocess.run(
-        cmd_combined,
-        shell=True,
-        check=True,
-        text=True,
-    )
+        for region, shift_value in shift.items():
+            print(f"Processing {region}")
+            cmd = (
+                f"mapshaper -i {input_file} "
+                f"-proj EPSG:3857 "
+                f'-filter "{logical_conditions["EMPRISES"][region]}" '
+                f"-affine shift={shift_value} scale={scale[region]} "
+                f"-o {local_dir}/{region}.{format_intermediate}"
+            )
+            subprocess.run(
+                cmd,
+                shell=True,
+                check=True,
+                text=True,
+            )
 
-    return f"{output_dir}/idf_combined.geojson"
+        cmd_combined = (
+            f"mapshaper "
+            f"{local_dir}/metropole.{format_intermediate} "
+            f"{local_dir}/idf_zoom.{format_intermediate} "
+            f"{local_dir}/guadeloupe.{format_intermediate} "
+            f"{local_dir}/martinique.{format_intermediate} "
+            f"{local_dir}/guyane.{format_intermediate} "
+            f"{local_dir}/reunion.{format_intermediate} "
+            f"{local_dir}/mayotte.{format_intermediate} "
+            f"snap combine-files "
+            f'-proj wgs84 init="EPSG:3857" target=* '
+            f"-rename-layers FRANCE,IDF,GDP,MTQ,GUY,REU,MAY "
+            f"-merge-layers target=FRANCE,IDF,GDP,MTQ,GUY,REU,MAY force "
+            f"-rename-layers FRANCE_TRANSFORMED "
+            f"-o {local_dir}/{filename_output} "
+        )
+
+        subprocess.run(
+            cmd_combined,
+            shell=True,
+            check=True,
+            text=True,
+        )
+    except Exception:
+        raise
+
+    finally:
+        for tempfile in [
+            "metropole",
+            "idf_zoom",
+            "guadeloupe",
+            "martinique",
+            "guyane",
+            "reunion",
+            "mayotte",
+        ]:
+            try:
+                os.unlink(f"{local_dir}/{tempfile}.{format_intermediate}")
+            except FileNotFoundError:
+                pass
+
+    return f"{local_dir}/{filename_output}"
