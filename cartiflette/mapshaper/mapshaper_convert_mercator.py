@@ -4,7 +4,7 @@ import subprocess
 def mapshaper_convert_mercator(
     local_dir="temp",
     territory="reunion",
-    file="COMMUNE",
+    filename_initial="COMMUNE.shp",
     extension_initial="shp",
     format_intermediate="geojson",
     identifier="",
@@ -20,7 +20,7 @@ def mapshaper_convert_mercator(
 
     subprocess.run(
         (
-            f"mapshaper {local_dir}/COMMUNE.{extension_initial} name='COMMUNE' "
+            f"mapshaper {local_dir}/{filename_initial} name='COMMUNE' "
             f"-proj EPSG:4326 "
             f"{identifier}"
             f"-o {output_name} "
