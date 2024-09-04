@@ -17,7 +17,7 @@ try:
     from typing import Self
 except ImportError:
     # python < 3.11
-    Self = "BaseGISDataset"
+    Self = "S3GeoDataset"
 import warnings
 
 from s3fs import S3FileSystem
@@ -40,71 +40,29 @@ from cartiflette.mapshaper import (
 logger = logging.getLogger(__name__)
 
 
-def concat(
-    datasets: list = None,
-    format_intermediate: str = "topjson",
-    fs: S3FileSystem = FS,
-    **config_new_dset: ConfigDict,
-):
-    with TemporaryDirectory() as tempdir:
-        for k, dset in enumerate(datasets):
-            with dset:
-                dset.to_mercator(format_intermediate="topojson")
-                shutil.copytree(
-                    dset.local_dir + "/preprocessed", f"{tempdir}/{k}"
-                )
-
-        output_path = (
-            f"{tempdir}/preprocessed_combined/COMMUNE.{format_intermediate}"
-        )
-        subprocess.run(
-            (
-                f"mapshaper -i {tempdir}/**/"
-                f"*.{format_intermediate}"
-                " combine-files name='COMMUNE' "
-                f"-proj EPSG:4326 "
-                f"-merge-layers "
-                f"-o {output_path} "
-                f"format={format_intermediate} "
-                f'extension=".{format_intermediate}" singles'
-            ),
-            shell=True,
-            check=True,
-            text=True,
-        )
-
-        print(output_path)
-
-        new_dset = BaseGISDataset(
-            fs,
-            intermediate_dir=f"{tempdir}/preprocessed_combined",
-            **config_new_dset,
-        )
-        new_dset.to_s3()
-
-        return new_dset
-
-
-class Dataset:
+class S3Dataset:
     files = None
+    main_filename = None
 
     def __init__(
         self,
         fs: S3FileSystem = FS,
-        intermediate_dir: str = "temp",
+        local_dir: str = "temp",
         **config: ConfigDict,
     ):
         self.fs = fs
         self.config = config
+        self.local_dir = local_dir
+        self.local_files = []
+
         self.s3_dirpath = self.get_path_of_dataset()
-        self.local_dir = intermediate_dir
 
         self.source = (
             f"{config.get('provider', '')}:{config.get('source', '')}"
         )
 
     def __str__(self):
-        return f"<cartiflette.s3.dataset.Dataset({self.config})>"
+        return f"<cartiflette.s3.dataset.S3Dataset({self.config})>"
 
     def __repr__(self):
         return self.__str__()
@@ -134,7 +92,7 @@ class Dataset:
         target = self.s3_dirpath
         if not target.endswith("/"):
             target += "/"
-        logger.warning(f"{self.local_dir} -> {target}")
+        logger.info("sending %s -> %s", self.local_dir, target)
         self.fs.put(self.local_dir + "/*", target, recursive=True)
 
     def to_local_folder_for_mapshaper(self):
@@ -151,11 +109,11 @@ class Dataset:
         files = []
 
         # Get all files (plural in case of shapefile) from Minio
-        logger.info(f"downloading {self.s3_files} to {self.local_dir}")
+        logger.info("downloading %s to %s", self.s3_files, self.local_dir)
         for file in self.s3_files:
             path = f"{self.local_dir}/{file.rsplit('/', maxsplit=1)[-1]}"
             self.fs.download(file, path)
-            logger.warning(f"file written to {path}")
+            logger.info("file written to %s", path)
             files.append(path)
 
         self.local_files = files
@@ -176,11 +134,9 @@ class Dataset:
             warnings.warn(e)
 
 
-class BaseGISDataset(Dataset):
-    files = None
-
+class S3GeoDataset(S3Dataset):
     def __str__(self):
-        return f"<cartiflette.s3.dataset.BaseGISDataset({self.config})>"
+        return f"<cartiflette.s3.dataset.S3GeoDataset({self.config})>"
 
     def to_mercator(self, format_intermediate: str = "geojson"):
         "project to mercator using mapshaper"
@@ -290,7 +246,7 @@ class BaseGISDataset(Dataset):
         **kwargs,
     ) -> list[Self]:
         """
-        Split a file into singleton, based on one field (including
+        Split a file into singletons, based on one field (including
         reprojection, simplification and format conversion if need be)
 
         Parameters
@@ -309,8 +265,8 @@ class BaseGISDataset(Dataset):
 
         Returns
         -------
-        list[BaseGISDataset]
-            return a list of BaseGISDataset objects
+        list[S3GeoDataset]
+            return a list of S3GeoDataset objects
 
         """
 
@@ -351,9 +307,9 @@ class BaseGISDataset(Dataset):
             shutil.move(file, new_dir)
 
             geodatasets.append(
-                BaseGISDataset(
+                S3GeoDataset(
                     fs=self.fs,
-                    intermediate_dir=new_dir,
+                    local_dir=new_dir,
                     **new_config,
                 )
             )
@@ -362,87 +318,90 @@ class BaseGISDataset(Dataset):
 
     def mapshaperize_split(
         self,
-        # local_dir="temp",
-        # config_file_city={},
-        metadata: Dataset,
-        format_output="topojson",
+        metadata: S3Dataset,
+        format_output="geojson",
         niveau_polygons="COMMUNE",
         niveau_agreg="DEPARTEMENT",
-        provider="IGN",
-        source="EXPRESS-COG-CARTO-TERRITOIRE",
-        territory="metropole",
         crs=4326,
         simplification=0,
-        dict_corresp=DICT_CORRESP_ADMINEXPRESS,
-    ):
+        dict_corresp=None,
+    ) -> List[Self]:
         """
+        Create "children" geodatasets based on arguments and send them to S3.
 
-        TODO: docstring not up-to-date
+        Do the following processes:
+            - join the current geodataset with the metadata to enrich it;
+            - dissolve geometries if niveau_polygons != "COMMUNE"
+            - bring ultramarine territories closer
+              if niveau_agreg == "FRANCE_ENTIERE_DROM_RAPPROCHES"
+            - split the geodataset based on niveau_agreg
+            - project the geodataset into the given CRS
+            - convert the file into the chosen output
+            - upload those datasets to S3 storage system
 
-        Processes shapefiles and splits them based on specified parameters using Mapshaper.
+        The "children" may result to a single file depending of niveau_agreg.
+
+        Note that some of those steps are done **IN PLACE** on the parent
+        geodataset (enrichment, dissolution, agregation). Therefore, the
+        geodataset should not be used after a call to this method.
 
         Parameters
         ----------
-        local_dir : str, optional
-            The local directory for file storage, by default "temp".
-        filename_initial : str, optional
-            The initial filename, by default "COMMUNE".
-        extension_initial : str, optional
-            The initial file extension, by default "shp".
+        metadata : S3Dataset
+            The metadata file to use to enrich the geodataset
         format_output : str, optional
-            The output format, by default "topojson".
-
-        # TODO
-        niveau_polygons:
-            a priori la géométrie souhaitée au final ?
-
+            The output format, by default "geojson".
+        niveau_polygons : str, optional
+            The level of basic mesh for the geometries. The default is COMMUNE.
+            Should be among ['REGION', 'DEPARTEMENT', 'FRANCE_ENTIERE',
+             'FRANCE_ENTIERE_DROM_RAPPROCHES', 'LIBELLE_REGION',
+             'LIBELLE_DEPARTEMENT', 'BASSIN_VIE', 'AIRE_ATTRACTION_VILLES',
+             'UNITE_URBAINE', 'ZONE_EMPLOI', 'TERRITOIRE']
         niveau_agreg : str, optional
-            The level of aggregation for the split, by default "DEPARTEMENT".
-            A priori le niveau de filtre ???
-
-
-        provider : str, optional
-            The data provider, by default "IGN".
-        source : str, optional
-            The data source, by default "EXPRESS-COG-CARTO-TERRITOIRE".
-        year : int, optional
-            The year of the data, by default 2022.
-        dataset_family : str, optional
-            The dataset family, by default "ADMINEXPRESS".
-        territory : str, optional
-            The territory of the data, by default "metropole".
+            The level of aggregation for splitting the dataset into singletons,
+            by default "DEPARTEMENT".
+            Should be among ['REGION', 'DEPARTEMENT', 'FRANCE_ENTIERE',
+             'FRANCE_ENTIERE_DROM_RAPPROCHES', 'LIBELLE_REGION',
+             'LIBELLE_DEPARTEMENT', 'BASSIN_VIE', 'AIRE_ATTRACTION_VILLES',
+             'UNITE_URBAINE', 'ZONE_EMPLOI', 'TERRITOIRE']
         crs : int, optional
-            The coordinate reference system (CRS) code, by default 4326.
+            The coordinate reference system (CRS) code to project the children
+            datasets into. By default 4326.
         simplification : int, optional
-            The degree of simplification, by default 0.
+            The degree of wanted simplification, by default 0.
         dict_corresp: dict
             A dictionary giving correspondance between niveau_agreg argument
-            and variable names.
+            and variable names. The default is None, which will result to
+            DICT_CORRESP_ADMINEXPRESS.
 
         Returns
         -------
-        str
+        List[S3GeoDataset]
             The output path of the processed and split shapefiles.
 
         """
+
+        if not dict_corresp:
+            dict_corresp = DICT_CORRESP_ADMINEXPRESS
 
         niveau_agreg = niveau_agreg.upper()
         niveau_polygons = niveau_polygons.upper()
 
         simplification = simplification if simplification else 0
 
-        # STEP 1: ENRICHISSEMENT AVEC COG
+        # Enrich files with metadata (COG, etc.)
         self.enrich(
             metadata_file=metadata.local_files[0],
             dict_corresp=dict_corresp,
         )
 
         if niveau_polygons != "COMMUNE":
-            # STEP 1B: DISSOLVE GEOMETRIES IF NEEDED (GENERATING GDF WITH
-            # NON-CITIES GEOMETRIES)
+            # Dissolve geometries if desired (will replace the local file
+            # geodata file based on a communal mesh with  one using the desired
+            # mesh
 
             # Identify which fields should be copied from the first feature in
-            # each group of dissolved features.
+            # each group of dissolved features:
             copy_fields = [
                 dict_corresp[niveau_polygons],
                 dict_corresp[niveau_agreg],
@@ -458,7 +417,7 @@ class BaseGISDataset(Dataset):
                 format_output=format_output,
             )
 
-        # IF WE DESIRE TO BRING "DROM" CLOSER TO FRANCE
+        # Bring ultramarine territories closer to France if needed
         if niveau_agreg == "FRANCE_ENTIERE_DROM_RAPPROCHES":
             niveau_filter_drom = "DEPARTEMENT"
             if niveau_polygons != "COMMUNE":
@@ -469,7 +428,8 @@ class BaseGISDataset(Dataset):
                 format_intermediate=format_output,
             )
 
-        # STEP 2: SPLIT ET SIMPLIFIE
+        # Split datasets, based on the desired "niveau_agreg" and proceed to
+        # desired level of simplification
         new_datasets = self.split_file(
             crs=crs,
             format_output=format_output,
@@ -479,12 +439,60 @@ class BaseGISDataset(Dataset):
             borders=niveau_polygons,
         )
 
+        # Upload new datasets to S3
         for dataset in new_datasets:
             dataset.to_s3()
 
+        return new_datasets
+
+
+def concat(
+    datasets: list = None,
+    format_intermediate: str = "topjson",
+    fs: S3FileSystem = FS,
+    **config_new_dset: ConfigDict,
+) -> S3GeoDataset:
+    with TemporaryDirectory() as tempdir:
+        for k, dset in enumerate(datasets):
+            with dset:
+                dset.to_mercator(format_intermediate="topojson")
+                shutil.copytree(
+                    dset.local_dir + "/preprocessed", f"{tempdir}/{k}"
+                )
+
+        output_path = (
+            f"{tempdir}/preprocessed_combined/COMMUNE.{format_intermediate}"
+        )
+        subprocess.run(
+            (
+                f"mapshaper -i {tempdir}/**/"
+                f"*.{format_intermediate}"
+                " combine-files name='COMMUNE' "
+                f"-proj EPSG:4326 "
+                f"-merge-layers "
+                f"-o {output_path} "
+                f"format={format_intermediate} "
+                f'extension=".{format_intermediate}" singles'
+            ),
+            shell=True,
+            check=True,
+            text=True,
+        )
+
+        print(output_path)
+
+        new_dset = S3GeoDataset(
+            fs,
+            local_dir=f"{tempdir}/preprocessed_combined",
+            **config_new_dset,
+        )
+        new_dset.to_s3()
+
+        return new_dset
+
 
 # if __name__ == "__main__":
-#     with BaseGISDataset(
+#     with S3GeoDataset(
 #         bucket=BUCKET,
 #         path_within_bucket=PATH_WITHIN_BUCKET,
 #         provider="IGN",

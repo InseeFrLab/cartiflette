@@ -5,8 +5,8 @@ import tempfile
 
 from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
 from cartiflette.utils import create_path_bucket
-from cartiflette.mapshaper import mapshaperize_split, mapshaperize_split_merge
-from cartiflette.s3 import BaseGISDataset, Dataset
+from cartiflette.mapshaper import mapshaperize_split_merge
+from cartiflette.s3 import S3GeoDataset, S3Dataset
 
 
 def mapshaperize_split_from_s3(
@@ -25,12 +25,11 @@ def mapshaperize_split_from_s3(
 
     bucket = config.get("bucket", BUCKET)
     path_within_bucket = config.get("path_within_bucket", PATH_WITHIN_BUCKET)
-    # local_dir = config.get("local_dir", "temp")
 
     with tempfile.TemporaryDirectory() as tempdir:
         kwargs = {
             "fs": fs,
-            "intermediate_dir": tempdir,
+            "local_dir": tempdir,
             "bucket": bucket,
             "path_within_bucket": path_within_bucket,
             "year": year,
@@ -38,7 +37,7 @@ def mapshaperize_split_from_s3(
             "filter_by": "preprocessed",
             "territory": "france",
         }
-        with Dataset(
+        with S3Dataset(
             provider="Insee",
             dataset_family="COG-TAGC",
             source="COG-TAGC",
@@ -46,7 +45,7 @@ def mapshaperize_split_from_s3(
             value="tagc",
             vectorfile_format="csv",
             **kwargs,
-        ) as metadata, BaseGISDataset(
+        ) as metadata, S3GeoDataset(
             provider=provider,
             dataset_family=dataset_family,
             source=source,
@@ -60,8 +59,6 @@ def mapshaperize_split_from_s3(
                 format_output=format_output,
                 niveau_agreg=filter_by,
                 niveau_polygons=level_polygons,
-                provider=provider,
-                source=source,
                 crs=crs,
                 simplification=simplification,
             )
@@ -107,7 +104,7 @@ def mapshaperize_merge_split_from_s3(config, fs=FS):
         path_raw_s3_combined, "temp/preprocessed_combined/COMMUNE.geojson"
     )
 
-    with BaseGISDataset(
+    with S3GeoDataset(
         fs=fs,
         intermediate_dir="temp",
         bucket=bucket,
