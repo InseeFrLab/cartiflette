@@ -2,14 +2,11 @@ import os
 import shutil
 import tempfile
 
-import pandas as pd
 
 from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
 from cartiflette.utils import create_path_bucket
 from cartiflette.mapshaper import mapshaperize_split, mapshaperize_split_merge
-from cartiflette.s3 import BaseGISDataset
-
-from cartiflette.s3.dataset import BaseGISDataset, Dataset
+from cartiflette.s3 import BaseGISDataset, Dataset
 
 
 def mapshaperize_split_from_s3(
@@ -17,21 +14,18 @@ def mapshaperize_split_from_s3(
 ):
     format_output = config.get("format_output", "topojson")
     filter_by = config.get("filter_by", "DEPARTEMENT")
-    territory = config.get("territory", "metropole")
     level_polygons = config.get("level_polygons", "COMMUNE")
-    territory = config.get("territory", "metropole")
 
     provider = config.get("provider", "IGN")
     source = config.get("source", "EXPRESS-COG-CARTO-TERRITOIRE")
     year = config.get("year", 2024)
     dataset_family = config.get("dataset_family", "ADMINEXPRESS")
-    territory = config.get("territory", "metropole")
     crs = config.get("crs", 4326)
     simplification = config.get("simplification", 0)
 
     bucket = config.get("bucket", BUCKET)
     path_within_bucket = config.get("path_within_bucket", PATH_WITHIN_BUCKET)
-    local_dir = config.get("local_dir", "temp")
+    # local_dir = config.get("local_dir", "temp")
 
     with tempfile.TemporaryDirectory() as tempdir:
         kwargs = {
@@ -71,45 +65,6 @@ def mapshaperize_split_from_s3(
                 crs=crs,
                 simplification=simplification,
             )
-
-    output_path = mapshaperize_split(
-        gis_file,
-        local_dir=local_dir,
-        config_file_city={
-            "location": "temp/preprocessed_combined",
-            "filename": "COMMUNE",
-            "extension": "geojson",
-        },
-        format_output=format_output,
-        niveau_agreg=filter_by,
-        niveau_polygons=level_polygons,
-        provider=provider,
-        source=source,
-        crs=crs,
-        simplification=simplification,
-    )
-
-    for values in os.listdir(output_path):
-        path_s3 = create_path_bucket(
-            {
-                "bucket": bucket,
-                "path_within_bucket": path_within_bucket,
-                "year": year,
-                "borders": level_polygons,
-                "crs": crs,
-                "filter_by": filter_by,
-                "value": values.replace(f".{format_output}", ""),
-                "vectorfile_format": format_output,
-                "provider": provider,
-                "dataset_family": dataset_family,
-                "source": source,
-                "territory": territory,
-                "simplification": simplification,
-            }
-        )
-        fs.put(f"{output_path}/{values}", path_s3)
-
-    shutil.rmtree(output_path)
 
 
 def mapshaperize_merge_split_from_s3(config, fs=FS):
@@ -215,4 +170,10 @@ def mapshaperize_merge_split_from_s3(config, fs=FS):
 
 
 if __name__ == "__main__":
-    mapshaperize_split_from_s3({"year": 2023})
+    mapshaperize_split_from_s3(
+        {
+            "year": 2023,
+            "level_polygons": "DEPARTEMENT",
+            "filter_by": "REGION",
+        }
+    )
