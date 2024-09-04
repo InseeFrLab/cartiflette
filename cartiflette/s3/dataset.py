@@ -483,6 +483,10 @@ class S3GeoDataset(S3Dataset):
 
         return new_datasets
 
+    def mapshaperize_split_merge(self):
+        # TODO
+        pass
+
 
 def concat(
     datasets: List[S3GeoDataset],
