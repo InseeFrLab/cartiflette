@@ -9,6 +9,7 @@ for each vintage.
 
 import argparse
 import json
+import logging
 import os
 import warnings
 
@@ -44,14 +45,14 @@ path_within_bucket = args.path
 local_path = args.localpath
 years = args.years
 
+logging.basicConfig(level=logging.INFO)
+
 years = json.loads(years)
 
 bucket = BUCKET
 fs = FS
 
 os.makedirs(local_path, exist_ok=True)
-
-# PART 1/ COMBINE RAW FILES TOGETHER AND WRITE TO S3
 
 
 def main(
@@ -60,6 +61,7 @@ def main(
     bucket=BUCKET,
     years: int = None,
 ):
+    # TODO : used only for debugging purposes
     if not years:
         # Perform on all years
         json_md5 = f"{bucket}/{path_within_bucket}/md5.json"

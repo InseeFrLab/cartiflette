@@ -8,6 +8,7 @@ Update/create vintaged metadata files and send those to S3
 
 import argparse
 import json
+import logging
 import os
 
 from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
@@ -43,6 +44,8 @@ path_within_bucket = args.path
 local_path = args.localpath
 years = args.years
 
+logging.basicConfig(level=logging.INFO)
+
 years = json.loads(years)
 
 fs = FS
@@ -56,6 +59,7 @@ def main(
     bucket=BUCKET,
     years: int = None,
 ):
+    # TODO : used only for debugging purposes
     if not years:
         # Perform on all years
         json_md5 = f"{bucket}/{path_within_bucket}/md5.json"

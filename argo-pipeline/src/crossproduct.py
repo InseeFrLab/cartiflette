@@ -99,6 +99,7 @@ def main(
     bucket: str,
     years: list = None,
 ):
+    # TODO : used only for debugging purposes
     if not years:
         # Perform on all COG years
         json_md5 = f"{bucket}/{path_within_bucket}/md5.json"
