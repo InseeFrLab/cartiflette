@@ -183,14 +183,14 @@ class S3GeoDataset(S3Dataset):
     def __str__(self):
         return f"<cartiflette.s3.dataset.S3GeoDataset({self.config})>"
 
-    def to_mercator(self, format_intermediate: str = "geojson"):
+    def to_mercator(self, format_output: str = "geojson"):
         "project to mercator using mapshaper"
         mapshaper_convert_mercator(
             filename_initial=self.main_filename,
             local_dir=self.local_dir,
             territory=self.config["territory"],
             identifier=self.config["territory"],
-            format_intermediate=format_intermediate,
+            format_intermediate=format_output,
         )
 
     def enrich(self, metadata_file: str, dict_corresp: dict):
@@ -512,21 +512,97 @@ class S3GeoDataset(S3Dataset):
 
         return new_datasets
 
-    def mapshaperize_split_merge(
+    def substitute_muncipal_districts(self, format_output: str = "geojson"):
+        # TODO : docstring
+
+        # PREPROCESS CITIES
+
+        # %% To individual cities
+        # TODO : not working on windows ?!
+        file_city = f"{self.local_dir}/{self.main_filename}"
+        cmd = (
+            f"mapshaper {file_city} name='COMMUNE' -proj EPSG:4326 "
+            "-filter '\"69123,13055,75056\".indexOf(INSEE_COM) > -1' invert "
+            '-each "INSEE_COG=INSEE_COM" '
+            f"-o {self.local_dir}/communes_simples.{format_output} "
+            f'format={format_output} extension=".{format_output}" singles'
+        )
+        print(cmd)
+        subprocess.run(cmd, shell=True, check=True, text=True)
+        # %%
+
+        new_config = deepcopy(self.config)
+        new_config.update(
+            {
+                "borders": None,
+                "crs": 2154,
+                "territory": "metropole",
+                "vectorfile_format": "shp",
+                "filter_by": "origin",
+                "value": "raw",
+            }
+        )
+        communal_districts = S3GeoDataset(
+            fs=self.fs,
+            local_dir=self.local_dir,
+            filename="ARRONDISSEMENT_MUNICIPAL",
+            **new_config,
+        )
+        communal_districts.to_mercator(format_output=format_output)
+        communal_districts_file = communal_districts.main_filename
+
+        print(communal_districts)
+
+        args_dict["level_polygons"] = "COMMUNE_ARRONDISSEMENT"
+
+        # PREPROCESS ARRONDISSEMENT
+        file_arrondissement = (
+            f"{directory_arrondissement}/"
+            f"{initial_filename_arrondissement}.{extension_initial_arrondissement}"
+        )
+        subprocess.run(
+            (
+                f"mapshaper {file_arrondissement} "
+                f"name='ARRONDISSEMENT_MUNICIPAL' "
+                f"-proj EPSG:4326 "
+                f"-rename-fields INSEE_COG=INSEE_ARM "
+                f"-each 'STATUT=\"Arrondissement municipal\" ' "
+                f"-o {output_path}/arrondissements.{format_intermediate} "
+                f'format={format_intermediate} extension=".{format_intermediate}"'
+            ),
+            shell=True,
+            check=True,
+            text=True,
+        )
+
+        # MERGE CITIES AND ARRONDISSEMENT
+        subprocess.run(
+            (
+                f"mapshaper "
+                f"{output_path}/communes_simples.{format_intermediate} "
+                f"{output_path}/arrondissements.{format_intermediate} snap combine-files "
+                f"-proj EPSG:4326 "
+                f"-rename-layers COMMUNE,ARRONDISSEMENT_MUNICIPAL "
+                f"-merge-layers target=COMMUNE,ARRONDISSEMENT_MUNICIPAL force "
+                f"-rename-layers COMMUNE_ARRONDISSEMENT "
+                f"-o {output_path}/raw.{format_intermediate} "
+                f'format={format_intermediate} extension=".{format_intermediate}"'
+            ),
+            shell=True,
+            check=True,
+            text=True,
+        )
+
+    def mapshaperize_merge_split(
         self,
-        format_output="topojson",
+        metadata: S3Dataset,
+        format_output="geojson",
         niveau_agreg="DEPARTEMENT",
-        provider="IGN",
-        source="EXPRESS-COG-CARTO-TERRITOIRE",
-        territory="metropole",
-        config_file_city={},
-        config_file_arrondissement={},
-        local_dir="temp",
         crs=4326,
         simplification=0,
         dict_corresp=None,
     ):
-        # TODO
+        # TODO : docstring
 
         if not dict_corresp:
             dict_corresp = DICT_CORRESP_ADMINEXPRESS
@@ -534,6 +610,8 @@ class S3GeoDataset(S3Dataset):
         niveau_agreg = niveau_agreg.upper()
 
         simplification = simplification if simplification else 0
+
+        self.substitute_muncipal_districts(format_output=format_output)
 
         # City level borders, file location
         directory_city = config_file_city.get("location", local_dir)
@@ -678,7 +756,7 @@ def concat(
     with TemporaryDirectory() as tempdir:
         for k, dset in enumerate(datasets):
             with dset:
-                dset.to_mercator(format_intermediate="topojson")
+                dset.to_mercator(format_output=vectorfile_format)
                 shutil.copytree(
                     dset.local_dir + "/preprocessed", f"{tempdir}/{k}"
                 )

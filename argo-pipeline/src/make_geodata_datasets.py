@@ -89,7 +89,7 @@ def main(
                 year=year,
                 path_within_bucket=path_within_bucket,
                 intermediate_dir=localpath,
-                format_intermediate=format_intermediate,
+                format_output=format_intermediate,
                 bucket=bucket,
                 fs=fs,
             )

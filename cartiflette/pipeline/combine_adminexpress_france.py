@@ -16,7 +16,7 @@ COMPILED_TERRITORY = re.compile("territory=([a-z]*)/", flags=re.IGNORECASE)
 def combine_adminexpress_territory(
     year: Union[str, int],
     intermediate_dir: str = "temp",
-    format_intermediate: str = "topojson",
+    format_output: str = "geojson",
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
     fs: s3fs.S3FileSystem = FS,
@@ -34,8 +34,8 @@ def combine_adminexpress_territory(
         Desired vintage
     intermediate_dir : str, optional
         Temporary dir to process files. The default is "temp".
-    format_intermediate : str, optional
-        Temporary formats to use. The default is "topojson"
+    format_output : str, optional
+        Final (and intermediate) formats to use. The default is "topojson"
     bucket : str, optional
         Storage bucket on S3 FileSystem. The default is BUCKET.
     path_within_bucket : str, optional
@@ -97,7 +97,7 @@ def combine_adminexpress_territory(
 
     config.update(
         {
-            "vectorfile_format": format_intermediate,
+            "vectorfile_format": format_output,
             "crs": 4326,
             "borders": "france",
             "filter_by": "preprocessed",
