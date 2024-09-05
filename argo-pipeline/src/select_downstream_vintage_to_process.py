@@ -9,11 +9,12 @@ have been re-downloaded) to select downstream steps
 """
 
 import argparse
+import logging
 import json
 
-print("=" * 50)
-print(__doc__)
-print("=" * 50)
+logging.info("=" * 50)
+logging.info("\n" + __doc__)
+logging.info("=" * 50)
 
 parser = argparse.ArgumentParser(description="Select vintage to update")
 parser.add_argument(
@@ -51,6 +52,7 @@ finally:
     years_geodata = sorted(list(years_geodata))
     with open("geodatasets_years.json", "w") as out:
         json.dump(years_geodata, out)
+    logging.info("selected downstream geodatasets : %s", years_geodata)
 
 
 years_metadata = set()
@@ -72,3 +74,4 @@ finally:
     years_metadata = sorted(list(years_metadata))
     with open("metadata_years.json", "w") as out:
         json.dump(years_metadata, out)
+    logging.info("selected downstream metadata : %s", years_metadata)

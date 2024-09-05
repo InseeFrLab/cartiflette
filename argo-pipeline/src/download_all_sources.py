@@ -20,15 +20,18 @@ During the operation:
 """
 
 import argparse
+import logging
 import os
 import json
 
 from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
 from cartiflette.download import download_all
 
-print("=" * 50)
-print(__doc__)
-print("=" * 50)
+logging.basicConfig(level=logging.INFO)
+
+logging.info("=" * 50)
+logging.info("\n" + __doc__)
+logging.info("=" * 50)
 
 
 # Initialize ArgumentParser
@@ -78,7 +81,7 @@ try:
         )
     else:
         results = dict()
-        print(
+        logging.warning(
             "\n\n!!!! Download skipped !!!\n\n"
             "To reset download, remove --skip flag from pipeline yaml (from "
             "download-all-sources template)!"
@@ -93,4 +96,4 @@ except Exception:
         pass
     raise
 
-print(results)
+logging.info(results)

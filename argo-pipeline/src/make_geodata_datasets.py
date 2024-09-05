@@ -14,15 +14,16 @@ import os
 import warnings
 
 from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
-
 from cartiflette.pipeline.combine_adminexpress_france import (
     combine_adminexpress_territory,
 )
 
+logging.basicConfig(level=logging.INFO)
 
-print("=" * 50)
-print(__doc__)
-print("=" * 50)
+
+logging.info("=" * 50)
+logging.info("\n" + __doc__)
+logging.info("=" * 50)
 
 # Initialize ArgumentParser
 parser = argparse.ArgumentParser(
@@ -44,8 +45,6 @@ args = parser.parse_args()
 path_within_bucket = args.path
 local_path = args.localpath
 years = args.years
-
-logging.basicConfig(level=logging.INFO)
 
 years = json.loads(years)
 
@@ -80,9 +79,9 @@ def main(
 
     created = []
     for year in years:
-        print("-" * 50)
-        print(f"Merging territorial files of cities for {year=}")
-        print("-" * 50)
+        logging.info("-" * 50)
+        logging.info(f"Merging territorial files of cities for {year=}")
+        logging.info("-" * 50)
 
         try:
             # Merge all territorial cities files into a single file

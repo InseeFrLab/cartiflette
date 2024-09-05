@@ -13,13 +13,14 @@ import os
 
 from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
 from cartiflette.utils import create_path_bucket
-
-
 from cartiflette.pipeline.prepare_cog_metadata import prepare_cog_metadata
 
-print("=" * 50)
-print(__doc__)
-print("=" * 50)
+
+logging.basicConfig(level=logging.INFO)
+
+logging.info("=" * 50)
+logging.info("\n" + __doc__)
+logging.info("=" * 50)
 
 # Initialize ArgumentParser
 parser = argparse.ArgumentParser(
@@ -43,8 +44,6 @@ bucket = BUCKET
 path_within_bucket = args.path
 local_path = args.localpath
 years = args.years
-
-logging.basicConfig(level=logging.INFO)
 
 years = json.loads(years)
 
@@ -76,9 +75,9 @@ def main(
 
     created = []
     for year in years:
-        print("-" * 50)
-        print(f"Computing metadata for {year=}")
-        print("-" * 50)
+        logging.info("-" * 50)
+        logging.info("Computing metadata for year=%s", year)
+        logging.info("-" * 50)
 
         os.makedirs(f"{local_path}/{year}", exist_ok=True)
 

@@ -1,3 +1,4 @@
+import logging
 import os
 import subprocess
 
@@ -109,7 +110,7 @@ def mapshaper_bring_closer(
         )
 
         for region, shift_value in shift.items():
-            print(f"Processing {region}")
+            logging.info("Processing %s", region)
             cmd = (
                 f"mapshaper -i {input_file} "
                 f"-proj EPSG:3857 "

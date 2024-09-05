@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 from typing import Union
@@ -88,7 +89,7 @@ def combine_adminexpress_territory(
         warnings.warn(f"{year} not constructed (no territories)")
         return
 
-    print("Territoires récupérés:\n" + "\n".join(territories))
+    logging.info("Territoires récupérés:\n%s", "\n".join(territories))
 
     datasets = [{"territory": territory} for territory in territories]
     for d in datasets:
@@ -106,7 +107,10 @@ def combine_adminexpress_territory(
     )
 
     dset = concat(
-        [S3GeoDataset(fs=fs, **config) for config in datasets],
+        [
+            S3GeoDataset(fs=fs, local_dir=intermediate_dir, **config)
+            for config in datasets
+        ],
         fs=fs,
         **config,
     )
