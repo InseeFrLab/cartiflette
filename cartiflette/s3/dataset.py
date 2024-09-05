@@ -50,19 +50,44 @@ class S3Dataset:
 
     files = None
     main_filename = None
+    s3_dirpath = None
 
     def __init__(
         self,
         fs: S3FileSystem = FS,
         local_dir: str = "temp",
+        filename: str = "*",
         **config: ConfigDict,
     ):
+        """
+        Create a S3Dataset.
+
+        Parameters
+        ----------
+        fs : S3FileSystem, optional
+            S3FileSystem used for storage. The default is FS.
+        local_dir : str, optional
+            Local directory used for transformations using mapshaper. The
+            default is "temp".
+        filename : str, optional
+            In case there are multiple files into the same folder define it
+            to avoid catching the wrong file from S3FileSystem
+            (this should only occur with the download of raw datasets with
+             COMMUNE.shp and ARRONDISSEMENT_MUNICIPAL.shp being stored in the
+             same directory).
+            The default is "*".
+            For instance, "COMMUNE.shp"
+        **config : ConfigDict
+            Other arguments to define the path on the S3 to the dataset.
+        """
         self.fs = fs
         self.config = config
         self.local_dir = local_dir
         self.local_files = []
 
-        self.s3_dirpath = self.get_path_of_dataset()
+        self.filename = filename.rsplit(".", maxsplit=1)[0]
+
+        self.get_path_of_dataset()
 
         self.source = (
             f"{config.get('provider', '')}:{config.get('source', '')}"
@@ -77,7 +102,10 @@ class S3Dataset:
     def get_path_of_dataset(self):
         "retrieve dataset's full paths on S3"
         path = os.path.dirname(create_path_bucket(self.config))
-        search = f"{path}/**/*"
+        search = f"{path}/**/{self.filename}"
+        if self.filename != "*":
+            search += ".*"
+
         self.s3_files = self.fs.glob(search)
         if not self.s3_files:
             warnings.warn(f"this dataset is not available on S3 on {search}")
@@ -85,14 +113,14 @@ class S3Dataset:
             return path
 
         if len(self.s3_files) > 1:
-            self.main_filename = os.path.basename(
+            main_filename = (
                 self.s3_files[0].rsplit(".", maxsplit=1)[0] + ".shp"
             )
         else:
-            self.main_filename = os.path.basename(self.s3_files[0])
+            main_filename = self.s3_files[0]
 
-        # return exact path (without glob expression):
-        return os.path.dirname(self.main_filename)
+        self.main_filename = os.path.basename(main_filename)
+        self.s3_dirpath = os.path.dirname(main_filename)
 
     def to_s3(self):
         "upload file to S3"
