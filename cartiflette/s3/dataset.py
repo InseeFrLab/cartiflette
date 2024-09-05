@@ -639,59 +639,59 @@ class S3GeoDataset(S3Dataset):
 
         format_intermediate = "geojson"
 
-        # PREPROCESS CITIES
-        file_city = f"{directory_city}/{initial_filename_city}.{extension_initial_city}"
-        subprocess.run(
-            (
-                f"mapshaper {file_city} name='COMMUNE' "
-                f"-proj EPSG:4326 "
-                f"-filter '\"69123,13055,75056\".indexOf(INSEE_COM) > -1' invert "
-                f'-each "INSEE_COG=INSEE_COM" '
-                f"-o {output_path}/communes_simples.{format_intermediate} "
-                f'format={format_intermediate} extension=".{format_intermediate}" singles'
-            ),
-            shell=True,
-            check=True,
-            text=True,
-        )
+        # # PREPROCESS CITIES
+        # file_city = f"{directory_city}/{initial_filename_city}.{extension_initial_city}"
+        # subprocess.run(
+        #     (
+        #         f"mapshaper {file_city} name='COMMUNE' "
+        #         f"-proj EPSG:4326 "
+        #         f"-filter '\"69123,13055,75056\".indexOf(INSEE_COM) > -1' invert "
+        #         f'-each "INSEE_COG=INSEE_COM" '
+        #         f"-o {output_path}/communes_simples.{format_intermediate} "
+        #         f'format={format_intermediate} extension=".{format_intermediate}" singles'
+        #     ),
+        #     shell=True,
+        #     check=True,
+        #     text=True,
+        # )
 
-        # PREPROCESS ARRONDISSEMENT
-        file_arrondissement = (
-            f"{directory_arrondissement}/"
-            f"{initial_filename_arrondissement}.{extension_initial_arrondissement}"
-        )
-        subprocess.run(
-            (
-                f"mapshaper {file_arrondissement} "
-                f"name='ARRONDISSEMENT_MUNICIPAL' "
-                f"-proj EPSG:4326 "
-                f"-rename-fields INSEE_COG=INSEE_ARM "
-                f"-each 'STATUT=\"Arrondissement municipal\" ' "
-                f"-o {output_path}/arrondissements.{format_intermediate} "
-                f'format={format_intermediate} extension=".{format_intermediate}"'
-            ),
-            shell=True,
-            check=True,
-            text=True,
-        )
+        # # PREPROCESS ARRONDISSEMENT
+        # file_arrondissement = (
+        #     f"{directory_arrondissement}/"
+        #     f"{initial_filename_arrondissement}.{extension_initial_arrondissement}"
+        # )
+        # subprocess.run(
+        #     (
+        #         f"mapshaper {file_arrondissement} "
+        #         f"name='ARRONDISSEMENT_MUNICIPAL' "
+        #         f"-proj EPSG:4326 "
+        #         f"-rename-fields INSEE_COG=INSEE_ARM "
+        #         f"-each 'STATUT=\"Arrondissement municipal\" ' "
+        #         f"-o {output_path}/arrondissements.{format_intermediate} "
+        #         f'format={format_intermediate} extension=".{format_intermediate}"'
+        #     ),
+        #     shell=True,
+        #     check=True,
+        #     text=True,
+        # )
 
-        # MERGE CITIES AND ARRONDISSEMENT
-        subprocess.run(
-            (
-                f"mapshaper "
-                f"{output_path}/communes_simples.{format_intermediate} "
-                f"{output_path}/arrondissements.{format_intermediate} snap combine-files "
-                f"-proj EPSG:4326 "
-                f"-rename-layers COMMUNE,ARRONDISSEMENT_MUNICIPAL "
-                f"-merge-layers target=COMMUNE,ARRONDISSEMENT_MUNICIPAL force "
-                f"-rename-layers COMMUNE_ARRONDISSEMENT "
-                f"-o {output_path}/raw.{format_intermediate} "
-                f'format={format_intermediate} extension=".{format_intermediate}"'
-            ),
-            shell=True,
-            check=True,
-            text=True,
-        )
+        # # MERGE CITIES AND ARRONDISSEMENT
+        # subprocess.run(
+        #     (
+        #         f"mapshaper "
+        #         f"{output_path}/communes_simples.{format_intermediate} "
+        #         f"{output_path}/arrondissements.{format_intermediate} snap combine-files "
+        #         f"-proj EPSG:4326 "
+        #         f"-rename-layers COMMUNE,ARRONDISSEMENT_MUNICIPAL "
+        #         f"-merge-layers target=COMMUNE,ARRONDISSEMENT_MUNICIPAL force "
+        #         f"-rename-layers COMMUNE_ARRONDISSEMENT "
+        #         f"-o {output_path}/raw.{format_intermediate} "
+        #         f'format={format_intermediate} extension=".{format_intermediate}"'
+        #     ),
+        #     shell=True,
+        #     check=True,
+        #     text=True,
+        # )
 
         # STEP 1: ENRICHISSEMENT AVEC COG
         mapshaper_enrich(
