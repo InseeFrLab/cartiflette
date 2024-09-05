@@ -707,6 +707,7 @@ def concat(
         new_dset = S3GeoDataset(
             fs,
             local_dir=f"{tempdir}/preprocessed_combined",
+            vectorfile_format=vectorfile_format,
             **config_new_dset,
         )
         new_dset.to_s3()
