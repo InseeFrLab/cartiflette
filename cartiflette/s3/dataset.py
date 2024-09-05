@@ -110,7 +110,8 @@ class S3Dataset:
         if not self.s3_files:
             warnings.warn(f"this dataset is not available on S3 on {search}")
 
-            return path
+            self.s3_dirpath = path
+            return
 
         if len(self.s3_files) > 1:
             main_filename = (
