@@ -63,6 +63,7 @@ def combine_adminexpress_territory(
         "vectorfile_format": "shp",
         "simplification": 0,
         "year": year,
+        "filename": "COMMUNE",
     }
 
     path = (
@@ -70,7 +71,7 @@ def combine_adminexpress_territory(
         "provider=IGN/dataset_family=ADMINEXPRESS/"
         "source=EXPRESS-COG-CARTO-TERRITOIRE/"
         f"year={year}/"
-        "administrative_level=*/"
+        "administrative_level=None/"
         "crs=*/"
         "origin=raw/"
         "vectorfile_format=*/"
