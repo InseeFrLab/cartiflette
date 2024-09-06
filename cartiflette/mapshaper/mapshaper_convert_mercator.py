@@ -23,7 +23,7 @@ def mapshaper_convert_mercator(
             f"mapshaper {local_dir}/{filename_initial} name='COMMUNE' "
             f"-proj EPSG:4326 "
             f"{identifier}"
-            f"-o {output_name} "
+            f"-o {output_name} force "
             f'format={format_intermediate} extension=".{format_intermediate}" singles'
         ),
         shell=True,
