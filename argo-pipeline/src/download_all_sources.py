@@ -13,7 +13,7 @@ cartiflette.config.THREADS_DOWNLOAD to 1 (to avoid multithreading which
 could be gruesome to debug).
 
 During the operation:
-    * GIS files should be reprojected to 4326 if curent projection has no EPSG
+    * GIS files should be reprojected to 4326 if current projection has no EPSG
       code
     * each file should be re-encoded in UTF-8
 
