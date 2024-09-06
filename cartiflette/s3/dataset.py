@@ -399,7 +399,7 @@ class S3GeoDataset(S3Dataset):
 
         return geodatasets
 
-    def mapshaperize_split(
+    def create_downstream_geodatasets(
         self,
         metadata: S3Dataset,
         format_output="geojson",
@@ -426,7 +426,7 @@ class S3GeoDataset(S3Dataset):
 
         Note that some of those steps are done **IN PLACE** on the parent
         geodataset (enrichment, dissolution, agregation). Therefore, the
-        geodataset should not be used after a call to this method.
+        geodataset should not be re-used after a call to this method.
 
         Parameters
         ----------
@@ -632,7 +632,7 @@ class S3GeoDataset(S3Dataset):
         )
         return new_dataset
 
-    def mapshaperize_merge_split(
+    def create_downstream_geodatasets_with_districts(
         self,
         metadata: S3Dataset,
         format_output="geojson",
@@ -641,7 +641,63 @@ class S3GeoDataset(S3Dataset):
         simplification=0,
         dict_corresp=None,
     ):
-        # TODO : docstring
+        """
+        Create "children" geodatasets based on arguments and send them to S3,
+        using a communal districts + cities composite mesh
+
+        Do the following processes:
+            - replace the main cities by their communal districts into a new
+              S3GeoDataset object.
+            - join this S3GeoDataset with the metadata to enrich it;
+            - dissolve geometries if niveau_polygons != "COMMUNE"
+            - bring ultramarine territories closer
+              if niveau_agreg == "FRANCE_ENTIERE_DROM_RAPPROCHES"
+            - split the geodataset based on niveau_agreg
+            - project the geodataset into the given CRS
+            - convert the file into the chosen output
+            - upload those datasets to S3 storage system
+
+        The "children" may result to a single file depending of niveau_agreg.
+
+        Note that some of those steps are done **IN PLACE** on the parent
+        geodataset (enrichment, dissolution, agregation). Therefore, the
+        geodataset should not be re-used after a call to this method.
+
+        Parameters
+        ----------
+        metadata : S3Dataset
+            The metadata file to use to enrich the geodataset
+        format_output : str, optional
+            The output format, by default "geojson".
+        niveau_polygons : str, optional
+            The level of basic mesh for the geometries. The default is COMMUNE.
+            Should be among ['REGION', 'DEPARTEMENT', 'FRANCE_ENTIERE',
+             'FRANCE_ENTIERE_DROM_RAPPROCHES', 'LIBELLE_REGION',
+             'LIBELLE_DEPARTEMENT', 'BASSIN_VIE', 'AIRE_ATTRACTION_VILLES',
+             'UNITE_URBAINE', 'ZONE_EMPLOI', 'TERRITOIRE']
+        niveau_agreg : str, optional
+            The level of aggregation for splitting the dataset into singletons,
+            by default "DEPARTEMENT".
+            Should be among ['REGION', 'DEPARTEMENT', 'FRANCE_ENTIERE',
+             'FRANCE_ENTIERE_DROM_RAPPROCHES', 'LIBELLE_REGION',
+             'LIBELLE_DEPARTEMENT', 'BASSIN_VIE', 'AIRE_ATTRACTION_VILLES',
+             'UNITE_URBAINE', 'ZONE_EMPLOI', 'TERRITOIRE']
+        crs : int, optional
+            The coordinate reference system (CRS) code to project the children
+            datasets into. By default 4326.
+        simplification : int, optional
+            The degree of wanted simplification, by default 0.
+        dict_corresp: dict
+            A dictionary giving correspondance between niveau_agreg argument
+            and variable names. The default is None, which will result to
+            DICT_CORRESP_ADMINEXPRESS.
+
+        Returns
+        -------
+        List[S3GeoDataset]
+            The output path of the processed and split shapefiles.
+
+        """
 
         if not dict_corresp:
             dict_corresp = DICT_CORRESP_ADMINEXPRESS

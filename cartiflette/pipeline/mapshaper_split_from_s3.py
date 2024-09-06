@@ -50,7 +50,7 @@ def mapshaperize_split_from_s3(
             vectorfile_format=format_intermediate,
             **kwargs,
         ) as gis_file:
-            gis_file.mapshaperize_split(
+            gis_file.create_downstream_geodatasets(
                 metadata,
                 format_output=format_output,
                 niveau_agreg=filter_by,
@@ -104,7 +104,7 @@ def mapshaperize_merge_split_from_s3(
             vectorfile_format=format_intermediate,
             **kwargs,
         ) as gis_file:
-            gis_file.mapshaperize_merge_split(
+            gis_file.create_downstream_geodatasets_with_districts(
                 metadata,
                 format_output=format_output,
                 niveau_agreg=filter_by,
