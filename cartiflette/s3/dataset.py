@@ -111,6 +111,18 @@ class S3Dataset:
             warnings.warn(f"this dataset is not available on S3 on {search}")
 
             self.s3_dirpath = path
+
+            # This S3Dataset should have been created from a local file, try
+            # to find the main file from self.localdir
+            files = glob(
+                f"{self.local_dir}/*.{self.config['vectorfile_format']}"
+            )
+            try:
+                self.main_filename = os.path.basename(files[0])
+            except KeyError as exc:
+                raise ValueError(
+                    "this dataset has neither been found on localdir nor S3"
+                ) from exc
             return
 
         if len(self.s3_files) > 1:
@@ -192,12 +204,16 @@ class S3GeoDataset(S3Dataset):
             identifier=self.config["territory"],
             format_intermediate=format_output,
         )
+        os.unlink(f"{self.local_dir}/{self.main_filename}")
+
+        file = glob(f"{self.local_dir}/preprocessed/*.{format_output}")[0]
+        self.main_filename = os.path.basename(file)
 
     def enrich(self, metadata_file: str, dict_corresp: dict):
         "enrich with metadata using mapshaper"
         mapshaper_enrich(
             local_dir=self.local_dir,
-            filename_initial=os.path.basename(self.main_filename),
+            filename_initial=self.main_filename,
             metadata_file=metadata_file,
             dict_corresp=dict_corresp,
         )
@@ -462,7 +478,7 @@ class S3GeoDataset(S3Dataset):
             dict_corresp=dict_corresp,
         )
 
-        if niveau_polygons != "COMMUNE":
+        if niveau_polygons not in {"COMMUNE", "ARRONDISSEMENT_MUNICIPAL"}:
             # Dissolve geometries if desired (will replace the local file
             # geodata file based on a communal mesh with  one using the desired
             # mesh
@@ -512,25 +528,41 @@ class S3GeoDataset(S3Dataset):
 
         return new_datasets
 
-    def substitute_muncipal_districts(self, format_output: str = "geojson"):
-        # TODO : docstring
+    def substitute_muncipal_districts(
+        self, format_output: str = "geojson"
+    ) -> Self:
+        """
+        Create a new composite S3GeoDataset from communal districts (Paris,
+        Lyon and Marseille) and other "classical" cities (having no communal
+        districts)
 
-        # PREPROCESS CITIES
+        Parameters
+        ----------
+        format_output : str, optional
+            Desired output format. The default is "geojson".
 
-        # %% To individual cities
-        # TODO : not working on windows ?!
+        Returns
+        -------
+        S3GeoDataset
+            New S3GeoDataset object reprensenting the dataset. This dataset is
+            **NOT** sent to S3.
+
+        """
+
+        # preprocess cities : remove cities having communal districts
         file_city = f"{self.local_dir}/{self.main_filename}"
         cmd = (
+            # TODO : not working on windows ?!
             f"mapshaper {file_city} name='COMMUNE' -proj EPSG:4326 "
             "-filter '\"69123,13055,75056\".indexOf(INSEE_COM) > -1' invert "
             '-each "INSEE_COG=INSEE_COM" '
-            f"-o {self.local_dir}/communes_simples.{format_output} "
+            "-o force "
+            f"{self.local_dir}/singles/communes_simples.{format_output} "
             f'format={format_output} extension=".{format_output}" singles'
         )
-        print(cmd)
         subprocess.run(cmd, shell=True, check=True, text=True)
-        # %%
 
+        # download and preprocess communal districts (ie. ensure proj to 4326)
         new_config = deepcopy(self.config)
         new_config.update(
             {
@@ -548,27 +580,26 @@ class S3GeoDataset(S3Dataset):
             filename="ARRONDISSEMENT_MUNICIPAL",
             **new_config,
         )
+        communal_districts.to_local_folder_for_mapshaper()
+        # note : communal_districts has it's self local_dir which should be
+        # in f"{self.local_dir}/{communal_districts.config['territory']}" !
         communal_districts.to_mercator(format_output=format_output)
         communal_districts_file = communal_districts.main_filename
 
-        print(communal_districts)
-
-        args_dict["level_polygons"] = "COMMUNE_ARRONDISSEMENT"
-
-        # PREPROCESS ARRONDISSEMENT
-        file_arrondissement = (
-            f"{directory_arrondissement}/"
-            f"{initial_filename_arrondissement}.{extension_initial_arrondissement}"
-        )
         subprocess.run(
             (
-                f"mapshaper {file_arrondissement} "
-                f"name='ARRONDISSEMENT_MUNICIPAL' "
-                f"-proj EPSG:4326 "
-                f"-rename-fields INSEE_COG=INSEE_ARM "
-                f"-each 'STATUT=\"Arrondissement municipal\" ' "
-                f"-o {output_path}/arrondissements.{format_intermediate} "
-                f'format={format_intermediate} extension=".{format_intermediate}"'
+                "mapshaper "
+                f"{communal_districts.local_dir}/preprocessed/"
+                f"{communal_districts_file} "
+                "name='ARRONDISSEMENT_MUNICIPAL' "
+                "-proj EPSG:4326 "
+                "-rename-fields INSEE_COG=INSEE_ARM "
+                "-each 'STATUT=\"Arrondissement municipal\" ' "
+                "-o force "
+                # note : set output to self.local_dir (and NOT
+                # communal_districts.local_dir !)
+                f"{self.local_dir}/districts/arrondissements.{format_output} "
+                f'format={format_output} extension=".{format_output}"'
             ),
             shell=True,
             check=True,
@@ -578,20 +609,28 @@ class S3GeoDataset(S3Dataset):
         # MERGE CITIES AND ARRONDISSEMENT
         subprocess.run(
             (
-                f"mapshaper "
-                f"{output_path}/communes_simples.{format_intermediate} "
-                f"{output_path}/arrondissements.{format_intermediate} snap combine-files "
-                f"-proj EPSG:4326 "
-                f"-rename-layers COMMUNE,ARRONDISSEMENT_MUNICIPAL "
-                f"-merge-layers target=COMMUNE,ARRONDISSEMENT_MUNICIPAL force "
-                f"-rename-layers COMMUNE_ARRONDISSEMENT "
-                f"-o {output_path}/raw.{format_intermediate} "
-                f'format={format_intermediate} extension=".{format_intermediate}"'
+                "mapshaper "
+                f"{self.local_dir}/singles/{self.main_filename} "
+                f"{self.local_dir}/districts/arrondissements.{format_output} "
+                "snap combine-files "
+                "-proj EPSG:4326 "
+                "-rename-layers COMMUNE,ARRONDISSEMENT_MUNICIPAL "
+                "-merge-layers target=COMMUNE,ARRONDISSEMENT_MUNICIPAL force "
+                "-rename-layers COMMUNE_ARRONDISSEMENT "
+                f"-o {self.local_dir}/cities-districts.{format_output} "
+                f'format={format_output} extension=".{format_output}"'
             ),
             shell=True,
             check=True,
             text=True,
         )
+
+        new_config = deepcopy(self.config)
+        new_config.update({"borders": "COMMUNE_ARRONDISSEMENT"})
+        new_dataset = S3GeoDataset(
+            fs=self.fs, local_dir=self.local_dir, **new_config
+        )
+        return new_dataset
 
     def mapshaperize_merge_split(
         self,
@@ -611,115 +650,19 @@ class S3GeoDataset(S3Dataset):
 
         simplification = simplification if simplification else 0
 
-        self.substitute_muncipal_districts(format_output=format_output)
-
-        # City level borders, file location
-        directory_city = config_file_city.get("location", local_dir)
-        initial_filename_city = config_file_city.get("filename", "COMMUNE")
-        extension_initial_city = config_file_city.get("extension", "shp")
-
-        # Arrondissement level borders, file location
-        directory_arrondissement = config_file_arrondissement.get(
-            "location", local_dir
-        )
-        initial_filename_arrondissement = config_file_arrondissement.get(
-            "filename", "ARRONDISSEMENT_MUNICIPAL"
-        )
-        extension_initial_arrondissement = config_file_arrondissement.get(
-            "extension", "shp"
+        composite_geodataset = self.substitute_muncipal_districts(
+            format_output=format_output
         )
 
-        # Intermediate output location
-        output_path = f"{local_dir}/{territory}/{niveau_agreg}/{format_output}/{simplification=}"
-
-        if simplification != 0:
-            option_simplify = f"-simplify {simplification}% "
-        else:
-            option_simplify = ""
-
-        format_intermediate = "geojson"
-
-        # # PREPROCESS CITIES
-        # file_city = f"{directory_city}/{initial_filename_city}.{extension_initial_city}"
-        # subprocess.run(
-        #     (
-        #         f"mapshaper {file_city} name='COMMUNE' "
-        #         f"-proj EPSG:4326 "
-        #         f"-filter '\"69123,13055,75056\".indexOf(INSEE_COM) > -1' invert "
-        #         f'-each "INSEE_COG=INSEE_COM" '
-        #         f"-o {output_path}/communes_simples.{format_intermediate} "
-        #         f'format={format_intermediate} extension=".{format_intermediate}" singles'
-        #     ),
-        #     shell=True,
-        #     check=True,
-        #     text=True,
-        # )
-
-        # # PREPROCESS ARRONDISSEMENT
-        # file_arrondissement = (
-        #     f"{directory_arrondissement}/"
-        #     f"{initial_filename_arrondissement}.{extension_initial_arrondissement}"
-        # )
-        # subprocess.run(
-        #     (
-        #         f"mapshaper {file_arrondissement} "
-        #         f"name='ARRONDISSEMENT_MUNICIPAL' "
-        #         f"-proj EPSG:4326 "
-        #         f"-rename-fields INSEE_COG=INSEE_ARM "
-        #         f"-each 'STATUT=\"Arrondissement municipal\" ' "
-        #         f"-o {output_path}/arrondissements.{format_intermediate} "
-        #         f'format={format_intermediate} extension=".{format_intermediate}"'
-        #     ),
-        #     shell=True,
-        #     check=True,
-        #     text=True,
-        # )
-
-        # # MERGE CITIES AND ARRONDISSEMENT
-        # subprocess.run(
-        #     (
-        #         f"mapshaper "
-        #         f"{output_path}/communes_simples.{format_intermediate} "
-        #         f"{output_path}/arrondissements.{format_intermediate} snap combine-files "
-        #         f"-proj EPSG:4326 "
-        #         f"-rename-layers COMMUNE,ARRONDISSEMENT_MUNICIPAL "
-        #         f"-merge-layers target=COMMUNE,ARRONDISSEMENT_MUNICIPAL force "
-        #         f"-rename-layers COMMUNE_ARRONDISSEMENT "
-        #         f"-o {output_path}/raw.{format_intermediate} "
-        #         f'format={format_intermediate} extension=".{format_intermediate}"'
-        #     ),
-        #     shell=True,
-        #     check=True,
-        #     text=True,
-        # )
-
-        # STEP 1: ENRICHISSEMENT AVEC COG
-        mapshaper_enrich(
-            local_dir=output_path,
-            filename_initial="raw",
-            extension_initial=format_intermediate,
-            output_path=f"{output_path}/raw2.{format_intermediate}",
-            dict_corresp=DICT_CORRESP_ADMINEXPRESS,
-        )
-
-        input_path = f"{output_path}/raw2.{format_intermediate}"
-
-        if niveau_agreg.upper() == "FRANCE_ENTIERE_DROM_RAPPROCHES":
-            input_path = mapshaper_bring_closer(input_path)
-
-        # TRANSFORM AS NEEDED
-        mapshaper_split(
-            input_file=input_path,
-            layer_name="",
-            split_variable=dict_corresp[niveau_agreg],
-            output_path=output_path,
+        return composite_geodataset.mapshaperize_split(
+            metadata=metadata,
             format_output=format_output,
+            niveau_polygons="ARRONDISSEMENT_MUNICIPAL",
+            niveau_agreg=niveau_agreg,
             crs=crs,
-            option_simplify=option_simplify,
-            source_identifier=f"{provider}:{source}",
+            simplification=simplification,
+            dict_corresp=dict_corresp,
         )
-
-        return output_path
 
 
 def concat(
