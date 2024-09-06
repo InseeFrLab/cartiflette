@@ -144,6 +144,13 @@ def download_all(
             # "france_entiere" on the S3 FileSystem)
             providers, dataset_families, sources = args
             territories = None
+        logging.info(
+            "looking for %s %s %s %s",
+            providers,
+            dataset_families,
+            sources,
+            territories,
+        )
         results = _download_and_store_sources(
             providers=providers,
             dataset_families=dataset_families,
