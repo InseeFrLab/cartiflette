@@ -1,3 +1,12 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+Last step of pipeline
+
+Create all geodatasets served by cartiflette
+"""
+
 import argparse
 from cartiflette.config import PATH_WITHIN_BUCKET
 from cartiflette.pipeline import (
@@ -17,10 +26,15 @@ parser.add_argument(
 parser.add_argument(
     "--format_output", type=str, default="geojson", help="Output format"
 )
-parser.add_argument("--year", type=int, default=2022, help="Year for the data")
-parser.add_argument("--crs", type=int, default=4326, help="Coordinate Reference System")
+parser.add_argument("--year", type=int, default=2023, help="Year for the data")
 parser.add_argument(
-    "--source", type=str, default="EXPRESS-COG-CARTO-TERRITOIRE", help="Data source"
+    "--crs", type=int, default=4326, help="Coordinate Reference System"
+)
+parser.add_argument(
+    "--source",
+    type=str,
+    default="EXPRESS-COG-CARTO-TERRITOIRE",
+    help="Data source",
 )
 parser.add_argument(
     "--simplification", type=float, default=0, help="Simplification level"
@@ -50,13 +64,18 @@ args_dict = {
 
 def main(args_dict):
     logger.info("Processing with provided arguments")
-    logger.info("Arguments for mapshaperize_split_from_s3 ---> {0}".format(args_dict))
+    logger.info(
+        "Arguments for mapshaperize_split_from_s3 ---> {0}".format(args_dict)
+    )
     mapshaperize_split_from_s3(args_dict)
 
     if args_dict["level_polygons"] != "COMMUNE":
         return None
 
+    logger.info("-+" * 50)
     logger.info("Also processing for COMMUNE_ARRONDISSEMENT borders")
+    logger.info("-+" * 50)
+
     args_dict["level_polygons"] = "COMMUNE_ARRONDISSEMENT"
     mapshaperize_merge_split_from_s3(args_dict)
 
