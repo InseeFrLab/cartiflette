@@ -34,6 +34,9 @@ from cartiflette.mapshaper import (
     mapshaper_enrich,
     mapshaper_bring_closer,
     mapshaper_split,
+    mapshaper_dissolve,
+    mapshaper_concat,
+    mapshaper_remove_cities_with_districts,
 )
 
 
@@ -121,7 +124,7 @@ class S3Dataset:
                 self.main_filename = os.path.basename(files[0])
             except KeyError as exc:
                 raise ValueError(
-                    "this dataset has neither been found on localdir nor S3"
+                    "this dataset has neither been found on localdir nor on S3"
                 ) from exc
             return
 
@@ -192,6 +195,9 @@ class S3GeoDataset(S3Dataset):
     (yet).
     """
 
+    # TODO : function "from_file" qui désactive le warning ?
+    # TODO : déplacer S3GeoDataset vers un fichier distinct (idem pour concat)
+
     def __str__(self):
         return f"<cartiflette.s3.dataset.S3GeoDataset({self.config})>"
 
@@ -256,27 +262,16 @@ class S3GeoDataset(S3Dataset):
         init = f"{self.local_dir}/{self.main_filename}"
         out = f"{self.local_dir}/{by}.{format_output}"
 
-        cmd = (
-            f"mapshaper {init} "
-            f"name='by' "
-            "-proj EPSG:4326 "
-            f"-dissolve {by} "
+        mapshaper_dissolve(
+            init,
+            out,
+            by=by,
+            copy_fields=copy_fields,
+            calc=calc,
+            format_output=format_output,
         )
-        if calc:
-            calc = ",".join(calc)
-            cmd += f"calc='{calc}' "
-        if copy_fields:
-            cmd += "copy-fields=" + ",".join(copy_fields)
 
-        cmd += f" -o {init} force"
-
-        subprocess.run(
-            cmd,
-            shell=True,
-            check=True,
-            text=True,
-        )
-        os.rename(init, out)
+        os.unlink(init)
         self.main_filename = os.path.basename(out)
 
     def bring_drom_closer(
@@ -551,16 +546,12 @@ class S3GeoDataset(S3Dataset):
 
         # preprocess cities : remove cities having communal districts
         file_city = f"{self.local_dir}/{self.main_filename}"
-        cmd = (
-            # TODO : not working on windows ?!
-            f"mapshaper {file_city} name='COMMUNE' -proj EPSG:4326 "
-            "-filter '\"69123,13055,75056\".indexOf(INSEE_COM) > -1' invert "
-            '-each "INSEE_COG=INSEE_COM" '
-            "-o force "
-            f"{self.local_dir}/singles/communes_simples.{format_output} "
-            f'format={format_output} extension=".{format_output}" singles'
+        mapshaper_remove_cities_with_districts(
+            input_file_city=file_city,
+            dir_output=f"{self.local_dir}/singles",
+            name_output="communes_simples",
+            format_output=format_output,
         )
-        subprocess.run(cmd, shell=True, check=True, text=True)
 
         # download and preprocess communal districts (ie. ensure proj to 4326)
         new_config = deepcopy(self.config)
@@ -581,11 +572,13 @@ class S3GeoDataset(S3Dataset):
             **new_config,
         )
         communal_districts.to_local_folder_for_mapshaper()
+
         # note : communal_districts has it's self local_dir which should be
         # in f"{self.local_dir}/{communal_districts.config['territory']}" !
         communal_districts.to_mercator(format_output=format_output)
         communal_districts_file = communal_districts.main_filename
 
+        # TODO : remove from dataset and create mapshaper function
         subprocess.run(
             (
                 "mapshaper "
@@ -607,6 +600,7 @@ class S3GeoDataset(S3Dataset):
         )
 
         # MERGE CITIES AND ARRONDISSEMENT
+        # TODO : remove from dataset and create mapshaper function
         subprocess.run(
             (
                 "mapshaper "
@@ -760,26 +754,16 @@ def concat(
                     dset.local_dir + "/preprocessed", f"{tempdir}/{k}"
                 )
 
-        output_path = (
-            f"{tempdir}/preprocessed_combined/COMMUNE.{vectorfile_format}"
+        output_path = f"{tempdir}/preprocessed_combined/COMMUNE"
+        mapshaper_concat(
+            input_dir=f"{tempdir}/**/*",
+            output_file=output_path,
+            input_format=vectorfile_format,
+            output_format=vectorfile_format,
         )
-        subprocess.run(
-            (
-                f"mapshaper -i {tempdir}/**/"
-                f"*.{vectorfile_format}"
-                " combine-files name='COMMUNE' "
-                f"-proj EPSG:4326 "
-                f"-merge-layers "
-                f"-o {output_path} "
-                f"format={vectorfile_format} "
-                f'extension=".{vectorfile_format}" singles'
-            ),
-            shell=True,
-            check=True,
-            text=True,
+        logger.info(
+            "new S3GeoDataset created at %s.%s", output_path, vectorfile_format
         )
-
-        logger.info("new S3GeoDataset created at %s", output_path)
 
         new_dset = S3GeoDataset(
             fs,

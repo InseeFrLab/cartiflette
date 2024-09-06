@@ -118,6 +118,8 @@ if __name__ == "__main__":
         {
             "year": 2023,
             "level_polygons": "COMMUNE",
-            "filter_by": "REGION",
+            "filter_by": "FRANCE_ENTIERE",
+            "format_output": "geojson",
+            "simplification": 50,
         }
     )

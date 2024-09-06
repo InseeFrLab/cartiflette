@@ -8,10 +8,8 @@ import pandas as pd
 import geopandas as gpd
 
 # Import the functions to be tested
-from cartiflette.mapshaper.mapshaper_wrangling import (
-    mapshaper_enrich,
-    mapshaper_split,
-)
+from cartiflette.mapshaper.mapshaper_enrich import mapshaper_enrich
+from cartiflette.mapshaper.mapshaper_split import mapshaper_split
 
 
 class TestMapshaperWrangling(unittest.TestCase):

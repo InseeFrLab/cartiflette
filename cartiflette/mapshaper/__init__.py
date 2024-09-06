@@ -1,13 +1,22 @@
 """
 Handling spatial data with mapshaper behind the stage
 """
+from .mapshaper_split import mapshaper_split
 from .mapshaper_convert_mercator import mapshaper_convert_mercator
 from .mapshaper_closer import mapshaper_bring_closer
-from .mapshaper_wrangling import mapshaper_enrich, mapshaper_split
+from .mapshaper_enrich import mapshaper_enrich
+from .mapshaper_dissolve import mapshaper_dissolve
+from .mapshaper_concat import mapshaper_concat
+from .mapshaper_remove_cities_with_districts import (
+    mapshaper_remove_cities_with_districts,
+)
 
 __all__ = [
     "mapshaper_convert_mercator",
     "mapshaper_bring_closer",
     "mapshaper_enrich",
     "mapshaper_split",
+    "mapshaper_dissolve",
+    "mapshaper_concat",
+    "mapshaper_remove_cities_with_districts",
 ]
