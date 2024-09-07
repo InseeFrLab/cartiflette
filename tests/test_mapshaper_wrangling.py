@@ -71,12 +71,10 @@ class TestMapshaperWrangling(unittest.TestCase):
         try:
             # Call the function to be tested
             mapshaper_enrich(
-                local_dir=os.path.dirname(self.input_shapefile.name),
-                filename_initial=os.path.basename(self.input_shapefile.name),
-                extension_initial="geojson",
-                metadata_file=self.input_csv.name,
-                output_path=f"{output_path}/enriched.geojson",
-                dict_corresp={"FRANCE_ENTIERE": "Country"},
+                input_geodata_file=self.input_shapefile.name,
+                input_metadata_file=self.input_csv.name,
+                output_dir=output_path,
+                output_name="enriched",
             )
 
             # Check if the output GeoJSON file exists
@@ -114,7 +112,8 @@ class TestMapshaperWrangling(unittest.TestCase):
                 input_file=self.input_geojson.name,
                 layer_name=layer_name,
                 split_variable=split_variable,
-                output_path=f"{output_path}/new.geojson",
+                output_dir=output_path,
+                output_format="geojson",
             )
 
             # Check if the output GeoJSON file exists

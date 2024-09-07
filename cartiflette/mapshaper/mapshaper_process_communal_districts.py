@@ -1,28 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Sep  6 17:15:30 2024
-
-@author: thomasgrandjean
-"""
 
 import os
 import subprocess
 
 
-def mapshaper_remove_cities_with_districts(
-    input_city_file: str,
-    output_dir: str = "temp",
+def mapshaper_preprocess_communal_districts(
+    input_communal_districts_file: str,
+    output_dir: str,
     output_name: str = "output",
     output_format: str = "geojson",
 ) -> str:
     """
-    Remove cities with communal districts (Paris, Lyon, Marseille) from the
-    base cities geodataset.
+    Preprocess communal districts files to ensure
 
     Parameters
     ----------
-    input_city_file : str
+    input_communal_districts_file : str
         Path to the input file.
     output_dir : str
         Directory to store the output file. The default is "temp".
@@ -44,14 +38,19 @@ def mapshaper_remove_cities_with_districts(
 
     output = f"{output_dir}/{output_name}.{output_format}"
 
-    cmd = (
-        # TODO : not working on windows ?!
-        f"mapshaper {input_city_file} name='COMMUNE' -proj EPSG:4326 "
-        "-filter \"'69123,13055,75056'.indexOf(INSEE_COM) > -1\" invert "
-        '-each "INSEE_COG=INSEE_COM" '
-        "-o force "
-        f'{output} format={output_format} extension=".{output_format}" singles'
+    subprocess.run(
+        (
+            f"mapshaper {input_communal_districts_file} "
+            "name='ARRONDISSEMENT_MUNICIPAL' "
+            "-proj EPSG:4326 "
+            "-rename-fields INSEE_COG=INSEE_ARM "
+            "-each 'STATUT=\"Arrondissement municipal\" ' "
+            "-o force "
+            f'{output} format={output_format} extension=".{output_format}"'
+        ),
+        shell=True,
+        check=True,
+        text=True,
     )
-    subprocess.run(cmd, shell=True, check=True, text=True)
 
     return output

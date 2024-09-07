@@ -43,11 +43,15 @@ scale = {
 
 
 def mapshaper_bring_closer(
-    local_dir: str = "temp",
-    filename_initial: str = "COMMUNE.geojson",
-    format_intermediate: str = "geojson",
+    # local_dir: str = "temp",
+    # filename_initial: str = "COMMUNE.geojson",
+    # format_intermediate: str = "geojson",
+    # filename_output: str = "idf_combined.geojson",
+    input_file: str,
+    output_dir: str = "temp",
+    output_name: str = "output",
+    output_format: str = "geojson",
     level_agreg: str = "DEPARTEMENT",
-    filename_output: str = "idf_combined.geojson",
 ):
     """
     Bring DROM closer and zoom over IDF.
@@ -73,11 +77,14 @@ def mapshaper_bring_closer(
 
     """
 
+    try:
+        os.makedirs(output_dir)
+    except FileExistsError:
+        pass
+
     logical_idf = logical_conditions[level_agreg]["ile de france"]
     zoom_idf = logical_conditions[level_agreg]["zoom idf"]
     logical_metropole = logical_conditions["EMPRISES"]["metropole"]
-
-    input_file = f"{local_dir}/{filename_initial}"
 
     try:
         idf_zoom = (
@@ -85,14 +92,14 @@ def mapshaper_bring_closer(
             f"-proj EPSG:3857 "
             f'-filter "{logical_idf}" '
             f"-affine shift=-650000,275000 scale={zoom_idf} "
-            f"-o {local_dir}/idf_zoom.{format_intermediate}"
+            f"-o {output_dir}/idf_zoom.{output_format}"
         )
 
         france_metropolitaine = (
             f"mapshaper -i {input_file} "
             f"-proj EPSG:3857 "
             f'-filter "{logical_metropole}" '
-            f"-o {local_dir}/metropole.{format_intermediate}"
+            f"-o {output_dir}/metropole.{output_format}"
         )
 
         subprocess.run(
@@ -116,7 +123,7 @@ def mapshaper_bring_closer(
                 f"-proj EPSG:3857 "
                 f'-filter "{logical_conditions["EMPRISES"][region]}" '
                 f"-affine shift={shift_value} scale={scale[region]} "
-                f"-o {local_dir}/{region}.{format_intermediate}"
+                f"-o {output_dir}/{region}.{output_format}"
             )
             subprocess.run(
                 cmd,
@@ -125,21 +132,22 @@ def mapshaper_bring_closer(
                 text=True,
             )
 
+        output = f"{output_dir}/{output_name}.{output_format}"
         cmd_combined = (
             f"mapshaper "
-            f"{local_dir}/metropole.{format_intermediate} "
-            f"{local_dir}/idf_zoom.{format_intermediate} "
-            f"{local_dir}/guadeloupe.{format_intermediate} "
-            f"{local_dir}/martinique.{format_intermediate} "
-            f"{local_dir}/guyane.{format_intermediate} "
-            f"{local_dir}/reunion.{format_intermediate} "
-            f"{local_dir}/mayotte.{format_intermediate} "
+            f"{output_dir}/metropole.{output_format} "
+            f"{output_dir}/idf_zoom.{output_format} "
+            f"{output_dir}/guadeloupe.{output_format} "
+            f"{output_dir}/martinique.{output_format} "
+            f"{output_dir}/guyane.{output_format} "
+            f"{output_dir}/reunion.{output_format} "
+            f"{output_dir}/mayotte.{output_format} "
             f"snap combine-files "
             f'-proj wgs84 init="EPSG:3857" target=* '
             f"-rename-layers FRANCE,IDF,GDP,MTQ,GUY,REU,MAY "
             f"-merge-layers target=FRANCE,IDF,GDP,MTQ,GUY,REU,MAY force "
             f"-rename-layers FRANCE_TRANSFORMED "
-            f"-o {local_dir}/{filename_output} "
+            f"-o {output} "
         )
 
         subprocess.run(
@@ -162,8 +170,8 @@ def mapshaper_bring_closer(
             "mayotte",
         ]:
             try:
-                os.unlink(f"{local_dir}/{tempfile}.{format_intermediate}")
+                os.unlink(f"{output_dir}/{tempfile}.{output_format}")
             except FileNotFoundError:
                 pass
 
-    return f"{local_dir}/{filename_output}"
+    return output

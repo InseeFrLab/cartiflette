@@ -1,30 +1,58 @@
+import os
 import subprocess
 
 
 def mapshaper_convert_mercator(
-    local_dir="temp",
-    territory="reunion",
-    filename_initial="COMMUNE.shp",
-    extension_initial="shp",
-    format_intermediate="geojson",
-    identifier="",
-    output_path=None,
-):
-    if output_path is None:
-        output_path = f"{local_dir}/preprocessed"
+    input_file: str,
+    output_dir: str = "temp",
+    output_name: str = "output",
+    output_format: str = "geojson",
+    filter_by: str = "",
+) -> str:
+    """
+    Project a file to mercator.
+    If identifier is given, will filter the file based on the following
+    criteria: AREA='{identifier}'
 
-    output_name = f"{output_path}/{territory}.{format_intermediate}"
+    Parameters
+    ----------
+    input_file : str
+        Path to the input file.
+    output_dir : str
+        Directory to store the output file. The default is "temp"
+    output_name : str, optional
+        The path to write the file to (without extension).
+        The default is "concatenated"
+    output_format : str, optional
+        The format to write the outputfile. The default is "geojson".
+    filter_by: str, optional
+        The criteria to filter the input file, based on AREA field. The default
+        is "", which will not perform any filter.
 
-    if identifier != "":
-        identifier = f"-each \"AREA='{identifier}'\" "
+    Returns
+    -------
+    output : str
+        Path of the created file
+
+    """
+
+    try:
+        os.makedirs(output_dir)
+    except FileExistsError:
+        pass
+
+    output = f"{output_dir}/{output_name}.{output_format}"
+
+    if filter_by != "":
+        filter_by = f"-each \"AREA='{filter_by}'\" "
 
     subprocess.run(
         (
-            f"mapshaper {local_dir}/{filename_initial} name='COMMUNE' "
-            f"-proj EPSG:4326 "
-            f"{identifier}"
-            f"-o {output_name} force "
-            f'format={format_intermediate} extension=".{format_intermediate}" singles'
+            f"mapshaper {input_file} name='COMMUNE' "
+            "-proj EPSG:4326 "
+            f"{filter_by}"
+            f"-o {output} force "
+            f'format={output_format} extension=".{output_format}" singles'
         ),
         shell=True,
         check=True,

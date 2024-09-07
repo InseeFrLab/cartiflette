@@ -10,6 +10,13 @@ from .mapshaper_concat import mapshaper_concat
 from .mapshaper_remove_cities_with_districts import (
     mapshaper_remove_cities_with_districts,
 )
+from .mapshaper_preprocess_communal_districts import (
+    mapshaper_preprocess_communal_districts,
+)
+from .mapshaper_combine_districts_and_cities import (
+    mapshaper_combine_districts_and_cities,
+)
+
 
 __all__ = [
     "mapshaper_convert_mercator",
@@ -19,4 +26,6 @@ __all__ = [
     "mapshaper_dissolve",
     "mapshaper_concat",
     "mapshaper_remove_cities_with_districts",
+    "mapshaper_preprocess_communal_districts",
+    "mapshaper_combine_districts_and_cities",
 ]

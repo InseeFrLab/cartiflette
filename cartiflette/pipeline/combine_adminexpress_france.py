@@ -7,7 +7,7 @@ import warnings
 import s3fs
 
 from cartiflette.config import FS, BUCKET, PATH_WITHIN_BUCKET
-from cartiflette.s3.dataset import S3GeoDataset, concat
+from cartiflette.s3.geodataset import S3GeoDataset, concat_s3geodataset
 
 
 COMPILED_TERRITORY = re.compile("territory=([a-z]*)/", flags=re.IGNORECASE)
@@ -106,7 +106,7 @@ def combine_adminexpress_territory(
         }
     )
 
-    dset = concat(
+    dset = concat_s3geodataset(
         [
             S3GeoDataset(fs=fs, local_dir=intermediate_dir, **config)
             for config in datasets
