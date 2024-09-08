@@ -194,4 +194,4 @@ def combine_adminexpress_territory(
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    combine_adminexpress_territory(2024)
+    combine_adminexpress_territory(2024, format_output="topojson")
