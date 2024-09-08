@@ -82,6 +82,8 @@ def main(
         os.makedirs(f"{local_path}/{year}", exist_ok=True)
 
         try:
+            # TODO : work from tempdir
+
             path_raw_s3 = create_path_bucket(
                 {
                     "bucket": bucket,
@@ -102,6 +104,7 @@ def main(
             )
 
             # Retrieve COG metadata
+            # TODO : update prepare_cog_metadata to send directly to S3
             tagc_metadata = prepare_cog_metadata(
                 bucket=bucket,
                 path_within_bucket=path_within_bucket,
@@ -109,10 +112,13 @@ def main(
             )
             if tagc_metadata is None:
                 continue
-            tagc_metadata.drop(columns=["LIBGEO"]).to_csv(
-                f"{localpath}/{year}/tagc.csv"
-            )
-            fs.put_file(f"{localpath}/{year}/tagc.csv", path_raw_s3)
+
+            local_file = f"{localpath}/{year}/tagc.csv"
+            tagc_metadata = tagc_metadata.drop(columns=["LIBGEO"])
+            tagc_metadata.to_csv(local_file)
+
+            logging.info("sending %s -> %s", local_file, path_raw_s3)
+            fs.put_file(local_file, path_raw_s3)
 
             created.append(year)
 
