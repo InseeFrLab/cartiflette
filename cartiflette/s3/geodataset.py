@@ -308,6 +308,7 @@ class S3GeoDataset(S3Dataset):
             os.makedirs(new_dir)
             shutil.move(file, new_dir)
 
+            # TODO: remove local_dir (replace by from_file)
             geodatasets.append(
                 S3GeoDataset(
                     fs=self.fs,
@@ -449,7 +450,7 @@ class S3GeoDataset(S3Dataset):
 
         return new_datasets
 
-    def substitute_muncipal_districts(
+    def substitute_municipal_districts(
         self, format_output: str = "geojson"
     ) -> Self:
         """
@@ -491,40 +492,39 @@ class S3GeoDataset(S3Dataset):
                 "value": "raw",
             }
         )
-        communal_districts = S3GeoDataset(
+        with S3GeoDataset(
             fs=self.fs,
             local_dir=self.local_dir,
             filename="ARRONDISSEMENT_MUNICIPAL",
             **new_config,
-        )
-        communal_districts.to_local_folder_for_mapshaper()
+        ) as communal_districts:
+            communal_districts.to_local_folder_for_mapshaper()
 
-        # note : communal_districts has it's self local_dir which should be
-        # in f"{self.local_dir}/{communal_districts.config['territory']}" !
-        communal_districts.to_mercator(format_output=format_output)
-        communal_districts_file = f"{communal_districts.local_dir}/{communal_districts.main_filename}"
+            # note : communal_districts has it's self local_dir which should be
+            # in f"{self.local_dir}/{communal_districts.config['territory']}" !
+            communal_districts.to_mercator(format_output=format_output)
+            communal_districts_file = f"{communal_districts.local_dir}/{communal_districts.main_filename}"
 
-        communal_districts_file = mapshaper_process_communal_districts(
-            input_communal_districts_file=communal_districts_file,
-            output_dir=f"{self.local_dir}/districts",
-            output_name="ARRONDISSEMENT_MUNICIPAL",
-            output_format=format_output,
-        )
+            communal_districts_file = mapshaper_process_communal_districts(
+                input_communal_districts_file=communal_districts_file,
+                output_dir=f"{self.local_dir}/districts",
+                output_name="ARRONDISSEMENT_MUNICIPAL",
+                output_format=format_output,
+            )
 
-        # MERGE CITIES AND ARRONDISSEMENT
-        mapshaper_combine_districts_and_cities(
-            input_city_file=city_file,
-            input_communal_districts_file=communal_districts_file,
-            output_dir=self.local_dir,
-            output_name="COMMUNE_ARRONDISSEMENT",
-            output_format=format_output,
-        )
+            # MERGE CITIES AND ARRONDISSEMENT
+            composite = mapshaper_combine_districts_and_cities(
+                input_city_file=city_file,
+                input_communal_districts_file=communal_districts_file,
+                output_dir=self.local_dir,
+                output_name="COMMUNE_ARRONDISSEMENT",
+                output_format=format_output,
+            )
 
         new_config = deepcopy(self.config)
         new_config.update({"borders": "COMMUNE_ARRONDISSEMENT"})
-        new_dataset = S3GeoDataset(
-            fs=self.fs, local_dir=self.local_dir, **new_config
-        )
+        new_dataset = from_file(file_path=composite, **new_config)
+
         return new_dataset
 
     def create_downstream_geodatasets_with_districts(
@@ -601,7 +601,7 @@ class S3GeoDataset(S3Dataset):
 
         simplification = simplification if simplification else 0
 
-        composite_geodataset = self.substitute_muncipal_districts(
+        composite_geodataset = self.substitute_municipal_districts(
             format_output=format_output
         )
 
