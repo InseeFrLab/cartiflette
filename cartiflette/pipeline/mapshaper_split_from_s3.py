@@ -23,6 +23,7 @@ def mapshaperize_split_from_s3(
     path_within_bucket = config.get("path_within_bucket", PATH_WITHIN_BUCKET)
 
     with tempfile.TemporaryDirectory() as tempdir:
+        raise Exception("TODO : remove local_dir")
         kwargs = {
             "fs": fs,
             "local_dir": tempdir,
