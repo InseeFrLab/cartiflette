@@ -40,19 +40,15 @@ def mapshaper_combine_districts_and_cities(
 
     output = f"{output_dir}/{output_name}.{output_format}"
 
-    subprocess.run(
-        (
-            f"mapshaper {input_city_file} {input_communal_districts_file} "
-            "snap combine-files "
-            "-proj EPSG:4326 "
-            "-rename-layers COMMUNE,ARRONDISSEMENT_MUNICIPAL "
-            "-merge-layers target=COMMUNE,ARRONDISSEMENT_MUNICIPAL force "
-            "-rename-layers COMMUNE_ARRONDISSEMENT "
-            f'-o {output} format={output_format} extension=".{output_format}"'
-        ),
-        shell=True,
-        check=True,
-        text=True,
+    cmd = (
+        f"mapshaper {input_city_file} {input_communal_districts_file} "
+        "snap combine-files "
+        "-proj EPSG:4326 "
+        "-rename-layers COMMUNE,ARRONDISSEMENT_MUNICIPAL "
+        "-merge-layers target=COMMUNE,ARRONDISSEMENT_MUNICIPAL force "
+        "-rename-layers COMMUNE_ARRONDISSEMENT "
+        f'-o {output} format={output_format} extension=".{output_format}"'
     )
+    subprocess.run(cmd, shell=True, check=True, text=True)
 
     return output

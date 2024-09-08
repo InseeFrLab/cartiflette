@@ -46,17 +46,14 @@ def mapshaper_convert_mercator(
     if filter_by != "":
         filter_by = f"-each \"AREA='{filter_by}'\" "
 
-    subprocess.run(
-        (
-            f"mapshaper {input_file} name='COMMUNE' "
-            "-proj EPSG:4326 "
-            f"{filter_by}"
-            f"-o {output} force "
-            f'format={output_format} extension=".{output_format}" singles'
-        ),
-        shell=True,
-        check=True,
-        text=True,
+    cmd = (
+        f"mapshaper {input_file} name='{output_name}' "
+        "-proj EPSG:4326 "
+        f"{filter_by}"
+        f"-o {output} force "
+        f'format={output_format} extension=".{output_format}" singles'
     )
 
-    return output_name
+    subprocess.run(cmd, shell=True, check=True, text=True)
+
+    return output

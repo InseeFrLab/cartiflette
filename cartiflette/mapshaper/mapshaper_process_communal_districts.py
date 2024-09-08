@@ -5,7 +5,7 @@ import os
 import subprocess
 
 
-def mapshaper_preprocess_communal_districts(
+def mapshaper_process_communal_districts(
     input_communal_districts_file: str,
     output_dir: str,
     output_name: str = "output",
@@ -37,20 +37,16 @@ def mapshaper_preprocess_communal_districts(
         pass
 
     output = f"{output_dir}/{output_name}.{output_format}"
-
-    subprocess.run(
-        (
-            f"mapshaper {input_communal_districts_file} "
-            "name='ARRONDISSEMENT_MUNICIPAL' "
-            "-proj EPSG:4326 "
-            "-rename-fields INSEE_COG=INSEE_ARM "
-            "-each 'STATUT=\"Arrondissement municipal\" ' "
-            "-o force "
-            f'{output} format={output_format} extension=".{output_format}"'
-        ),
-        shell=True,
-        check=True,
-        text=True,
+    
+    cmd = (
+        f"mapshaper {input_communal_districts_file} "
+        "name='ARRONDISSEMENT_MUNICIPAL' "
+        "-proj EPSG:4326 "
+        "-rename-fields INSEE_COG=INSEE_ARM "
+        "-each 'STATUT=\"Arrondissement municipal\"' "
+        "-o force "
+        f'{output} format={output_format} extension=".{output_format}'
     )
-
+    subprocess.run(cmd, shell=True, check=True, text=True)
+    
     return output

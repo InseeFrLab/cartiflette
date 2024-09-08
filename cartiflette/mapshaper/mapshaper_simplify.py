@@ -5,29 +5,29 @@ import os
 import subprocess
 
 
-def mapshaper_concat(
-    input_dir: str,
-    input_format: str = "*",
+def mapshaper_simplify(
+    input_file: str,
+    option_simplify: str = "",
     output_dir: str = "temp",
-    output_name: str = "concatenated",
+    output_name: str = "output",
     output_format: str = "geojson",
 ) -> str:
     """
-    Concat multiple files (all files should have the same projection).
+    SImplify geometries
+
 
     Parameters
     ----------
-    input_dir : str
-        Directory containing the files to concat
-    input_format : str, optional
-        Input file's format. If "*", will match every kind of files.
-        The default is "*"
+    input_file : str
+        Path to the input file.
+    option_simplify : str, optional
+        Additional options for simplifying geometries, for instance
+        "-simplify 50%". The default is "".
     output_dir : str
         Directory to store the output file. The default is "temp"
     output_name : str, optional
         The path to write the file to (without extension).
         The default is "concatenated"
-
     output_format : str, optional
         The format to write the outputfile. The default is "geojson".
 
@@ -46,14 +46,17 @@ def mapshaper_concat(
     output = f"{output_dir}/{output_name}.{output_format}"
 
     cmd = (
-        f"mapshaper -i {input_dir}/*.{input_format}"
-        " combine-files name='COMMUNE' "
-        f"-proj EPSG:4326 "
-        f"-merge-layers "
-        f'-o {output} format={output_format} extension=".{output_format}" '
-        "singles"
+        f"mapshaper {input_file} "
+        "-proj EPSG:4326 "
+        f"{option_simplify} "
+        f" -o {output} force"
     )
 
-    subprocess.run(cmd, shell=True, check=True, text=True)
+    subprocess.run(
+        cmd,
+        shell=True,
+        check=True,
+        text=True,
+    )
 
     return output

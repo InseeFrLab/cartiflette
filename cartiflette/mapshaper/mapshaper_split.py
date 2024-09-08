@@ -57,7 +57,7 @@ def mapshaper_split(
     # Mapshaper command for the splitting process
     cmd = (
         f"mapshaper {input_file} name='{layer_name}' -proj EPSG:{crs} "
-        f"{option_simplify}"
+        f"{option_simplify} "
         f"-each \"SOURCE='{source_identifier}'\" "
         f"-split {split_variable} "
         f"-o '{temp_output_dir}/' "

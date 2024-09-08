@@ -45,7 +45,6 @@ def mapshaper_remove_cities_with_districts(
     output = f"{output_dir}/{output_name}.{output_format}"
 
     cmd = (
-        # TODO : not working on windows ?!
         f"mapshaper {input_city_file} name='COMMUNE' -proj EPSG:4326 "
         "-filter \"'69123,13055,75056'.indexOf(INSEE_COM) > -1\" invert "
         '-each "INSEE_COG=INSEE_COM" '
