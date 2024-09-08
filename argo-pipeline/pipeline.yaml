@@ -413,7 +413,7 @@ spec:
           - name: volume-workflow-tmp
             mountPath: /mnt
         args: ["
-                python /mnt/bin/src/make_geodata_datasets.py --path $PATH_WRITING_S3 --localpath $LOCAL_DATA_PATH --years '{{inputs.parameters.years}}';
+                python /mnt/bin/src/make_geodata_datasets.py --path $PATH_WRITING_S3 --years '{{inputs.parameters.years}}';
                 "]
         env: *env_parameters
         

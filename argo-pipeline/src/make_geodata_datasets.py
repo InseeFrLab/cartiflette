@@ -10,10 +10,15 @@ for each vintage.
 import argparse
 import json
 import logging
-import os
+import tempfile
 import warnings
 
-from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
+from cartiflette.config import (
+    BUCKET,
+    PATH_WITHIN_BUCKET,
+    FS,
+    PIPELINE_SIMPLIFICATION_LEVELS,
+)
 from cartiflette.pipeline.combine_adminexpress_france import (
     combine_adminexpress_territory,
 )
@@ -32,9 +37,6 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     "-p", "--path", help="Path within bucket", default=PATH_WITHIN_BUCKET
 )
-parser.add_argument(
-    "-lp", "--localpath", help="Path within bucket", default="temp"
-)
 
 parser.add_argument(
     "-y", "--years", help="Vintage to perform computation on", default="[]"
@@ -43,7 +45,6 @@ parser.add_argument(
 # Parse arguments
 args = parser.parse_args()
 path_within_bucket = args.path
-local_path = args.localpath
 years = args.years
 
 years = json.loads(years)
@@ -51,12 +52,9 @@ years = json.loads(years)
 bucket = BUCKET
 fs = FS
 
-os.makedirs(local_path, exist_ok=True)
-
 
 def main(
     path_within_bucket,
-    localpath,
     bucket=BUCKET,
     years: int = None,
 ):
@@ -84,19 +82,20 @@ def main(
         logging.info("-" * 50)
 
         try:
-            # Merge all territorial cities files into a single file
-            dset_s3_dir = combine_adminexpress_territory(
-                year=year,
-                path_within_bucket=path_within_bucket,
-                intermediate_dir=localpath,
-                format_output=format_intermediate,
-                bucket=bucket,
-                fs=fs,
-            )
+            with tempfile.TemporaryDirectory() as tempdir:
+                # Merge all territorial cities files into a single file
+                dset_s3_dir = combine_adminexpress_territory(
+                    year=year,
+                    path_within_bucket=path_within_bucket,
+                    intermediate_dir=tempdir,
+                    format_output=format_intermediate,
+                    bucket=bucket,
+                    fs=fs,
+                )
 
-            if not dset_s3_dir:
-                # No files merged
-                continue
+                if not dset_s3_dir:
+                    # No files merged
+                    continue
 
             created.append(year)
 
@@ -111,4 +110,4 @@ def main(
 
 
 if __name__ == "__main__":
-    data = main(path_within_bucket, localpath=local_path, years=years)
+    data = main(path_within_bucket, years=years)
