@@ -4,11 +4,10 @@
 Classe générique pour travailler autour d'un dataset présent sur le S3
 """
 
-
-from glob import glob
 import logging
 import os
 import shutil
+import tempfile
 import warnings
 
 from s3fs import S3FileSystem
@@ -32,12 +31,13 @@ class S3Dataset:
     files = None
     main_filename = None
     s3_dirpath = None
+    local_dir = None
 
     def __init__(
         self,
         fs: S3FileSystem = FS,
-        local_dir: str = "temp",
         filename: str = "*",
+        build_from_local: str = None,
         **config: ConfigDict,
     ):
         """
@@ -47,9 +47,6 @@ class S3Dataset:
         ----------
         fs : S3FileSystem, optional
             S3FileSystem used for storage. The default is FS.
-        local_dir : str, optional
-            Local directory used for transformations using mapshaper. The
-            default is "temp".
         filename : str, optional
             In case there are multiple files into the same folder define it
             to avoid catching the wrong file from S3FileSystem
@@ -58,27 +55,52 @@ class S3Dataset:
              same directory).
             The default is "*".
             For instance, "COMMUNE.shp"
+        build_from_local : str, optional
+            If the object is generated from local files, should be the path
+            to the main file of the dataset.
+            If None, the path will be deduced from the S3 and the main filename
+            also.
         **config : ConfigDict
             Other arguments to define the path on the S3 to the dataset.
         """
         self.fs = fs
         self.config = config
-        self.local_dir = local_dir
+        self.build_from_local = build_from_local
         self.local_files = []
 
         self.filename = filename.rsplit(".", maxsplit=1)[0]
 
-        self.get_path_of_dataset()
-
         self.source = (
             f"{config.get('provider', '')}:{config.get('source', '')}"
         )
+
+        if build_from_local and not os.path.exists(build_from_local):
+            raise ValueError(f"File not found at {build_from_local}")
+
+        self.get_path_of_dataset()
 
     def __str__(self):
         return f"<cartiflette.s3.dataset.S3Dataset({self.config})>"
 
     def __repr__(self):
         return self.__str__()
+
+    def __enter__(self):
+        "download file into local folder at enter"
+        if not self.build_from_local:
+            self.local_dir = tempfile.mkdtemp()
+            self.to_local_folder_for_mapshaper()
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        "remove tempfiles as exit"
+        try:
+            try:
+                shutil.rmtree(os.path.join(self.local_dir))
+            except FileNotFoundError:
+                pass
+        except Exception as exc:
+            warnings.warn(exc)
 
     def get_path_of_dataset(self):
         "retrieve dataset's full paths on S3"
@@ -88,23 +110,19 @@ class S3Dataset:
             search += ".*"
 
         self.s3_files = self.fs.glob(search)
-        if not self.s3_files:
-            warnings.warn(f"this dataset is not available on S3 on {search}")
 
+        if self.build_from_local:
+            # This S3Dataset has been created from a local file
             self.s3_dirpath = path
+            self.local_dir = os.path.dirname(self.build_from_local)
+            self.main_filename = os.path.basename(self.build_from_local)
 
-            # This S3Dataset should have been created from a local file, try
-            # to find the main file from self.localdir
-            files = glob(
-                f"{self.local_dir}/*.{self.config['vectorfile_format']}"
-            )
-            try:
-                self.main_filename = os.path.basename(files[0])
-            except KeyError as exc:
-                raise ValueError(
-                    "this dataset has neither been found on localdir nor on S3"
-                ) from exc
             return
+
+        if not self.s3_files:
+            raise ValueError(
+                f"this dataset is not available on S3 on {search}"
+            )
 
         if len(self.s3_files) > 1:
             main_filename = (
@@ -138,7 +156,7 @@ class S3Dataset:
         files = []
 
         # Get all files (plural in case of shapefile) from Minio
-        logging.info("downloading %s to %s", self.s3_files, self.local_dir)
+        logging.debug("downloading %s to %s", self.s3_files, self.local_dir)
         for file in self.s3_files:
             path = f"{self.local_dir}/{file.rsplit('/', maxsplit=1)[-1]}"
             self.fs.download(file, path)
@@ -146,18 +164,3 @@ class S3Dataset:
             files.append(path)
 
         self.local_files = files
-
-    def __enter__(self):
-        "download file into local folder at enter"
-        self.to_local_folder_for_mapshaper()
-        return self
-
-    def __exit__(self, *args, **kwargs):
-        "remove tempfiles as exit"
-        try:
-            try:
-                shutil.rmtree(os.path.join(self.local_dir))
-            except FileNotFoundError:
-                pass
-        except Exception as exc:
-            warnings.warn(exc)

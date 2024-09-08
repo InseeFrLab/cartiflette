@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
 from copy import deepcopy
+from glob import glob
 import logging
 import os
 import shutil
-from tempfile import TemporaryDirectory
+import tempfile
 from typing import List
 
 try:
@@ -25,8 +26,9 @@ from cartiflette.mapshaper import (
     mapshaper_dissolve,
     mapshaper_concat,
     mapshaper_remove_cities_with_districts,
-    mapshaper_preprocess_communal_districts,
+    mapshaper_process_communal_districts,
     mapshaper_combine_districts_and_cities,
+    mapshaper_simplify,
 )
 from cartiflette.utils import (
     ConfigDict,
@@ -45,10 +47,55 @@ class S3GeoDataset(S3Dataset):
     (yet).
     """
 
-    # TODO : function "from_file" qui désactive le warning ?
-
     def __str__(self):
         return f"<cartiflette.s3.dataset.S3GeoDataset({self.config})>"
+
+    def __copy__(self):
+        """
+        Copy a S3GeoDataset. If the original S3GeoDataset has already a
+        local_dir attribute, this will create a new tempdir inside it.
+        Note that this new tempdir will be removed at the primary S3GeoDataset
+        object's __exit__ method execution.
+
+        Returns
+        -------
+        new : S3GeoDataset
+            Copied S3GeoDataset.
+
+        """
+
+        if os.path.exists(os.path.join(self.local_dir, self.main_filename)):
+            # file is already on local disk -> create a new tempdir that should
+            # be cleaned on __exit__method anyway
+            new_tempdir = tempfile.mkdtemp()
+            target_name = self.main_filename.rsplit(".", maxsplit=1)[0]
+            for file in glob(os.path.join(self.local_dir, f"{target_name}.*")):
+                shutil.copy(file, new_tempdir)
+
+            new = S3GeoDataset(
+                self.fs,
+                self.filename,
+                build_from_local=os.path.join(
+                    self.local_dir, self.main_filename
+                ),
+                **deepcopy(self.config),
+            )
+            new.local_dir = new_tempdir
+
+        else:
+            new = S3GeoDataset(
+                self.fs,
+                self.filename,
+                self.build_from_local,
+                **deepcopy(self.config),
+            )
+
+        new.main_filename = self.main_filename
+
+        return new
+
+    def copy(self):
+        return self.__copy__()
 
     def _substitute_main_file(self, new_file):
         if not os.path.dirname(new_file) == self.local_dir:
@@ -65,12 +112,12 @@ class S3GeoDataset(S3Dataset):
 
     def to_mercator(self, format_output: str = "geojson"):
         "project to mercator using mapshaper"
-        input_file = f"{self.local_dir}/{self.main_filename}.*"
+        input_file = f"{self.local_dir}/{self.main_filename}"
 
         new_file = mapshaper_convert_mercator(
             input_file=input_file,
             output_dir=self.local_dir,
-            output_name=self.main_filename,
+            output_name=self.main_filename.rsplit(".", maxsplit=1)[0],
             output_format=format_output,
             filter_by=self.config["territory"],
         )
@@ -85,9 +132,28 @@ class S3GeoDataset(S3Dataset):
             input_geodata_file=input_geodata,
             input_metadata_file=metadata_file,
             output_dir=self.local_dir,
-            output_name=self.main_filename,
+            output_name=self.main_filename.rsplit(".", maxsplit=1)[0],
             output_format=format_output,
         )
+        self._substitute_main_file(output)
+
+    def simplify(self, format_output: str, simplification: int = 0):
+        "simplify the geometries"
+        simplification = simplification if simplification else 0
+        if simplification != 0:
+            option_simplify = f"-simplify {simplification}% "
+        else:
+            option_simplify = ""
+
+        input_geodata = f"{self.local_dir}/{self.main_filename}"
+        output = mapshaper_simplify(
+            input_geodata,
+            option_simplify=option_simplify,
+            output_dir=self.local_dir,
+            output_name=self.main_filename.rsplit(".", maxsplit=1)[0],
+            output_format=format_output,
+        )
+        self.config["simplification"] = simplification
         self._substitute_main_file(output)
 
     def dissolve(
@@ -409,7 +475,7 @@ class S3GeoDataset(S3Dataset):
         city_file = mapshaper_remove_cities_with_districts(
             input_city_file=city_file,
             output_dir=f"{self.local_dir}/singles",
-            output_name="communes_simples",
+            output_name="COMMUNE",
             output_format=format_output,
         )
 
@@ -436,15 +502,12 @@ class S3GeoDataset(S3Dataset):
         # note : communal_districts has it's self local_dir which should be
         # in f"{self.local_dir}/{communal_districts.config['territory']}" !
         communal_districts.to_mercator(format_output=format_output)
-        communal_districts_file = (
-            f"{communal_districts.local_dir}/preprocessed/"
-            + communal_districts.main_filename
-        )
+        communal_districts_file = f"{communal_districts.local_dir}/{communal_districts.main_filename}"
 
-        communal_districts_file = mapshaper_preprocess_communal_districts(
+        communal_districts_file = mapshaper_process_communal_districts(
             input_communal_districts_file=communal_districts_file,
             output_dir=f"{self.local_dir}/districts",
-            output_name="arrondissements",
+            output_name="ARRONDISSEMENT_MUNICIPAL",
             output_format=format_output,
         )
 
@@ -453,7 +516,7 @@ class S3GeoDataset(S3Dataset):
             input_city_file=city_file,
             input_communal_districts_file=communal_districts_file,
             output_dir=self.local_dir,
-            output_name="cities-districts",
+            output_name="COMMUNE_ARRONDISSEMENT",
             output_format=format_output,
         )
 
@@ -553,16 +616,77 @@ class S3GeoDataset(S3Dataset):
         )
 
 
+def from_file(
+    file_path: str,
+    fs: S3FileSystem = FS,
+    **config: ConfigDict,
+) -> S3GeoDataset:
+    """
+    Create a new S3GeoDataset from a local file, config and fs.
+
+    The new object will copy the file(s) into a new tempdir; this tempdir will
+    be cleaned at __exit__ method's execution. Therefore, the new object should
+    be created with a with statement, for instance:
+    >>> new_dset = geodataset.from_file("blah.txt", fs, **config) as new_file:
+    >>> with new_dset:
+    >>>     print(new_file)
+
+    Parameters
+    ----------
+    file_path : str
+        Path to the geodataset file to instantiate the new S3GeoDataset.
+    fs : S3FileSystem, optional
+        The S3FileSytem to use for storage. The default is FS.
+    **config : ConfigDict
+        Other arguments to define the path on the S3 to the dataset.
+
+    Returns
+    -------
+    dset : S3GeoDataset
+        New S3GeoDataset object.
+
+    """
+    if not os.path.exists(file_path):
+        raise ValueError("file not found from local path")
+
+    local_dir = os.path.dirname(file_path)
+    filename = os.path.basename(file_path)
+    vectorfile_format = filename.rsplit(".", maxsplit=1)[1]
+
+    for key in "filename", "vectorfile_format":
+        try:
+            del config[key]
+        except KeyError:
+            pass
+
+    # Create a new S3GeoDataset
+    dset = S3GeoDataset(
+        fs=fs,
+        filename=filename,
+        vectorfile_format=vectorfile_format,
+        build_from_local=file_path,
+        **config,
+    )
+    dset.local_dir = local_dir
+    dset.main_filename = filename
+
+    # Then create a copy to ensure the creation of a new tempdir
+    dset = deepcopy(dset)
+
+    return dset
+
+
 def concat_s3geodataset(
     datasets: List[S3GeoDataset],
     vectorfile_format: str = "geojson",
+    output_dir: str = "temp",
     fs: S3FileSystem = FS,
     **config_new_dset: ConfigDict,
 ) -> S3GeoDataset:
     """
     Concatenate S3GeoDataset in the manner of a geopandas.concat using
-    mapshaper. The result is a new S3GeoDataset which will be uploaded on S3
-    at the end.
+    mapshaper. The result is a new S3GeoDataset which will **NOT** be uploaded
+    on S3.
 
     Parameters
     ----------
@@ -571,6 +695,9 @@ def concat_s3geodataset(
     vectorfile_format : str, optional
         The file format to use for creating the new S3GeoDataset. The default
         is "geojson".
+    output_dir : str, optional
+        The temporary file used for processing the concatenation. The default
+        is "temp".
     fs : S3FileSystem, optional
         The S3FileSystem used ultimately to upload the new S3GeoDataset. The
         default is FS.
@@ -581,32 +708,47 @@ def concat_s3geodataset(
     Returns
     -------
     S3GeoDataset
-        New S3GeoDataset being the concatenation of .
+        New concatenated S3GeoDataset
 
     """
-    with TemporaryDirectory() as tempdir:
-        for k, dset in enumerate(datasets):
+
+    for k, dset in enumerate(datasets):
+        destination = os.path.join(output_dir, f"{k}.{vectorfile_format}")
+
+        if os.path.exists(os.path.join(dset.local_dir, dset.main_filename)):
+            # already downloaded, but not sure of the current projection
+            dset.to_mercator(format_output=vectorfile_format)
+
+            shutil.copy(
+                os.path.join(dset.local_dir, dset.main_filename), destination
+            )
+        else:
             with dset:
                 dset.to_mercator(format_output=vectorfile_format)
-                shutil.copytree(
-                    dset.local_dir + "/preprocessed", f"{tempdir}/{k}"
+                shutil.copy(
+                    os.path.join(dset.local_dir, dset.main_filename),
+                    destination,
                 )
 
-        output_path = mapshaper_concat(
-            input_dir=f"{tempdir}/**/*",
-            input_format=vectorfile_format,
-            output_dir=f"{tempdir}/preprocessed_combined",
-            output_name="COMMUNE",
-            output_format=vectorfile_format,
-        )
-        logging.info("new S3GeoDataset created at %s", output_path)
+    old_files = glob(f"{output_dir}/*.{vectorfile_format}")
 
-        new_dset = S3GeoDataset(
-            fs,
-            local_dir=f"{tempdir}/preprocessed_combined",
-            vectorfile_format=vectorfile_format,
-            **config_new_dset,
-        )
-        new_dset.to_s3()
+    output_path = mapshaper_concat(
+        input_dir=f"{output_dir}",
+        input_format=vectorfile_format,
+        output_dir=f"{output_dir}/preprocessed_combined",
+        output_name="COMMUNE",
+        output_format=vectorfile_format,
+    )
 
-        return new_dset
+    logging.info("new S3GeoDataset created at %s", output_path)
+
+    for file in old_files:
+        os.unlink(file)
+
+    new_dset = from_file(
+        file_path=f"{output_dir}/preprocessed_combined/COMMUNE.{vectorfile_format}",
+        fs=fs,
+        **config_new_dset,
+    )
+
+    return new_dset
