@@ -5,7 +5,7 @@ First step of pipeline
 
 Performs a full pipeline to download data and store them on MinIO. The
 target files are described in cartiflette/constants.py under the
-constant DOWNLOAD_PIPELINE_ARGS. Those files' characteristics must also be
+constant PIPELINE_DOWNLOAD_ARGS. Those files' characteristics must also be
 described in the cartiflette/utils/sources.yaml file.
 
 Note: to perform an easy debugging task, please overwrite

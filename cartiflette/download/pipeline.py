@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+# TODO : move file to pipeline module
+
 from datetime import date
 import json
 import logging
@@ -8,8 +10,13 @@ from typing import List
 from pebble import ThreadPool
 import s3fs
 
-from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS, THREADS_DOWNLOAD
-from cartiflette.constants import DOWNLOAD_PIPELINE_ARGS
+from cartiflette.config import (
+    BUCKET,
+    PATH_WITHIN_BUCKET,
+    FS,
+    THREADS_DOWNLOAD,
+    PIPELINE_DOWNLOAD_ARGS,
+)
 from cartiflette.download.download import _download_and_store_sources
 from cartiflette.utils import deep_dict_update
 
@@ -26,7 +33,7 @@ def download_all(
     """
     Performs a full pipeline to download data and store them on MinIO. The
     target files are described in cartiflette/constants.py under the
-    constant DOWNLOAD_PIPELINE_ARGS. Those files' characteristics must also be
+    constant PIPELINE_DOWNLOAD_ARGS. Those files' characteristics must also be
     described in the cartiflette/utils/sources.yaml file.
 
     Note: to perform an easy debugging task, please overwrite
@@ -162,7 +169,7 @@ def download_all(
         logger.info(f"{key} done")
         return results
 
-    datasets_args = DOWNLOAD_PIPELINE_ARGS
+    datasets_args = PIPELINE_DOWNLOAD_ARGS
 
     if THREADS_DOWNLOAD > 1:
         with ThreadPool(THREADS_DOWNLOAD) as pool:

@@ -22,3 +22,65 @@ THREADS_DOWNLOAD = 5
 # set to 1 for debugging purposes (will deactivate multithreading)
 
 LEAVE_TQDM = False
+
+# PIPELINE_DOWNLOAD_ARGS = {
+#     "ADMIN-EXPRESS": [
+#         "IGN",
+#         "ADMINEXPRESS",
+#         "EXPRESS-COG-TERRITOIRE",
+#         [
+#             "guadeloupe",
+#             "martinique",
+#             "guyane",
+#             "reunion",
+#             "mayotte",
+#             "metropole",
+#         ],
+#     ],
+#     "BDTOPO": ["IGN", "BDTOPO", "ROOT", "france_entiere"],
+#     "IRIS": ["IGN", "CONTOUR-IRIS", "ROOT", None],
+#     "COG": [
+#         "Insee",
+#         "COG",
+#         [
+#             "COMMUNE",
+#             "CANTON",
+#             "ARRONDISSEMENT",
+#             "DEPARTEMENT",
+#             "REGION",
+#             "COLLECTIVITE",
+#             "PAYS",
+#         ],
+#         "france_entiere",
+#     ],
+#     "BV 2022": ["Insee", "BV", "FondsDeCarte_BV_2022", "france_entiere"],
+# }
+
+# =============================================================================
+# PIPELINE CONFIG
+# =============================================================================
+
+PIPELINE_DOWNLOAD_ARGS = {
+    "ADMIN-EXPRESS": [
+        "IGN",
+        "ADMINEXPRESS",
+        "EXPRESS-COG-CARTO-TERRITOIRE",
+        [
+            "guadeloupe",
+            "martinique",
+            "guyane",
+            "reunion",
+            "mayotte",
+            "metropole",
+        ],
+    ],
+    "COG": [
+        "Insee",
+        "COG",
+        ["CANTON", "ARRONDISSEMENT", "DEPARTEMENT" "REGION"],
+        "france_entiere",
+    ],
+    "TAGC": ["Insee", "TAGC", "APPARTENANCE"],
+}
+
+PIPELINE_SIMPLIFICATION_LEVELS = [0, 25, 50]
