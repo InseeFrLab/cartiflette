@@ -34,7 +34,7 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "-y", "--years", help="Vintage to perform computation on", default=None
+    "-y", "--years", help="Vintage to perform computation on", default="[]"
 )
 
 # Parse arguments
