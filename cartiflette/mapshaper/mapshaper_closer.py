@@ -147,7 +147,7 @@ def mapshaper_bring_closer(
             f"-rename-layers FRANCE,IDF,GDP,MTQ,GUY,REU,MAY "
             f"-merge-layers target=FRANCE,IDF,GDP,MTQ,GUY,REU,MAY force "
             f"-rename-layers FRANCE_TRANSFORMED "
-            f"-o {output} "
+            f"-o {output} fix-geometry"
         )
 
         subprocess.run(

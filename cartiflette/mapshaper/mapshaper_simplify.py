@@ -49,7 +49,7 @@ def mapshaper_simplify(
         f"mapshaper {input_file} "
         "-proj EPSG:4326 "
         f"{option_simplify} "
-        f" -o {output} force"
+        f" -o fix-geometry {output} force"
     )
 
     subprocess.run(

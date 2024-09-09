@@ -70,7 +70,7 @@ def mapshaper_dissolve(
     if copy_fields:
         cmd += "copy-fields=" + ",".join(copy_fields)
 
-    cmd += f" -o {output} force"
+    cmd += f" -o fix-geometry {output} force"
 
     subprocess.run(
         cmd,

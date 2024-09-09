@@ -47,7 +47,7 @@ def mapshaper_combine_districts_and_cities(
         "-rename-layers COMMUNE,ARRONDISSEMENT_MUNICIPAL "
         "-merge-layers target=COMMUNE,ARRONDISSEMENT_MUNICIPAL force "
         "-rename-layers COMMUNE_ARRONDISSEMENT "
-        f'-o {output} format={output_format} extension=".{output_format}"'
+        f'-o fix-geometry {output} format={output_format} extension=".{output_format}"'
     )
     subprocess.run(cmd, shell=True, check=True, text=True)
 
