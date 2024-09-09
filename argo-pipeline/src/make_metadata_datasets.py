@@ -10,6 +10,7 @@ import argparse
 import json
 import logging
 import os
+import tempfile
 
 from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
 from cartiflette.utils import create_path_bucket
@@ -19,7 +20,7 @@ from cartiflette.pipeline.prepare_cog_metadata import prepare_cog_metadata
 logging.basicConfig(level=logging.INFO)
 
 logging.info("=" * 50)
-logging.info("\n" + __doc__)
+logging.info("\n%s", __doc__)
 logging.info("=" * 50)
 
 # Initialize ArgumentParser
@@ -54,7 +55,6 @@ os.makedirs(local_path, exist_ok=True)
 
 def main(
     path_within_bucket,
-    localpath,
     bucket=BUCKET,
     years: int = None,
 ):
@@ -74,70 +74,67 @@ def main(
         }
 
     created = []
-    for year in years:
-        logging.info("-" * 50)
-        logging.info("Computing metadata for year=%s", year)
-        logging.info("-" * 50)
 
-        os.makedirs(f"{local_path}/{year}", exist_ok=True)
+    with tempfile.TemporaryDirectory() as tempdir:
+        for year in years:
+            logging.info("-" * 50)
+            logging.info("Computing metadata for year=%s", year)
+            logging.info("-" * 50)
 
-        try:
-            # TODO : work from tempdir
+            os.makedirs(f"{local_path}/{year}", exist_ok=True)
 
-            path_raw_s3 = create_path_bucket(
-                {
-                    "bucket": bucket,
-                    "path_within_bucket": path_within_bucket,
-                    "year": year,
-                    "borders": "france",
-                    "crs": None,
-                    "filter_by": "preprocessed",
-                    "value": "tagc",
-                    "vectorfile_format": "csv",
-                    "provider": "Insee",
-                    "dataset_family": "COG-TAGC",
-                    "source": "COG-TAGC",
-                    "territory": "france",
-                    "filename": "tagc.csv",
-                    "simplification": 0,
-                }
-            )
+            config = {
+                "bucket": bucket,
+                "path_within_bucket": path_within_bucket,
+                "year": year,
+                "borders": "COMMUNE",
+                "crs": None,
+                "filter_by": "preprocessed",
+                "value": "tagc",
+                "vectorfile_format": "csv",
+                "provider": "Cartiflette",
+                "dataset_family": "metadata",
+                "source": "COG-TAGC",
+                "territory": "france",
+                "filename": "metadata.csv",
+                "simplification": 0,
+            }
 
             # Retrieve COG metadata
             # TODO : update prepare_cog_metadata to send directly to S3
-            tagc_metadata = prepare_cog_metadata(
+            metadata = prepare_cog_metadata(
                 bucket=bucket,
                 path_within_bucket=path_within_bucket,
                 year=year,
             )
-            if tagc_metadata is None:
-                continue
 
-            local_file = f"{localpath}/{year}/tagc.csv"
-            tagc_metadata = tagc_metadata.drop(columns=["LIBGEO"])
-            tagc_metadata.to_csv(local_file)
+            for key in ["COMMUNE", "CANTON"]:
+                try:
+                    metadata_border = metadata[key]
+                except KeyError:
+                    continue
+                if metadata_border is None:
+                    continue
+                config["borders"] = key
+                path_raw_s3 = create_path_bucket(config)
+                localfile = f"{tempdir}/metadata.csv"
+                metadata_border.to_csv(localfile)
+                try:
+                    logging.info("sending %s -> %s", localfile, path_raw_s3)
+                    fs.put_file(localfile, path_raw_s3)
+                except Exception:
+                    raise
+                finally:
+                    os.unlink(localfile)
 
-            logging.info("sending %s -> %s", local_file, path_raw_s3)
-            fs.put_file(local_file, path_raw_s3)
+                # if at least one metadata constructed
+                created.append(year)
 
-            created.append(year)
-
-        except Exception:
-            raise
-
-        finally:
-            # clean up tempfiles whatever happens
-            try:
-                os.unlink(f"{localpath}/{year}/tagc.csv")
-            except FileNotFoundError:
-                # generation failed
-                pass
-
-    with open("metadata_years.json", "w") as out:
+    with open("metadata_years.json", "w", encoding="utf8") as out:
         json.dump(created, out)
 
     return created
 
 
 if __name__ == "__main__":
-    data = main(path_within_bucket, localpath=local_path, years=years)
+    data = main(path_within_bucket, years=years)
