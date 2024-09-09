@@ -140,6 +140,13 @@ class Layer:
             fiona_logger.setLevel(init)
 
         if self.crs:
+            # check if geometries are valid:
+            geometries_valid = gdf["geometry"].is_valid.all()
+            if not geometries_valid:
+                # try to fix geometries and overwrite file
+                gdf["geometry"] = gdf["geometry"].buffer(0)
+                gdf.to_file(ref_gis_file, encoding="utf-8")
+
             bbox = box(*gdf.total_bounds)
             bbox = gpd.GeoSeries([bbox], crs=gdf.crs)
 

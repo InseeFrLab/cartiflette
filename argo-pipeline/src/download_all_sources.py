@@ -16,6 +16,7 @@ During the operation:
     * GIS files should be reprojected to 4326 if current projection has no EPSG
       code
     * each file should be re-encoded in UTF-8
+    * unvalid geometries will try to be fixed using a 0 buffer
 
 """
 
