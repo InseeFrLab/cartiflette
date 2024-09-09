@@ -9,7 +9,12 @@ Prepare arguments for next step
 import json
 import argparse
 from cartiflette.pipeline import crossproduct_parameters_production
-from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
+from cartiflette.config import (
+    BUCKET,
+    PATH_WITHIN_BUCKET,
+    FS,
+    PIPELINE_SIMPLIFICATION_LEVELS,
+)
 
 parser = argparse.ArgumentParser(description="Crossproduct Script")
 parser.add_argument(
@@ -49,6 +54,13 @@ sources = ["EXPRESS-COG-CARTO-TERRITOIRE"]
 
 croisement_decoupage_level = {
     # structure -> niveau geo: [niveau decoupage macro],
+    "CANTON": [
+        "DEPARTEMENT",
+        "REGION",  # zonages administratifs
+        "TERRITOIRE",
+        "FRANCE_ENTIERE",
+        "FRANCE_ENTIERE_DROM_RAPPROCHES",
+    ],
     "COMMUNE": [
         "BASSIN_VIE",
         "ZONE_EMPLOI",
@@ -99,7 +111,7 @@ def main(
     bucket: str,
     years: list = None,
 ):
-    # TODO : used only for debugging purposes
+    # %% TODO : used only for debugging purposes
     if not years:
         # Perform on all COG years
         json_md5 = f"{bucket}/{path_within_bucket}/md5.json"
@@ -113,6 +125,7 @@ def main(
             for (_territory, vintaged_datasets) in datasets.items()
             for year in vintaged_datasets.keys()
         }
+    # %%
 
     tempdf = crossproduct_parameters_production(
         croisement_filter_by_borders=croisement_decoupage_level,
@@ -120,7 +133,7 @@ def main(
         years=years,
         crs_list=crs_list,
         sources=sources,
-        simplifications=[0, 50],
+        simplifications=PIPELINE_SIMPLIFICATION_LEVELS,
     )
     tempdf.columns = tempdf.columns.str.replace("_", "-")
 
