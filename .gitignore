@@ -136,3 +136,5 @@ dmypy.json
 *.sqlite*
 
 **\temp
+
+**/cartiflette-s3-cache/*
