@@ -10,6 +10,7 @@ import shutil
 import tempfile
 import warnings
 
+from diskcache import Cache
 from s3fs import S3FileSystem
 
 
@@ -18,6 +19,8 @@ from cartiflette.utils import (
     create_path_bucket,
     ConfigDict,
 )
+
+cache = Cache("cartiflette-s3-cache", timeout=3600)
 
 
 class S3Dataset:
@@ -96,7 +99,7 @@ class S3Dataset:
         "remove tempfiles as exit"
         try:
             try:
-                shutil.rmtree(os.path.join(self.local_dir))
+                shutil.rmtree(self.local_dir)
             except FileNotFoundError:
                 pass
         except Exception as exc:
@@ -142,6 +145,50 @@ class S3Dataset:
         logging.info("sending %s -> %s", self.local_dir, target)
         self.fs.put(self.local_dir + "/*", target, recursive=True)
 
+    def _read(self, src: str) -> bytes:
+        """
+        Read bytes from a file on S3FileSystem with disk cache support
+
+        Parameters
+        ----------
+        src : str
+            Source of file
+
+        Returns
+        -------
+        bytes
+            File content
+
+        """
+        try:
+            return cache[src]
+        except KeyError:
+            with self.fs.open(src, "rb") as f:
+                content = f.read()
+            cache[src] = content
+        return content
+
+    def download(self, src: str, dest: str):
+        """
+        Download a file from S3FileSystem to localdir with cache support
+
+        Parameters
+        ----------
+        src : str
+            Path of source file on S3FileSystem
+        dest : str
+            Path to write the file's content on local directory.
+
+        Returns
+        -------
+        None.
+
+        """
+        "download to dest with disk cache"
+        content = self._read(src)
+        with open(dest, "wb") as f:
+            f.write(content)
+
     def to_local_folder_for_mapshaper(self):
         "download to local dir and prepare for use with mapshaper"
 
@@ -150,17 +197,21 @@ class S3Dataset:
                 f"this dataset is not available on S3 : {self.s3_dirpath}"
             )
 
-        self.local_dir = f"{self.local_dir}/{self.config['territory']}"
-        os.makedirs(self.local_dir, exist_ok=True)
-
         files = []
 
         # Get all files (plural in case of shapefile) from Minio
         logging.debug("downloading %s to %s", self.s3_files, self.local_dir)
         for file in self.s3_files:
             path = f"{self.local_dir}/{file.rsplit('/', maxsplit=1)[-1]}"
-            self.fs.download(file, path)
+            self.download(file, path)
             logging.info("file written to %s", path)
             files.append(path)
 
         self.local_files = files
+
+    def update_s3_path_evaluation(self):
+        path = os.path.dirname(create_path_bucket(self.config))
+        search = f"{path}/**/{self.filename}"
+        if self.filename != "*":
+            search += ".*"
+        self.s3_files = self.fs.glob(search)
