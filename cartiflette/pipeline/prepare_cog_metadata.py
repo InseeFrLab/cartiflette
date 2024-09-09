@@ -31,6 +31,18 @@ def prepare_cog_metadata(
 
     # TODO : calcul des tables BANATIC, etc.
 
+    # Find CANTON dataset on S3
+    path = (
+        f"{bucket}/{path_within_bucket}/"
+        f"provider=Insee/dataset_family=COG/source=CANTON/year={year}/"
+        "**/*.csv"
+    )
+    try:
+        path_bucket_cog_canton = fs.glob(path)[0]
+    except IndexError:
+        warnings.warn(f"missing CANTON file for {year=}")
+        path_bucket_cog_canton = None
+
     # Find DEPARTEMENT dataset on S3
     path = (
         f"{bucket}/{path_within_bucket}/"
@@ -70,27 +82,12 @@ def prepare_cog_metadata(
     if any(
         x is None
         for x in (
-            path_tagc,
             path_bucket_cog_region,
             path_bucket_cog_departement,
         )
     ):
         warnings.warn(f"{year=} metadata not constructed!")
         return
-
-    # Read datasets from S3 into Pandas DataFrames
-    with fs.open(path_tagc, mode="rb") as remote_file:
-        try:
-            tagc = pd.read_excel(
-                remote_file,
-                skiprows=5,
-                dtype_backend="pyarrow",
-                dtype={"REG": "string[pyarrow]"},
-            )
-        except Exception as e:
-            warnings.warn(f"could not read TAGC file: {e}")
-            warnings.warn(f"{year=} metadata not constructed!")
-            return
 
     with fs.open(path_bucket_cog_departement, mode="rb") as remote_file:
         cog_dep = pd.read_csv(
@@ -117,7 +114,71 @@ def prepare_cog_metadata(
         .drop(columns=["REG"])
     )
 
-    # Merge TAGC metadata with COG metadata
-    tagc_metadata = tagc.merge(cog_metadata)
+    if path_tagc is None:
+        warnings.warn(f"{year=} metadata for cities not constructed!")
+        cities_metadata = None
 
-    return tagc_metadata
+    else:
+        # Read datasets from S3 into Pandas DataFrames
+        with fs.open(path_tagc, mode="rb") as remote_file:
+            try:
+                tagc = pd.read_excel(
+                    remote_file,
+                    skiprows=5,
+                    dtype_backend="pyarrow",
+                    dtype={"REG": "string[pyarrow]"},
+                )
+            except Exception as e:
+                warnings.warn(f"could not read TAGC file: {e}")
+                warnings.warn(f"{year=} metadata for cities not constructed!")
+                cities_metadata = None
+
+            else:
+                # Merge TAGC metadata with COG metadata
+                cities_metadata = tagc.merge(cog_metadata)
+                cities_metadata = cities_metadata.drop(columns=["LIBGEO"])
+                cities_metadata["SOURCE_METADATA"] = "INSEE:COG"
+
+    if path_bucket_cog_canton is None:
+        warnings.warn(f"{year=} metadata for cantons not constructed!")
+        cantons_metadata = None
+
+    else:
+        # Read datasets from S3 into Pandas DataFrames
+        with fs.open(path_bucket_cog_canton, mode="rb") as remote_file:
+            try:
+                cantons = pd.read_csv(
+                    remote_file,
+                    dtype_backend="pyarrow",
+                    dtype={"REG": "string[pyarrow]", "DEP": "string[pyarrow]"},
+                )
+            except Exception as e:
+                warnings.warn(f"could not read CANTON file: {e}")
+                warnings.warn(f"{year=} metadata for cantons not constructed!")
+                cantons_metadata = None
+            else:
+                # Merge CANTON metadata with COG metadata
+                cantons_metadata = cantons.merge(cog_metadata, how="inner")
+                cantons_metadata["SOURCE_METADATA"] = "INSEE:COG"
+
+                cantons_metadata = cantons_metadata.loc[
+                    :,
+                    [
+                        "CAN",
+                        "DEP",
+                        "REG",
+                        "BURCENTRAL",
+                        "TYPECT",
+                        "LIBELLE",
+                        "LIBELLE_DEPARTEMENT",
+                        "LIBELLE_REGION",
+                    ],
+                ]
+
+                cantons_metadata["SOURCE_METADATA"] = "INSEE:COG"
+
+    return {"COMMUNE": cities_metadata, "CANTON": cantons_metadata}
+
+
+if __name__ == "__main__":
+    prepare_cog_metadata(2023)
