@@ -11,6 +11,7 @@ import argparse
 import json
 import logging
 import tempfile
+from typing import List
 import warnings
 
 from cartiflette.config import (
@@ -42,10 +43,18 @@ parser.add_argument(
     "-y", "--years", help="Vintage to perform computation on", default="[]"
 )
 
+parser.add_argument(
+    "-s",
+    "--simplify",
+    help="Simplifications levels to perform",
+    default=PIPELINE_SIMPLIFICATION_LEVELS,
+)
+
 # Parse arguments
 args = parser.parse_args()
 path_within_bucket = args.path
 years = args.years
+simplifications = args.simplify
 
 years = json.loads(years)
 
@@ -55,6 +64,7 @@ fs = FS
 
 def main(
     path_within_bucket,
+    simplifications: List[int],
     bucket=BUCKET,
     years: int = None,
 ):
@@ -73,7 +83,7 @@ def main(
             for year in vintaged_datasets.keys()
         }
 
-    format_intermediate = "topojson"
+    format_intermediate = "geopackage"
 
     created = []
     for year in years:
@@ -91,6 +101,7 @@ def main(
                     format_output=format_intermediate,
                     bucket=bucket,
                     fs=fs,
+                    simplifications_values=simplifications,
                 )
 
                 if not dset_s3_dir:
@@ -110,4 +121,6 @@ def main(
 
 
 if __name__ == "__main__":
-    data = main(path_within_bucket, years=years)
+    data = main(
+        path_within_bucket, simplifications=simplifications, years=years
+    )

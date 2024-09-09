@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import contextlib
+from copy import deepcopy
 import logging
 import os
 import re
-import requests_cache
 from tempfile import TemporaryDirectory
 from typing import Union, List
 import warnings
@@ -26,10 +26,6 @@ from cartiflette.s3.geodataset import (
 
 COMPILED_TERRITORY = re.compile("territory=([a-z]*)/", flags=re.IGNORECASE)
 
-# Add cache for downloading datafile
-# TODO : not working !
-requests_cache.install_cache(expire_after=600)
-
 
 def combine_adminexpress_territory(
     year: Union[str, int],
@@ -39,6 +35,7 @@ def combine_adminexpress_territory(
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
     fs: s3fs.S3FileSystem = FS,
+    simplifications: List[int] = None,
 ) -> str:
     """
     Merge cities datasets into a single file (full France territory).
@@ -116,46 +113,53 @@ def combine_adminexpress_territory(
         "filename": "COMMUNE",
     }
 
-    datasets = [{"territory": territory} for territory in territories]
-    for d in datasets:
-        d.update(config)
-
-    config.update(
-        {
-            "vectorfile_format": format_output,
-            "crs": 4326,
-            "borders": "france",
-            "filter_by": "preprocessed",
-            "value": "before_cog",
-            "territory": "france",
-        }
-    )
-
     uploaded = []
 
-    with TemporaryDirectory() as tempdir:
-        input_geodatasets = [
-            S3GeoDataset(fs=fs, **config) for config in datasets
-        ]
-        with contextlib.ExitStack() as stack:
-            # download all datasets in context: download at enter, clean disk
-            # at exit
-            input_geodatasets = [
-                stack.enter_context(dset) for dset in input_geodatasets
-            ]
+    for mesh in "COMMUNE", "CANTON":
+        mesh_config = deepcopy(config)
+        mesh_config["filename"] = mesh
 
-            dset = concat_s3geodataset(
-                input_geodatasets,
-                fs=fs,
-                output_dir=tempdir,
-                **config,
-            )
+        datasets = [{"territory": territory} for territory in territories]
+        for d in datasets:
+            d.update(mesh_config)
+
+        mesh_config.update(
+            {
+                "vectorfile_format": format_output,
+                "crs": 4326,
+                "borders": mesh,
+                "filter_by": "preprocessed",
+                "value": "before_cog",
+                "territory": "france",
+                "provider": "Cartiflette",
+                "dataset_family": "geodata",
+            }
+        )
+
+        with TemporaryDirectory() as tempdir:
+            input_geodatasets = [
+                S3GeoDataset(fs=fs, **config) for config in datasets
+            ]
+            with contextlib.ExitStack() as stack:
+                # download all datasets in context: download at enter, clean
+                # disk at exit
+                input_geodatasets = [
+                    stack.enter_context(dset) for dset in input_geodatasets
+                ]
+
+                dset = concat_s3geodataset(
+                    input_geodatasets,
+                    fs=fs,
+                    output_dir=tempdir,
+                    **mesh_config,
+                )
 
             for simplification in simplifications_values:
                 with dset.copy() as new_dset:
                     logging.info("-+" * 25)
                     logging.info(
-                        "Create base geodatasets with simplification=%s",
+                        "Create %s geodatasets with simplification=%s",
+                        mesh,
                         simplification,
                     )
                     logging.info("-+" * 25)
@@ -169,29 +173,30 @@ def combine_adminexpress_territory(
 
                     uploaded.append(new_dset.s3_dirpath)
 
-                with dset.copy() as new_dset:
-                    # also make derived geodatasets based on municipal
-                    # districts mesh
-                    # TODO : should only download municipal
-                    logging.info("-" * 50)
-                    logging.info(
-                        "Also computing geodatasets with communal districts"
-                    )
-                    logging.info("-" * 50)
-
-                    with new_dset.substitute_municipal_districts(
-                        format_output=format_output
-                    ) as communal_districts:
-                        communal_districts.simplify(
-                            format_output=format_output,
-                            simplification=simplification,
+                if mesh == "COMMUNE":
+                    with dset.copy() as new_dset:
+                        # also make derived geodatasets based on municipal
+                        # districts mesh
+                        logging.info("-" * 50)
+                        logging.info(
+                            "Also computing geodatasets with communal "
+                            "districts"
                         )
-                        communal_districts.to_s3()
-                        uploaded.append(communal_districts.s3_dirpath)
+                        logging.info("-" * 50)
+
+                        with new_dset.substitute_municipal_districts(
+                            format_output=format_output
+                        ) as communal_districts:
+                            communal_districts.simplify(
+                                format_output=format_output,
+                                simplification=simplification,
+                            )
+                            communal_districts.to_s3()
+                            uploaded.append(communal_districts.s3_dirpath)
 
     return uploaded
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    combine_adminexpress_territory(2024, format_output="topojson")
+    combine_adminexpress_territory(2023, format_output="geojson")

@@ -14,6 +14,7 @@ except ImportError:
     # python < 3.11
     Self = "S3GeoDataset"
 
+import geopandas as gpd
 from s3fs import S3FileSystem
 
 
@@ -35,6 +36,10 @@ from cartiflette.utils import (
     DICT_CORRESP_ADMINEXPRESS,
 )
 from cartiflette.config import FS
+from cartiflette.utils.dict_correspondance import (
+    create_format_driver,
+    create_format_standardized,
+)
 
 
 class S3GeoDataset(S3Dataset):
@@ -141,7 +146,9 @@ class S3GeoDataset(S3Dataset):
         "simplify the geometries"
         simplification = simplification if simplification else 0
         if simplification != 0:
-            option_simplify = f"-simplify {simplification}% "
+            option_simplify = (
+                f"-simplify {simplification}% interval=.5 -clean "
+            )
         else:
             option_simplify = ""
 
@@ -153,8 +160,26 @@ class S3GeoDataset(S3Dataset):
             output_name=self.main_filename.rsplit(".", maxsplit=1)[0],
             output_format=format_output,
         )
+
+        # update path on S3
         self.config["simplification"] = simplification
         self._substitute_main_file(output)
+        self.update_s3_path_evaluation()
+
+        if format_output.lower() == "topojson":
+            # cannot fix geometries with geopandas anyway
+            return
+
+        format_standardized = create_format_standardized()
+        gpd_driver = create_format_driver()
+        format_write = format_standardized[format_output.lower()]
+        driver = gpd_driver[format_write]
+
+        # Ensure geometries' validity
+        gdf = gpd.read_file(output)
+        if not gdf["geometry"].is_valid.all():
+            gdf["geometry"] = gdf["geometry"].buffer(0)
+            gdf.to_file(output, driver=driver)
 
     def dissolve(
         self,
@@ -273,7 +298,9 @@ class S3GeoDataset(S3Dataset):
         """
 
         if simplification != 0:
-            option_simplify = f"-simplify {simplification}% "
+            option_simplify = (
+                f"-simplify {simplification}% interval=.5 -clean "
+            )
         else:
             option_simplify = ""
 
@@ -484,6 +511,8 @@ class S3GeoDataset(S3Dataset):
         new_config = deepcopy(self.config)
         new_config.update(
             {
+                "provider": "IGN",
+                "dataset_family": "ADMINEXPRESS",
                 "borders": None,
                 "crs": 2154,
                 "territory": "metropole",
@@ -520,6 +549,9 @@ class S3GeoDataset(S3Dataset):
                 output_name="COMMUNE_ARRONDISSEMENT",
                 output_format=format_output,
             )
+            os.unlink(city_file)
+            os.unlink(communal_districts_file)
+            os.unlink(os.path.join(self.local_dir, self.main_filename))
 
         new_config = deepcopy(self.config)
         new_config.update({"borders": "COMMUNE_ARRONDISSEMENT"})
