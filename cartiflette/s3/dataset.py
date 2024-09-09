@@ -211,7 +211,4 @@ class S3Dataset:
 
     def update_s3_path_evaluation(self):
         path = os.path.dirname(create_path_bucket(self.config))
-        search = f"{path}/**/{self.filename}"
-        if self.filename != "*":
-            search += ".*"
-        self.s3_files = self.fs.glob(search)
+        self.s3_dirpath = path
