@@ -37,7 +37,7 @@ def mapshaper_process_communal_districts(
         pass
 
     output = f"{output_dir}/{output_name}.{output_format}"
-    
+
     cmd = (
         f"mapshaper {input_communal_districts_file} "
         "name='ARRONDISSEMENT_MUNICIPAL' "
@@ -45,8 +45,8 @@ def mapshaper_process_communal_districts(
         "-rename-fields INSEE_COG=INSEE_ARM "
         "-each 'STATUT=\"Arrondissement municipal\"' "
         "-o force "
-        f'{output} format={output_format} extension=".{output_format}'
+        f'{output} format={output_format} extension=".{output_format}"'
     )
     subprocess.run(cmd, shell=True, check=True, text=True)
-    
+
     return output
