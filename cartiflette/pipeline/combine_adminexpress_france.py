@@ -10,6 +10,7 @@ from tempfile import TemporaryDirectory
 from typing import Union, List
 import warnings
 
+from pebble import ThreadPool
 import s3fs
 
 from cartiflette.config import (
@@ -27,6 +28,50 @@ from cartiflette.s3.geodataset import (
 COMPILED_TERRITORY = re.compile("territory=([a-z]*)/", flags=re.IGNORECASE)
 
 
+def make_one_batch_geodataset(dset, mesh, simplification, format_output):
+    # TODO :use for multithreading
+
+    uploaded = []
+
+    with dset.copy() as new_dset:
+        logging.info("-+" * 25)
+        logging.info(
+            "Create %s geodatasets with simplification=%s",
+            mesh,
+            simplification,
+        )
+        logging.info("-+" * 25)
+
+        # Simplify the dataset
+        new_dset.simplify(
+            format_output=format_output,
+            simplification=simplification,
+        )
+        new_dset.to_s3()
+
+        uploaded.append(new_dset.s3_dirpath)
+
+    if mesh == "COMMUNE":
+        with dset.copy() as new_dset:
+            # also make derived geodatasets based on municipal
+            # districts mesh
+            logging.info("-" * 50)
+            logging.info(
+                "Also computing geodatasets with communal " "districts"
+            )
+            logging.info("-" * 50)
+
+            with new_dset.substitute_municipal_districts(
+                format_output=format_output
+            ) as communal_districts:
+                communal_districts.simplify(
+                    format_output=format_output,
+                    simplification=simplification,
+                )
+                communal_districts.to_s3()
+                uploaded.append(communal_districts.s3_dirpath)
+
+
 def combine_adminexpress_territory(
     year: Union[str, int],
     intermediate_dir: str = "temp",
@@ -35,7 +80,6 @@ def combine_adminexpress_territory(
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
     fs: s3fs.S3FileSystem = FS,
-    simplifications: List[int] = None,
 ) -> str:
     """
     Merge cities datasets into a single file (full France territory).
@@ -155,6 +199,9 @@ def combine_adminexpress_territory(
                 )
 
             for simplification in simplifications_values:
+
+                # TODO : multithreading
+
                 with dset.copy() as new_dset:
                     logging.info("-+" * 25)
                     logging.info(
