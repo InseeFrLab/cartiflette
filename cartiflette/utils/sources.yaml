@@ -5,6 +5,7 @@ IGN:
     pattern: 
       - "*DONNEES_LIVRAISON*/COMMUNE.shp"
       - "*DONNEES_LIVRAISON*/ARRONDISSEMENT_MUNICIPAL.shp"
+      - "*DONNEES_LIVRAISON*/CANTON.shp"
   
     EXPRESS-COG-TERRITOIRE:
       
