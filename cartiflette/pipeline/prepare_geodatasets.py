@@ -75,12 +75,10 @@ def make_one_geodataset(
             f"(found {mesh=} instead of 'COMMUNE')"
         )
 
-    logging.info("-+" * 25)
     log = "Create %s geodatasets with simplification=%s"
     if with_municipal_district:
         log += " with municipal districts substitution"
     logging.info(log, mesh, simplification)
-    logging.info("-+" * 25)
 
     kwargs = {"format_output": format_output}
 
