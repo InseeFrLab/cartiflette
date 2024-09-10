@@ -69,16 +69,6 @@ def main(args_dict):
     )
     mapshaperize_split_from_s3(args_dict)
 
-    if args_dict["level_polygons"] != "COMMUNE":
-        return None
-
-    logger.info("-+" * 50)
-    logger.info("Also processing for COMMUNE_ARRONDISSEMENT borders")
-    logger.info("-+" * 50)
-
-    args_dict["level_polygons"] = "COMMUNE_ARRONDISSEMENT"
-    mapshaperize_merge_split_from_s3(args_dict)
-
     return args_dict
 
 
