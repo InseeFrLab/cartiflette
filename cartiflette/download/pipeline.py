@@ -116,7 +116,7 @@ def download_all(
     if not years:
         years = list(range(2015, date.today().year + 1))[-1::-1]
 
-    logger.warning(f"performing download on {years=}")
+    logger.info(f"performing download on {years=}")
 
     if not upload:
         logger.warning(

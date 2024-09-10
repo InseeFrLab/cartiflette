@@ -114,7 +114,7 @@ class Layer:
             self.crs = gdf.crs.to_epsg()
 
             if not self.crs:
-                logger.warning(
+                logger.info(
                     f"{self} - projection without known EPSG, "
                     "layer will be reprojected to 4326"
                 )
@@ -127,7 +127,7 @@ class Layer:
                 gdf.to_file(ref_gis_file, encoding="utf-8")
 
             elif encoding and encoding != "utf-8":
-                logger.warning(
+                logger.info(
                     f"{self} - encoding={encoding}, "
                     "layer will be re-encoded to UTF8"
                 )
@@ -162,7 +162,7 @@ class Layer:
             elif len(intersects) > 1 and "metropole" in intersects:
                 self.territory = "france_entiere"
             else:
-                logger.warning(
+                logger.info(
                     f"{self} : spatial join used for territory recognition "
                     "failed, dataset's raw description will be used instead"
                 )
@@ -198,7 +198,7 @@ class Layer:
                         pass
                     else:
                         if encoding != "utf_8":
-                            logger.warning(
+                            logger.info(
                                 f"{self} - encoding={encoding}, "
                                 "layer will be re-encoded to UTF8"
                             )
