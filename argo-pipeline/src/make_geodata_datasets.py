@@ -19,8 +19,8 @@ from cartiflette.config import (
     FS,
     PIPELINE_SIMPLIFICATION_LEVELS,
 )
-from cartiflette.pipeline.combine_adminexpress_france import (
-    combine_adminexpress_territory,
+from cartiflette.pipeline.prepare_geodatasets import (
+    create_one_year_geodataset_batch,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -92,7 +92,7 @@ def main(
 
         try:
             # Merge all territorial cities files into a single file
-            dset_s3_dir = combine_adminexpress_territory(
+            dset_s3_dir = create_one_year_geodataset_batch(
                 year=year,
                 path_within_bucket=path_within_bucket,
                 format_output=format_intermediate,

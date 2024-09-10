@@ -101,7 +101,7 @@ def make_one_geodataset(
     return uploaded
 
 
-def combine_adminexpress_territory(
+def create_one_year_geodataset_batch(
     year: Union[str, int],
     format_output: str = "geojson",
     simplifications_values: List[int] = None,
@@ -114,7 +114,7 @@ def combine_adminexpress_territory(
 
     All files are retrieved from S3, projected to mercator coordinates, then
     merged using mapshaper. Every computation is done on the disk, inside
-    a temporary file.
+    a temporary dir.
 
     Parameters
     ----------
