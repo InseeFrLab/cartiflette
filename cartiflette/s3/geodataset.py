@@ -478,7 +478,9 @@ class S3GeoDataset(S3Dataset):
         return new_datasets
 
     def substitute_municipal_districts(
-        self, format_output: str = "geojson"
+        self,
+        communal_districts: Self,
+        format_output: str = "geojson",
     ) -> Self:
         """
         Create a new composite S3GeoDataset from communal districts (Paris,
@@ -487,6 +489,10 @@ class S3GeoDataset(S3Dataset):
 
         Parameters
         ----------
+        communal_districts : S3GeoDataset
+            S3GeoDataset representing the communal districts (should be
+            already downloaded, so this should be generated through a with
+            statement).
         format_output : str, optional
             Desired output format. The default is "geojson".
 
@@ -507,51 +513,29 @@ class S3GeoDataset(S3Dataset):
             output_format=format_output,
         )
 
-        # download and preprocess communal districts (ie. ensure proj to 4326)
-        new_config = deepcopy(self.config)
-        new_config.update(
-            {
-                "provider": "IGN",
-                "dataset_family": "ADMINEXPRESS",
-                "borders": None,
-                "crs": 2154,
-                "territory": "metropole",
-                "vectorfile_format": "shp",
-                "filter_by": "origin",
-                "value": "raw",
-            }
+        # note : communal_districts has it's self local_dir which should be
+        # in f"{self.local_dir}/{communal_districts.config['territory']}" !
+        communal_districts.to_mercator(format_output=format_output)
+        communal_districts_file = f"{communal_districts.local_dir}/{communal_districts.main_filename}"
+
+        communal_districts_file = mapshaper_process_communal_districts(
+            input_communal_districts_file=communal_districts_file,
+            output_dir=f"{self.local_dir}/districts",
+            output_name="ARRONDISSEMENT_MUNICIPAL",
+            output_format=format_output,
         )
-        with S3GeoDataset(
-            fs=self.fs,
-            local_dir=self.local_dir,
-            filename="ARRONDISSEMENT_MUNICIPAL",
-            **new_config,
-        ) as communal_districts:
-            communal_districts.to_local_folder_for_mapshaper()
 
-            # note : communal_districts has it's self local_dir which should be
-            # in f"{self.local_dir}/{communal_districts.config['territory']}" !
-            communal_districts.to_mercator(format_output=format_output)
-            communal_districts_file = f"{communal_districts.local_dir}/{communal_districts.main_filename}"
-
-            communal_districts_file = mapshaper_process_communal_districts(
-                input_communal_districts_file=communal_districts_file,
-                output_dir=f"{self.local_dir}/districts",
-                output_name="ARRONDISSEMENT_MUNICIPAL",
-                output_format=format_output,
-            )
-
-            # MERGE CITIES AND ARRONDISSEMENT
-            composite = mapshaper_combine_districts_and_cities(
-                input_city_file=city_file,
-                input_communal_districts_file=communal_districts_file,
-                output_dir=self.local_dir,
-                output_name="COMMUNE_ARRONDISSEMENT",
-                output_format=format_output,
-            )
-            os.unlink(city_file)
-            os.unlink(communal_districts_file)
-            os.unlink(os.path.join(self.local_dir, self.main_filename))
+        # MERGE CITIES AND ARRONDISSEMENT
+        composite = mapshaper_combine_districts_and_cities(
+            input_city_file=city_file,
+            input_communal_districts_file=communal_districts_file,
+            output_dir=self.local_dir,
+            output_name="COMMUNE_ARRONDISSEMENT",
+            output_format=format_output,
+        )
+        os.unlink(city_file)
+        # os.unlink(communal_districts_file)
+        os.unlink(os.path.join(self.local_dir, self.main_filename))
 
         new_config = deepcopy(self.config)
         new_config.update({"borders": "COMMUNE_ARRONDISSEMENT"})
