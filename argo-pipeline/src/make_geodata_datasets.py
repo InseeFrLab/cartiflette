@@ -80,7 +80,14 @@ def main(
             for year in vintaged_datasets.keys()
         }
 
-    created = make_all_geodatasets(years, format_intermediate="geojson")
+    created = make_all_geodatasets(
+        years,
+        format_output="geojson",
+        simplifications_values=simplifications,
+        bucket=bucket,
+        path_within_bucket=path_within_bucket,
+        fs=fs,
+    )
 
     with open("geodatasets_years.json", "w") as out:
         json.dump(created, out)
