@@ -16,6 +16,9 @@ for key in ["token", "secret", "key"]:
     except KeyError:
         continue
 FS = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL}, **kwargs)
+# Double the standard timeouts
+FS.read_timeout = 30
+FS.connect_timeout = 10
 
 THREADS_DOWNLOAD = 5
 # Nota : each thread may also span the same number of children threads;
