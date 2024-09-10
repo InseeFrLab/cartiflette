@@ -19,9 +19,7 @@ from cartiflette.config import (
     FS,
     PIPELINE_SIMPLIFICATION_LEVELS,
 )
-from cartiflette.pipeline.prepare_geodatasets import (
-    create_one_year_geodataset_batch,
-)
+from cartiflette.pipeline.prepare_geodatasets import make_all_geodatasets
 
 logging.basicConfig(level=logging.INFO)
 
@@ -82,34 +80,7 @@ def main(
             for year in vintaged_datasets.keys()
         }
 
-    format_intermediate = "geopackage"
-
-    created = []
-    for year in years:
-        logging.info("-" * 50)
-        logging.info(f"Merging territorial files of cities for {year=}")
-        logging.info("-" * 50)
-
-        try:
-            # Merge all territorial cities files into a single file
-            dset_s3_dir = create_one_year_geodataset_batch(
-                year=year,
-                path_within_bucket=path_within_bucket,
-                format_output=format_intermediate,
-                bucket=bucket,
-                fs=fs,
-                simplifications_values=simplifications,
-            )
-
-            if not dset_s3_dir:
-                # No files merged
-                continue
-
-            created.append(year)
-
-        except Exception as e:
-            warnings.warn(f"geodataset {year=} not created: {e}")
-            raise
+    created = make_all_geodatasets(years, format_intermediate="geojson")
 
     with open("geodatasets_years.json", "w") as out:
         json.dump(created, out)

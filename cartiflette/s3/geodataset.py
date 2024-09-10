@@ -533,8 +533,13 @@ class S3GeoDataset(S3Dataset):
             output_name="COMMUNE_ARRONDISSEMENT",
             output_format=format_output,
         )
+
+        # move file to new tempdir to isolate this file for new S3GeoDataset
+        new_tempdir = tempfile.mkdtemp()
+        shutil.move(composite, composite.replace(self.local_dir, new_tempdir))
+        composite = composite.replace(self.local_dir, new_tempdir)
+
         os.unlink(city_file)
-        # os.unlink(communal_districts_file)
         os.unlink(os.path.join(self.local_dir, self.main_filename))
 
         new_config = deepcopy(self.config)
@@ -694,6 +699,7 @@ def from_file(
 
 def concat_s3geodataset(
     datasets: List[S3GeoDataset],
+    output_name: str = "COMMUNE",
     vectorfile_format: str = "geojson",
     output_dir: str = "temp",
     fs: S3FileSystem = FS,
@@ -708,6 +714,8 @@ def concat_s3geodataset(
     ----------
     datasets : List[S3GeoDataset]
         The list of S3GeoDataset instances to concatenate.
+    output_name: str, optional
+        The name of the output layer. The default is 'COMMUNE'.
     vectorfile_format : str, optional
         The file format to use for creating the new S3GeoDataset. The default
         is "geojson".
@@ -752,7 +760,7 @@ def concat_s3geodataset(
         input_dir=f"{output_dir}",
         input_format=vectorfile_format,
         output_dir=f"{output_dir}/preprocessed_combined",
-        output_name="COMMUNE",
+        output_name=output_name,
         output_format=vectorfile_format,
     )
 

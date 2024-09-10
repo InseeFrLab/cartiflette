@@ -37,7 +37,7 @@ def make_one_geodataset(
     simplification: int,
     communal_districts: S3GeoDataset = None,
     format_output: str = "geojson",
-) -> List[str]:
+) -> str:
     """
     Generate one geodataset and upload it to S3FileSystem
 
@@ -62,8 +62,8 @@ def make_one_geodataset(
 
     Returns
     -------
-    uploaded : List[str]
-        List of uploaded files (as S3 path)
+    uploaded : str
+        Uploaded file's path on S3FileSystem
 
     """
 
@@ -108,7 +108,7 @@ def create_one_year_geodataset_batch(
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
     fs: s3fs.S3FileSystem = FS,
-) -> str:
+) -> List[str]:
     """
     Merge cities datasets into a single file (full France territory).
 
@@ -136,8 +136,8 @@ def create_one_year_geodataset_batch(
 
     Returns
     -------
-    output_path : str
-        Path of uploaded dataset on S3.
+    uploaded : List[str]
+        Paths on S3 of uploaded datasets.
 
     """
     if not simplifications_values:
@@ -180,7 +180,6 @@ def create_one_year_geodataset_batch(
         "vectorfile_format": "shp",
         "simplification": 0,
         "year": year,
-        # "filename": "COMMUNE",
         "fs": fs,
     }
 
@@ -225,6 +224,7 @@ def create_one_year_geodataset_batch(
                 dset = concat_s3geodataset(
                     geodatasets,
                     output_dir=tempdir,
+                    output_name=mesh,
                     **mesh_config,
                 )
 
@@ -282,6 +282,78 @@ def create_one_year_geodataset_batch(
     return uploaded
 
 
+def make_all_geodatasets(
+    years: List[int],
+    format_output: str = "geojson",
+    simplifications_values: List[int] = None,
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
+    fs: s3fs.S3FileSystem = FS,
+) -> dict:
+    """
+    Create all base geodatasets used by cartiflette (full France coverage).
+    At the time of writing, the meshes can either be COMMUNE or CANTON.
+
+    Parameters
+    ----------
+    years : List[int]
+        Desired vintages.
+    format_output : str, optional
+        Final (and intermediate) formats to use. The default is "geojson"
+    simplifications_values : List[int], optional
+        List of simplifications' levels to compute (as percentage values
+        casted to integers). The default is None, which will result to
+        PIPELINE_SIMPLIFICATION_LEVELS.
+    bucket : str, optional
+        Storage bucket on S3 FileSystem. The default is BUCKET.
+    path_within_bucket : str, optional
+        Path within S3 bucket used for storage. The default is
+        PATH_WITHIN_BUCKET.
+    fs : s3fs.FyleSystem, optional
+        S3 file system used for storage of raw data. The default is FS.
+
+    Returns
+    -------
+    uploaded : dict
+        Dict of uploaded geodatasets on S3 using the following structure:
+        {year : [path_file1, path_file2, ...]}.
+
+    """
+
+    if not simplifications_values:
+        simplifications_values = PIPELINE_SIMPLIFICATION_LEVELS
+
+    uploaded = []
+
+    for year in years:
+        logging.info("-" * 50)
+        logging.info(f"Merging territorial files of cities for {year=}")
+        logging.info("-" * 50)
+
+        try:
+            # Merge all territorial cities files into a single file
+            uploaded_year = create_one_year_geodataset_batch(
+                year=year,
+                path_within_bucket=path_within_bucket,
+                format_output=format_output,
+                bucket=bucket,
+                fs=fs,
+                simplifications_values=simplifications_values,
+            )
+
+            if not uploaded_year:
+                # No files merged
+                continue
+
+            uploaded.append({year: uploaded_year})
+
+        except Exception as e:
+            warnings.warn(f"geodataset {year=} not created: {e}")
+            raise
+
+    return uploaded
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    combine_adminexpress_territory(2023, format_output="geojson")
+    created = make_all_geodatasets([2024, 2023], format_output="geojson")
