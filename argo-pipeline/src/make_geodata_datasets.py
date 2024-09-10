@@ -10,7 +10,6 @@ for each vintage.
 import argparse
 import json
 import logging
-import tempfile
 from typing import List
 import warnings
 
@@ -92,21 +91,19 @@ def main(
         logging.info("-" * 50)
 
         try:
-            with tempfile.TemporaryDirectory() as tempdir:
-                # Merge all territorial cities files into a single file
-                dset_s3_dir = combine_adminexpress_territory(
-                    year=year,
-                    path_within_bucket=path_within_bucket,
-                    intermediate_dir=tempdir,
-                    format_output=format_intermediate,
-                    bucket=bucket,
-                    fs=fs,
-                    simplifications_values=simplifications,
-                )
+            # Merge all territorial cities files into a single file
+            dset_s3_dir = combine_adminexpress_territory(
+                year=year,
+                path_within_bucket=path_within_bucket,
+                format_output=format_intermediate,
+                bucket=bucket,
+                fs=fs,
+                simplifications_values=simplifications,
+            )
 
-                if not dset_s3_dir:
-                    # No files merged
-                    continue
+            if not dset_s3_dir:
+                # No files merged
+                continue
 
             created.append(year)
 

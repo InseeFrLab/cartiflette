@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import contextlib
+from contextlib import ExitStack, nullcontext
 from copy import deepcopy
 from functools import partial
+from itertools import product
 import logging
 import os
 import re
@@ -30,53 +31,78 @@ from cartiflette.s3.geodataset import (
 COMPILED_TERRITORY = re.compile("territory=([a-z]*)/", flags=re.IGNORECASE)
 
 
-def make_one_batch_geodataset(simplification, dset, mesh, format_output):
-    # TODO :use for multithreading
+def make_one_geodataset(
+    dset: S3GeoDataset,
+    with_municipal_district: bool,
+    simplification: int,
+    communal_districts: S3GeoDataset = None,
+    format_output: str = "geojson",
+) -> List[str]:
+    """
+    Generate one geodataset and upload it to S3FileSystem
 
-    uploaded = []
+    Parameters
+    ----------
+    dset : S3GeoDataset
+        Basic geodataset with full France coverage, already downloaded. This
+        dataset should have a basic geometric mesh coherent with the `mesh`
+        argument. At the time of the docstring redaction, the dataset should
+        either be composed of cities or cantons.
+    with_municipal_district : bool
+        Whether to substitutes main cities (Paris, Lyon, Marseille) with
+        their municipal districts. Obviously, this can only be used with a
+        cities dataset.
+    simplification : int
+        Level of desired simplification.
+    communal_districts : S3GeoDataset, optional
+        Geodataset for communal districts, already downloaded. Only needed if
+        `mesh == 'COMMUNE'`. The default is None.
+    format_output : str, optional
+        Final format to use. The default is "geojson".
 
-    with dset.copy() as new_dset:
-        logging.info("-+" * 25)
-        logging.info(
-            "Create %s geodatasets with simplification=%s",
-            mesh,
-            simplification,
+    Returns
+    -------
+    uploaded : List[str]
+        List of uploaded files (as S3 path)
+
+    """
+
+    mesh = dset.config["borders"]
+
+    if mesh != "COMMUNE" and with_municipal_district:
+        raise ValueError(
+            "with_municipal_district is not authorized with this S3GeoDataset "
+            f"(found {mesh=} instead of 'COMMUNE')"
         )
-        logging.info("-+" * 25)
 
-        # Simplify the dataset
-        new_dset.simplify(
-            format_output=format_output,
-            simplification=simplification,
+    logging.info("-+" * 25)
+    log = "Create %s geodatasets with simplification=%s"
+    if with_municipal_district:
+        log += " with municipal districts substitution"
+    logging.info(log, mesh, simplification)
+    logging.info("-+" * 25)
+
+    kwargs = {"format_output": format_output}
+
+    new_dset = dset.copy()
+    if with_municipal_district:
+        # substitute communal districts
+        districts = new_dset.substitute_municipal_districts(
+            communal_districts=communal_districts, **kwargs
         )
-        new_dset.to_s3()
+    else:
+        districts = nullcontext()
+    with new_dset, districts:
+        processed_dset = districts if with_municipal_district else new_dset
+        processed_dset.simplify(simplification=simplification, **kwargs)
+        processed_dset.to_s3()
+        uploaded = processed_dset.s3_dirpath
 
-        uploaded.append(new_dset.s3_dirpath)
-
-    if mesh == "COMMUNE":
-        with dset.copy() as new_dset:
-            # also make derived geodatasets based on municipal
-            # districts mesh
-            logging.info("-" * 50)
-            logging.info(
-                "Also computing geodatasets with communal " "districts"
-            )
-            logging.info("-" * 50)
-
-            with new_dset.substitute_municipal_districts(
-                format_output=format_output
-            ) as communal_districts:
-                communal_districts.simplify(
-                    format_output=format_output,
-                    simplification=simplification,
-                )
-                communal_districts.to_s3()
-                uploaded.append(communal_districts.s3_dirpath)
+    return uploaded
 
 
 def combine_adminexpress_territory(
     year: Union[str, int],
-    intermediate_dir: str = "temp",
     format_output: str = "geojson",
     simplifications_values: List[int] = None,
     bucket: str = BUCKET,
@@ -94,10 +120,8 @@ def combine_adminexpress_territory(
     ----------
     year : Union[str, int]
         Desired vintage
-    intermediate_dir : str, optional
-        Temporary dir to process files. The default is "temp".
     format_output : str, optional
-        Final (and intermediate) formats to use. The default is "topojson"
+        Final (and intermediate) formats to use. The default is "geojson"
     simplifications_values : List[int], optional
         List of simplifications' levels to compute (as percentage values
         casted to integers). The default is None, which will result to
@@ -138,7 +162,7 @@ def combine_adminexpress_territory(
     territories = {t for x in dirs for t in COMPILED_TERRITORY.findall(x)}
 
     if not territories:
-        warnings.warn(f"{year} not constructed (no territories)")
+        warnings.warn(f"{year} not constructed (no territories available)")
         return
 
     logging.info("Territoires identifiés:\n%s", "\n".join(territories))
@@ -156,79 +180,104 @@ def combine_adminexpress_territory(
         "vectorfile_format": "shp",
         "simplification": 0,
         "year": year,
-        "filename": "COMMUNE",
+        # "filename": "COMMUNE",
+        "fs": fs,
     }
 
     uploaded = []
 
-    # TODO : multithreading
+    # Construct S3GeoDataset for municipal districts
+    raw_config = deepcopy(config)
+    kwargs = {"territory": "metropole", "filename": "ARRONDISSEMENT_MUNICIPAL"}
+    districts = S3GeoDataset(**kwargs, **raw_config)
+
+    input_geodatasets = {}
     for mesh in "COMMUNE", "CANTON":
+
+        # Construct S3GeoDatasets for each territory (Guyane, metropole, ...)
+        # at mesh level (COMMUNE or CANTON)
         mesh_config = deepcopy(config)
         mesh_config["filename"] = mesh
-
-        datasets = [{"territory": territory} for territory in territories]
-        for d in datasets:
-            d.update(mesh_config)
-
-        mesh_config.update(
-            {
-                "vectorfile_format": format_output,
-                "crs": 4326,
-                "borders": mesh,
-                "filter_by": "preprocessed",
-                "value": "before_cog",
-                "territory": "france",
-                "provider": "Cartiflette",
-                "dataset_family": "geodata",
-            }
-        )
+        geodatasets = [
+            S3GeoDataset(territory=territory, **mesh_config)
+            for territory in territories
+        ]
 
         with TemporaryDirectory() as tempdir:
-            input_geodatasets = [
-                S3GeoDataset(fs=fs, **config) for config in datasets
-            ]
-            with contextlib.ExitStack() as stack:
-                # download all datasets in context: download at enter, clean
-                # disk at exit
-                input_geodatasets = [
-                    stack.enter_context(dset) for dset in input_geodatasets
+            with ExitStack() as stack:
+                # download all datasets in context: download at enter
+                geodatasets = [
+                    stack.enter_context(dset) for dset in geodatasets
                 ]
-
+                # concat S3GeoDataset
+                mesh_config.update(
+                    {
+                        "vectorfile_format": format_output,
+                        "crs": 4326,
+                        "borders": mesh,
+                        "filter_by": "preprocessed",
+                        "value": "before_cog",
+                        "territory": "france",
+                        "provider": "Cartiflette",
+                        "dataset_family": "geodata",
+                    }
+                )
                 dset = concat_s3geodataset(
-                    input_geodatasets,
-                    fs=fs,
+                    geodatasets,
                     output_dir=tempdir,
                     **mesh_config,
                 )
 
-            if THREADS_DOWNLOAD > 1:
-                func = partial(
-                    make_one_batch_geodataset,
-                    dset=dset,
-                    mesh=mesh,
-                    format_output=format_output,
-                )
-                threads = min(THREADS_DOWNLOAD, len(simplifications_values))
-                logging.info(
-                    f"parallelize simplifications with {threads} threads"
-                )
-                with ThreadPool(threads) as pool:
-                    iterator = pool.map(func, simplifications_values).result()
-                    while True:
-                        try:
-                            uploaded += next(iterator)
-                        except StopIteration:
-                            break
-                        except Exception as e:
-                            logging.error(e)
-            else:
-                for simplification in simplifications_values:
+                input_geodatasets[mesh] = dset.copy()
+
+                # clean intermediate datasets from local disk at exit (keep
+                # only concatenated S3GeoDataset, which exists only on local
+                # disk)
+
+    with input_geodatasets["COMMUNE"] as commune, input_geodatasets[
+        "CANTON"
+    ] as canton, districts as districts:
+        # download communal_districts and enter context for commune/canton
+
+        args = list(
+            product([commune], [True, False], simplifications_values)
+        ) + list((product([canton], [False], simplifications_values)))
+
+        func = partial(
+            make_one_geodataset,
+            format_output=format_output,
+            communal_districts=districts,
+        )
+
+        if THREADS_DOWNLOAD > 1:
+            # create geodatasets with multithreading
+            threads = min(THREADS_DOWNLOAD, len(args))
+            logging.info(
+                "Parallelizing simplifications with %s threads", threads
+            )
+            with ThreadPool(threads) as pool:
+                iterator = pool.map(func, *list(zip(*args))).result()
+
+                while True:
                     try:
-                        uploaded += make_one_batch_geodataset(
-                            dset, mesh, simplification, format_output
-                        )
+                        uploaded.append(next(iterator))
+                    except StopIteration:
+                        break
                     except Exception as e:
                         logging.error(e)
+        else:
+            # create geodatasets using a simple loop
+            for dset, with_municipal_district, simplification in args:
+                try:
+                    uploaded.append(
+                        func(
+                            dset=dset,
+                            with_municipal_district=with_municipal_district,
+                            simplification=simplification,
+                        )
+                    )
+                except Exception as e:
+                    logging.error(e)
 
     return uploaded
 
