@@ -31,6 +31,7 @@ fiona = {extras = ["s3"], version = "^1.9.4.post1"}
 pyarrow = "^17.0.0"
 diskcache = "^5.6.3"
 urllib3 = "<2"
+retrying = "^1.3.4"
 
 
 [tool.poetry.group.dev.dependencies]

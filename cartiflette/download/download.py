@@ -8,11 +8,13 @@
 from collections import OrderedDict
 from itertools import product
 import logging
-from pebble import ThreadPool
-import s3fs
 import shutil
 import traceback
 from typing import Union
+
+from pebble import ThreadPool
+from retrying import retry
+import s3fs
 
 from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS, THREADS_DOWNLOAD
 from cartiflette.utils import (
@@ -25,6 +27,19 @@ from cartiflette.download.dataset import RawDataset
 logger = logging.getLogger(__name__)
 
 
+def _result_is_ok(result):
+    """
+    return True if result is ok
+    used to check if _upload_raw_dataset_to_s3 should be retried
+    """
+    return result is None or len(result) > 0
+
+
+@retry(
+    retry_on_result=_result_is_ok,
+    wait_exponential_multiplier=1000,
+    wait_exponential_max=10000,
+)
 def _upload_raw_dataset_to_s3(
     dataset: RawDataset,
     result: dict,

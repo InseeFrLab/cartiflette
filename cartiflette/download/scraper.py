@@ -4,6 +4,7 @@ from glob import glob
 import logging
 import os
 import re
+from retrying import retry
 import tempfile
 from typing import TypedDict
 
@@ -254,6 +255,10 @@ def validate_file(file_path, hash_):
     return hash_file(file_path) == hash_
 
 
+@retry(
+    wait_exponential_multiplier=1000,
+    wait_exponential_max=10000,
+)
 def download_to_tempfile_http(
     url: str,
     hash_: str = None,
@@ -377,7 +382,7 @@ def download_to_tempfile_http(
     # if there's a hash value, check if there are any changes
     if hash_ and validate_file(file_path, hash_):
         # unchanged file -> exit (after deleting the downloaded file)
-        logger.warning("md5 matched at %s after download", url)
+        logger.info("md5 matched at %s after download", url)
         os.unlink(file_path)
         return False, None, None
 
