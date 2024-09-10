@@ -114,6 +114,10 @@ def create_one_year_geodataset_batch(
     merged using mapshaper. Every computation is done on the disk, inside
     a temporary dir.
 
+    Note that multithreading will be used .
+    To debug code, please consider deactivating the threading, using
+    `cartiflette.config.THREADS = 1` beforehand.
+
     Parameters
     ----------
     year : Union[str, int]
@@ -291,6 +295,10 @@ def make_all_geodatasets(
     """
     Create all base geodatasets used by cartiflette (full France coverage).
     At the time of writing, the meshes can either be COMMUNE or CANTON.
+
+    Note that multithreading will be used under the hood for each yearly batch.
+    To debug code, please consider deactivating the threading, using
+    `cartiflette.config.THREADS = 1` beforehand.
 
     Parameters
     ----------
