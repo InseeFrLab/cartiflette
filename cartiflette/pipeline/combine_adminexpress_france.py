@@ -3,6 +3,7 @@
 
 import contextlib
 from copy import deepcopy
+from functools import partial
 import logging
 import os
 import re
@@ -18,6 +19,7 @@ from cartiflette.config import (
     BUCKET,
     PATH_WITHIN_BUCKET,
     PIPELINE_SIMPLIFICATION_LEVELS,
+    THREADS_DOWNLOAD,
 )
 from cartiflette.s3.geodataset import (
     S3GeoDataset,
@@ -28,7 +30,7 @@ from cartiflette.s3.geodataset import (
 COMPILED_TERRITORY = re.compile("territory=([a-z]*)/", flags=re.IGNORECASE)
 
 
-def make_one_batch_geodataset(dset, mesh, simplification, format_output):
+def make_one_batch_geodataset(simplification, dset, mesh, format_output):
     # TODO :use for multithreading
 
     uploaded = []
@@ -159,6 +161,7 @@ def combine_adminexpress_territory(
 
     uploaded = []
 
+    # TODO : multithreading
     for mesh in "COMMUNE", "CANTON":
         mesh_config = deepcopy(config)
         mesh_config["filename"] = mesh
@@ -198,48 +201,34 @@ def combine_adminexpress_territory(
                     **mesh_config,
                 )
 
-            for simplification in simplifications_values:
-
-                # TODO : multithreading
-
-                with dset.copy() as new_dset:
-                    logging.info("-+" * 25)
-                    logging.info(
-                        "Create %s geodatasets with simplification=%s",
-                        mesh,
-                        simplification,
-                    )
-                    logging.info("-+" * 25)
-
-                    # Simplify the dataset
-                    new_dset.simplify(
-                        format_output=format_output,
-                        simplification=simplification,
-                    )
-                    new_dset.to_s3()
-
-                    uploaded.append(new_dset.s3_dirpath)
-
-                if mesh == "COMMUNE":
-                    with dset.copy() as new_dset:
-                        # also make derived geodatasets based on municipal
-                        # districts mesh
-                        logging.info("-" * 50)
-                        logging.info(
-                            "Also computing geodatasets with communal "
-                            "districts"
+            if THREADS_DOWNLOAD > 1:
+                func = partial(
+                    make_one_batch_geodataset,
+                    dset=dset,
+                    mesh=mesh,
+                    format_output=format_output,
+                )
+                threads = min(THREADS_DOWNLOAD, len(simplifications_values))
+                logging.info(
+                    f"parallelize simplifications with {threads} threads"
+                )
+                with ThreadPool(threads) as pool:
+                    iterator = pool.map(func, simplifications_values).result()
+                    while True:
+                        try:
+                            uploaded += next(iterator)
+                        except StopIteration:
+                            break
+                        except Exception as e:
+                            logging.error(e)
+            else:
+                for simplification in simplifications_values:
+                    try:
+                        uploaded += make_one_batch_geodataset(
+                            dset, mesh, simplification, format_output
                         )
-                        logging.info("-" * 50)
-
-                        with new_dset.substitute_municipal_districts(
-                            format_output=format_output
-                        ) as communal_districts:
-                            communal_districts.simplify(
-                                format_output=format_output,
-                                simplification=simplification,
-                            )
-                            communal_districts.to_s3()
-                            uploaded.append(communal_districts.s3_dirpath)
+                    except Exception as e:
+                        logging.error(e)
 
     return uploaded
 
