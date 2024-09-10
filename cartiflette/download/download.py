@@ -27,16 +27,16 @@ from cartiflette.download.dataset import RawDataset
 logger = logging.getLogger(__name__)
 
 
-def _result_is_ok(result):
+def _result_is_ko(result):
     """
-    return True if result is ok
+    return True if result is ko
     used to check if _upload_raw_dataset_to_s3 should be retried
     """
-    return result is None or len(result) > 0
+    return result is not None and len(result) == 0
 
 
 @retry(
-    retry_on_result=_result_is_ok,
+    retry_on_result=_result_is_ko,
     wait_exponential_multiplier=1000,
     wait_exponential_max=10000,
 )
