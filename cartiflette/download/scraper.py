@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 
-import magic
 from glob import glob
 import logging
-import numpy as np
 import os
 import re
+import tempfile
+from typing import TypedDict
+
+import magic
+import numpy as np
 import requests
 import requests_cache
-import tempfile
 from tqdm import tqdm
-from typing import TypedDict
 from unidecode import unidecode
 
 from cartiflette.utils import hash_file
@@ -182,7 +183,7 @@ class MasterScraper(requests_cache.CachedSession):
                     with open(path, "wb") as out:
                         out.write(f.read())
 
-                logger.debug(f"Storing CSV to {root_folder}")
+                logger.debug("Storing CSV to %s", root_folder)
                 files_locations = ((path,),)
 
             else:
@@ -211,7 +212,7 @@ class MasterScraper(requests_cache.CachedSession):
             for basename, cluster in basenames.items()
         }
 
-        layers = dict()
+        layers = {}
         for cluster_name, cluster_filtered in paths.items():
             cluster_pattern = {
                 os.path.splitext(x)[0] for x in cluster_filtered
@@ -317,20 +318,20 @@ def download_to_tempfile_http(
     try:
         expected_md5 = head["content-md5"]
 
-        logger.debug(f"File MD5 is {expected_md5}")
+        logger.debug("File MD5 is %s", expected_md5)
     except KeyError:
         expected_md5 = None
-        logger.debug(f"md5 not found in header at url {url}")
+        logger.debug("md5 not found in header at url %s", url)
     else:
         if hash_ and expected_md5 == hash_:
             # unchanged file -> exit
-            logger.info(f"md5 matched at {url} - download prevented")
+            logger.info("md5 matched at %s - download prevented", url)
             return False, None, None
     finally:
         try:
             # No MD5 in header -> check requested file's size
             expected_file_size = int(head["Content-length"])
-            logger.debug(f"File size is {expected_file_size}")
+            logger.debug("File size is %s", expected_file_size)
         except KeyError:
             expected_file_size = None
             msg = f"Content-Length not found in header at url {url}"
@@ -338,9 +339,9 @@ def download_to_tempfile_http(
 
     with tempfile.NamedTemporaryFile("wb", delete=False) as temp_file:
         file_path = temp_file.name
-        logger.debug(f"Downloading to {file_path}")
+        logger.debug("Downloading to %s", file_path)
 
-        logger.debug(f"starting download at {url}")
+        logger.debug("starting download at %s", url)
         r = session.get(url, stream=True, **kwargs)
         if not r.ok:
             raise IOError(f"download failed with {r.status_code} code")
@@ -376,13 +377,17 @@ def download_to_tempfile_http(
     # if there's a hash value, check if there are any changes
     if hash_ and validate_file(file_path, hash_):
         # unchanged file -> exit (after deleting the downloaded file)
-        logger.warning(f"md5 matched at {url} after download")
+        logger.warning("md5 matched at %s after download", url)
         os.unlink(file_path)
         return False, None, None
-    else:
-        logger.error(
-            f"NO md5 match at {url} after download : {hash_=} and {hash_file(file_path)}"
-        )
+
+    logger.info(
+        "NO md5 match at %s after download : hash_=%s and new hash=%s "
+        "-> keeping new file",
+        url,
+        hash_,
+        hash_file(file_path),
+    )
 
     filetype = magic.from_file(file_path)
 
