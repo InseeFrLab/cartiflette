@@ -757,7 +757,7 @@ def concat_s3geodataset(
     old_files = glob(f"{output_dir}/*.{vectorfile_format}")
 
     output_path = mapshaper_concat(
-        input_dir=f"{output_dir}",
+        input_dir=output_dir,
         input_format=vectorfile_format,
         output_dir=f"{output_dir}/preprocessed_combined",
         output_name=output_name,
@@ -769,10 +769,7 @@ def concat_s3geodataset(
     for file in old_files:
         os.unlink(file)
 
-    new_dset = from_file(
-        file_path=f"{output_dir}/preprocessed_combined/COMMUNE.{vectorfile_format}",
-        fs=fs,
-        **config_new_dset,
-    )
+    file = glob(f"{output_dir}/preprocessed_combined/*.{vectorfile_format}")[0]
+    new_dset = from_file(file_path=file, fs=fs, **config_new_dset)
 
     return new_dset
