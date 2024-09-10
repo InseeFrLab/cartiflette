@@ -12,6 +12,7 @@ import warnings
 
 from diskcache import Cache
 from s3fs import S3FileSystem
+from retrying import retry
 
 
 from cartiflette.config import FS
@@ -141,6 +142,10 @@ class S3Dataset:
         self.main_filename = os.path.basename(main_filename)
         self.s3_dirpath = os.path.dirname(main_filename)
 
+    @retry(
+        wait_exponential_multiplier=1000,
+        wait_exponential_max=10000,
+    )
     def to_s3(self):
         "upload file to S3"
         target = self.s3_dirpath
