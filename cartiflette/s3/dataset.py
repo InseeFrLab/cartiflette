@@ -95,8 +95,8 @@ class S3Dataset:
             self.to_local_folder_for_mapshaper()
         return self
 
-    def __exit__(self, *args, **kwargs):
-        "remove tempfiles as exit"
+    def clean(self):
+        "remove files from local dir"
         try:
             try:
                 shutil.rmtree(self.local_dir)
@@ -104,6 +104,10 @@ class S3Dataset:
                 pass
         except Exception as exc:
             warnings.warn(exc)
+
+    def __exit__(self, *args, **kwargs):
+        "remove tempfiles at exit"
+        self.clean()
 
     def get_path_of_dataset(self):
         "retrieve dataset's full paths on S3"
