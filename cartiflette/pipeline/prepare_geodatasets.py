@@ -9,6 +9,7 @@ import logging
 import os
 import re
 from tempfile import TemporaryDirectory
+import traceback
 from typing import Union, List
 import warnings
 
@@ -266,7 +267,11 @@ def create_one_year_geodataset_batch(
                     except StopIteration:
                         break
                     except Exception as e:
-                        logging.error(e)
+                        # TODO :
+                        # logging.error(e)
+                        # log full traceback to see where retrying could be
+                        # used
+                        logging.error(traceback.format_exc())
         else:
             # create geodatasets using a simple loop
             for dset, with_municipal_district, simplification in args:
