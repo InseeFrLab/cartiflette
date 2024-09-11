@@ -18,7 +18,16 @@ from unidecode import unidecode
 from cartiflette.utils import hash_file
 from cartiflette.download.dataset import RawDataset
 from cartiflette.download.layer import Layer
-from cartiflette.config import LEAVE_TQDM
+from cartiflette.config import LEAVE_TQDM, RETRYING
+
+if not RETRYING:
+    # patch retrying
+    def retry(*args, **kwargs):
+        def decorator(func):
+            return func
+
+        return decorator
+
 
 logger = logging.getLogger(__name__)
 
@@ -318,7 +327,7 @@ def download_to_tempfile_http(
     head = r.headers
 
     if not r.ok:
-        raise IOError(f"download failed with {r.status_code} code")
+        raise IOError(f"download failed with {r.status_code} code at {url=}")
 
     try:
         expected_md5 = head["content-md5"]
