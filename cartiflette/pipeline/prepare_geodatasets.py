@@ -29,7 +29,7 @@ from cartiflette.s3.geodataset import (
 )
 
 
-COMPILED_TERRITORY = re.compile("territory=([a-z]*)/", flags=re.IGNORECASE)
+COMPILED_TERRITORY = re.compile(r"territory=([a-z\-]*)/", flags=re.IGNORECASE)
 
 
 def make_one_geodataset(
@@ -146,23 +146,22 @@ def create_one_year_geodataset_batch(
     if not simplifications_values:
         simplifications_values = PIPELINE_SIMPLIFICATION_LEVELS
 
-    path = (
+    paths = (
         f"{bucket}/{path_within_bucket}/"
-        "provider=IGN/dataset_family=ADMINEXPRESS/"
-        "source=EXPRESS-COG-CARTO-TERRITOIRE/"
+        "provider=IGN/dataset_family=*/"
+        "source=*/"
         f"year={year}/"
         "administrative_level=None/"
         "crs=*/"
         "origin=raw/"
         "vectorfile_format=*/"
-        "territory=*/"
-        "simplification=*/"
-        "COMMUNE.*"
+        "territory=*/**/*.shp"
     )
 
-    communes_paths = fs.glob(path)
-    dirs = {os.path.dirname(x) for x in communes_paths}
+    paths = fs.glob(paths)
+    dirs = {os.path.dirname(x) for x in paths}
     territories = {t for x in dirs for t in COMPILED_TERRITORY.findall(x)}
+    territories = territories - {"france_entiere"}
 
     if not territories:
         warnings.warn(f"{year} not constructed (no territories available)")
@@ -194,16 +193,29 @@ def create_one_year_geodataset_batch(
     districts = S3GeoDataset(**kwargs, **raw_config)
 
     input_geodatasets = {}
-    for mesh in "COMMUNE", "CANTON":
+    dset_source_configs = {
+        "COMMUNE": ("ADMINEXPRESS", "EXPRESS-COG-CARTO-TERRITOIRE"),
+        "CANTON": ("ADMINEXPRESS", "EXPRESS-COG-CARTO-TERRITOIRE"),
+        "CONTOURS-IRIS": ("CONTOUR-IRIS", "CONTOUR-IRIS-TERRITOIRE"),
+    }
+    for mesh in "CANTON", "COMMUNE", "CONTOURS-IRIS":
 
+        family, source = dset_source_configs[mesh]
         # Construct S3GeoDatasets for each territory (Guyane, metropole, ...)
         # at mesh level (COMMUNE or CANTON)
         mesh_config = deepcopy(config)
         mesh_config["filename"] = mesh
-        geodatasets = [
-            S3GeoDataset(territory=territory, **mesh_config)
-            for territory in territories
-        ]
+        mesh_config["dataset_family"] = family
+        mesh_config["source"] = source
+        geodatasets = []
+        for territory in territories:
+            try:
+                geodatasets.append(
+                    S3GeoDataset(territory=territory, **mesh_config)
+                )
+            except ValueError:
+                # not present for this territory and this mesh
+                continue
 
         with TemporaryDirectory() as tempdir:
             with ExitStack() as stack:
@@ -246,12 +258,16 @@ def create_one_year_geodataset_batch(
 
     with input_geodatasets["COMMUNE"] as commune, input_geodatasets[
         "CANTON"
-    ] as canton, districts as districts:
-        # download communal_districts and enter context for commune/canton
+    ] as canton, input_geodatasets[
+        "CONTOURS-IRIS"
+    ] as iris, districts as districts:
+        # download communal_districts and enter context for commune/canton/iris
 
-        args = list(
-            product([commune], [True, False], simplifications_values)
-        ) + list((product([canton], [False], simplifications_values)))
+        args = (
+            list(product([commune], [True, False], simplifications_values))
+            + list((product([canton], [False], simplifications_values)))
+            + list((product([iris], [False], simplifications_values)))
+        )
 
         func = partial(
             make_one_geodataset,
@@ -370,5 +386,4 @@ def make_all_geodatasets(
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    THREADS_DOWNLOAD = 5
     created = create_one_year_geodataset_batch(2023, format_output="geojson")
