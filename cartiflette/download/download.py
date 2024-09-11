@@ -16,7 +16,13 @@ from pebble import ThreadPool
 from retrying import retry
 import s3fs
 
-from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS, THREADS_DOWNLOAD
+from cartiflette.config import (
+    BUCKET,
+    PATH_WITHIN_BUCKET,
+    FS,
+    THREADS_DOWNLOAD,
+    RETRYING,
+)
 from cartiflette.utils import (
     deep_dict_update,
     create_path_bucket,
@@ -25,6 +31,15 @@ from cartiflette.download.scraper import MasterScraper
 from cartiflette.download.dataset import RawDataset
 
 logger = logging.getLogger(__name__)
+
+
+if not RETRYING:
+    # patch retrying
+    def retry(*args, **kwargs):
+        def decorator(func):
+            return func
+
+        return decorator
 
 
 def _result_is_ko(result):

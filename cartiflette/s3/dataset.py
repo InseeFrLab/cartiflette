@@ -15,13 +15,21 @@ from s3fs import S3FileSystem
 from retrying import retry
 
 
-from cartiflette.config import FS
+from cartiflette.config import FS, RETRYING
 from cartiflette.utils import (
     create_path_bucket,
     ConfigDict,
 )
 
 cache = Cache("cartiflette-s3-cache", timeout=3600)
+
+if not RETRYING:
+    # patch retrying
+    def retry(*args, **kwargs):
+        def decorator(func):
+            return func
+
+        return decorator
 
 
 class S3Dataset:
