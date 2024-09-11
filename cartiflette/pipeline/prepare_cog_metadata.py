@@ -1,4 +1,3 @@
-import os
 import warnings
 
 import pandas as pd
@@ -40,7 +39,7 @@ def prepare_cog_metadata(
     try:
         path_bucket_cog_canton = fs.glob(path)[0]
     except IndexError:
-        warnings.warn(f"missing CANTON file for {year=}")
+        warnings.warn(f"missing COG CANTON file for {year=}")
         path_bucket_cog_canton = None
 
     # Find DEPARTEMENT dataset on S3
@@ -52,7 +51,7 @@ def prepare_cog_metadata(
     try:
         path_bucket_cog_departement = fs.glob(path)[0]
     except IndexError:
-        warnings.warn(f"missing DEPARTEMENT file for {year=}")
+        warnings.warn(f"missing COG DEPARTEMENT file for {year=}")
         path_bucket_cog_departement = None
 
     # Find REGION dataset on S3
@@ -64,7 +63,7 @@ def prepare_cog_metadata(
     try:
         path_bucket_cog_region = fs.glob(path)[0]
     except IndexError:
-        warnings.warn(f"missing REGION file for {year=}")
+        warnings.warn(f"missing COG REGION file for {year=}")
         path_bucket_cog_region = None
 
     # Find TAGC APPARTENANCE dataset on S3
@@ -76,8 +75,20 @@ def prepare_cog_metadata(
     try:
         path_tagc = fs.glob(path)[0]
     except IndexError:
-        warnings.warn(f"missing APPARTENANCE file for {year=}")
+        warnings.warn(f"missing TAGC APPARTENANCE file for {year=}")
         path_tagc = None
+
+    # Find TAGIRIS APPARTENANCE dataset on S3
+    path = (
+        f"{bucket}/{path_within_bucket}/"
+        f"provider=Insee/dataset_family=TAGIRIS/source=APPARTENANCE/"
+        f"year={year}/**/*.xlsx"
+    )
+    try:
+        path_tagiris = fs.glob(path)[0]
+    except IndexError:
+        warnings.warn(f"missing TAGIRIS APPARTENANCE file for {year=}")
+        path_tagiris = None
 
     if any(
         x is None
@@ -114,9 +125,41 @@ def prepare_cog_metadata(
         .drop(columns=["REG"])
     )
 
+    # Compute metadata at IRIS level
+    if path_tagiris is None:
+        warnings.warn(f"{year=} metadata for iris not constructed!")
+        iris = None
+
+    else:
+        # Read datasets from S3 into Pandas DataFrames
+        with fs.open(path_tagiris, mode="rb") as remote_file:
+            try:
+                iris = pd.read_excel(
+                    remote_file,
+                    skiprows=5,
+                    dtype_backend="pyarrow",
+                    dtype={
+                        "REG": "string[pyarrow]",
+                        "DEP": "string[pyarrow]",
+                        "CODE_IRIS": "string[pyarrow]",
+                        "GRD_QUART": "string[pyarrow]",
+                    },
+                )
+            except Exception as e:
+                warnings.warn(f"could not read TAGIRIS file: {e}")
+                warnings.warn(f"{year=} metadata for iris not constructed!")
+                iris = None
+
+            else:
+                iris = iris.drop(columns=["LIBCOM", "UU2020", "REG", "DEP"])
+                iris = iris.rename(
+                    {"DEPCOM": "CODGEO", "LIB_IRIS": "LIBELLE_IRIS"}, axis=1
+                )
+
+    # Compute metadata at COMMUNE level
     if path_tagc is None:
-        warnings.warn(f"{year=} metadata for cities not constructed!")
-        cities_metadata = None
+        warnings.warn(f"{year=} metadata for cities/iris not constructed!")
+        cities = None
 
     else:
         # Read datasets from S3 into Pandas DataFrames
@@ -131,14 +174,24 @@ def prepare_cog_metadata(
             except Exception as e:
                 warnings.warn(f"could not read TAGC file: {e}")
                 warnings.warn(f"{year=} metadata for cities not constructed!")
-                cities_metadata = None
+                cities = None
 
             else:
                 # Merge TAGC metadata with COG metadata
-                cities_metadata = tagc.merge(cog_metadata)
-                cities_metadata = cities_metadata.drop(columns=["LIBGEO"])
-                cities_metadata["SOURCE_METADATA"] = "INSEE:COG"
+                cities = tagc.merge(cog_metadata)
+                cities = cities.rename({"LIBGEO": "LIBELLE_COMMUNE"}, axis=1)
+                cities["SOURCE_METADATA"] = "INSEE:COG"
 
+    if iris is not None and cities is not None:
+        iris_metadata = cities.merge(iris)
+    else:
+        iris_metadata = None
+    if cities is not None:
+        cities_metadata = cities
+    else:
+        cities_metadata = None
+
+    # Compute metadata for CANTON
     if path_bucket_cog_canton is None:
         warnings.warn(f"{year=} metadata for cantons not constructed!")
         cantons_metadata = None
@@ -159,7 +212,6 @@ def prepare_cog_metadata(
             else:
                 # Merge CANTON metadata with COG metadata
                 cantons_metadata = cantons.merge(cog_metadata, how="inner")
-                cantons_metadata["SOURCE_METADATA"] = "INSEE:COG"
 
                 cantons_metadata = cantons_metadata.loc[
                     :,
@@ -177,7 +229,11 @@ def prepare_cog_metadata(
 
                 cantons_metadata["SOURCE_METADATA"] = "INSEE:COG"
 
-    return {"COMMUNE": cities_metadata, "CANTON": cantons_metadata}
+    return {
+        "IRIS": iris_metadata,
+        "COMMUNE": cities_metadata,
+        "CANTON": cantons_metadata,
+    }
 
 
 if __name__ == "__main__":

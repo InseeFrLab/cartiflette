@@ -108,7 +108,7 @@ def main(
                 year=year,
             )
 
-            for key in ["COMMUNE", "CANTON"]:
+            for key in ["COMMUNE", "CANTON", "IRIS"]:
                 try:
                     metadata_border = metadata[key]
                 except KeyError:
@@ -118,7 +118,7 @@ def main(
                 config["borders"] = key
                 path_raw_s3 = create_path_bucket(config)
                 localfile = f"{tempdir}/metadata.csv"
-                metadata_border.to_csv(localfile)
+                metadata_border.to_csv(localfile, index=False)
                 try:
                     logging.info("sending %s -> %s", localfile, path_raw_s3)
                     fs.put_file(localfile, path_raw_s3)
