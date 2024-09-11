@@ -8,6 +8,7 @@
 from collections import OrderedDict
 from itertools import product
 import logging
+import random
 import shutil
 import traceback
 from typing import Union
@@ -275,6 +276,14 @@ def _download_and_store_sources(
             kwargs[key] = list(val)
 
     combinations = list(product(*kwargs.values()))
+
+    # Shuffle list to avoid downloading the same sources almost at the same
+    # time and have better performance with requests-cache AND multithreading
+    # (for IRIS, we have territorial files which are stored in the same archive
+    # and those WILL be downloaded multiple times : cache should handle that
+    # nicely IF we do not perform those downloads at the same time, therefore
+    # shuffle should have a noticeable impact )
+    combinations = random.shuffle(combinations)
 
     files = {}
     with MasterScraper() as s:
