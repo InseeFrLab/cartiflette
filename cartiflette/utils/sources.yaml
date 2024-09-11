@@ -226,21 +226,22 @@ IGN:
         date: 2018-06-08
         version: "2-1"
         local: "FRA"
-      2016:
-        url_prefix: https://data.geopf.fr/telechargement/download/CONTOURS-IRIS/
-        date: 2017-06-30
-        version: "2-1"
-        local: "FRA"
+      # Nota : 2016 does **NOT** use the same structure (there is a _ less...)
+      # 2016:
+        # url_prefix: https://data.geopf.fr/telechargement/download/CONTOURS-IRIS/
+        # date: 2017-06-30
+        # version: "2-1"
+        # local: "FRA"
       2015:
         url_prefix: https://data.geopf.fr/telechargement/download/CONTOURS-IRIS/
         date: 2016-11-10
         version: "2-1"
-        local: "FRA"
+        local: "LAMB93_FXX"
       2014:
         url_prefix: https://data.geopf.fr/telechargement/download/CONTOURS-IRIS/
         date: 2014-01-01
         version: "2-0"
-        local: "FRA"
+        local: "LAMB93_FXX"
       2013:
         url_prefix: https://data.geopf.fr/telechargement/download/CONTOURS-IRIS/
         date: 2013-01-01
@@ -255,6 +256,7 @@ IGN:
         url_prefix: https://data.geopf.fr/telechargement/download/CONTOURS-IRIS/
         date: 2009-01-01
         version: "1-0"
+        local: "LAMB93_FXX"
   IRIS-GE:
     pattern: "*DONNEES_LIVRAISON*{territory}*.shp"
     IRIS-GE-TERRITOIRE:
