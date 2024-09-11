@@ -178,82 +178,109 @@ IGN:
         url_prefix: https://data.geopf.fr/telechargement/download/
 
   CONTOUR-IRIS: #variables INSEE_COM NOM_COM IRIS CODE_IRIS NOM_IRIS TYP_IRIS ; manque la var Grand-Quartier (GRD_QUART) présente sur les tables insee https://www.insee.fr/fr/information/2017499
-    
-    pattern: "*DONNEES_LIVRAISON*.shp"
-    structure: "{url_prefix}{prefix}$CONTOURS-IRIS_{version}__{local}_{date}/file/CONTOURS-IRIS_{version}__{local}_{date}.7z"
-    ROOT:
+    structure: "{url_prefix}CONTOURS-IRIS_{version}__SHP__{local}_{date}/CONTOURS-IRIS_{version}__SHP__{local}_{date}.7z"
+    CONTOUR-IRIS-TERRITOIRE:
+      pattern: "*DONNEES_LIVRAISON*{territory}*.shp"
+      territory:
+        metropole: LAMB93_FXX
+        guadeloupe: RGAF09UTM20_GLP
+        martinique: RGAF09UTM20_MTQ
+        guyane: UTM22RGFG95_GUF
+        reunion: RGR92UTM40S_REU
+        saint-pierre-et-miquelon: RGSPM06U21_SPM
+        mayotte: RGM04UTM38S_MYT
+        saint-barthelemy: RGAF09UTM20_BLM
+        saint-martin: RGAF09UTM20_MAF
+      2023:
+        url_prefix: https://data.geopf.fr/telechargement/download/CONTOURS-IRIS/
+        date: 2023-01-01
+        version: "3-0"
+        local: "FRA"
       2022:
-        url_prefix: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/
-        prefix: CONTOURS-IRIS-PACK_2022-01
+        url_prefix: https://data.geopf.fr/telechargement/download/CONTOURS-IRIS/
         date: 2022-01-01
         version: "2-1"
-        local: "SHP__FRA"
+        local: "FRA"
       2021:
-        url_prefix: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/
-        prefix: CONTOURS-IRIS-PACK_2021-01
+        url_prefix: https://data.geopf.fr/telechargement/download/CONTOURS-IRIS/
         date: 2021-01-01
         version: "2-1"
-        local: "SHP__FRA"
+        local: "FRA"
       2020:
-        url_prefix: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/
-        prefix: CONTOURS-IRIS-2020-01-01
+        url_prefix: https://data.geopf.fr/telechargement/download/CONTOURS-IRIS/
         date: 2020-01-01
         version: "2-1"
-        local: "SHP__FRA"
+        local: "FRA"
       2019:
-        url_prefix: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/
-        prefix: CONTOURS-IRIS-2019-01-01
+        url_prefix: https://data.geopf.fr/telechargement/download/CONTOURS-IRIS/
         date: 2019-01-01
         version: "2-1"
-        local: "SHP__FRA"
+        local: "FRA"
       2018:
-        url_prefix: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/
-        prefix: CONTOURS-IRIS-2018-01-02
+        url_prefix: https://data.geopf.fr/telechargement/download/CONTOURS-IRIS/
         date: 2018-01-01
         version: "2-1"
-        local: "SHP__FRA"
+        local: "FRA"
       2017:
-        url_prefix: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/
-        prefix: CONTOURS-IRIS-2017-01-01
+        url_prefix: https://data.geopf.fr/telechargement/download/CONTOURS-IRIS/
         date: 2018-06-08
         version: "2-1"
-        local: "SHP__FRA"
+        local: "FRA"
       2016:
-        url_prefix: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/
-        prefix: CONTOURS-IRIS-2017-06-30
+        url_prefix: https://data.geopf.fr/telechargement/download/CONTOURS-IRIS/
         date: 2017-06-30
         version: "2-1"
-        local: "SHP__FRA"
+        local: "FRA"
       2015:
-        url_prefix: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/
-        prefix: CONTOURS-IRIS-2015-01-01
+        url_prefix: https://data.geopf.fr/telechargement/download/CONTOURS-IRIS/
         date: 2016-11-10
         version: "2-1"
-        local: "SHP_LAMB93_FXX"
+        local: "FRA"
       2014:
-        url_prefix: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/
-        prefix: CONTOURS-IRIS-2014-01-01
+        url_prefix: https://data.geopf.fr/telechargement/download/CONTOURS-IRIS/
         date: 2014-01-01
         version: "2-0"
-        local: "SHP_LAMB93_FXX"
+        local: "FRA"
       2013:
-        url_prefix: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/
-        prefix: CONTOURS-IRIS-PACK_2013-01
+        url_prefix: https://data.geopf.fr/telechargement/download/CONTOURS-IRIS/
         date: 2013-01-01
         version: "1-0"
-        local: "SHP_FRA"
+        local: "FRA"
       2010:
-        url_prefix: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/
-        prefix: CONTOURS-IRIS-2017-08-09
+        url_prefix: https://data.geopf.fr/telechargement/download/CONTOURS-IRIS/
         date: 2010-01-01
         version: "1-0"
-        local: "SHP__FRA"
+        local: "FRA"
       2009:
-        url_prefix: https://wxs.ign.fr/1yhlj2ehpqf3q6dt6a2y7b64/telechargement/inspire/
-        prefix: CONTOURS-IRIS-PACK_2009-01-01
+        url_prefix: https://data.geopf.fr/telechargement/download/CONTOURS-IRIS/
         date: 2009-01-01
         version: "1-0"
-        local: "SHP_LAMB93_FRA"
+  IRIS-GE:
+    pattern: "*DONNEES_LIVRAISON*{territory}*.shp"
+    IRIS-GE-TERRITOIRE:
+      territory:
+          metropole: LAMB93_FXX
+          guadeloupe: RGAF09UTM20_GLP
+          martinique: RGAF09UTM20_MTQ
+          guyane: UTM22RGFG95_GUF
+          reunion: RGR92UTM40S_REU
+          saint-pierre-et-miquelon: RGSPM06U21_SPM
+          mayotte: RGM04UTM38S_MYT
+          saint-barthelemy: RGAF09UTM20_BLM
+          saint-martin: RGAF09UTM20_MAF
+      2024:
+        prefix: IRIS-GE
+        date: "2024-01-01"
+        version: "3-0"
+        url_prefix: https://data.geopf.fr/telechargement/download/
+        structure: "{url_prefix}{prefix}/{prefix}_{version}__SHP_{territory}_{date}/{prefix}_{version}__SHP_{territory}_{date}.7z"
+      2023:
+        prefix: IRIS-GE
+        date: "2024-01-01"
+        version: "3-0"
+        url_prefix: https://data.geopf.fr/telechargement/download/
+        # Nota : attention, c'est un fichier global (FRA) mais qui comprend des fichiers territoriaux -> territory reste dans pattern
+        structure: "{url_prefix}{prefix}/{prefix}_{version}__SHP_FRA_{date}/{prefix}_{version}__SHP_FRA_{date}.7z"
 
 Insee:
   COG:
@@ -476,6 +503,23 @@ Insee:
         pattern: "*.xlsx"
         filename: "table_passage_annuelle_2024.zip"
 
+  TAGIRIS:
+    structure: https://www.insee.fr/fr/statistiques/fichier/{article}/{filename}
+    APPARTENANCE:  
+      2024:
+        article: "7708995"
+        pattern: "*.xlsx"
+        filename: "reference_IRIS_geo2024.zip"
+      2023:
+        article: "7708995"
+        pattern: "*.xlsx"
+        filename: "reference_IRIS_geo2023.zip"
+      2022:
+        article: "7708995"
+        pattern: "*.xlsx"
+        filename: "reference_IRIS_geo2022.zip"
+
+    
   BV:
     pattern: "com_bv*.dbf"
     #-> nota : zip dans des zip

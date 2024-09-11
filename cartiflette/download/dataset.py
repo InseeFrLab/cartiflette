@@ -216,6 +216,9 @@ class RawDataset:
             d = d[key]
             try:
                 self.pattern = d["pattern"]
+                if isinstance(self.pattern, str):
+                    self.pattern = [self.pattern]
+
                 break
             except KeyError:
                 continue
@@ -271,6 +274,16 @@ class RawDataset:
                 pass
 
             url = url.format(**kwargs)
+
+        try:
+            # check if {territory} is part of self.pattern:
+            if territory != "":
+                self.pattern = [
+                    x.format(**{"territory": territory}) for x in self.pattern
+                ]
+                logger.warning(self.territory)
+        except UnboundLocalError:
+            pass
 
         logger.debug(f"using {url}")
 
@@ -385,16 +398,11 @@ class RawDataset:
                             (io.BytesIO(nested.read()), protocol)
                         )
 
-                if isinstance(self.pattern, str):
-                    files = filter_case_insensitive(self.pattern, everything)
-                else:
-                    files = [
-                        file
-                        for pattern in self.pattern
-                        for file in filter_case_insensitive(
-                            pattern, everything
-                        )
-                    ]
+                files = [
+                    file
+                    for pattern in self.pattern
+                    for file in filter_case_insensitive(pattern, everything)
+                ]
 
                 if year <= 2020 and source.endswith("-TERRITOIRE"):
                     territory_code = sources["territory"][territory].split(
