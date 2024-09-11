@@ -65,19 +65,19 @@ LEAVE_TQDM = False
 # =============================================================================
 
 PIPELINE_DOWNLOAD_ARGS = {
-    # "ADMIN-EXPRESS": [
-    #     "IGN",
-    #     "ADMINEXPRESS",
-    #     "EXPRESS-COG-CARTO-TERRITOIRE",
-    #     [
-    #         "guadeloupe",
-    #         "martinique",
-    #         "guyane",
-    #         "reunion",
-    #         "mayotte",
-    #         "metropole",
-    #     ],
-    # ],
+    "ADMIN-EXPRESS": [
+        "IGN",
+        "ADMINEXPRESS",
+        "EXPRESS-COG-CARTO-TERRITOIRE",
+        [
+            "guadeloupe",
+            "martinique",
+            "guyane",
+            "reunion",
+            "mayotte",
+            "metropole",
+        ],
+    ],
     "IRIS-GE": [
         "IGN",
         "CONTOUR-IRIS",
@@ -94,30 +94,30 @@ PIPELINE_DOWNLOAD_ARGS = {
             "saint-martin",
         ],
     ],
-    # # "IRIS-GE": [
-    # #     "IGN",
-    # #     "IRIS-GE",
-    # #     "IRIS-GE-TERRITOIRE",
-    # #     [
-    # #         "guadeloupe",
-    # #         "martinique",
-    # #         "guyane",
-    # #         "reunion",
-    # #         "mayotte",
-    # #         "metropole",
-    # #         "saint-pierre-et-miquelon",
-    # #         "saint-barthelemy",
-    # #         "saint-martin",
-    # #     ],
-    # # ],
-    # "COG": [
-    #     "Insee",
-    #     "COG",
-    #     ["CANTON", "ARRONDISSEMENT", "DEPARTEMENT", "REGION"],
-    #     "france_entiere",
+    # "IRIS-GE": [
+    #     "IGN",
+    #     "IRIS-GE",
+    #     "IRIS-GE-TERRITOIRE",
+    #     [
+    #         "guadeloupe",
+    #         "martinique",
+    #         "guyane",
+    #         "reunion",
+    #         "mayotte",
+    #         "metropole",
+    #         "saint-pierre-et-miquelon",
+    #         "saint-barthelemy",
+    #         "saint-martin",
+    #     ],
     # ],
-    # "TAGC": ["Insee", "TAGC", "APPARTENANCE"],
-    # "TAGIRIS": ["Insee", "TAGIRIS", "APPARTENANCE"],
+    "COG": [
+        "Insee",
+        "COG",
+        ["CANTON", "ARRONDISSEMENT", "DEPARTEMENT", "REGION"],
+        "france_entiere",
+    ],
+    "TAGC": ["Insee", "TAGC", "APPARTENANCE"],
+    "TAGIRIS": ["Insee", "TAGIRIS", "APPARTENANCE"],
 }
 
 PIPELINE_SIMPLIFICATION_LEVELS = [0, 40]
