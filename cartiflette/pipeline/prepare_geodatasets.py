@@ -87,7 +87,7 @@ def make_one_geodataset(
     if with_municipal_district:
         # substitute communal districts
         districts = new_dset.substitute_municipal_districts(
-            communal_districts=communal_districts, **kwargs
+            communal_districts=communal_districts.copy(), **kwargs
         )
     else:
         districts = nullcontext()
@@ -208,9 +208,16 @@ def create_one_year_geodataset_batch(
         with TemporaryDirectory() as tempdir:
             with ExitStack() as stack:
                 # download all datasets in context: download at enter
-                geodatasets = [
-                    stack.enter_context(dset) for dset in geodatasets
-                ]
+                if THREADS_DOWNLOAD > 1:
+                    threads = min(THREADS_DOWNLOAD, len(geodatasets))
+                    with ThreadPool(threads) as pool:
+                        geodatasets = list(
+                            pool.map(stack.enter_context, geodatasets).result()
+                        )
+                else:
+                    geodatasets = [
+                        stack.enter_context(dset) for dset in geodatasets
+                    ]
                 # concat S3GeoDataset
                 mesh_config.update(
                     {
@@ -266,11 +273,7 @@ def create_one_year_geodataset_batch(
                         uploaded.append(next(iterator))
                     except StopIteration:
                         break
-                    except Exception as e:
-                        # TODO :
-                        # logging.error(e)
-                        # log full traceback to see where retrying could be
-                        # used
+                    except Exception:
                         logging.error(traceback.format_exc())
         else:
             # create geodatasets using a simple loop
@@ -283,8 +286,8 @@ def create_one_year_geodataset_batch(
                             simplification=simplification,
                         )
                     )
-                except Exception as e:
-                    logging.error(e)
+                except Exception:
+                    logging.error(traceback.format_exc())
 
     return uploaded
 
@@ -367,4 +370,5 @@ def make_all_geodatasets(
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    created = make_all_geodatasets([2024, 2023], format_output="geojson")
+    THREADS_DOWNLOAD = 5
+    created = create_one_year_geodataset_batch(2023, format_output="geojson")
