@@ -27,12 +27,15 @@ parser.add_argument(
 parser.add_argument(
     "-yg",
     "--years-geodatasets",
-    default=None,
+    default="[]",
     help="Updated geodataset's vintages",
 )
 
 parser.add_argument(
-    "-ym", "--years-metadata", default=None, help="Updated metadata's vintages"
+    "-ym",
+    "--years-metadata",
+    default="[]",
+    help="Updated metadata's vintages",
 )
 
 args = parser.parse_args()
@@ -46,6 +49,19 @@ years = sorted(list(years_geodatasets | years_metadata))
 bucket = BUCKET
 path_within_bucket = PATH_WITHIN_BUCKET
 fs = FS
+
+# TODO : used only for debugging purposes
+if not years:
+    # Perform on all years
+    json_md5 = f"{bucket}/{path_within_bucket}/md5.json"
+    with fs.open(json_md5, "r") as f:
+        all_md5 = json.load(f)
+    datasets = all_md5["IGN"]["ADMINEXPRESS"]["EXPRESS-COG-CARTO-TERRITOIRE"]
+    years = {
+        year
+        for (_territory, vintaged_datasets) in datasets.items()
+        for year in vintaged_datasets.keys()
+    }
 
 # parameters
 formats = ["topojson", "geojson"]
