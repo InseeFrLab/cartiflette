@@ -11,7 +11,7 @@ COPY pyproject.toml
 COPY poetry.lock
 
 RUN curl https://install.python-poetry.org/ | python - 
-RUN poetry install --only main
+RUN poetry install --only main --no-interaction
 
 # Create structure
 COPY cartiflette ./cartiflette
