@@ -24,50 +24,28 @@ THREADS_DOWNLOAD = 5
 # Nota : each thread may also span the same number of children threads;
 # set to 1 for debugging purposes (will deactivate multithreading)
 
-RETRYING = True
-
-# PIPELINE_DOWNLOAD_ARGS = {
-#     "ADMIN-EXPRESS": [
-#         "IGN",
-#         "ADMINEXPRESS",
-#         "EXPRESS-COG-TERRITOIRE",
-#         [
-#             "guadeloupe",
-#             "martinique",
-#             "guyane",
-#             "reunion",
-#             "mayotte",
-#             "metropole",
-#         ],
-#     ],
-#     "BDTOPO": ["IGN", "BDTOPO", "ROOT", "france_entiere"],
-#     "IRIS": ["IGN", "CONTOUR-IRIS", "ROOT", None],
-#     "COG": [
-#         "Insee",
-#         "COG",
-#         [
-#             "COMMUNE",
-#             "CANTON",
-#             "ARRONDISSEMENT",
-#             "DEPARTEMENT",
-#             "REGION",
-#             "COLLECTIVITE",
-#             "PAYS",
-#         ],
-#         "france_entiere",
-#     ],
-#     "BV 2022": ["Insee", "BV", "FondsDeCarte_BV_2022", "france_entiere"],
-# }
+RETRYING = True  # WHETHER TO USE RETRYING MODULE ON DOWNLOAD/UPLOAD
 
 # =============================================================================
 # PIPELINE CONFIG
 # =============================================================================
+DATASETS_HIGH_RESOLUTION = False
+COG_TERRITOIRE = {
+    # Keys are DATASETS_HIGH_RESOLUTION's potential value
+    False: "EXPRESS-COG-CARTO-TERRITOIRE",
+    True: "EXPRESS-COG-CARTO-TERRITOIRE",
+}
+IRIS = {
+    # Keys are DATASETS_HIGH_RESOLUTION's potential value
+    False: "CONTOUR-IRIS",
+    True: "IRIS-GE",
+}
 
 PIPELINE_DOWNLOAD_ARGS = {
     "ADMIN-EXPRESS": [
         "IGN",
         "ADMINEXPRESS",
-        "EXPRESS-COG-CARTO-TERRITOIRE",
+        COG_TERRITOIRE[DATASETS_HIGH_RESOLUTION],
         [
             "guadeloupe",
             "martinique",
@@ -77,10 +55,10 @@ PIPELINE_DOWNLOAD_ARGS = {
             "metropole",
         ],
     ],
-    "IRIS-GE": [
+    "IRIS": [
         "IGN",
-        "CONTOUR-IRIS",
-        "CONTOUR-IRIS-TERRITOIRE",
+        "IRIS",
+        IRIS[DATASETS_HIGH_RESOLUTION],
         [
             "guadeloupe",
             "martinique",
@@ -93,22 +71,6 @@ PIPELINE_DOWNLOAD_ARGS = {
             "saint-martin",
         ],
     ],
-    # "IRIS-GE": [
-    #     "IGN",
-    #     "IRIS-GE",
-    #     "IRIS-GE-TERRITOIRE",
-    #     [
-    #         "guadeloupe",
-    #         "martinique",
-    #         "guyane",
-    #         "reunion",
-    #         "mayotte",
-    #         "metropole",
-    #         "saint-pierre-et-miquelon",
-    #         "saint-barthelemy",
-    #         "saint-martin",
-    #     ],
-    # ],
     "COG": [
         "Insee",
         "COG",

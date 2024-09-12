@@ -177,9 +177,10 @@ IGN:
         version: "2-0"
         url_prefix: https://data.geopf.fr/telechargement/download/
 
-  CONTOUR-IRIS: #variables INSEE_COM NOM_COM IRIS CODE_IRIS NOM_IRIS TYP_IRIS ; manque la var Grand-Quartier (GRD_QUART) présente sur les tables insee https://www.insee.fr/fr/information/2017499
-    structure: "{url_prefix}CONTOURS-IRIS_{version}__SHP__{local}_{date}/CONTOURS-IRIS_{version}__SHP__{local}_{date}.7z"
-    CONTOUR-IRIS-TERRITOIRE:
+  IRIS: 
+    CONTOUR-IRIS:
+      #variables INSEE_COM NOM_COM IRIS CODE_IRIS NOM_IRIS TYP_IRIS ; manque la var Grand-Quartier (GRD_QUART) présente sur les tables insee https://www.insee.fr/fr/information/2017499
+      structure: "{url_prefix}CONTOURS-IRIS_{version}__SHP__{local}_{date}/CONTOURS-IRIS_{version}__SHP__{local}_{date}.7z"
       pattern: "*DONNEES_LIVRAISON*{territory}*.shp"
       territory:
         metropole: LAMB93_FXX
@@ -211,9 +212,8 @@ IGN:
         date: 2020-01-01
         version: "2-1"
         local: "FRA"
-  IRIS-GE:
-    pattern: "*DONNEES_LIVRAISON*{territory}*.shp"
-    IRIS-GE-TERRITOIRE:
+    IRIS-GE:
+      pattern: "*DONNEES_LIVRAISON*{territory}*.shp"
       territory:
           metropole: LAMB93_FXX
           guadeloupe: RGAF09UTM20_GLP
