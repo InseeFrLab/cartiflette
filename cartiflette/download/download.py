@@ -285,10 +285,19 @@ def _download_and_store_sources(
             for x in combinations
             if x["year"] == y
         ]
+
+        def try_get_path(dset):
+            try:
+                return dset.get_path_from_provider()
+            except ValueError as e:
+                logger.error(e)
+
         reused = {
             (url, md5)
             for (url, md5), count in Counter(
-                (dset.get_path_from_provider(), dset.md5) for dset in datasets
+                (try_get_path(dset), dset.md5)
+                for dset in datasets
+                if try_get_path(dset)
             ).items()
             if count > 1
         }
@@ -303,13 +312,24 @@ def _download_and_store_sources(
             threads = min(THREADS_DOWNLOAD, len(reused_urls))
             if threads > 1:
                 with ThreadPool(threads) as pool:
-                    list(
-                        pool.map(
-                            s.simple_download, *zip(*reused_urls)
-                        ).result()
-                    )
+                    iterator = pool.map(
+                        s.simple_download, *zip(*reused_urls)
+                    ).result()
+                    while True:
+                        try:
+                            next(iterator)
+                        except StopIteration:
+                            break
+                        except Exception as e:
+                            logger.error(e)
+                            logger.error(traceback.format_exc())
             else:
-                (s.simple_download(url, md5) for url, md5 in combinations)
+                for url, md5 in combinations:
+                    try:
+                        s.simple_download(url, md5)
+                    except Exception as e:
+                        logger.error(e)
+                        logger.error(traceback.format_exc())
 
     files = {}
     with MasterScraper() as s:
@@ -377,6 +397,10 @@ def _download_and_store_sources(
                         logger.error(traceback.format_exc())
         else:
             for args in combinations:
-                files = deep_dict_update(files, func(args))
+                try:
+                    files = deep_dict_update(files, func(args))
+                except Exception as e:
+                    logger.error(e)
+                    logger.error(traceback.format_exc())
 
     return files
