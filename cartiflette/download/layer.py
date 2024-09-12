@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
+
+import logging
+import os
+
 from charset_normalizer import from_bytes, is_binary
 import fiona
 import geopandas as gpd
-import logging
-import os
+import pyogrio
 from shapely.geometry import box
 
 from cartiflette.download.dataset import RawDataset
@@ -13,12 +16,17 @@ logger = logging.getLogger(__name__)
 
 
 class Layer:
+    """
+    Layer present in a dataset.
+    """
+
     def __init__(self, dataset: RawDataset, cluster_name: str, files: dict):
         """
-        Layer present in a dataset. A layer is defined by a distinctive
-        combination of path and basename (without extension). To that effect,
-        each auxiliary file associated to a shapefile shall be present in the
-        same layer.
+        Layer present in a dataset.
+
+        A layer is defined by a distinctive combination of path and basename
+        (without extension). To that effect, each auxiliary file associated to
+        a shapefile shall be present in the same layer.
 
         Nota : distinction between selected and unselected files in `files`
         argument helps to evaluate territory using a shapefile even if the
@@ -115,8 +123,9 @@ class Layer:
 
             if not self.crs:
                 logger.info(
-                    f"{self} - projection without known EPSG, "
-                    "layer will be reprojected to 4326"
+                    "%s - projection without known EPSG, "
+                    "layer will be reprojected to 4326",
+                    self,
                 )
 
                 # Let's reproject...
@@ -128,13 +137,18 @@ class Layer:
 
             elif encoding and encoding != "utf-8":
                 logger.info(
-                    f"{self} - encoding={encoding}, "
-                    "layer will be re-encoded to UTF8"
+                    "%s - encoding=%s, layer will be re-encoded to UTF8",
+                    self,
+                    encoding,
                 )
                 # let's overwrite initial files with utf8...
                 gdf.to_file(ref_gis_file, encoding="utf-8")
 
-        except (AttributeError, fiona.errors.DriverError):
+        except (
+            AttributeError,
+            fiona.errors.DriverError,
+            pyogrio.errors.DataSourceError,
+        ):
             # Non-native-GIS dataset
             self.crs = None
             fiona_logger.setLevel(init)
@@ -163,16 +177,18 @@ class Layer:
                 self.territory = "france_entiere"
             else:
                 logger.info(
-                    f"{self} : spatial join used for territory recognition "
-                    "failed, dataset's raw description will be used instead"
+                    "%s : spatial join used for territory recognition "
+                    "failed, dataset's raw description will be used instead",
+                    self,
                 )
                 self.territory = self.dataset.territory
 
         elif not self.crs:
             # TODO : chercher un champ de clefs INSEE ?
             logger.info(
-                f"{self} : coverage analysis of non-gis files is not yet "
-                "implemented, dataset's raw description will be used instead"
+                "%s : coverage analysis of non-gis files is not yet "
+                "implemented, dataset's raw description will be used instead",
+                self,
             )
             self.territory = self.dataset.territory
 
@@ -199,8 +215,10 @@ class Layer:
                     else:
                         if encoding != "utf_8":
                             logger.info(
-                                f"{self} - encoding={encoding}, "
-                                "layer will be re-encoded to UTF8"
+                                "%s - encoding=%s, "
+                                "layer will be re-encoded to UTF8",
+                                self,
+                                encoding,
                             )
                             with open(file, "w", encoding="utf8"):
                                 data.decode(encoding)
