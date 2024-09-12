@@ -5,6 +5,7 @@
 from datetime import date
 import json
 import logging
+import traceback
 from typing import List
 
 from pebble import ThreadPool
@@ -179,8 +180,8 @@ def download_all(
                     results = deep_dict_update(results, next(iterator))
                 except StopIteration:
                     break
-                except Exception as e:
-                    logger.error(e)
+                except Exception:
+                    logger.error(traceback.format_exc())
     else:
         for args in datasets_args.items():
             results = deep_dict_update(results, func(args))

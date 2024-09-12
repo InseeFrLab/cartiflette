@@ -123,8 +123,8 @@ class RawDataset:
             with self.fs.open(self.json_md5, "r") as f:
                 all_md5 = json.load(f)
         except Exception as e:
-            logger.error(e)
-            logger.error("md5 json not found on MinIO")
+            logger.info(e)
+            logger.info("md5 json not found on MinIO")
             return
         try:
             md5 = all_md5[self.provider][self.dataset_family][self.source][
@@ -281,7 +281,6 @@ class RawDataset:
                 self.pattern = [
                     x.format(**{"territory": territory}) for x in self.pattern
                 ]
-                logger.warning(self.territory)
         except UnboundLocalError:
             pass
 

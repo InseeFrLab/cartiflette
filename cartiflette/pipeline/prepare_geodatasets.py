@@ -215,6 +215,7 @@ def create_one_year_geodataset_batch(
                 )
             except ValueError:
                 # not present for this territory and this mesh
+                logging.warning("file not found for %s", territory)
                 continue
 
         with TemporaryDirectory() as tempdir:
