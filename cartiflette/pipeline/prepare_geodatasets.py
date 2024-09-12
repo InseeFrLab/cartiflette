@@ -225,7 +225,11 @@ def create_one_year_geodataset_batch(
                     threads = min(THREADS_DOWNLOAD, len(geodatasets))
                     with ThreadPool(threads) as pool:
                         geodatasets = list(
-                            pool.map(stack.enter_context, geodatasets).result()
+                            pool.map(
+                                stack.enter_context,
+                                geodatasets,
+                                timeout=60 * 2,
+                            ).result()
                         )
                 else:
                     geodatasets = [

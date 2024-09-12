@@ -311,9 +311,11 @@ def _download_and_store_sources(
         with MasterScraper() as s:
             threads = min(THREADS_DOWNLOAD, len(reused_urls))
             if threads > 1:
-                with ThreadPool(threads) as pool:
+                with ThreadPool(
+                    threads,
+                ) as pool:
                     iterator = pool.map(
-                        s.simple_download, *zip(*reused_urls)
+                        s.simple_download, *zip(*reused_urls), timeout=60 * 10
                     ).result()
                     while True:
                         try:
@@ -386,7 +388,9 @@ def _download_and_store_sources(
 
         if THREADS_DOWNLOAD > 1:
             with ThreadPool(THREADS_DOWNLOAD) as pool:
-                iterator = pool.map(func, combinations).result()
+                iterator = pool.map(
+                    func, combinations, timeout=60 * 10
+                ).result()
                 while True:
                     try:
                         files = deep_dict_update(files, next(iterator))
