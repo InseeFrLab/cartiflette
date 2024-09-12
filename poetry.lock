@@ -5482,6 +5482,20 @@ slack = ["slack-sdk"]
 telegram = ["requests"]
 
 [[package]]
+name = "tqdm-loggable"
+version = "0.2"
+description = "TQDM progress bar helpers for logging and other headless application"
+optional = false
+python-versions = ">3.8"
+files = [
+    {file = "tqdm_loggable-0.2-py3-none-any.whl", hash = "sha256:9703046302b93a667166487759e6f3f49597e86c89eb132ba1f31caa07bf0941"},
+    {file = "tqdm_loggable-0.2.tar.gz", hash = "sha256:175abec3e1f63bbd2eac192fa5da075e80c7bb715d7ccf3cd1a29b7ab5af0617"},
+]
+
+[package.dependencies]
+tqdm = ">4.64"
+
+[[package]]
 name = "traitlets"
 version = "5.14.3"
 description = "Traitlets Python configuration system"
@@ -5981,4 +5995,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "a700f477f648e8021b5450771fac81cada2a9d0a7c451a280f73a207520f5f26"
+content-hash = "fdedd900eeb27a46fba484a519de1ba0edd9c83451731f328c6b8f916c0c6dd5"
