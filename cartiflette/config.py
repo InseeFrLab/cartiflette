@@ -25,7 +25,6 @@ THREADS_DOWNLOAD = 5
 # set to 1 for debugging purposes (will deactivate multithreading)
 
 RETRYING = True
-LEAVE_TQDM = False
 
 # PIPELINE_DOWNLOAD_ARGS = {
 #     "ADMIN-EXPRESS": [

@@ -150,10 +150,7 @@ class S3Dataset:
         self.main_filename = os.path.basename(main_filename)
         self.s3_dirpath = os.path.dirname(main_filename)
 
-    @retry(
-        wait_exponential_multiplier=1000,
-        wait_exponential_max=10000,
-    )
+    @retry(stop_max_attempt_number=3, wait_fixed=2000)
     def to_s3(self):
         "upload file to S3"
         target = self.s3_dirpath

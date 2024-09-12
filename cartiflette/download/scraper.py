@@ -9,16 +9,14 @@ import tempfile
 from typing import TypedDict
 
 import magic
-import numpy as np
 import requests
 import requests_cache
-from tqdm_loggable.auto import tqdm
 from unidecode import unidecode
 
 from cartiflette.utils import hash_file
 from cartiflette.download.dataset import RawDataset
 from cartiflette.download.layer import Layer
-from cartiflette.config import LEAVE_TQDM, RETRYING
+from cartiflette.config import RETRYING
 
 if not RETRYING:
     # patch retrying
@@ -290,10 +288,7 @@ def validate_file(file_path, hash_):
     return hash_file(file_path) == hash_
 
 
-@retry(
-    wait_exponential_multiplier=1000,
-    wait_exponential_max=10000,
-)
+@retry(stop_max_attempt_number=3, wait_fixed=2000)
 def download_to_tempfile_http(
     url: str,
     hash_: str = None,
@@ -385,22 +380,29 @@ def download_to_tempfile_http(
         if not r.ok:
             raise IOError(f"download failed with {r.status_code} code")
 
-        if expected_file_size:
-            total = int(np.ceil(expected_file_size / block_size))
-        else:
-            total = None
-        with tqdm(
-            desc="Downloading: ",
-            total=total,
-            unit="iB",
-            unit_scale=True,
-            unit_divisor=1024,
-            leave=LEAVE_TQDM,
-        ) as pbar:
-            for chunk in r.iter_content(chunk_size=block_size):
-                if chunk:  # filter out keep-alive new chunks
-                    size = temp_file.write(chunk)
-                    pbar.update(size)
+        # =====================================================================
+        # This is not working (yet) with requests-cache:
+        # =====================================================================
+        # if expected_file_size:
+        #     total = int(np.ceil(expected_file_size / block_size))
+        # else:
+        #     total = None
+        # with tqdm(
+        #     desc="Downloading: ",
+        #     total=total,
+        #     unit="iB",
+        #     unit_scale=True,
+        #     unit_divisor=1024,
+        #     leave=LEAVE_TQDM,
+        # ) as pbar:
+        #     for chunk in r.iter_content(chunk_size=block_size):
+        #         if chunk:  # filter out keep-alive new chunks
+        #             size = temp_file.write(chunk)
+        #             pbar.update(size)
+
+        for chunk in r.iter_content(chunk_size=block_size):
+            if chunk:
+                temp_file.write(chunk)
 
     # Check that the downloaded file has the expected characteristics
     if expected_md5:

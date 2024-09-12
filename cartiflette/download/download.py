@@ -51,9 +51,7 @@ def _result_is_ko(result):
 
 
 @retry(
-    retry_on_result=_result_is_ko,
-    wait_exponential_multiplier=1000,
-    wait_exponential_max=10000,
+    retry_on_result=_result_is_ko, stop_max_attempt_number=3, wait_fixed=2000
 )
 def _upload_raw_dataset_to_s3(
     dataset: RawDataset,
