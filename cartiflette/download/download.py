@@ -302,7 +302,8 @@ def _download_and_store_sources(
             if count > 1
         }
         reused_urls.update(reused)
-    # reused_urls = {(url_1, md5_1), (url_2, md5_2)}
+    reused_urls = list(reused_urls)
+    # reused_urls = [(url_1, md5_1), (url_2, md5_2)]
 
     # -> proceed to immediate download of reused urls (and don't do anything
     # about it), and resort to requests-cache to dispatch it to the different
@@ -317,21 +318,24 @@ def _download_and_store_sources(
                     iterator = pool.map(
                         s.simple_download, *zip(*reused_urls), timeout=60 * 10
                     ).result()
+                    index = 0
                     while True:
                         try:
                             next(iterator)
                         except StopIteration:
                             break
-                        except Exception as e:
-                            logger.error(e)
+                        except Exception:
                             logger.error(traceback.format_exc())
+                            logger.error("url was %s", reused_urls[index])
+                        finally:
+                            index += 1
             else:
                 for url, md5 in combinations:
                     try:
                         s.simple_download(url, md5)
-                    except Exception as e:
-                        logger.error(e)
+                    except Exception:
                         logger.error(traceback.format_exc())
+                        logger.error("url was %s", (url, md5))
 
     files = {}
     with MasterScraper() as s:
@@ -391,20 +395,23 @@ def _download_and_store_sources(
                 iterator = pool.map(
                     func, combinations, timeout=60 * 10
                 ).result()
+                index = 0
                 while True:
                     try:
                         files = deep_dict_update(files, next(iterator))
                     except StopIteration:
                         break
-                    except Exception as e:
-                        logger.error(e)
+                    except Exception:
                         logger.error(traceback.format_exc())
+                        logger.error("config was %s", combinations[index])
+                    finally:
+                        index += 1
         else:
             for args in combinations:
                 try:
                     files = deep_dict_update(files, func(args))
-                except Exception as e:
-                    logger.error(e)
+                except Exception:
                     logger.error(traceback.format_exc())
+                    logger.error("config was %s", args)
 
     return files
