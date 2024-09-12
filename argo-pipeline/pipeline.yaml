@@ -45,6 +45,7 @@ spec:
                 value: "{{tasks.download-all-sources.outputs.parameters.download_all_results}}"
 
           # STEP 3.1 : CREATE BASE GEODATASETS ON MINIO FROM RAW TERRITORIAL FILES
+          # TODO : skip to one pod for each available year
           - name: make-geodatasets
             template: make-geodatasets
             dependencies: [ select-downstream-vintage-to-process ]
