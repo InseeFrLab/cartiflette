@@ -325,12 +325,9 @@ spec:
       container:
         image: inseefrlab/cartiflette
         command: [sh, -c]
-        args: ["mkdir -p $LOCAL_DATA_PATH ;
-                mkdir -p /mnt/bin/src ;
+        args: ["mkdir -p /mnt/bin/src ;
                 mv /mnt/bin/argo-pipeline/src/* /mnt/bin/src ;
-                echo $PATH_WRITING_S3 ;
-                echo 'Ceci est un test d ecriture;si cette ligne s affiche dans le log, le test est concluant' > ${LOCAL_DATA_PATH}/dummy.csv;
-                head -n 1 ${LOCAL_DATA_PATH}/dummy.csv"]
+                echo $PATH_WRITING_S3"]
         volumeMounts:
           - name: volume-workflow-tmp
             mountPath: /mnt
@@ -339,8 +336,6 @@ spec:
             value: "test"
           - name: PYTHONPATH
             value: "${PYTHONPATH}:/mnt/bin"
-          - name: LOCAL_DATA_PATH
-            value: "/mnt/data"
           - name: AWS_ACCESS_KEY_ID
             valueFrom:
               secretKeyRef:
@@ -368,7 +363,7 @@ spec:
         image: inseefrlab/cartiflette
         command: [sh, -c]
         args: ["
-          python /mnt/bin/src/download_all_sources.py --path $PATH_WRITING_S3 --localpath $LOCAL_DATA_PATH --years 2024,2023;
+          python /mnt/bin/src/download_all_sources.py --path $PATH_WRITING_S3 --years 2024,2023;
           "]
         volumeMounts:
           - name: volume-workflow-tmp

@@ -43,9 +43,6 @@ parser.add_argument(
     "-p", "--path", help="Path within bucket", default=PATH_WITHIN_BUCKET
 )
 parser.add_argument(
-    "-lp", "--localpath", help="Path within bucket", default="temp"
-)
-parser.add_argument(
     "--years",
     type=str,
     help="List of years to perform download on (as comma separated values)",
@@ -63,7 +60,6 @@ args = parser.parse_args()
 
 bucket = BUCKET
 path_within_bucket = args.path
-local_path = args.localpath
 years = args.years
 skip = args.skip
 
@@ -71,8 +67,6 @@ if years:
     years = [int(x) for x in years.split(",")]
 
 fs = FS
-
-os.makedirs(local_path, exist_ok=True)
 
 
 try:
