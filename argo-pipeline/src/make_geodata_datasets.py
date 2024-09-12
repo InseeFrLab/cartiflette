@@ -11,7 +11,6 @@ import argparse
 import json
 import logging
 from typing import List
-import warnings
 
 from cartiflette.config import (
     BUCKET,
