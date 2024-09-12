@@ -7,8 +7,11 @@ COPY docker/install-mapshaper.sh .
 RUN ./install-mapshaper.sh
 
 # Install project Python dependencies
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+COPY pyproject.toml
+COPY poetry.lock
+
+RUN curl https://install.python-poetry.org/ | python - --version ${POETRY_VERSION}
+RUN poetry install --only main
 
 # Create structure
 COPY cartiflette ./cartiflette
