@@ -12,7 +12,7 @@ import magic
 import numpy as np
 import requests
 import requests_cache
-from tqdm import tqdm
+from tqdm_loggable.auto import tqdm
 from unidecode import unidecode
 
 from cartiflette.utils import hash_file
@@ -380,8 +380,7 @@ def download_to_tempfile_http(
     with tempfile.NamedTemporaryFile("wb", delete=False) as temp_file:
         file_path = temp_file.name
         logger.debug("Downloading to %s", file_path)
-
-        logger.debug("starting download at %s", url)
+        logger.info("starting download at %s", url)
         r = session.get(url, stream=True, **kwargs)
         if not r.ok:
             raise IOError(f"download failed with {r.status_code} code")
