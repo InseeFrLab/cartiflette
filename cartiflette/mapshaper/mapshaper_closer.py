@@ -2,6 +2,8 @@ import logging
 import os
 import subprocess
 
+logger = logging.getLogger(__name__)
+
 logical_conditions = {
     "EMPRISES": {
         "metropole": "bbox=-572324.2901945524,5061666.243842439,1064224.7522608414,6638201.7541528195",
@@ -117,7 +119,7 @@ def mapshaper_bring_closer(
         )
 
         for region, shift_value in shift.items():
-            logging.info("Processing %s", region)
+            logger.info("Processing %s", region)
             cmd = (
                 f"mapshaper -i {input_file} "
                 f"-proj EPSG:3857 "

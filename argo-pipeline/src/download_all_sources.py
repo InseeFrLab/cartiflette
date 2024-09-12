@@ -29,10 +29,11 @@ from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
 from cartiflette.download import download_all
 
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-logging.info("=" * 50)
-logging.info("\n" + __doc__)
-logging.info("=" * 50)
+logger.info("=" * 50)
+logger.info("\n" + __doc__)
+logger.info("=" * 50)
 
 
 # Initialize ArgumentParser
@@ -76,7 +77,7 @@ try:
         )
     else:
         results = dict()
-        logging.warning(
+        logger.warning(
             "\n\n!!!! Download skipped !!!\n\n"
             "To reset download, remove --skip flag from pipeline yaml (from "
             "download-all-sources template)!"
@@ -91,4 +92,4 @@ except Exception:
         pass
     raise
 
-logging.info(results)
+logger.info(results)

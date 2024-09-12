@@ -21,6 +21,7 @@ from cartiflette.utils import (
     ConfigDict,
 )
 
+logger = logging.getLogger(__name__)
 cache = Cache("cartiflette-s3-cache", timeout=3600)
 
 if not RETRYING:
@@ -156,7 +157,7 @@ class S3Dataset:
         target = self.s3_dirpath
         if not target.endswith("/"):
             target += "/"
-        logging.info("sending %s -> %s", self.local_dir, target)
+        logger.info("sending %s -> %s", self.local_dir, target)
         self.fs.put(self.local_dir + "/*", target, recursive=True)
 
     def _read(self, src: str) -> bytes:
@@ -214,11 +215,11 @@ class S3Dataset:
         files = []
 
         # Get all files (plural in case of shapefile) from Minio
-        logging.debug("downloading %s to %s", self.s3_files, self.local_dir)
+        logger.debug("downloading %s to %s", self.s3_files, self.local_dir)
         for file in self.s3_files:
             path = f"{self.local_dir}/{file.rsplit('/', maxsplit=1)[-1]}"
             self.download(file, path)
-            logging.info("file written to %s", path)
+            logger.info("file written to %s", path)
             files.append(path)
 
         self.local_files = files

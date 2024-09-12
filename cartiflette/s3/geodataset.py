@@ -41,6 +41,8 @@ from cartiflette.utils.dict_correspondance import (
     create_format_standardized,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class S3GeoDataset(S3Dataset):
     """
@@ -676,7 +678,7 @@ def concat_s3geodataset(
         output_format=vectorfile_format,
     )
 
-    logging.info("new S3GeoDataset created at %s", output_path)
+    logger.info("new S3GeoDataset created at %s", output_path)
 
     for file in old_files:
         os.unlink(file)

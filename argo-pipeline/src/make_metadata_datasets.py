@@ -19,9 +19,11 @@ from cartiflette.pipeline.prepare_cog_metadata import prepare_cog_metadata
 
 logging.basicConfig(level=logging.INFO)
 
-logging.info("=" * 50)
-logging.info("\n%s", __doc__)
-logging.info("=" * 50)
+logger = logging.getLogger(__name__)
+
+logger.info("=" * 50)
+logger.info("\n%s", __doc__)
+logger.info("=" * 50)
 
 # Initialize ArgumentParser
 parser = argparse.ArgumentParser(
@@ -77,9 +79,9 @@ def main(
 
     with tempfile.TemporaryDirectory() as tempdir:
         for year in years:
-            logging.info("-" * 50)
-            logging.info("Computing metadata for year=%s", year)
-            logging.info("-" * 50)
+            logger.info("-" * 50)
+            logger.info("Computing metadata for year=%s", year)
+            logger.info("-" * 50)
 
             os.makedirs(f"{local_path}/{year}", exist_ok=True)
 
@@ -119,7 +121,7 @@ def main(
                 localfile = f"{tempdir}/metadata.csv"
                 metadata_border.to_csv(localfile, index=False)
                 try:
-                    logging.info("sending %s -> %s", localfile, path_raw_s3)
+                    logger.info("sending %s -> %s", localfile, path_raw_s3)
                     fs.put_file(localfile, path_raw_s3)
                 except Exception:
                     raise

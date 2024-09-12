@@ -22,10 +22,12 @@ from cartiflette.pipeline.prepare_geodatasets import make_all_geodatasets
 
 logging.basicConfig(level=logging.INFO)
 
+logger = logging.getLogger(__name__)
 
-logging.info("=" * 50)
-logging.info("\n" + __doc__)
-logging.info("=" * 50)
+
+logger.info("=" * 50)
+logger.info("\n" + __doc__)
+logger.info("=" * 50)
 
 # Initialize ArgumentParser
 parser = argparse.ArgumentParser(

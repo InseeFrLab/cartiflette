@@ -12,9 +12,11 @@ import argparse
 import logging
 import json
 
-logging.info("=" * 50)
-logging.info("\n" + __doc__)
-logging.info("=" * 50)
+logger = logging.getLogger(__name__)
+
+logger.info("=" * 50)
+logger.info("\n" + __doc__)
+logger.info("=" * 50)
 
 parser = argparse.ArgumentParser(description="Select vintage to update")
 parser.add_argument(
@@ -52,7 +54,7 @@ finally:
     years_geodata = sorted(list(years_geodata))
     with open("geodatasets_years.json", "w") as out:
         json.dump(years_geodata, out)
-    logging.info("selected downstream geodatasets : %s", years_geodata)
+    logger.info("selected downstream geodatasets : %s", years_geodata)
 
 
 years_metadata = set()
@@ -74,4 +76,4 @@ finally:
     years_metadata = sorted(list(years_metadata))
     with open("metadata_years.json", "w") as out:
         json.dump(years_metadata, out)
-    logging.info("selected downstream metadata : %s", years_metadata)
+    logger.info("selected downstream metadata : %s", years_metadata)

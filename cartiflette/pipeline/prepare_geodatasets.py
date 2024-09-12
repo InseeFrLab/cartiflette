@@ -28,6 +28,8 @@ from cartiflette.s3.geodataset import (
     concat_s3geodataset,
 )
 
+logger = logging.getLogger(__name__)
+
 
 COMPILED_TERRITORY = re.compile(r"territory=([a-z\-]*)/", flags=re.IGNORECASE)
 
@@ -79,7 +81,7 @@ def make_one_geodataset(
     log = "Create %s geodatasets with simplification=%s"
     if with_municipal_district:
         log += " with municipal districts substitution"
-    logging.info(log, mesh, simplification)
+    logger.info(log, mesh, simplification)
 
     kwargs = {"format_output": format_output}
 
@@ -167,7 +169,7 @@ def create_one_year_geodataset_batch(
         warnings.warn(f"{year} not constructed (no territories available)")
         return
 
-    logging.info("Territoires identifiés:\n%s", "\n".join(territories))
+    logger.info("Territoires identifiés:\n%s", "\n".join(territories))
 
     config = {
         "bucket": bucket,
@@ -215,7 +217,7 @@ def create_one_year_geodataset_batch(
                 )
             except ValueError:
                 # not present for this territory and this mesh
-                logging.warning("file not found for %s", territory)
+                logger.warning("file not found for %s", territory)
                 continue
 
         with TemporaryDirectory() as tempdir:
@@ -283,7 +285,7 @@ def create_one_year_geodataset_batch(
         if THREADS_DOWNLOAD > 1:
             # create geodatasets with multithreading
             threads = min(THREADS_DOWNLOAD, len(args))
-            logging.info(
+            logger.info(
                 "Parallelizing simplifications with %s threads", threads
             )
             with ThreadPool(threads) as pool:
@@ -295,7 +297,7 @@ def create_one_year_geodataset_batch(
                     except StopIteration:
                         break
                     except Exception:
-                        logging.error(traceback.format_exc())
+                        logger.error(traceback.format_exc())
         else:
             # create geodatasets using a simple loop
             for dset, with_municipal_district, simplification in args:
@@ -308,7 +310,7 @@ def create_one_year_geodataset_batch(
                         )
                     )
                 except Exception:
-                    logging.error(traceback.format_exc())
+                    logger.error(traceback.format_exc())
 
     return uploaded
 
@@ -361,9 +363,9 @@ def make_all_geodatasets(
     uploaded = []
 
     for year in years:
-        logging.info("-" * 50)
-        logging.info(f"Merging territorial files of cities for {year=}")
-        logging.info("-" * 50)
+        logger.info("-" * 50)
+        logger.info(f"Merging territorial files of cities for {year=}")
+        logger.info("-" * 50)
 
         try:
             # Merge all territorial cities files into a single file
