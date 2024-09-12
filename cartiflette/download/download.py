@@ -5,10 +5,9 @@
 # pipeline, please refer yourself to cartiflette\download\pipeline.py
 # =============================================================================
 
-from collections import OrderedDict
+from collections import OrderedDict, Counter
 from itertools import product
 import logging
-import random
 import shutil
 import traceback
 from typing import Union
@@ -111,7 +110,7 @@ def _upload_raw_dataset_to_s3(
     try:
         # DUPLICATE SOURCES IN BUCKET
         errors_encountered = False
-        dataset_paths = dict()
+        dataset_paths = {}
         for key, layer in result["layers"].items():
             layer_paths = []
             for path, rename_basename in layer.files_to_upload.items():
@@ -136,7 +135,7 @@ def _upload_raw_dataset_to_s3(
 
                 layer_paths.append(path_within)
 
-                logger.info(f"upload to {path_within}")
+                logger.info("upload to %s", path_within)
 
                 try:
                     fs.put(path, path_within, recursive=True)
@@ -164,8 +163,7 @@ def _upload_raw_dataset_to_s3(
         # to allow for further tentatives)
         dataset.update_json_md5(result["hash"])
         return dataset_paths
-    else:
-        return {}
+    return {}
 
 
 def _download_and_store_sources(
@@ -264,40 +262,61 @@ def _download_and_store_sources(
         ("dataset_families", dataset_families),
     ]
     for key, val in items:
-        if isinstance(val, str) or isinstance(val, int):
+        if isinstance(val, (str, int)):
             kwargs[key] = [val]
         elif not val:
             kwargs[key] = [None]
-        elif (
-            isinstance(val, list)
-            or isinstance(val, tuple)
-            or isinstance(val, set)
-        ):
+        elif isinstance(val, (list, tuple, set)):
             kwargs[key] = list(val)
 
     combinations = list(product(*kwargs.values()))
+    order = "source", "territory", "year", "provider", "dataset_family"
+    combinations = [dict(zip(order, x)) for x in combinations]
 
-    # Shuffle list to avoid downloading the same sources almost at the same
-    # time and have better performance with requests-cache AND multithreading
-    # (for IRIS, we have territorial files which are stored in the same archive
-    # and those WILL be downloaded multiple times : cache should handle that
-    # nicely IF we do not perform those downloads at the same time, therefore
-    # shuffle should have a noticeable impact )
-    combinations = random.shuffle(combinations)
+    # Check wether (some) urls are reused in this batch
+    reused_urls = set()
+    for y in years:
+        datasets = [
+            RawDataset(
+                bucket=bucket,
+                path_within_bucket=path_within_bucket,
+                **x,
+            )
+            for x in combinations
+            if x["year"] == y
+        ]
+        reused = {
+            (url, md5)
+            for (url, md5), count in Counter(
+                (dset.get_path_from_provider(), dset.md5) for dset in datasets
+            ).items()
+            if count > 1
+        }
+        reused_urls.update(reused)
+    # reused_urls = {(url_1, md5_1), (url_2, md5_2)}
+
+    # -> proceed to immediate download of reused urls (and don't do anything
+    # about it), and resort to requests-cache to dispatch it to the different
+    # datasets later
+    if reused_urls:
+        with MasterScraper() as s:
+            threads = min(THREADS_DOWNLOAD, len(reused_urls))
+            if threads > 1:
+                with ThreadPool(threads) as pool:
+                    list(
+                        pool.map(
+                            s.simple_download, *zip(*reused_urls)
+                        ).result()
+                    )
+            else:
+                (s.simple_download(url, md5) for url, md5 in combinations)
 
     files = {}
     with MasterScraper() as s:
 
-        def func(args):
-            source, territory, year, provider, dataset_family = args
+        def func(kwargs):
             datafile = RawDataset(
-                dataset_family,
-                source,
-                year,
-                provider,
-                territory,
-                bucket,
-                path_within_bucket,
+                bucket=bucket, path_within_bucket=path_within_bucket, **kwargs
             )
             try:
                 result = s.download_unpack(datafile)
@@ -305,11 +324,11 @@ def _download_and_store_sources(
                 logger.warning(e)
 
                 this_result = {
-                    provider: {
-                        dataset_family: {
-                            source: {
-                                territory: {
-                                    year: {
+                    kwargs["provider"]: {
+                        kwargs["dataset_family"]: {
+                            kwargs["source"]: {
+                                kwargs["territory"]: {
+                                    kwargs["year"]: {
                                         "downloaded": False,
                                         "paths": None,
                                     }
@@ -334,8 +353,12 @@ def _download_and_store_sources(
                 result["paths"] = paths
 
                 this_result = {
-                    provider: {
-                        dataset_family: {source: {territory: {year: result}}}
+                    kwargs["provider"]: {
+                        kwargs["dataset_family"]: {
+                            kwargs["source"]: {
+                                kwargs["territory"]: {kwargs["year"]: result}
+                            }
+                        }
                     }
                 }
 

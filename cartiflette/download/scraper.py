@@ -87,6 +87,32 @@ class MasterScraper(requests_cache.CachedSession):
             except KeyError:
                 continue
 
+    def simple_download(self, url: str, hash_: str = None, **kwargs):
+        """
+        Trigger a simple download to temporary file (immediatly cleaned)
+
+        Use this only to cache http response (for instance, when you know that
+        a request will be queried multiple times)
+
+        Parameters
+        ----------
+        url : str
+            url to download
+        hash_ : str, optional
+            previous hash signature of the file at latest download. The default
+            is None.
+        **kwargs :
+            Optional arguments to pass to requests.Session object.
+
+        Returns
+        -------
+        None.
+
+        """
+        done, _, temp = download_to_tempfile_http(url, hash_, self, **kwargs)
+        if done:
+            os.unlink(temp)
+
     def download_unpack(
         self, datafile: RawDataset, **kwargs
     ) -> DownloadReturn:
