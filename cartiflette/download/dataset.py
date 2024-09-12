@@ -6,13 +6,15 @@ import io
 import json
 import logging
 import os
-import pebble
-import py7zr
 import re
-import s3fs
 import tempfile
 from typing import Tuple
+import warnings
 import zipfile
+
+import pebble
+import py7zr
+import s3fs
 
 from cartiflette.utils import import_yaml_config, hash_file, deep_dict_update
 from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
@@ -122,9 +124,9 @@ class RawDataset:
         try:
             with self.fs.open(self.json_md5, "r") as f:
                 all_md5 = json.load(f)
-        except Exception as e:
-            logger.info(e)
-            logger.info("md5 json not found on MinIO")
+        except FileNotFoundError as e:
+            # use warnings instead of logging to display this only once
+            warnings.warn(f"md5 json not found on MinIO - {e}")
             return
         try:
             md5 = all_md5[self.provider][self.dataset_family][self.source][
@@ -132,8 +134,7 @@ class RawDataset:
             ][str(self.year)]
             self.md5 = md5
         except Exception as e:
-            logger.debug(e)
-            logger.debug("file not referenced in md5 json")
+            logger.debug("file not referenced in md5 json %s", e)
 
     @pebble.synchronized
     def update_json_md5(self, md5: str) -> bool:
@@ -284,7 +285,7 @@ class RawDataset:
         except UnboundLocalError:
             pass
 
-        logger.debug(f"using {url}")
+        logger.debug("using %s", url)
 
         return url
 
@@ -341,7 +342,7 @@ class RawDataset:
 
         # unzip in temp directory
         location = tempfile.mkdtemp()
-        logger.debug(f"Extracting to {location}")
+        logger.debug("Extracting to %s", location)
 
         year = self.year
         source = self.source
