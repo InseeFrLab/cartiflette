@@ -93,6 +93,7 @@ generated_from = {
     ],
 }
 
+# TODO : update IRIS with config
 sources = {
     # at high resolution level:
     "HIGH-RESOLUTION": {

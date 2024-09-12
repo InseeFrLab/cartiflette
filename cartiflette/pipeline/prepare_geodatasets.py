@@ -195,6 +195,7 @@ def create_one_year_geodataset_batch(
     districts = S3GeoDataset(**kwargs, **raw_config)
 
     input_geodatasets = {}
+    # TODO: update sources with config
     dset_source_configs = {
         "COMMUNE": ("ADMINEXPRESS", "EXPRESS-COG-CARTO-TERRITOIRE"),
         "CANTON": ("ADMINEXPRESS", "EXPRESS-COG-CARTO-TERRITOIRE"),
