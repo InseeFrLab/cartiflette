@@ -289,8 +289,10 @@ def _download_and_store_sources(
         def try_get_path(dset):
             try:
                 return dset.get_path_from_provider()
-            except ValueError as e:
-                logger.error(e)
+            except ValueError:
+                # Do not bother to log this, there will be warning later on
+                # when Cartiflette tries to retrieve the datasets
+                pass
 
         reused = {
             (url, md5)
