@@ -379,7 +379,6 @@ def make_all_geodatasets(
 
         except Exception as e:
             warnings.warn(f"geodataset {year=} not created: {e}")
-            raise
 
     return uploaded
 
