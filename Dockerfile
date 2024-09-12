@@ -10,7 +10,7 @@ RUN ./install-mapshaper.sh
 COPY pyproject.toml
 COPY poetry.lock
 
-RUN curl https://install.python-poetry.org/ | python - --version ${POETRY_VERSION}
+RUN curl https://install.python-poetry.org/ | python - 
 RUN poetry install --only main
 
 # Create structure
