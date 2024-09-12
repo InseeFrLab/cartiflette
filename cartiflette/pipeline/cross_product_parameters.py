@@ -36,6 +36,7 @@ def restructure_nested_dict_borders(dict_with_list: dict):
 
 
 def crossproduct_parameters_production(
+    generated_from: dict,
     croisement_filter_by_borders: dict,
     list_format: list,
     years: list,
@@ -44,6 +45,7 @@ def crossproduct_parameters_production(
     simplifications: list,
 ) -> pd.DataFrame:
     """
+    TODO : update docstring
     Generates a DataFrame by performing a cross-product of the given parameters.
 
     Parameters:
@@ -83,14 +85,35 @@ def crossproduct_parameters_production(
     This will output:
         A pandas DataFrame with the cross-product of the provided parameters.
     """
-    croisement_filter_by_borders_flat = restructure_nested_dict_borders(
-        croisement_filter_by_borders
+
+    # prepare a list of tuples (
+    #       administrative_level = polygon level = borders,
+    #       territory used for splitting the file's boundaries = territory
+    # ),
+    croisement_filter_by_borders_flat = pd.DataFrame(
+        restructure_nested_dict_borders(croisement_filter_by_borders),
+        columns=["borders", "territory"],
+    )
+
+    # prepare a list of tuples (
+    #       raw source's polygon level,
+    #       mesh created after dissolve
+    # ),
+    geometries_dissolutions = pd.DataFrame(
+        restructure_nested_dict_borders(generated_from),
+        columns=["mesh_init", "dissolve_by"],
+    )
+
+    combinations = geometries_dissolutions.merge(
+        croisement_filter_by_borders_flat,
+        left_on="dissolve_by",
+        right_on="borders",
     )
 
     combinations = list(
         itertools.product(
             list_format,
-            croisement_filter_by_borders_flat,
+            # croisement_filter_by_borders_flat,
             years,
             crs_list,
             sources,
@@ -100,7 +123,14 @@ def crossproduct_parameters_production(
 
     tempdf = pd.DataFrame(
         combinations,
-        columns=["format_output", "nested", "year", "crs", "source", "simplification"],
+        columns=[
+            "format_output",
+            "nested",
+            "year",
+            "crs",
+            "source",
+            "simplification",
+        ],
     )
     tempdf["level_polygons"] = tempdf["nested"].apply(lambda tup: tup[0])
     tempdf["filter_by"] = tempdf["nested"].apply(lambda tup: tup[1])

@@ -66,13 +66,67 @@ if not years:
 # parameters
 formats = ["topojson", "geojson"]
 crs_list = [4326]
-sources = ["EXPRESS-COG-CARTO-TERRITOIRE"]
+
+generated_from = {
+    # priority 1 : use IRIS
+    "IRIS": [
+        "IRIS",
+        "COMMUNE",
+        "ARRONDISSEMENT_MUNICIPAL",
+        "ARRONDISSEMENT",
+        "DEPARTEMENT",
+        "REGION",
+        "TERRITOIRE",
+        "FRANCE_ENTIERE",
+        "FRANCE_ENTIERE_DROM_RAPPROCHES",
+    ],
+    # priority 2 : use COMMUNE
+    "COMMUNE": [
+        "COMMUNE",
+        "ARRONDISSEMENT_MUNICIPAL",
+        "ARRONDISSEMENT",
+        "DEPARTEMENT",
+        "REGION",
+        "TERRITOIRE",
+        "FRANCE_ENTIERE",
+        "FRANCE_ENTIERE_DROM_RAPPROCHES",
+    ],
+}
+
+sources = {
+    # at high resolution level:
+    "HIGH-RESOLUTION": {
+        "IRIS": "IRIS-GE-TERRITOIRE",  # prio #1
+        "COMMUNE": "EXPRESS-COG-TERRITOIRE",  # prio #2
+    },
+    "LOW-RESOLUTION": {
+        "IRIS": "CONTOUR-IRIS-TERRITOIRE",
+        "COMMUNE": "EXPRESS-COG-TERRITOIRE",
+    },
+}
 
 croisement_decoupage_level = {
-    # structure -> niveau geo: [niveau decoupage macro],
-    "CANTON": [
+    # structure (polygon level) -> niveau geo (niveau decoupage macro),
+    "IRIS": [
+        # "COMMUNE" -> two much files generated, trigger this only if usecase
+        # CANTON -> if INSEE confirms this can be done?
+        "BASSIN_VIE",
+        "ZONE_EMPLOI",
+        "UNITE_URBAINE",
+        "AIRE_ATTRACTION_VILLES",
         "DEPARTEMENT",
-        "REGION",  # zonages administratifs
+        "REGION",
+        "TERRITOIRE",
+        "FRANCE_ENTIERE",
+        "FRANCE_ENTIERE_DROM_RAPPROCHES",
+    ],
+    "ARRONDISSEMENT_MUNICIPAL": [
+        "BASSIN_VIE",
+        "ZONE_EMPLOI",
+        "UNITE_URBAINE",
+        "AIRE_ATTRACTION_VILLES",
+        "DEPARTEMENT",
+        "REGION",
         "TERRITOIRE",
         "FRANCE_ENTIERE",
         "FRANCE_ENTIERE_DROM_RAPPROCHES",
@@ -81,9 +135,23 @@ croisement_decoupage_level = {
         "BASSIN_VIE",
         "ZONE_EMPLOI",
         "UNITE_URBAINE",
-        "AIRE_ATTRACTION_VILLES",  # zonages d'études
+        "AIRE_ATTRACTION_VILLES",
         "DEPARTEMENT",
-        "REGION",  # zonages administratifs
+        "REGION",
+        "TERRITOIRE",
+        "FRANCE_ENTIERE",
+        "FRANCE_ENTIERE_DROM_RAPPROCHES",
+    ],
+    "CANTON": [
+        "DEPARTEMENT",
+        "REGION",
+        "TERRITOIRE",
+        "FRANCE_ENTIERE",
+        "FRANCE_ENTIERE_DROM_RAPPROCHES",
+    ],
+    "ARRONDISSEMENT": [
+        "DEPARTEMENT",
+        "REGION",
         "TERRITOIRE",
         "FRANCE_ENTIERE",
         "FRANCE_ENTIERE_DROM_RAPPROCHES",
@@ -144,11 +212,12 @@ def main(
     # %%
 
     tempdf = crossproduct_parameters_production(
+        generated_from=generated_from,
+        sources=sources,
         croisement_filter_by_borders=croisement_decoupage_level,
         list_format=formats,
         years=years,
         crs_list=crs_list,
-        sources=sources,
         simplifications=PIPELINE_SIMPLIFICATION_LEVELS,
     )
     tempdf.columns = tempdf.columns.str.replace("_", "-")
