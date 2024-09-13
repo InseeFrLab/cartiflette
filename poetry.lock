@@ -3032,8 +3032,8 @@ files = [
 [package.dependencies]
 numpy = [
     {version = ">=1.22.4", markers = "python_version < \"3.11\""},
-    {version = ">=1.23.2", markers = "python_version == \"3.11\""},
     {version = ">=1.26.0", markers = "python_version >= \"3.12\""},
+    {version = ">=1.23.2", markers = "python_version == \"3.11\""},
 ]
 python-dateutil = ">=2.8.2"
 pytz = ">=2020.1"
@@ -3610,8 +3610,8 @@ astroid = ">=3.2.4,<=3.3.0-dev0"
 colorama = {version = ">=0.4.5", markers = "sys_platform == \"win32\""}
 dill = [
     {version = ">=0.2", markers = "python_version < \"3.11\""},
-    {version = ">=0.3.6", markers = "python_version >= \"3.11\" and python_version < \"3.12\""},
     {version = ">=0.3.7", markers = "python_version >= \"3.12\""},
+    {version = ">=0.3.6", markers = "python_version >= \"3.11\" and python_version < \"3.12\""},
 ]
 isort = ">=4.2.5,<5.13.0 || >5.13.0,<6"
 mccabe = ">=0.6,<0.8"
@@ -5462,40 +5462,6 @@ files = [
 ]
 
 [[package]]
-name = "tqdm"
-version = "4.66.5"
-description = "Fast, Extensible Progress Meter"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "tqdm-4.66.5-py3-none-any.whl", hash = "sha256:90279a3770753eafc9194a0364852159802111925aa30eb3f9d85b0e805ac7cd"},
-    {file = "tqdm-4.66.5.tar.gz", hash = "sha256:e1020aef2e5096702d8a025ac7d16b1577279c9d63f8375b63083e9a5f0fcbad"},
-]
-
-[package.dependencies]
-colorama = {version = "*", markers = "platform_system == \"Windows\""}
-
-[package.extras]
-dev = ["pytest (>=6)", "pytest-cov", "pytest-timeout", "pytest-xdist"]
-notebook = ["ipywidgets (>=6)"]
-slack = ["slack-sdk"]
-telegram = ["requests"]
-
-[[package]]
-name = "tqdm-loggable"
-version = "0.2"
-description = "TQDM progress bar helpers for logging and other headless application"
-optional = false
-python-versions = ">3.8"
-files = [
-    {file = "tqdm_loggable-0.2-py3-none-any.whl", hash = "sha256:9703046302b93a667166487759e6f3f49597e86c89eb132ba1f31caa07bf0941"},
-    {file = "tqdm_loggable-0.2.tar.gz", hash = "sha256:175abec3e1f63bbd2eac192fa5da075e80c7bb715d7ccf3cd1a29b7ab5af0617"},
-]
-
-[package.dependencies]
-tqdm = ">4.64"
-
-[[package]]
 name = "traitlets"
 version = "5.14.3"
 description = "Traitlets Python configuration system"
@@ -5995,4 +5961,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "fdedd900eeb27a46fba484a519de1ba0edd9c83451731f328c6b8f916c0c6dd5"
+content-hash = "8067d669ec0f895864efa03341f1e9e7e5fc499ede671b3b26e6540ac85b4cbf"
