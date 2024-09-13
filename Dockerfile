@@ -25,7 +25,7 @@ COPY pyproject.toml .
 COPY poetry.lock .
 
 RUN curl https://install.python-poetry.org/ | python - 
-RUN /home/onyxia/.local/bin/poetry install --only main --no-interaction
+RUN poetry install --only main --no-interaction
 
 # Create structure
 COPY cartiflette ./cartiflette
