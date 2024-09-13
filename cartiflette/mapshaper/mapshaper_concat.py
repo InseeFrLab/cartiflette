@@ -47,7 +47,7 @@ def mapshaper_concat(
 
     cmd = (
         f"mapshaper -i {input_dir}/*.{input_format}"
-        " combine-files name='COMMUNE' "
+        f" combine-files name='{output_name}' "
         f"-proj EPSG:4326 "
         f"-merge-layers "
         f'-o {output} format={output_format} extension=".{output_format}" '
