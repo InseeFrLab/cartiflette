@@ -367,7 +367,7 @@ class RawDataset:
                 list_files = "namelist"
                 extract = "extractall"
                 targets_kw = "members"
-            # TODO
+            # TODO : other archives formats? (rar, tar, gz, ...)
             # rar files, see https://pypi.org/project/rarfile/
             # tar files
             # gz files
