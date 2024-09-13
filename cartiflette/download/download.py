@@ -175,7 +175,6 @@ def _download_and_store_sources(
     fs: s3fs.S3FileSystem = FS,
     upload: bool = True,
 ) -> dict:
-    # TODO : contrôler return
     """
     Main function to perform downloads of datasets and store them the s3.
     All available combinations will be tested; hence an unfound file might not
@@ -209,10 +208,6 @@ def _download_and_store_sources(
 
     Returns
     -------
-    dict
-        DESCRIPTION.
-
-
     files : dict
         Structure of the nested dict will use the following keys :
             provider
@@ -223,22 +218,23 @@ def _download_and_store_sources(
                                 {downloaded: bool, paths: list:str}
         For instance:
             {
-                'IGN': {
-                    'BDTOPO': {
-                        'ROOT': {
+                'Insee': {
+                    'COG': {
+                        'COMMUNE': {
                             'france_entiere': {
-                                2017: {
+                                2023: {
                                     'downloaded': True,
                                     'paths': {
-                                        'CHEF_LIEU': [
-                                            'projet-cartiflette/diffusion/shapefiles-test4/year=2017/administrative_level=None/crs=4326/None=None/vectorfile_format=shp/provider=IGN/dataset_family=BDTOPO/source=ROOT/territory=martinique/CHEF_LIEU.shp'
-                                        ],
-                                        'COMMUNE': [
-                                            'projet-cartiflette/diffusion/shapefiles-test4/year=2017/administrative_level=None/crs=4326/None=None/vectorfile_format=shp/provider=IGN/dataset_family=BDTOPO/source=ROOT/territory=martinique/COMMUNE.shp'
-                                        ],
-                                        'ARRONDISSEMENT': [
-                                            'projet-cartiflette/diffusion/shapefiles-test4/year=2017/administrative_level=None/crs=4326/None=None/vectorfile_format=shp/provider=IGN/dataset_family=BDTOPO/source=ROOT/territory=metropole/ARRONDISSEMENT.shp'
-                                        ]
+                                        'dummy_file_2023': [
+                                            'projet-cartiflette/.../dummmy.csv'
+                                            ]
+                                    }
+                                },
+                                2024: {
+                                    'downloaded': True,
+                                    'paths': {
+                                        'dummy_file_2024': [
+                                            'projet-cartiflette/.../dummy.csv']
                                     }
                                 }
                             }
@@ -246,6 +242,7 @@ def _download_and_store_sources(
                     }
                 }
             }
+
     """
 
     if not territories:
