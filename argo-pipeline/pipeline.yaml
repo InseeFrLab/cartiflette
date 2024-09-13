@@ -99,7 +99,7 @@ spec:
               repo: https://github.com/inseefrlab/cartiflette
               revision: "feat/refacto_pipeline_first_steps"
       container:
-        image: inseefrlab/cartiflette
+        image: inseefrlab/cartiflette:latest
         command: [sh, -c]
         args: ["mkdir -p /mnt/bin/src ;
                 mv /mnt/bin/argo-pipeline/src/* /mnt/bin/src ;
