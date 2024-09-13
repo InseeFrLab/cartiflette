@@ -23,6 +23,7 @@ ENV \
 
 COPY pyproject.toml .
 COPY poetry.lock .
+COPY README.md .
 
 RUN curl https://install.python-poetry.org/ | python - 
 RUN poetry install --only main --no-interaction
