@@ -18,7 +18,7 @@ from cartiflette.config import (
     THREADS_DOWNLOAD,
     PIPELINE_DOWNLOAD_ARGS,
 )
-from cartiflette.download.download import _download_and_store_sources
+from cartiflette.download import _download_and_store_sources
 from cartiflette.utils import deep_dict_update
 
 logger = logging.getLogger(__name__)
