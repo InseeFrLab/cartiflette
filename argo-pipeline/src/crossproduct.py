@@ -6,23 +6,25 @@
 Prepare arguments for next step
 """
 
-import json
 import argparse
+import json
+from typing import List
+
+from s3fs import S3FileSystem
+
 from cartiflette.pipeline import crossproduct_parameters_production
 from cartiflette.config import (
     BUCKET,
     PATH_WITHIN_BUCKET,
     FS,
+)
+from cartiflette.pipeline_constants import (
     PIPELINE_SIMPLIFICATION_LEVELS,
+    PIPELINE_FORMATS,
+    PIPELINE_CRS,
 )
 
 parser = argparse.ArgumentParser(description="Crossproduct Script")
-parser.add_argument(
-    "--restrict-field",
-    type=str,
-    default=None,
-    help="Field to restrict level-polygons",
-)
 
 parser.add_argument(
     "-yg",
@@ -38,23 +40,47 @@ parser.add_argument(
     help="Updated metadata's vintages",
 )
 
+parser.add_argument(
+    "-f",
+    "--formats",
+    default=",".join(PIPELINE_FORMATS),
+    help="Desired output formats, as a comma sperated values list",
+)
+
+parser.add_argument(
+    "-c",
+    "--crs",
+    default=",".join([str(x) for x in PIPELINE_CRS]),
+    help="Desired projections as EPSG codes, as a comma sperated values list",
+)
+
+parser.add_argument(
+    "-s",
+    "--simplifications",
+    default=",".join([str(x) for x in PIPELINE_SIMPLIFICATION_LEVELS]),
+    help="Desired simplifications levels, as a comma sperated values list",
+)
+
+
 args = parser.parse_args()
 
 years_geodatasets = set(json.loads(args.years_geodatasets))
 years_metadata = set(json.loads(args.years_metadata))
+formats = args.formats.split(",")
+crs = args.crs.split(",")
+simplifications = args.simplifications.split(",")
 
 years = sorted(list(years_geodatasets | years_metadata))
+years = [int(x) for x in years]
 
-# TODO : convert to parsable arguments
-bucket = BUCKET
-path_within_bucket = PATH_WITHIN_BUCKET
-fs = FS
+# TODO : convert bucket & path_within_bucket to parsable arguments
+
 
 # TODO : used only for debugging purposes
 if not years:
     # Perform on all years
-    json_md5 = f"{bucket}/{path_within_bucket}/md5.json"
-    with fs.open(json_md5, "r") as f:
+    json_md5 = f"{BUCKET}/{PATH_WITHIN_BUCKET}/md5.json"
+    with FS.open(json_md5, "r") as f:
         all_md5 = json.load(f)
     datasets = all_md5["IGN"]["ADMINEXPRESS"]["EXPRESS-COG-CARTO-TERRITOIRE"]
     years = {
@@ -62,139 +88,17 @@ if not years:
         for (_territory, vintaged_datasets) in datasets.items()
         for year in vintaged_datasets.keys()
     }
-
-# parameters
-formats = ["topojson", "geojson"]
-crs_list = [4326]
-
-generated_from = {
-    # priority 1 : use IRIS
-    "IRIS": [
-        "IRIS",
-        "COMMUNE",
-        "ARRONDISSEMENT_MUNICIPAL",
-        "ARRONDISSEMENT",
-        "DEPARTEMENT",
-        "REGION",
-        "TERRITOIRE",
-        "FRANCE_ENTIERE",
-        "FRANCE_ENTIERE_DROM_RAPPROCHES",
-    ],
-    # priority 2 : use COMMUNE
-    "COMMUNE": [
-        "COMMUNE",
-        "ARRONDISSEMENT_MUNICIPAL",
-        "ARRONDISSEMENT",
-        "DEPARTEMENT",
-        "REGION",
-        "TERRITOIRE",
-        "FRANCE_ENTIERE",
-        "FRANCE_ENTIERE_DROM_RAPPROCHES",
-    ],
-}
-
-# TODO : update IRIS with config
-sources = {
-    # at high resolution level:
-    "HIGH-RESOLUTION": {
-        "IRIS": "IRIS-GE-TERRITOIRE",  # prio #1
-        "COMMUNE": "EXPRESS-COG-TERRITOIRE",  # prio #2
-    },
-    "LOW-RESOLUTION": {
-        "IRIS": "CONTOUR-IRIS-TERRITOIRE",
-        "COMMUNE": "EXPRESS-COG-TERRITOIRE",
-    },
-}
-
-croisement_decoupage_level = {
-    # structure (polygon level) -> niveau geo (niveau decoupage macro),
-    "IRIS": [
-        # "COMMUNE" -> two much files generated, trigger this only if usecase
-        # CANTON -> if INSEE confirms this can be done?
-        "BASSIN_VIE",
-        "ZONE_EMPLOI",
-        "UNITE_URBAINE",
-        "AIRE_ATTRACTION_VILLES",
-        "DEPARTEMENT",
-        "REGION",
-        "TERRITOIRE",
-        "FRANCE_ENTIERE",
-        "FRANCE_ENTIERE_DROM_RAPPROCHES",
-    ],
-    "ARRONDISSEMENT_MUNICIPAL": [
-        "BASSIN_VIE",
-        "ZONE_EMPLOI",
-        "UNITE_URBAINE",
-        "AIRE_ATTRACTION_VILLES",
-        "DEPARTEMENT",
-        "REGION",
-        "TERRITOIRE",
-        "FRANCE_ENTIERE",
-        "FRANCE_ENTIERE_DROM_RAPPROCHES",
-    ],
-    "COMMUNE": [
-        "BASSIN_VIE",
-        "ZONE_EMPLOI",
-        "UNITE_URBAINE",
-        "AIRE_ATTRACTION_VILLES",
-        "DEPARTEMENT",
-        "REGION",
-        "TERRITOIRE",
-        "FRANCE_ENTIERE",
-        "FRANCE_ENTIERE_DROM_RAPPROCHES",
-    ],
-    "CANTON": [
-        "DEPARTEMENT",
-        "REGION",
-        "TERRITOIRE",
-        "FRANCE_ENTIERE",
-        "FRANCE_ENTIERE_DROM_RAPPROCHES",
-    ],
-    "ARRONDISSEMENT": [
-        "DEPARTEMENT",
-        "REGION",
-        "TERRITOIRE",
-        "FRANCE_ENTIERE",
-        "FRANCE_ENTIERE_DROM_RAPPROCHES",
-    ],
-    "DEPARTEMENT": [
-        "REGION",
-        "TERRITOIRE",
-        "FRANCE_ENTIERE",
-        "FRANCE_ENTIERE_DROM_RAPPROCHES",
-    ],
-    "REGION": [
-        "TERRITOIRE",
-        "FRANCE_ENTIERE",
-        "FRANCE_ENTIERE_DROM_RAPPROCHES",
-    ],
-    "BASSIN_VIE": [
-        "TERRITOIRE",
-        "FRANCE_ENTIERE",
-        "FRANCE_ENTIERE_DROM_RAPPROCHES",
-    ],
-    "ZONE_EMPLOI": [
-        "TERRITOIRE",
-        "FRANCE_ENTIERE",
-        "FRANCE_ENTIERE_DROM_RAPPROCHES",
-    ],
-    "UNITE_URBAINE": [
-        "TERRITOIRE",
-        "FRANCE_ENTIERE",
-        "FRANCE_ENTIERE_DROM_RAPPROCHES",
-    ],
-    "AIRE_ATTRACTION_VILLES": [
-        "TERRITOIRE",
-        "FRANCE_ENTIERE",
-        "FRANCE_ENTIERE_DROM_RAPPROCHES",
-    ],
-}
+    years = list(years)
 
 
 def main(
-    path_within_bucket: str,
-    bucket: str,
-    years: list = None,
+    years: List[int] = None,
+    simplifications: List[str] = None,
+    formats: List[str] = None,
+    crs: List[int] = None,
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
+    fs: S3FileSystem = FS,
 ):
     # %% TODO : used only for debugging purposes
     if not years:
@@ -212,26 +116,29 @@ def main(
         }
     # %%
 
-    tempdf = crossproduct_parameters_production(
-        generated_from=generated_from,
-        sources=sources,
-        croisement_filter_by_borders=croisement_decoupage_level,
+    simplifications = (
+        simplifications if simplifications else PIPELINE_SIMPLIFICATION_LEVELS
+    )
+
+    configs = crossproduct_parameters_production(
         list_format=formats,
         years=years,
-        crs_list=crs_list,
-        simplifications=PIPELINE_SIMPLIFICATION_LEVELS,
+        crs_list=crs,
+        simplifications=simplifications,
     )
-    tempdf.columns = tempdf.columns.str.replace("_", "-")
 
-    # Apply filtering if restrict_field is provided
-    if args.restrict_field:
-        tempdf = tempdf.loc[tempdf["level-polygons"] == args.restrict_field]
-
-    output = tempdf.to_json(orient="records")
-    parsed = json.loads(output)
-
-    print(json.dumps(parsed))
+    with open("configs_datasets_to_generate.json", "w") as out:
+        json.dump(configs, out)
+    return configs
 
 
 if __name__ == "__main__":
-    main(path_within_bucket=path_within_bucket, bucket=bucket, years=years)
+    configs = main(
+        years=years,
+        simplifications=simplifications,
+        formats=formats,
+        crs=crs,
+        bucket=BUCKET,
+        path_within_bucket=PATH_WITHIN_BUCKET,
+        fs=FS,
+    )
