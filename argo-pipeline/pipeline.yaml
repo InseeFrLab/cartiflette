@@ -136,7 +136,7 @@ spec:
           valueFrom:
             path: download_all_results.json
       container:
-        image: inseefrlab/cartiflette
+        image: inseefrlab/cartiflette:latest
         command: [sh, -c]
         args: ["
           python /mnt/bin/src/download_all_sources.py --path $PATH_WRITING_S3 --years 2024,2023;
@@ -159,7 +159,7 @@ spec:
           valueFrom:
             path: metadata_years.json
       container:
-        image: inseefrlab/cartiflette
+        image: inseefrlab/cartiflette:latest
         command: [sh, -c]
         volumeMounts:
           - name: volume-workflow-tmp
@@ -179,7 +179,7 @@ spec:
           valueFrom:
             path: geodatasets_years.json
       container:
-        image: inseefrlab/cartiflette
+        image: inseefrlab/cartiflette:latest
         command: [sh, -c]
         volumeMounts:
           - name: volume-workflow-tmp
@@ -199,7 +199,7 @@ spec:
           valueFrom:
             path: metadata_years.json
       container:
-        image: inseefrlab/cartiflette
+        image: inseefrlab/cartiflette:latest
         command: [sh, -c]
         volumeMounts:
           - name: volume-workflow-tmp
@@ -221,7 +221,7 @@ spec:
           valueFrom:
             path: configs_datasets_to_generate.json
       container:
-        image: inseefrlab/cartiflette
+        image: inseefrlab/cartiflette:latest
         command: [sh, -c]
         volumeMounts:
           - name: volume-workflow-tmp
@@ -238,7 +238,7 @@ spec:
         - name: key
         - name: config
       container:
-        image: inseefrlab/cartiflette
+        image: inseefrlab/cartiflette:latest
         command: ["sh", "-c"]
         args: ["
           python /mnt/bin/src/split_merge_tiles.py \
