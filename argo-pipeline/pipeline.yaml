@@ -75,7 +75,7 @@ spec:
                 value: "{{tasks.make-metadata.outputs.parameters.updated_metadata}}"
 
           # STEP 5 : SPLIT DATASETS
-          - name: generate:
+          - name: generate
             template: split-dataset
             dependencies: [ select-downstream-datasets-to-generate ]
             arguments:
