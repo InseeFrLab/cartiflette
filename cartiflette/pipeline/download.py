@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-# TODO : move file to pipeline module
-
 from datetime import date
 import json
 import logging
