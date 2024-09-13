@@ -22,6 +22,7 @@ from cartiflette.config import (
     PATH_WITHIN_BUCKET,
     PIPELINE_SIMPLIFICATION_LEVELS,
     THREADS_DOWNLOAD,
+    PIPELINE_DOWNLOAD_ARGS,
 )
 from cartiflette.s3.geodataset import (
     S3GeoDataset,
@@ -195,19 +196,22 @@ def create_one_year_geodataset_batch(
     districts = S3GeoDataset(**kwargs, **raw_config)
 
     input_geodatasets = {}
-    # TODO: update sources with config
+    # Retrieve raw files of cities, cantons and iris
     dset_source_configs = {
-        "COMMUNE": ("ADMINEXPRESS", "EXPRESS-COG-CARTO-TERRITOIRE"),
-        "CANTON": ("ADMINEXPRESS", "EXPRESS-COG-CARTO-TERRITOIRE"),
-        "CONTOURS-IRIS": ("CONTOUR-IRIS", "CONTOUR-IRIS-TERRITOIRE"),
+        "COMMUNE": PIPELINE_DOWNLOAD_ARGS["ADMIN-EXPRESS"][:3],
+        "CANTON": PIPELINE_DOWNLOAD_ARGS["ADMIN-EXPRESS"][:3],
+        "IRIS": PIPELINE_DOWNLOAD_ARGS["IRIS"][:3],
     }
-    for mesh in "CANTON", "COMMUNE", "CONTOURS-IRIS":
+    for mesh in "CANTON", "COMMUNE", "IRIS":
 
-        family, source = dset_source_configs[mesh]
+        provider, family, source = dset_source_configs[mesh]
         # Construct S3GeoDatasets for each territory (Guyane, metropole, ...)
         # at mesh level (COMMUNE or CANTON)
         mesh_config = deepcopy(config)
-        mesh_config["filename"] = mesh
+        mesh_config["provider"] = provider
+        # Nota : filename for IRIS might be CONTOURS-IRIS.shp or IRIS_GE.shp
+        # while COMMUNE and CANTON are COMMUNE.shp and CANTON.shp
+        mesh_config["filename"] = f"*{mesh}*"
         mesh_config["dataset_family"] = family
         mesh_config["source"] = source
         geodatasets = []
@@ -218,7 +222,9 @@ def create_one_year_geodataset_batch(
                 )
             except ValueError:
                 # not present for this territory and this mesh
-                logger.warning("file not found for %s", territory)
+                logger.warning(
+                    "file not found for %s on mesh=%s", territory, mesh
+                )
                 continue
 
         with TemporaryDirectory() as tempdir:
@@ -238,6 +244,13 @@ def create_one_year_geodataset_batch(
                     geodatasets = [
                         stack.enter_context(dset) for dset in geodatasets
                     ]
+
+                if not geodatasets:
+                    logger.warning(
+                        "base geodataset from mesh=%s was not generated", mesh
+                    )
+                    continue
+
                 # concat S3GeoDataset
                 mesh_config.update(
                     {
@@ -266,9 +279,7 @@ def create_one_year_geodataset_batch(
 
     with input_geodatasets["COMMUNE"] as commune, input_geodatasets[
         "CANTON"
-    ] as canton, input_geodatasets[
-        "CONTOURS-IRIS"
-    ] as iris, districts as districts:
+    ] as canton, input_geodatasets["IRIS"] as iris, districts as districts:
         # download communal_districts and enter context for commune/canton/iris
 
         args = (
