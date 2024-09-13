@@ -241,12 +241,10 @@ spec:
         image: inseefrlab/cartiflette
         command: ["sh", "-c"]
         args: ["
-          mkdir -p temp/ && cp /mnt/data/tagc.csv temp/tagc.csv ;
           python /mnt/bin/src/split_merge_tiles.py \
           --path $PATH_WRITING_S3 \
-          --year {{inputs.parameters.year}} \
-          --level_polygons {{inputs.parameters.level_polygons}} \
-          --filter_by {{inputs.parameters.filter_by}}"
+          --key {{inputs.parameters.key}} \
+          --config {{inputs.parameters.config}}"
         ]
         volumeMounts:
           - name: volume-workflow-tmp
