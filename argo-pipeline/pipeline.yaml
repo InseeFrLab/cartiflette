@@ -104,7 +104,8 @@ spec:
         args: ["mkdir -p /mnt/bin/src ;
                 mv /mnt/bin/argo-pipeline/src/* /mnt/bin/src ;
                 echo $PATH_WRITING_S3";
-                /home/onyxia/.local/bin/poetry run pip show *;"]
+                /home/onyxia/.local/bin/poetry run pip show *;
+                "]
         volumeMounts:
           - name: volume-workflow-tmp
             mountPath: /mnt
