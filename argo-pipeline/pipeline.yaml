@@ -81,9 +81,9 @@ spec:
             arguments:
               parameters:
               - name: key
-                value: {{item.key}}
+                value: "{{item.key}}"
               - name: config
-                value: {{item.config}}
+                value: "{{item.config}}"
             withParam: "{{tasks.select-downstream-datasets-to-generate.outputs.configs}}"
 
   # --------------------------
