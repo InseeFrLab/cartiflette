@@ -103,7 +103,7 @@ spec:
         command: [sh, -c]
         args: ["mkdir -p /mnt/bin/src ;
                 mv /mnt/bin/argo-pipeline/src/* /mnt/bin/src ;
-                echo $PATH_WRITING_S3";
+                echo $PATH_WRITING_S3;
                 /home/onyxia/.local/bin/poetry run pip show *;
                 "]
         volumeMounts:
