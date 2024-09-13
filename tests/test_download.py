@@ -12,7 +12,7 @@ from cartiflette.download.scraper import (
     download_to_tempfile_http,
 )
 from cartiflette.download.download import _download_and_store_sources
-from cartiflette.download import download_all
+from cartiflette.pipeline import download_all
 from cartiflette.utils import import_yaml_config
 from tests.conftest import (
     DUMMY_FILE_1,

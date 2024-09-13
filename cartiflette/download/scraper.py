@@ -14,8 +14,8 @@ import requests_cache
 from unidecode import unidecode
 
 from cartiflette.utils import hash_file
-from cartiflette.download.dataset import RawDataset
-from cartiflette.download.layer import Layer
+from .dataset import RawDataset
+from .layer import Layer
 from cartiflette.config import RETRYING
 
 if not RETRYING:

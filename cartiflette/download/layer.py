@@ -9,7 +9,7 @@ import geopandas as gpd
 import pyogrio
 from shapely.geometry import box
 
-from cartiflette.download.dataset import RawDataset
+from .dataset import RawDataset
 from cartiflette.constants import REFERENCES
 
 logger = logging.getLogger(__name__)

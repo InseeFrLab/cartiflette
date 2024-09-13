@@ -26,7 +26,7 @@ import os
 import json
 
 from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
-from cartiflette.download import download_all
+from cartiflette.pipeline import download_all
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

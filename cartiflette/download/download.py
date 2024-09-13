@@ -27,8 +27,8 @@ from cartiflette.utils import (
     deep_dict_update,
     create_path_bucket,
 )
-from cartiflette.download.scraper import MasterScraper
-from cartiflette.download.dataset import RawDataset
+from .scraper import MasterScraper
+from .dataset import RawDataset
 
 logger = logging.getLogger(__name__)
 

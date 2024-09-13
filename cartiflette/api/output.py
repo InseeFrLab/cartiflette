@@ -8,7 +8,7 @@ import typing
 import s3fs
 import geopandas as gpd
 
-from cartiflette.download.scraper import MasterScraper
+from cartiflette.download import MasterScraper
 from cartiflette.utils import create_path_bucket, standardize_inputs
 from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
 
@@ -308,9 +308,7 @@ def download_vectorfile_single(
                     successes = []
                     for remote_file in files:
                         remote = os.path.splitext(url)[0] + f".{ext}"
-                        success, tmp = s.download_to_tempfile_http(
-                            url=remote
-                        )
+                        success, tmp = s.download_to_tempfile_http(url=remote)
                         successes.append(success)
                         shutil.copy(tmp, f"{tdir.name}/raw.{ext}")
                     local_path = f"{tdir.name}/raw.shp"
