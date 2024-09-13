@@ -12,7 +12,7 @@ from tests.conftest import (
 
 from cartiflette.config import FS
 from cartiflette.download.dataset import RawDataset
-from cartiflette.download.scraper import MasterScraper
+from cartiflette.download.scraper import Scraper
 
 
 logging.basicConfig(level=logging.INFO)
@@ -36,7 +36,7 @@ def total_mock_s3(monkeypatch):
             "root_cleanup": None,
         }
 
-    monkeypatch.setattr(MasterScraper, "download_unpack", mock_unpack)
+    monkeypatch.setattr(Scraper, "download_unpack", mock_unpack)
     # monkeypatch.setattr("cartiflette.THREADS_DOWNLOAD", 1)
 
     def mock_ls(folder):

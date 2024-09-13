@@ -30,7 +30,7 @@ if not RETRYING:
 logger = logging.getLogger(__name__)
 
 
-class MasterScraper(requests_cache.CachedSession):
+class Scraper(requests_cache.CachedSession):
     """
     Scraper class which could be used to perform either http/https get
     downloads.

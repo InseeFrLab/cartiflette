@@ -27,7 +27,7 @@ from cartiflette.utils import (
     deep_dict_update,
     create_path_bucket,
 )
-from .scraper import MasterScraper
+from .scraper import Scraper
 from .dataset import RawDataset
 
 logger = logging.getLogger(__name__)
@@ -309,7 +309,7 @@ def _download_and_store_sources(
     # about it), and resort to requests-cache to dispatch it to the different
     # datasets later
     if reused_urls:
-        with MasterScraper() as s:
+        with Scraper() as s:
             threads = min(THREADS_DOWNLOAD, len(reused_urls))
             if threads > 1:
                 with ThreadPool(
@@ -338,7 +338,7 @@ def _download_and_store_sources(
                         logger.error("url was %s", (url, md5))
 
     files = {}
-    with MasterScraper() as s:
+    with Scraper() as s:
 
         def func(kwargs):
             datafile = RawDataset(

@@ -8,7 +8,7 @@ import typing
 import s3fs
 import geopandas as gpd
 
-from cartiflette.download import MasterScraper
+from cartiflette.download import Scraper
 from cartiflette.utils import create_path_bucket, standardize_inputs
 from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
 
@@ -299,7 +299,7 @@ def download_vectorfile_single(
             fs.download(remote_file, local_path)
 
     else:
-        with MasterScraper(*args, **kwargs) as s:
+        with Scraper(*args, **kwargs) as s:
             # Note that python should cleanup all tmpfile by itself
 
             if format_read == "shp":

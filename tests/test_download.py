@@ -7,7 +7,7 @@ import logging
 
 from cartiflette.download.dataset import RawDataset
 from cartiflette.download.scraper import (
-    MasterScraper,
+    Scraper,
     validate_file,
     download_to_tempfile_http,
 )
@@ -70,7 +70,7 @@ def test_http_proxy():
         del os.environ["https_proxy"]
     except KeyError:
         pass
-    dummy_scraper = MasterScraper()
+    dummy_scraper = Scraper()
     try:
         assert isinstance(dummy_scraper, requests_cache.CachedSession)
         assert dummy_scraper.proxies == {
@@ -88,7 +88,7 @@ def test_http_download(mock_httpscraper_download_success):
     """
 
     # Initialisation
-    dummy_scraper = MasterScraper()
+    dummy_scraper = Scraper()
     dummy = "https://dummy"
 
     # Fourniture du même hash -> pas de téléchargement
@@ -120,7 +120,7 @@ def test_download_ko_length(
     le Content-length ne correspond pas au contenu (simule un fichier corrompu)
     -> doit déclencher un IOError
     """
-    dummy_scraper = MasterScraper()
+    dummy_scraper = Scraper()
     with pytest.raises(IOError):
         result = download_to_tempfile_http("dummy", session=dummy_scraper)
 
@@ -133,12 +133,12 @@ def test_download_ko_md5(
     avec son contenu (simule un fichier corrompu)
     -> doit déclencher un IOError
     """
-    dummy_scraper = MasterScraper()
+    dummy_scraper = Scraper()
     with pytest.raises(IOError):
         result = download_to_tempfile_http("dummy", session=dummy_scraper)
 
 
-# def test_MasterScraper_ko():
+# def test_Scraper_ko():
 #     """
 #     download_unzip
 #     * Tester que si échec du téléchargement, le fichier temporaire est supprimé
@@ -148,7 +148,7 @@ def test_download_ko_md5(
 #     pass
 
 
-# def test_MasterScraper_ok():
+# def test_Scraper_ok():
 #     """
 #     download_unzip
 #     * Si succès, contrôle de la présence du fichier temporaire (puis le
@@ -168,7 +168,7 @@ def test_sources_yaml(mock_RawDataset_without_s3):
     errors_type3 = []
     errors_type4 = []
 
-    with MasterScraper() as scraper:
+    with Scraper() as scraper:
         for provider, provider_yaml in yaml.items():
             if not isinstance(provider_yaml, dict):
                 continue
