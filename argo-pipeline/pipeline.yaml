@@ -62,253 +62,29 @@ spec:
               parameters:
               - name: years
                 value: "{{tasks.select-downstream-vintage-to-process.outputs.parameters.metadata_vintage_to_update}}"
-
-          # STEP 4.1. SPLIT BY DEPARTEMENT
-          - name: prepare-split-departement
-            template: prepare-split
+          
+          # STEP 4 : SELECT DOWNSTREAM DATASETS TO GENERATE
+          - name: select-downstream-datasets-to-generate
+            template: select-downstream-datasets-to-generate
             dependencies: [ make-geodatasets, make-metadata ]
             arguments:
               parameters:
-              - name: restrict_field
-                value: "DEPARTEMENT"
               - name: years_geodatasets
                 value: "{{tasks.make-geodatasets.outputs.parameters.updated_geodata}}"
               - name: years_metadata
                 value: "{{tasks.make-metadata.outputs.parameters.updated_metadata}}"
 
-          - name: split-departement
+          # STEP 5 : SPLIT DATASETS
+          - name: generate:
             template: split-dataset
-            dependencies: [ prepare-split-departement ]
+            dependencies: [ select-downstream-datasets-to-generate ]
             arguments:
               parameters:
-              - name: split_type
-                value: "DEPARTEMENT"
-              - name: format_output
-                value: "{{item.format-output}}"
-              - name: year
-                value: "{{item.year}}"
-              - name: crs
-                value: "{{item.crs}}"
-              - name: source
-                value: "{{item.source}}"
-              - name: simplification
-                value: "{{item.simplification}}"
-              - name: level_polygons
-                value: "{{item.level-polygons}}"
-              - name: filter_by
-                value: "{{item.filter-by}}"
-            withParam: "{{tasks.prepare-split-departement.outputs.result}}"
-
-          # STEP 4.2. SPLIT BY COMMUNE
-          - name: prepare-split-commune
-            template: prepare-split
-            dependencies: [ make-geodatasets, make-metadata ]
-            arguments:
-              parameters:
-              - name: restrict_field
-                value: "COMMUNE"
-              - name: years_geodatasets
-                value: "{{tasks.make-geodatasets.outputs.parameters.updated_geodata}}"
-              - name: years_metadata
-                value: "{{tasks.make-metadata.outputs.parameters.updated_metadata}}"
-          - name: split-commune
-            template: split-dataset
-            dependencies: [ prepare-split-commune ]
-            arguments:
-              parameters:
-              - name: split_type
-                value: "COMMUNE"
-              - name: format_output
-                value: "{{item.format-output}}"
-              - name: year
-                value: "{{item.year}}"
-              - name: crs
-                value: "{{item.crs}}"
-              - name: source
-                value: "{{item.source}}"
-              - name: simplification
-                value: "{{item.simplification}}"
-              - name: level_polygons
-                value: "{{item.level-polygons}}"
-              - name: filter_by
-                value: "{{item.filter-by}}"
-            withParam: "{{tasks.prepare-split-commune.outputs.result}}"
-
-          # STEP 4.3. SPLIT BY REGION
-          - name: prepare-split-region
-            template: prepare-split
-            dependencies: [ make-geodatasets, make-metadata ]
-            arguments:
-              parameters:
-              - name: restrict_field
-                value: "REGION"
-              - name: years_geodatasets
-                value: "{{tasks.make-geodatasets.outputs.parameters.updated_geodata}}"
-              - name: years_metadata
-                value: "{{tasks.make-metadata.outputs.parameters.updated_metadata}}"
-          - name: split-region
-            template: split-dataset
-            dependencies: [ prepare-split-region ]
-            arguments:
-              parameters:
-              - name: split_type
-                value: "REGION"
-              - name: format_output
-                value: "{{item.format-output}}"
-              - name: year
-                value: "{{item.year}}"
-              - name: crs
-                value: "{{item.crs}}"
-              - name: source
-                value: "{{item.source}}"
-              - name: simplification
-                value: "{{item.simplification}}"
-              - name: level_polygons
-                value: "{{item.level-polygons}}"
-              - name: filter_by
-                value: "{{item.filter-by}}"
-            withParam: "{{tasks.prepare-split-region.outputs.result}}"
-
-          # STEP 4.4. SPLIT BY BASSIN VIE
-          - name: prepare-split-bassin-vie
-            template: prepare-split
-            dependencies: [ make-geodatasets, make-metadata ]
-            arguments:
-              parameters:
-              - name: restrict_field
-                value: "BASSIN_VIE"
-              - name: years_geodatasets
-                value: "{{tasks.make-geodatasets.outputs.parameters.updated_geodata}}"
-              - name: years_metadata
-                value: "{{tasks.make-metadata.outputs.parameters.updated_metadata}}"
-          - name: split-bassin-vie
-            template: split-dataset
-            dependencies: [ prepare-split-bassin-vie ]
-            arguments:
-              parameters:
-              - name: split_type
-                value: "BASSIN_VIE"
-              - name: format_output
-                value: "{{item.format-output}}"
-              - name: year
-                value: "{{item.year}}"
-              - name: crs
-                value: "{{item.crs}}"
-              - name: source
-                value: "{{item.source}}"
-              - name: simplification
-                value: "{{item.simplification}}"
-              - name: level_polygons
-                value: "{{item.level-polygons}}"
-              - name: filter_by
-                value: "{{item.filter-by}}"
-            withParam: "{{tasks.prepare-split-bassin-vie.outputs.result}}"
-
-          # STEP 4.5. SPLIT BY ZONE_EMPLOI
-          - name: prepare-split-zone-emploi
-            template: prepare-split
-            dependencies: [ make-geodatasets, make-metadata ]
-            arguments:
-              parameters:
-              - name: restrict_field
-                value: "ZONE_EMPLOI"
-              - name: years_geodatasets
-                value: "{{tasks.make-geodatasets.outputs.parameters.updated_geodata}}"
-              - name: years_metadata
-                value: "{{tasks.make-metadata.outputs.parameters.updated_metadata}}"
-          - name: split-zone-emploi
-            template: split-dataset
-            dependencies: [ prepare-split-zone-emploi ]
-            arguments:
-              parameters:
-              - name: split_type
-                value: "ZONE_EMPLOI"
-              - name: format_output
-                value: "{{item.format-output}}"
-              - name: year
-                value: "{{item.year}}"
-              - name: crs
-                value: "{{item.crs}}"
-              - name: source
-                value: "{{item.source}}"
-              - name: simplification
-                value: "{{item.simplification}}"
-              - name: level_polygons
-                value: "{{item.level-polygons}}"
-              - name: filter_by
-                value: "{{item.filter-by}}"
-            withParam: "{{tasks.prepare-split-zone-emploi.outputs.result}}"
-
-          # STEP 4.6. SPLIT BY UNITE_URBAINE
-          - name: prepare-split-unite-urbaine
-            template: prepare-split
-            dependencies: [ make-geodatasets, make-metadata ]
-            arguments:
-              parameters:
-              - name: restrict_field
-                value: "UNITE_URBAINE"
-              - name: years_geodatasets
-                value: "{{tasks.make-geodatasets.outputs.parameters.updated_geodata}}"
-              - name: years_metadata
-                value: "{{tasks.make-metadata.outputs.parameters.updated_metadata}}"
-          - name: split-unite-urbaine
-            template: split-dataset
-            dependencies: [ prepare-split-unite-urbaine ]
-            arguments:
-              parameters:
-              - name: split_type
-                value: "UNITE_URBAINE"
-              - name: format_output
-                value: "{{item.format-output}}"
-              - name: year
-                value: "{{item.year}}"
-              - name: crs
-                value: "{{item.crs}}"
-              - name: source
-                value: "{{item.source}}"
-              - name: simplification
-                value: "{{item.simplification}}"
-              - name: level_polygons
-                value: "{{item.level-polygons}}"
-              - name: filter_by
-                value: "{{item.filter-by}}"
-            withParam: "{{tasks.prepare-split-unite-urbaine.outputs.result}}"
-
-          # STEP 4.7. SPLIT BY AIRE_ATTRACTION_VILLES
-          - name: prepare-split-aire-attraction
-            template: prepare-split
-            dependencies: [ make-geodatasets, make-metadata ]
-            arguments:
-              parameters:
-              - name: restrict_field
-                value: "AIRE_ATTRACTION_VILLES"
-              - name: years_geodatasets
-                value: "{{tasks.make-geodatasets.outputs.parameters.updated_geodata}}"
-              - name: years_metadata
-                value: "{{tasks.make-metadata.outputs.parameters.updated_metadata}}"
-          - name: split-aire-attraction
-            template: split-dataset
-            dependencies: [ prepare-split-aire-attraction ]
-            arguments:
-              parameters:
-              - name: split_type
-                value: "AIRE_ATTRACTION_VILLES"
-              - name: format_output
-                value: "{{item.format-output}}"
-              - name: year
-                value: "{{item.year}}"
-              - name: crs
-                value: "{{item.crs}}"
-              - name: source
-                value: "{{item.source}}"
-              - name: simplification
-                value: "{{item.simplification}}"
-              - name: level_polygons
-                value: "{{item.level-polygons}}"
-              - name: filter_by
-                value: "{{item.filter-by}}"
-            withParam: "{{tasks.prepare-split-aire-attraction.outputs.result}}"
-
+              - name: key
+                value: {{item.key}}
+              - name: config
+                value: {{item.config}}
+            withParam: "{{tasks.select-downstream-datasets-to-generate.outputs.configs}}"
 
   # --------------------------
   # TEMPLATES DEFINITION
@@ -432,15 +208,18 @@ spec:
                 python /mnt/bin/src/make_metadata_datasets.py --path $PATH_WRITING_S3 --years '{{inputs.parameters.years}}';
                 "]
         env: *env_parameters
-
-  # Step 2: creating template task for splitting ------------------
-
-    - name: prepare-split
+        
+    
+    - name: select-downstream-datasets-to-generate
       inputs:
         parameters:
-          - name: restrict_field
           - name: years_geodatasets
           - name: years_metadata
+      outputs:
+        parameters:
+        - name: configs
+          valueFrom:
+            path: configs_datasets_to_generate.json
       container:
         image: inseefrlab/cartiflette
         command: [sh, -c]
@@ -449,20 +228,15 @@ spec:
             mountPath: /mnt
         env: *env_parameters
         args: ["
-          python /mnt/bin/src/crossproduct.py --restrict-field '{{inputs.parameters.restrict_field}}' --years-geodatasets '{{inputs.parameters.years_geodatasets}}' --years-metadata '{{inputs.parameters.years_metadata}}';
+          python /mnt/bin/src/crossproduct.py --years-geodatasets '{{inputs.parameters.years_geodatasets}}' --years-metadata '{{inputs.parameters.years_metadata}}';
           "]
 
+  # Step 2: creating template task for splitting ------------------
     - name: split-dataset
       inputs:
         parameters:
-        - name: split_type
-        - name: format_output
-        - name: year
-        - name: crs
-        - name: source
-        - name: simplification
-        - name: level_polygons
-        - name: filter_by
+        - name: key
+        - name: config
       container:
         image: inseefrlab/cartiflette
         command: ["sh", "-c"]
@@ -470,11 +244,7 @@ spec:
           mkdir -p temp/ && cp /mnt/data/tagc.csv temp/tagc.csv ;
           python /mnt/bin/src/split_merge_tiles.py \
           --path $PATH_WRITING_S3 \
-          --format_output {{inputs.parameters.format_output}} \
           --year {{inputs.parameters.year}} \
-          --crs {{inputs.parameters.crs}} \
-          --source {{inputs.parameters.source}} \
-          --simplification {{inputs.parameters.simplification}} \
           --level_polygons {{inputs.parameters.level_polygons}} \
           --filter_by {{inputs.parameters.filter_by}}"
         ]
