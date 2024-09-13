@@ -16,8 +16,8 @@ from cartiflette.config import (
     BUCKET,
     PATH_WITHIN_BUCKET,
     FS,
-    PIPELINE_SIMPLIFICATION_LEVELS,
 )
+from cartiflette.pipeline_constants import PIPELINE_SIMPLIFICATION_LEVELS
 from cartiflette.pipeline.prepare_geodatasets import make_all_geodatasets
 
 logging.basicConfig(level=logging.INFO)

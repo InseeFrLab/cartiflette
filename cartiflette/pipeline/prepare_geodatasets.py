@@ -20,9 +20,11 @@ from cartiflette.config import (
     FS,
     BUCKET,
     PATH_WITHIN_BUCKET,
-    PIPELINE_SIMPLIFICATION_LEVELS,
     THREADS_DOWNLOAD,
+)
+from cartiflette.pipeline_constants import (
     PIPELINE_DOWNLOAD_ARGS,
+    PIPELINE_SIMPLIFICATION_LEVELS,
 )
 from cartiflette.s3.geodataset import (
     S3GeoDataset,

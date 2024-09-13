@@ -14,8 +14,8 @@ from cartiflette.config import (
     PATH_WITHIN_BUCKET,
     FS,
     THREADS_DOWNLOAD,
-    PIPELINE_DOWNLOAD_ARGS,
 )
+from cartiflette.pipeline_constants import PIPELINE_DOWNLOAD_ARGS
 from cartiflette.download import _download_and_store_sources
 from cartiflette.utils import deep_dict_update
 
