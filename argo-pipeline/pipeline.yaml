@@ -84,7 +84,7 @@ spec:
                 value: "{{item.key}}"
               - name: config
                 value: "{{item.config}}"
-            withParam: "{{tasks.select-downstream-datasets-to-generate.outputs.results.configs}}"
+            withParam: "{{tasks.select-downstream-datasets-to-generate.outputs.parameters.configs}}"
 
   # --------------------------
   # TEMPLATES DEFINITION
