@@ -128,13 +128,6 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Setuptools vs. poetry
-*.lock
-.toml
-
 *.sqlite
 *.sqlite*
-
-**\temp
-
 **/cartiflette-s3-cache/*

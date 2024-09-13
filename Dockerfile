@@ -7,15 +7,15 @@ COPY docker/install-mapshaper.sh .
 RUN ./install-mapshaper.sh
 
 # Install project Python dependencies
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+COPY pyproject.toml .
+COPY poetry.lock .
+
+RUN curl https://install.python-poetry.org/ | python - 
+RUN /home/onyxia/.local/bin/poetry install --only main --no-interaction
 
 # Create structure
 COPY cartiflette ./cartiflette
-COPY pyproject.toml .
-COPY README.md .
 COPY docker/test.py .
 
-RUN pip install .
 
 CMD ["python", "test.py"]
