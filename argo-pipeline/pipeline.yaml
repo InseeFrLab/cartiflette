@@ -185,7 +185,7 @@ spec:
         parameters:
         - name: updated_geodata
           valueFrom:
-            path: geodatasets_year/{{inputs.parameters.year}}.json
+            path: "geodatasets_year/{{inputs.parameters.year}}.json"
       container:
         image: inseefrlab/cartiflette:latest
         command: [sh, -c]
@@ -252,10 +252,10 @@ spec:
         command: ["sh", "-c"]
         args: ["
           python /mnt/bin/src/split_merge_tiles.py \
-          --dissolve_by {{inputs.parameters.dissolve_by}} \
-          --territory {{inputs.parameters.territory}} \
-          --year {{inputs.parameters.year}} \
-          --config {{inputs.parameters.config}}"
+          --dissolve_by '{{inputs.parameters.dissolve_by}}' \
+          --territory '{{inputs.parameters.territory}}' \
+          --year '{{inputs.parameters.year}}' \
+          --config '{{inputs.parameters.config}}'"
         ]
         volumeMounts:
           - name: volume-workflow-tmp
