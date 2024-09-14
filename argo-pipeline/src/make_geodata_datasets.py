@@ -10,6 +10,7 @@ for each vintage.
 import argparse
 import json
 import logging
+import os
 from typing import List
 
 from cartiflette.config import (
@@ -60,6 +61,11 @@ years = json.loads(years)
 
 bucket = BUCKET
 fs = FS
+
+try:
+    os.makedirs("geodataset_years")
+except FileExistsError:
+    pass
 
 
 def main(
