@@ -10,7 +10,14 @@ have been re-downloaded) to select downstream steps
 
 import argparse
 import logging
+import os
 import json
+
+from cartiflette.config import (
+    BUCKET,
+    PATH_WITHIN_BUCKET,
+    FS,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +35,8 @@ parser.add_argument(
 
 args = parser.parse_args()
 download_results = args.download_results
+
+# TODO : add bucket/path_within_bucket/fs to pipeline args
 
 
 download_results = json.loads(download_results)
@@ -52,6 +61,23 @@ else:
 
 finally:
     years_geodata = sorted(list(years_geodata))
+
+    if os.environ["ENVIRONMENT"] == "dev":
+        logging.warning("dev environment -> force generation of each dataset")
+        if not years_geodata:
+            # Perform on all years
+            json_md5 = f"{BUCKET}/{PATH_WITHIN_BUCKET}/md5.json"
+            with FS.open(json_md5, "r") as f:
+                all_md5 = json.load(f)
+            datasets = all_md5["IGN"]["ADMINEXPRESS"][
+                "EXPRESS-COG-CARTO-TERRITOIRE"
+            ]
+            years = {
+                year
+                for (_territory, vintaged_datasets) in datasets.items()
+                for year in vintaged_datasets.keys()
+            }
+
     with open("geodatasets_years.json", "w") as out:
         json.dump(years_geodata, out)
     logger.info("selected downstream geodatasets : %s", years_geodata)
@@ -74,6 +100,23 @@ else:
             pass
 finally:
     years_metadata = sorted(list(years_metadata))
+
+    if os.environ["ENVIRONMENT"] == "dev":
+        logging.warning("dev environment -> force generation of each dataset")
+        if not years_metadata:
+            # Perform on all years
+            json_md5 = f"{BUCKET}/{PATH_WITHIN_BUCKET}/md5.json"
+            with FS.open(json_md5, "r") as f:
+                all_md5 = json.load(f)
+            datasets = all_md5["IGN"]["ADMINEXPRESS"][
+                "EXPRESS-COG-CARTO-TERRITOIRE"
+            ]
+            years = {
+                year
+                for (_territory, vintaged_datasets) in datasets.items()
+                for year in vintaged_datasets.keys()
+            }
+
     with open("metadata_years.json", "w") as out:
         json.dump(years_metadata, out)
     logger.info("selected downstream metadata : %s", years_metadata)

@@ -133,6 +133,8 @@ spec:
             value: minio.lab.sspcloud.fr
           - name: MC_HOST_s3
             value: https://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$AWS_S3_ENDPOINT
+          - name: ENVIRONMENT
+            value: dev
             
     - name: download-all-sources
       outputs:
@@ -177,12 +179,12 @@ spec:
     - name: make-geodatasets
       inputs:
         parameters:
-          - name: years
+          - name: year
       outputs:
         parameters:
         - name: updated_geodata
           valueFrom:
-            path: geodatasets_years.json
+            path: geodatasets_year/{{inputs.parameters.year}}.json
       container:
         image: inseefrlab/cartiflette:latest
         command: [sh, -c]
@@ -190,7 +192,7 @@ spec:
           - name: volume-workflow-tmp
             mountPath: /mnt
         args: ["
-                python /mnt/bin/src/make_geodata_datasets.py --path $PATH_WRITING_S3 --years '{{inputs.parameters.years}}';
+                python /mnt/bin/src/make_geodata_datasets.py --path $PATH_WRITING_S3 --year '{{inputs.parameters.year}}';
                 "]
         env: *env_parameters
         

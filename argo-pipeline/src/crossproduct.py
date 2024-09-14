@@ -76,21 +76,6 @@ years = [int(x) for x in years]
 # TODO : convert bucket & path_within_bucket to parsable arguments
 
 
-# TODO : used only for debugging purposes
-if not years:
-    # Perform on all years
-    json_md5 = f"{BUCKET}/{PATH_WITHIN_BUCKET}/md5.json"
-    with FS.open(json_md5, "r") as f:
-        all_md5 = json.load(f)
-    datasets = all_md5["IGN"]["ADMINEXPRESS"]["EXPRESS-COG-CARTO-TERRITOIRE"]
-    years = {
-        year
-        for (_territory, vintaged_datasets) in datasets.items()
-        for year in vintaged_datasets.keys()
-    }
-    years = list(years)
-
-
 def main(
     years: List[int] = None,
     simplifications: List[str] = None,
@@ -100,21 +85,6 @@ def main(
     path_within_bucket: str = PATH_WITHIN_BUCKET,
     fs: S3FileSystem = FS,
 ):
-    # %% TODO : used only for debugging purposes
-    if not years:
-        # Perform on all COG years
-        json_md5 = f"{bucket}/{path_within_bucket}/md5.json"
-        with fs.open(json_md5, "r") as f:
-            all_md5 = json.load(f)
-        datasets = all_md5["IGN"]["ADMINEXPRESS"][
-            "EXPRESS-COG-CARTO-TERRITOIRE"
-        ]
-        years = {
-            year
-            for (_territory, vintaged_datasets) in datasets.items()
-            for year in vintaged_datasets.keys()
-        }
-    # %%
 
     simplifications = (
         simplifications if simplifications else PIPELINE_SIMPLIFICATION_LEVELS

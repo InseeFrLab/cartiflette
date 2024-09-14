@@ -148,6 +148,11 @@ def create_one_year_geodataset_batch(
         Paths on S3 of uploaded datasets.
 
     """
+
+    logger.info("-" * 50)
+    logger.info(f"Merging territorial files of cities for {year=}")
+    logger.info("-" * 50)
+
     if not simplifications_values:
         simplifications_values = PIPELINE_SIMPLIFICATION_LEVELS
 

@@ -66,20 +66,6 @@ def main(
     bucket=BUCKET,
     years: int = None,
 ):
-    # TODO : used only for debugging purposes
-    if not years:
-        # Perform on all years
-        json_md5 = f"{bucket}/{path_within_bucket}/md5.json"
-        with fs.open(json_md5, "r") as f:
-            all_md5 = json.load(f)
-        datasets = all_md5["IGN"]["ADMINEXPRESS"][
-            "EXPRESS-COG-CARTO-TERRITOIRE"
-        ]
-        years = {
-            year
-            for (_territory, vintaged_datasets) in datasets.items()
-            for year in vintaged_datasets.keys()
-        }
 
     created = make_all_geodatasets(
         years,
