@@ -51,8 +51,9 @@ spec:
             dependencies: [ select-downstream-vintage-to-process ]
             arguments:
               parameters:
-              - name: years
-                value: "{{tasks.select-downstream-vintage-to-process.outputs.parameters.geodatasets_vintage_to_update}}"
+              - name: year
+                value: "{{item}}"
+            withParam: "{{tasks.select-downstream-vintage-to-process.outputs.parameters.geodatasets_vintage_to_update}}"
 
           # STEP 3.2 : CREATE METADATA FILES ON MINIO FROM RAW INSEE FILES
           - name: make-metadata
