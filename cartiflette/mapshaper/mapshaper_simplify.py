@@ -43,13 +43,15 @@ def mapshaper_simplify(
     except FileExistsError:
         pass
 
+    fix_geo = "fix-geometry" if output_format == "topojson" else ""
+
     output = f"{output_dir}/{output_name}.{output_format}"
 
     cmd = (
         f"mapshaper {input_file} "
         "-proj EPSG:4326 "
         f"{option_simplify} "
-        f" -o fix-geometry {output} force"
+        f" -o {fix_geo} {output} force"
     )
 
     subprocess.run(

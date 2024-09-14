@@ -134,6 +134,8 @@ def mapshaper_bring_closer(
                 text=True,
             )
 
+        fix_geo = "fix-geometry" if output_format == "topojson" else ""
+
         output = f"{output_dir}/{output_name}.{output_format}"
         cmd_combined = (
             f"mapshaper "
@@ -149,7 +151,7 @@ def mapshaper_bring_closer(
             f"-rename-layers FRANCE,IDF,GDP,MTQ,GUY,REU,MAY "
             f"-merge-layers target=FRANCE,IDF,GDP,MTQ,GUY,REU,MAY force "
             f"-rename-layers FRANCE_TRANSFORMED "
-            f"-o {output} fix-geometry"
+            f"-o {fix_geo} {output}"
         )
 
         subprocess.run(
