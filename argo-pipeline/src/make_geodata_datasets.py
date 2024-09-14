@@ -41,7 +41,7 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "-y", "--years", help="Vintage to perform computation on", default="[]"
+    "-y", "--year", help="Vintage to perform computation on", default="[]"
 )
 
 parser.add_argument(
@@ -54,10 +54,8 @@ parser.add_argument(
 # Parse arguments
 args = parser.parse_args()
 path_within_bucket = args.path
-years = args.years
+year = args.year
 simplifications = args.simplify
-
-years = json.loads(years)
 
 bucket = BUCKET
 fs = FS
@@ -91,6 +89,4 @@ def main(
 
 
 if __name__ == "__main__":
-    data = main(
-        path_within_bucket, simplifications=simplifications, years=years
-    )
+    data = main(path_within_bucket, simplifications=simplifications, year=year)
