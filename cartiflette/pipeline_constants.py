@@ -82,6 +82,7 @@ AVAILABLE_DISSOLUTIONS_FROM_RAW_MESH = {
         "FRANCE_ENTIERE",
         "FRANCE_ENTIERE_DROM_RAPPROCHES",
     ],
+    "CANTON": ["CANTON"],
 }
 
 # which territorial splits can be derived from a given geodataset (which

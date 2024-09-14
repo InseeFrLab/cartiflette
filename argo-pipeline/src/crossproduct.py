@@ -125,6 +125,9 @@ def main(
         years=years,
         crs_list=crs,
         simplifications=simplifications,
+        fs=fs,
+        bucket=bucket,
+        path_within_bucket=path_within_bucket,
     )
 
     with open("configs_datasets_to_generate.json", "w") as out:
