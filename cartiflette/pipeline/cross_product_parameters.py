@@ -109,17 +109,8 @@ def crossproduct_parameters_production(
                 dataset_family for raw dataset,
             'geodata_source':
                 source for raw dataset,
-            'dissolve_by':
-                field to operate dissolution on (will result to 'borders'
-                configuration of child dataset)
-            'territory':
-                field on which to split the dataset, generating a file for
-                territory_#1, territory_#2, ... (will result to 'filter_by'
-                configuration of child dataset)
             'format':
                 desired format for downstream geodataset ('topojson', ...)
-            'year':
-                desired vintage for downstream geodataset (2024, ...)
             'crs':
                 desired projection for downstream geodataset (4326, ...)
             'simplification':
