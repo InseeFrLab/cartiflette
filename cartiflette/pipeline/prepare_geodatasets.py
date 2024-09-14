@@ -401,7 +401,9 @@ def make_all_geodatasets(
         except Exception as e:
             warnings.warn(f"geodataset {year=} not created: {e}")
 
-    uploaded = [year for year, datasets in uploaded if datasets]
+    uploaded = [
+        year for d in uploaded for year, datasets in d.items() if datasets
+    ]
     return uploaded
 
 
