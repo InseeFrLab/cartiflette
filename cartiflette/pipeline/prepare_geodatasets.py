@@ -365,9 +365,9 @@ def make_all_geodatasets(
 
     Returns
     -------
-    uploaded : dict
-        Dict of uploaded geodatasets on S3 using the following structure:
-        {year : [path_file1, path_file2, ...]}.
+    uploaded : list
+        List of vintages for which geodatasets have been generated
+        Ex. : [2023, 2024]
 
     """
 
@@ -401,9 +401,10 @@ def make_all_geodatasets(
         except Exception as e:
             warnings.warn(f"geodataset {year=} not created: {e}")
 
+    uploaded = [year for year, datasets in uploaded if datasets]
     return uploaded
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    created = create_one_year_geodataset_batch(2023, format_output="geojson")
+    created = create_one_year_geodataset_batch(2022, format_output="geojson")
