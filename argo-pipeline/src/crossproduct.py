@@ -8,6 +8,7 @@ Prepare arguments for next step
 
 import argparse
 import json
+import logging
 from typing import List
 
 from s3fs import S3FileSystem
@@ -24,6 +25,7 @@ from cartiflette.pipeline_constants import (
     PIPELINE_CRS,
 )
 
+logger = logging.getLogger(__name__)
 parser = argparse.ArgumentParser(description="Crossproduct Script")
 
 parser.add_argument(
@@ -64,7 +66,18 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-years_geodatasets = set(json.loads(args.years_geodatasets))
+years_geodatasets = json.loads(args.years_geodatasets)
+logger.warning(years_geodatasets)
+uploaded = [
+    year
+    for dict_ in years_geodatasets
+    for year, datasets in dict_.items()
+    if datasets
+]
+
+logger.warning(years_geodatasets)
+
+
 years_metadata = set(json.loads(args.years_metadata))
 formats = args.formats.split(",")
 crs = args.crs.split(",")

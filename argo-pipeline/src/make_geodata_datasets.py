@@ -18,7 +18,9 @@ from cartiflette.config import (
     FS,
 )
 from cartiflette.pipeline_constants import PIPELINE_SIMPLIFICATION_LEVELS
-from cartiflette.pipeline.prepare_geodatasets import make_all_geodatasets
+from cartiflette.pipeline.prepare_geodatasets import (
+    create_one_year_geodataset_batch,
+)
 
 logging.basicConfig(level=logging.INFO)
 
@@ -67,7 +69,7 @@ def main(
     year: int = None,
 ):
 
-    created = make_all_geodatasets(
+    created = create_one_year_geodataset_batch(
         year,
         format_output="geojson",
         simplifications_values=simplifications,

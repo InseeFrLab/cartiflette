@@ -112,7 +112,7 @@ def create_one_year_geodataset_batch(
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
     fs: s3fs.S3FileSystem = FS,
-) -> List[str]:
+) -> dict:
     """
     Merge cities datasets into a single file (full France territory).
 
@@ -144,8 +144,8 @@ def create_one_year_geodataset_batch(
 
     Returns
     -------
-    uploaded : List[str]
-        Paths on S3 of uploaded datasets.
+    uploaded : dict
+        {year: [Paths on S3 of uploaded datasets]}
 
     """
 
@@ -331,85 +331,7 @@ def create_one_year_geodataset_batch(
                 except Exception:
                     logger.error(traceback.format_exc())
 
-    return uploaded
-
-
-def make_all_geodatasets(
-    years: List[int],
-    format_output: str = "geojson",
-    simplifications_values: List[int] = None,
-    bucket: str = BUCKET,
-    path_within_bucket: str = PATH_WITHIN_BUCKET,
-    fs: s3fs.S3FileSystem = FS,
-) -> dict:
-    """
-    Create all base geodatasets used by cartiflette (full France coverage).
-    At the time of writing, the meshes can either be COMMUNE or CANTON.
-
-    Note that multithreading will be used under the hood for each yearly batch.
-    To debug code, please consider deactivating the threading, using
-    `cartiflette.config.THREADS = 1` beforehand.
-
-    Parameters
-    ----------
-    years : List[int]
-        Desired vintages.
-    format_output : str, optional
-        Final (and intermediate) formats to use. The default is "geojson"
-    simplifications_values : List[int], optional
-        List of simplifications' levels to compute (as percentage values
-        casted to integers). The default is None, which will result to
-        PIPELINE_SIMPLIFICATION_LEVELS.
-    bucket : str, optional
-        Storage bucket on S3 FileSystem. The default is BUCKET.
-    path_within_bucket : str, optional
-        Path within S3 bucket used for storage. The default is
-        PATH_WITHIN_BUCKET.
-    fs : s3fs.FyleSystem, optional
-        S3 file system used for storage of raw data. The default is FS.
-
-    Returns
-    -------
-    uploaded : list
-        List of vintages for which geodatasets have been generated
-        Ex. : [2023, 2024]
-
-    """
-
-    if not simplifications_values:
-        simplifications_values = PIPELINE_SIMPLIFICATION_LEVELS
-
-    uploaded = []
-
-    for year in years:
-        logger.info("-" * 50)
-        logger.info(f"Merging territorial files of cities for {year=}")
-        logger.info("-" * 50)
-
-        try:
-            # Merge all territorial cities files into a single file
-            uploaded_year = create_one_year_geodataset_batch(
-                year=year,
-                path_within_bucket=path_within_bucket,
-                format_output=format_output,
-                bucket=bucket,
-                fs=fs,
-                simplifications_values=simplifications_values,
-            )
-
-            if not uploaded_year:
-                # No files merged
-                continue
-
-            uploaded.append({year: uploaded_year})
-
-        except Exception as e:
-            warnings.warn(f"geodataset {year=} not created: {e}")
-
-    uploaded = [
-        year for d in uploaded for year, datasets in d.items() if datasets
-    ]
-    return uploaded
+    return {year: uploaded}
 
 
 if __name__ == "__main__":
