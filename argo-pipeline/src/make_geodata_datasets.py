@@ -64,11 +64,11 @@ def main(
     path_within_bucket,
     simplifications: List[int],
     bucket=BUCKET,
-    years: int = None,
+    year: int = None,
 ):
 
     created = make_all_geodatasets(
-        years,
+        year,
         format_output="geojson",
         simplifications_values=simplifications,
         bucket=bucket,
