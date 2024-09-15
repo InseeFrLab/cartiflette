@@ -82,7 +82,7 @@ def main(
         fs=fs,
     )
 
-    with open("geodatasets_years.json", "w") as out:
+    with open(f"geodatasets_years/{year}.json", "w") as out:
         json.dump(created, out)
 
     return created
