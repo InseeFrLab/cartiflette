@@ -161,8 +161,8 @@ def create_one_year_geodataset_batch(
 
     Returns
     -------
-    uploaded : dict
-        {year: [Paths on S3 of uploaded datasets]}
+    success : dict
+        {"year": True/False}
 
     """
 
@@ -360,7 +360,11 @@ def create_one_year_geodataset_batch(
                 except Exception:
                     logger.error(traceback.format_exc())
 
-    return {year: uploaded}
+    logger.info(f"Created files are : {uploaded}")
+
+    success = True if uploaded else False
+
+    return {"year": success}
 
 
 if __name__ == "__main__":
