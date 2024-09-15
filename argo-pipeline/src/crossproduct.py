@@ -31,14 +31,14 @@ parser = argparse.ArgumentParser(description="Crossproduct Script")
 parser.add_argument(
     "-yg",
     "--years-geodatasets",
-    default="[]",
+    default="[{'2023': True}]",
     help="Updated geodataset's vintages",
 )
 
 parser.add_argument(
     "-ym",
     "--years-metadata",
-    default="[]",
+    default="[2023]",
     help="Updated metadata's vintages",
 )
 
