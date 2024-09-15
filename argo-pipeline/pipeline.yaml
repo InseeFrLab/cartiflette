@@ -185,7 +185,7 @@ spec:
         parameters:
         - name: updated_geodata
           valueFrom:
-            path: "/mnt/bin/src/geodataset_years/{{inputs.parameters.year}}.json"
+            path: "geodataset_years/{{inputs.parameters.year}}.json"
       container:
         image: inseefrlab/cartiflette:latest
         command: [sh, -c]
