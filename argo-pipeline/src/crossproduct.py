@@ -31,7 +31,7 @@ parser = argparse.ArgumentParser(description="Crossproduct Script")
 parser.add_argument(
     "-yg",
     "--years-geodatasets",
-    default="[{'2023': True}]",
+    default=r'["{\"2023\": true}"]',
     help="Updated geodataset's vintages",
 )
 
@@ -67,21 +67,19 @@ parser.add_argument(
 args = parser.parse_args()
 
 years_geodatasets = [json.loads(x) for x in json.loads(args.years_geodatasets)]
-years_geodatasets = [
-    year for d in years_geodatasets for (year, result) in d.items() if result
-]
-logger.warning(years_geodatasets)
+years_geodatasets = {
+    int(year)
+    for d in years_geodatasets
+    for (year, result) in d.items()
+    if result
+}
 
-logger.warning(years_geodatasets)
-
-
-years_metadata = set(json.loads(args.years_metadata))
+years_metadata = {int(x) for x in json.loads(args.years_metadata)}
 formats = args.formats.split(",")
 crs = args.crs.split(",")
 simplifications = args.simplifications.split(",")
 
 years = sorted(list(years_geodatasets | years_metadata))
-years = [int(x) for x in years]
 
 # TODO : convert bucket & path_within_bucket to parsable arguments
 
