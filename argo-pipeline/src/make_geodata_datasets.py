@@ -41,7 +41,7 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "-y", "--year", help="Vintage to perform computation on", default="[]"
+    "-y", "--year", help="Vintage to perform computation on", default="2023"
 )
 
 parser.add_argument(
@@ -82,7 +82,7 @@ def main(
     except FileExistsError:
         pass
 
-    with open(f"geodatasets_years/{year}.json", "w") as out:
+    with open(f"geodataset_years/{year}.json", "w") as out:
         json.dump(created, out)
 
     return created
