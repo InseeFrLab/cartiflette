@@ -60,11 +60,6 @@ simplifications = args.simplify
 bucket = BUCKET
 fs = FS
 
-try:
-    os.makedirs("geodataset_years")
-except FileExistsError:
-    pass
-
 
 def main(
     path_within_bucket,
@@ -81,6 +76,11 @@ def main(
         path_within_bucket=path_within_bucket,
         fs=fs,
     )
+
+    try:
+        os.makedirs("geodataset_years")
+    except FileExistsError:
+        pass
 
     with open(f"geodatasets_years/{year}.json", "w") as out:
         json.dump(created, out)
