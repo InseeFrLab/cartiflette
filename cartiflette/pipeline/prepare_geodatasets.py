@@ -364,7 +364,7 @@ def create_one_year_geodataset_batch(
 
     success = True if uploaded else False
 
-    return {"year": success}
+    return {year: success}
 
 
 if __name__ == "__main__":
