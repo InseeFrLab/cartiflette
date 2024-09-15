@@ -117,6 +117,8 @@ def main(
                 # if at least one metadata constructed
                 created.append(year)
 
+    created = sorted(list(set(created)))
+
     with open("metadata_years.json", "w", encoding="utf8") as out:
         json.dump(created, out)
 
