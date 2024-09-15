@@ -249,6 +249,7 @@ def create_one_year_geodataset_batch(
                 logger.warning(
                     "file not found for %s on mesh=%s", territory, mesh
                 )
+                input_geodatasets[mesh] = None
                 continue
 
         with TemporaryDirectory() as tempdir:
@@ -301,9 +302,19 @@ def create_one_year_geodataset_batch(
                 # only concatenated S3GeoDataset, which exists only on local
                 # disk)
 
-    with input_geodatasets["COMMUNE"] as commune, input_geodatasets[
-        "CANTON"
-    ] as canton, input_geodatasets["IRIS"] as iris, districts as districts:
+    with (
+        input_geodatasets["COMMUNE"]
+        if input_geodatasets["COMMUNE"]
+        else nullcontext()
+    ) as commune, (
+        input_geodatasets["CANTON"]
+        if input_geodatasets["CANTON"]
+        else nullcontext()
+    ) as canton, (
+        input_geodatasets["IRIS"]
+        if input_geodatasets["IRIS"]
+        else nullcontext()
+    ) as iris, districts as districts:
         # download communal_districts and enter context for commune/canton/iris
 
         args = (
@@ -311,6 +322,7 @@ def create_one_year_geodataset_batch(
             + list((product([canton], [False], simplifications_values)))
             + list((product([iris], [False], simplifications_values)))
         )
+        args = [x for x in args if x[0]]  # remove dsets with nullcontext
 
         func = partial(
             make_one_geodataset,
@@ -353,4 +365,4 @@ def create_one_year_geodataset_batch(
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    created = create_one_year_geodataset_batch(2022, format_output="geojson")
+    created = create_one_year_geodataset_batch(2024, format_output="geojson")
