@@ -14,7 +14,6 @@ def mapshaper_split(
     output_format: str = "geojson",
     crs: int = 4326,
     option_simplify: str = "",
-    source_identifier: str = "",
 ) -> List[str]:
     """
     Splits a GeoJSON file based on a specified variable using Mapshaper.
@@ -36,8 +35,6 @@ def mapshaper_split(
     option_simplify : str, optional
         Additional options for simplifying geometries, for instance
         "-simplify 50%". The default is "".
-    source_identifier : str, optional
-        Identifier for the data source. The default is "".
 
     Returns
     -------
@@ -58,7 +55,6 @@ def mapshaper_split(
     cmd = (
         f"mapshaper {input_file} name='{layer_name}' -proj EPSG:{crs} "
         f"{option_simplify} "
-        f"-each \"SOURCE='{source_identifier}'\" "
         f"-split {split_variable} "
         f"-o '{temp_output_dir}/' "
         f'format={output_format} extension=".{output_format}" singles'

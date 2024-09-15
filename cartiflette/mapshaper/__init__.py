@@ -1,6 +1,7 @@
 """
 Handling spatial data with mapshaper behind the stage
 """
+
 from .mapshaper_split import mapshaper_split
 from .mapshaper_convert_mercator import mapshaper_convert_mercator
 from .mapshaper_closer import mapshaper_bring_closer
@@ -17,6 +18,7 @@ from .mapshaper_combine_districts_and_cities import (
     mapshaper_combine_districts_and_cities,
 )
 from .mapshaper_simplify import mapshaper_simplify
+from .mapshaper_add_field import mapshaper_add_field
 
 
 __all__ = [
@@ -30,4 +32,5 @@ __all__ = [
     "mapshaper_process_communal_districts",
     "mapshaper_combine_districts_and_cities",
     "mapshaper_simplify",
+    "mapshaper_add_field",
 ]

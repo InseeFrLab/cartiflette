@@ -88,6 +88,21 @@ def make_one_geodataset(
 
     kwargs = {"format_output": format_output}
 
+    source_arm = (
+        f' {PIPELINE_DOWNLOAD_ARGS["ADMIN-EXPRESS"][2]}'
+        if with_municipal_district and "IRIS" in dset.config["source"]
+        else ""
+    )
+
+    source = (
+        # Note : need to escape the ', hence the raw-string
+        r"Cartiflette d\'après IGN "
+        + " ("
+        + dset.config["source"]
+        + source_arm
+        + f") simplifié à {simplification} %"
+    )
+
     new_dset = dset.copy()
     if with_municipal_district:
         # substitute communal districts
@@ -96,9 +111,11 @@ def make_one_geodataset(
         )
     else:
         districts = nullcontext()
+
     with new_dset, districts:
         processed_dset = districts if with_municipal_district else new_dset
         processed_dset.simplify(simplification=simplification, **kwargs)
+        processed_dset.add_field("GEODATA_SOURCE", source)
         processed_dset.to_s3()
         uploaded = processed_dset.s3_dirpath
 

@@ -30,6 +30,7 @@ from cartiflette.mapshaper import (
     mapshaper_process_communal_districts,
     mapshaper_combine_districts_and_cities,
     mapshaper_simplify,
+    mapshaper_add_field,
 )
 from cartiflette.utils import (
     ConfigDict,
@@ -130,8 +131,26 @@ class S3GeoDataset(S3Dataset):
         )
         self._substitute_main_file(new_file)
 
+    def add_field(
+        self, label: str, value: str, format_output: str = "geojson"
+    ):
+        "add a static field using mapshaper"
+        input_geodata = f"{self.local_dir}/{self.main_filename}"
+        output = mapshaper_add_field(
+            input_file=input_geodata,
+            label=label,
+            value=value,
+            output_dir=self.local_dir,
+            output_name=self.main_filename.rsplit(".", maxsplit=1)[0],
+            output_format=format_output,
+        )
+        self._substitute_main_file(output)
+
     def enrich(
-        self, metadata_file: str, dict_corresp: dict, format_output: str
+        self,
+        metadata_file: str,
+        dict_corresp: dict,
+        format_output: str = "geojson",
     ):
         "enrich with metadata using mapshaper"
         input_geodata = f"{self.local_dir}/{self.main_filename}"
@@ -314,7 +333,6 @@ class S3GeoDataset(S3Dataset):
             output_format=format_output,
             crs=crs,
             option_simplify=option_simplify,
-            source_identifier=self.source,
         )
 
         geodatasets = []

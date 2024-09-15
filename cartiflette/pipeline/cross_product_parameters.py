@@ -116,9 +116,6 @@ def crossproduct_parameters_production(
             'simplification':
                 desired level of simplification for downstream geodataset as
                 integer based percentage (0, 40, ...)
-            'GEODATA_SOURCE':
-                string to be used in a new field to trace the geodataset's
-                source
             }
 
     Example:
@@ -146,7 +143,6 @@ def crossproduct_parameters_production(
                         'format': 'gpkg',
                         'crs': 4326,
                         'simplification': 40,
-                        'GEODATA_SOURCE': "Cartiflette d'après IGN (CONTOUR-IRIS) simplifié à 40 %"
                     }, ..., {
                        'mesh_init': 'IRIS',
                        'geodata_provider': 'IGN',
@@ -155,7 +151,6 @@ def crossproduct_parameters_production(
                        'format': 'geojson',
                        'crs': 2154,
                        'simplification': 0,
-                       'GEODATA_SOURCE': "Cartiflette d'après IGN (CONTOUR-IRIS) simplifié à 0 %"
                    }
                 ]
             }, ...
@@ -213,15 +208,7 @@ def crossproduct_parameters_production(
         .join(pd.Series(crs_list, name="crs"), how="cross")
         .join(pd.Series(simplifications, name="simplification"), how="cross")
     )
-    combinations["GEODATA_SOURCE"] = (
-        "Cartiflette d'après "
-        + combinations["geodata_provider"]
-        + " ("
-        + combinations["geodata_source"]
-        + ") simplifié à "
-        + combinations["simplification"].astype(str)
-        + " %"
-    )
+
     combinations = combinations.drop(
         ["geodata_territorial_components", "borders"], axis=1
     )
