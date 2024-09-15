@@ -66,14 +66,11 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-years_geodatasets = json.loads(args.years_geodatasets)
-logger.warning(years_geodatasets)
-uploaded = [
-    year
-    for dict_ in years_geodatasets
-    for year, datasets in dict_.items()
-    if datasets
+years_geodatasets = [json.loads(x) for x in json.loads(args.years_geodatasets)]
+years_geodatasets = [
+    year for d in years_geodatasets for (year, result) in d.items() if result
 ]
+logger.warning(years_geodatasets)
 
 logger.warning(years_geodatasets)
 
@@ -87,6 +84,8 @@ years = sorted(list(years_geodatasets | years_metadata))
 years = [int(x) for x in years]
 
 # TODO : convert bucket & path_within_bucket to parsable arguments
+
+# TODO : too much characters on output, must split those results
 
 
 def main(
