@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-4th step of pipeline
+4.2th step of pipeline
 
 Prepare arguments for next step
 """
@@ -9,6 +9,7 @@ Prepare arguments for next step
 import argparse
 import json
 import logging
+import os
 from typing import List
 
 from s3fs import S3FileSystem
@@ -29,17 +30,10 @@ logger = logging.getLogger(__name__)
 parser = argparse.ArgumentParser(description="Crossproduct Script")
 
 parser.add_argument(
-    "-yg",
-    "--years-geodatasets",
-    default=r'["{\"2023\": true}"]',
-    help="Updated geodataset's vintages",
-)
-
-parser.add_argument(
-    "-ym",
-    "--years-metadata",
-    default="[2023]",
-    help="Updated metadata's vintages",
+    "-y",
+    "--year",
+    default="2023",
+    help="Filter downstream vintage to process",
 )
 
 parser.add_argument(
@@ -66,28 +60,17 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-years_geodatasets = [json.loads(x) for x in json.loads(args.years_geodatasets)]
-years_geodatasets = {
-    int(year)
-    for d in years_geodatasets
-    for (year, result) in d.items()
-    if result
-}
-
-years_metadata = {int(x) for x in json.loads(args.years_metadata)}
+year = args.year
 formats = args.formats.split(",")
 crs = args.crs.split(",")
 simplifications = args.simplifications.split(",")
 
-years = sorted(list(years_geodatasets | years_metadata))
 
 # TODO : convert bucket & path_within_bucket to parsable arguments
 
-# TODO : too much characters on output, must split those results
-
 
 def main(
-    years: List[int] = None,
+    year: int = None,
     simplifications: List[str] = None,
     formats: List[str] = None,
     crs: List[int] = None,
@@ -102,7 +85,7 @@ def main(
 
     configs = crossproduct_parameters_production(
         list_format=formats,
-        years=years,
+        years=[year],
         crs_list=crs,
         simplifications=simplifications,
         fs=fs,
@@ -110,14 +93,16 @@ def main(
         path_within_bucket=path_within_bucket,
     )
 
-    with open("configs_datasets_to_generate.json", "w") as out:
+    os.makedirs("configs_datasets_to_generate")
+
+    with open(f"configs_datasets_to_generate/{year}.json", "w") as out:
         json.dump(configs, out)
     return configs
 
 
 if __name__ == "__main__":
     configs = main(
-        years=years,
+        year=year,
         simplifications=simplifications,
         formats=formats,
         crs=crs,

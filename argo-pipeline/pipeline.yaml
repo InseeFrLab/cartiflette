@@ -64,9 +64,10 @@ spec:
               - name: years
                 value: "{{tasks.select-downstream-vintage-to-process.outputs.parameters.metadata_vintage_to_update}}"
           
-          # STEP 4 : SELECT DOWNSTREAM DATASETS TO GENERATE
-          - name: select-downstream-datasets-to-generate
-            template: select-downstream-datasets-to-generate
+          # STEP 4.1 : SELECT DOWNSTREAM YEARS TO GENERATE
+          # (DUMMY FAN-OUT STEP TO ENSURE SCALIBILITY AND RESULTS' MAX LENGTH IN NEXT STEP
+          - name: operationnal-selection-of-vintages-to-generate
+            template: operationnal-selection-of-vintages-to-generate
             dependencies: [ make-geodatasets, make-metadata ]
             arguments:
               parameters:
@@ -74,6 +75,16 @@ spec:
                 value: "{{tasks.make-geodatasets.outputs.parameters.updated_geodata}}"
               - name: years_metadata
                 value: "{{tasks.make-metadata.outputs.parameters.updated_metadata}}"
+                
+          # STEP 4.2 : SELECT DOWNSTREAM DATASETS TO GENERATE
+          - name: select-downstream-datasets-to-generate
+            template: select-downstream-datasets-to-generate
+            dependencies: [ operationnal-selection-of-vintages-to-generate ]
+            arguments:
+              parameters:
+              - name: year
+                value: "{{item}}"
+            withParam: "{{tasks.operationnal-selection-of-vintages-to-generate.outputs.parameters.years}}"
 
           # STEP 5 : SPLIT DATASETS
           - name: generate
@@ -218,11 +229,30 @@ spec:
         env: *env_parameters
         
     
-    - name: select-downstream-datasets-to-generate
+    - name: operationnal-selection-of-vintages-to-generate
       inputs:
         parameters:
           - name: years_geodatasets
           - name: years_metadata
+      outputs:
+        parameters:
+        - name: years
+          valueFrom:
+            path: vintages_operationnal_generation.json
+      container:
+        image: inseefrlab/cartiflette:latest
+        command: [sh, -c]
+        volumeMounts:
+          - name: volume-workflow-tmp
+            mountPath: /mnt
+        env: *env_parameters
+        args: ["
+          python /mnt/bin/src/filter_vintages_operationnal.py --years-geodatasets '{{inputs.parameters.years_geodatasets}}' --years-metadata '{{inputs.parameters.years_metadata}}';
+          "]
+    - name: select-downstream-datasets-to-generate
+      inputs:
+        parameters:
+          - name: years
       outputs:
         parameters:
         - name: configs
@@ -236,7 +266,7 @@ spec:
             mountPath: /mnt
         env: *env_parameters
         args: ["
-          python /mnt/bin/src/crossproduct.py --years-geodatasets '{{inputs.parameters.years_geodatasets}}' --years-metadata '{{inputs.parameters.years_metadata}}';
+          python /mnt/bin/src/crossproduct.py --year '{{inputs.parameters.years}}';
           "]
 
   # Step 2: creating template task for splitting ------------------
