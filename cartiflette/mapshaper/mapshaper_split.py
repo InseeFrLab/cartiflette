@@ -73,5 +73,6 @@ def mapshaper_split(
         file.replace(temp_output_dir, output_dir) for file in produced_files
     ]
     [os.replace(src, dst) for src, dst in zip(produced_files, final_files)]
+    os.rmdir(temp_output_dir)
 
     return final_files
