@@ -17,6 +17,7 @@ from cartiflette.config import (
     BUCKET,
     PATH_WITHIN_BUCKET,
     FS,
+    INTERMEDIATE_FORMAT,
 )
 from cartiflette.pipeline_constants import PIPELINE_SIMPLIFICATION_LEVELS
 from cartiflette.pipeline.prepare_geodatasets import (
@@ -70,7 +71,7 @@ def main(
 
     created = create_one_year_geodataset_batch(
         year,
-        format_output="geojson",
+        format_output=INTERMEDIATE_FORMAT,
         simplifications_values=simplifications,
         bucket=bucket,
         path_within_bucket=path_within_bucket,

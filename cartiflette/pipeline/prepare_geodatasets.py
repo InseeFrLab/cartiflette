@@ -25,6 +25,7 @@ from cartiflette.config import (
 from cartiflette.pipeline_constants import (
     PIPELINE_DOWNLOAD_ARGS,
     PIPELINE_SIMPLIFICATION_LEVELS,
+    INTERMEDIATE_FORMAT,
 )
 from cartiflette.s3.geodataset import (
     S3GeoDataset,
@@ -42,7 +43,6 @@ def make_one_geodataset(
     with_municipal_district: bool,
     simplification: int,
     communal_districts: S3GeoDataset = None,
-    format_output: str = "geojson",
 ) -> str:
     """
     Generate one geodataset and upload it to S3FileSystem
@@ -63,8 +63,6 @@ def make_one_geodataset(
     communal_districts : S3GeoDataset, optional
         Geodataset for communal districts, already downloaded. Only needed if
         `mesh == 'COMMUNE'`. The default is None.
-    format_output : str, optional
-        Final format to use. The default is "geojson".
 
     Returns
     -------
@@ -86,7 +84,7 @@ def make_one_geodataset(
         log += " with municipal districts substitution"
     logger.info(log, mesh, simplification)
 
-    kwargs = {"format_output": format_output}
+    kwargs = {"format_output": INTERMEDIATE_FORMAT}
 
     source_arm = (
         f' {PIPELINE_DOWNLOAD_ARGS["ADMIN-EXPRESS"][2]}'
@@ -369,4 +367,4 @@ def create_one_year_geodataset_batch(
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    created = create_one_year_geodataset_batch(2024, format_output="geojson")
+    created = create_one_year_geodataset_batch(2024)
