@@ -1,10 +1,17 @@
+from collections import OrderedDict
 import logging
 
 import pandas as pd
 from pebble import ThreadPool
 from s3fs import S3FileSystem
 
-from cartiflette.config import FS, BUCKET, PATH_WITHIN_BUCKET, THREADS_DOWNLOAD
+from cartiflette.config import (
+    FS,
+    BUCKET,
+    PATH_WITHIN_BUCKET,
+    THREADS_DOWNLOAD,
+    INTERMEDIATE_FORMAT,
+)
 from cartiflette.pipeline_constants import (
     AVAILABLE_DISSOLUTIONS_FROM_RAW_MESH,
     AVAILABLE_TERRITORIAL_SPLITS_FOR_BORDERS,
@@ -51,9 +58,30 @@ def flatten_dict_to_list(dict_with_list: dict) -> list:
     return flattened_list
 
 
+def multiindex_to_nested_dict(
+    df: pd.DataFrame, value_only=False
+) -> OrderedDict:
+    if isinstance(df.index, pd.MultiIndex):
+        return OrderedDict(
+            (k, multiindex_to_nested_dict(df.loc[k]))
+            for k in df.index.remove_unused_levels().levels[0]
+        )
+    else:
+        if value_only:
+            return OrderedDict((k, df.loc[k].values[0]) for k in df.index)
+        else:
+            d = OrderedDict()
+            for idx in df.index:
+                d_col = OrderedDict()
+                for col in df.columns:
+                    d_col[col] = df.loc[idx, col]
+                d[idx] = d_col
+            return d
+
+
 def crossproduct_parameters_production(
     list_format: list,
-    years: list,
+    year: int,
     crs_list: list,
     simplifications: list = PIPELINE_SIMPLIFICATION_LEVELS,
     fs: S3FileSystem = FS,
@@ -71,8 +99,8 @@ def crossproduct_parameters_production(
     -----------
     list_format : list
         A list of desired formats. For ex. ['geojson', 'topojson']
-    years : list
-        A list of desired vintages. For ex. [2023, 2024]
+    year : int
+        Desired vintage. For ex. 2023
     crs_list : list
         A list of desired CRS (Coordinate Reference Systems).
         For ex. [4326, 2154]
@@ -93,67 +121,69 @@ def crossproduct_parameters_production(
         A list of dicts used for commanding the generation of a downstream
         dataset.
 
-        Each dict has 4 keys:
+        Each dict has 5 keys:
+            * mesh_init: str (for instance 'DEPARTEMENT')
+            * source_geodata: str (for instance 'EXPRESS-COG-CARTO-TERRITOIRE')
+            * simplification: str (for instance '2021')
             * dissolve_by: str (for instance 'ARRONDISSEMENT')
-            * territory: str (for instance 'DEPARTEMENT')
-            * year: str (for instance '2021')
             * config: List[dict]
+
         Each config dictionnary has the following structure and should
         correspond to a specific geodataset to be generated.
+
         {
-            'mesh_init':
-                initial raw geodataset's mesh ('COMMUNE', 'CANTON' or 'IRIS'),
-            'geodata_provider':
-                provider for raw geodataset,
-            'geodata_dataset_family':
-                dataset_family for raw dataset,
-            'geodata_source':
-                source for raw dataset,
-            'format':
-                desired format for downstream geodataset ('topojson', ...)
-            'crs':
-                desired projection for downstream geodataset (4326, ...)
-            'simplification':
-                desired level of simplification for downstream geodataset as
-                integer based percentage (0, 40, ...)
-            }
+            crs (projection, for inst. 4326) : [
+                {
+                    'territory':
+                        territorial split ('REGION', 'FRANCE_ENTIERE', ...)
+                    'format':
+                        desired format ('topojson', ...)
+                }, ...
+            ]
+        }
 
     Example:
     --------
     Example usage:
         >>> formats = ['geojson', 'gpkg']
-        >>> years = [2022, 2023]
+        >>> year = 2023
         >>> crs_list = [4326, 2154]
         >>> simplifications = [0, 40]
         >>> result = crossproduct_parameters_production(
-               formats, years, crs_list, simplifications
+               formats, year, crs_list, simplifications
             )
         >>> print(result)
         >>> [
             {
-                'dissolve_by': 'ARRONDISSEMENT',
-                'territory': 'DEPARTEMENT',
-                'year': 2022,
-                'config': [
-                    {
-                        'mesh_init': 'IRIS',
-                        'geodata_provider': 'IGN',
-                        'geodata_dataset_family': 'IRIS',
-                        'geodata_source': 'CONTOUR-IRIS',
-                        'format': 'gpkg',
-                        'crs': 4326,
-                        'simplification': 40,
-                    }, ..., {
-                       'mesh_init': 'IRIS',
-                       'geodata_provider': 'IGN',
-                       'geodata_dataset_family': 'IRIS',
-                       'geodata_source': 'CONTOUR-IRIS',
-                       'format': 'geojson',
-                       'crs': 2154,
-                       'simplification': 0,
-                   }
-                ]
-            }, ...
+                'mesh_init': 'CANTON',
+                'source_geodata': 'EXPRESS-COG-CARTO-TERRITOIRE',
+                'simplification': 0,
+                'dissolve_by': 'CANTON',
+                'config': {
+                    2154: [{
+                            'territory': 'TERRITOIRE',
+                            'format': 'gpkg'
+                        },
+                        ...,
+                        {
+                            'territory': 'DEPARTEMENT',
+                            'format': 'geojson'
+                        }
+                    ],
+                    4326: [{
+                            'territory': 'TERRITOIRE',
+                            'format': 'gpkg'
+                        },
+                        ...,
+                    ]
+                }
+            }, {
+                'mesh_init': 'CANTON',
+                'source_geodata': 'EXPRESS-COG-CARTO-TERRITOIRE',
+                'simplification': 40,
+                'dissolve_by': 'CANTON',
+                'config': {...}
+            }
         ]
     """
 
@@ -175,6 +205,10 @@ def crossproduct_parameters_production(
     sources = sources.reset_index(drop=False)
     sources["geodata_territorial_components"] = (
         sources.geodata_territorial_components.apply(", ".join)
+    )
+
+    sources = sources.drop(
+        ["geodata_provider", "geodata_dataset_family"], axis=1
     )
 
     # prepare a list of tuples (
@@ -204,7 +238,6 @@ def crossproduct_parameters_production(
     )
     combinations = (
         combinations.join(pd.Series(list_format, name="format"), how="cross")
-        .join(pd.Series(years, name="year"), how="cross")
         .join(pd.Series(crs_list, name="crs"), how="cross")
         .join(pd.Series(simplifications, name="simplification"), how="cross")
     )
@@ -213,7 +246,7 @@ def crossproduct_parameters_production(
         ["geodata_territorial_components", "borders"], axis=1
     )
 
-    def geodataset_exists(year, borders, geodata_source, simplification):
+    def geodataset_exists(borders, geodata_source, simplification):
         "check if preprocessed geodata file is found on S3"
         config = {
             "bucket": bucket,
@@ -226,7 +259,7 @@ def crossproduct_parameters_production(
             "crs": 4326,
             "filter_by": "preprocessed",
             "value": "before_cog",
-            "vectorfile_format": "geojson",
+            "vectorfile_format": INTERMEDIATE_FORMAT,
             "territory": "france",
             "simplification": simplification,
             "fs": fs,
@@ -238,7 +271,7 @@ def crossproduct_parameters_production(
             # raw file does not exist
             return False
 
-    def metadataset_exists(year, borders):
+    def metadataset_exists(borders):
         "check if preprocessed metadata file is found on S3"
         config = {
             "bucket": bucket,
@@ -265,9 +298,9 @@ def crossproduct_parameters_production(
 
     # remove combinations having no available upstream source
     geodata_unique = combinations[
-        ["year", "mesh_init", "geodata_source", "simplification"]
+        ["mesh_init", "geodata_source", "simplification"]
     ].drop_duplicates()
-    metadata_unique = combinations[["year", "mesh_init"]].drop_duplicates()
+    metadata_unique = combinations[["mesh_init"]].drop_duplicates()
 
     if THREADS_DOWNLOAD == 1:
 
@@ -320,7 +353,6 @@ def crossproduct_parameters_production(
         "dissolve_by",
         "territory",
         "format",
-        "year",
         "crs",
         "simplification",
         "mesh_init",
@@ -328,20 +360,36 @@ def crossproduct_parameters_production(
     combinations = combinations.sort_values(dups, ascending=False)
     combinations = combinations.drop_duplicates(dups[:-1], keep="first")
 
-    combinations = (
-        combinations.set_index(["dissolve_by", "territory", "year"])
-        .groupby(["dissolve_by", "territory", "year"])
-        .apply(lambda x: x.to_dict(orient="records"))
-        .to_dict()
-    )
+    def cascade_dict(df, keys: list):
+        try:
+            return (
+                df.set_index(keys[0])
+                .groupby(keys[0])
+                .apply(lambda x: cascade_dict(x, keys[1:]))
+            ).to_dict()
+        except (AttributeError, IndexError, ValueError):
+            return (
+                df.set_index(keys)
+                .groupby(keys)
+                .apply(lambda x: x.to_dict(orient="records"))
+                .to_dict()
+            )
 
+    combinations = cascade_dict(
+        combinations,
+        [
+            ["mesh_init", "geodata_source", "simplification", "dissolve_by"],
+            "crs",
+        ],
+    )
     logger.info(f"{len(combinations)} pods will be created")
 
     combinations = [
         {
-            "dissolve_by": key[0],
-            "territory": key[1],
-            "year": key[2],
+            "mesh_init": key[0],
+            "source_geodata": key[1],
+            "simplification": key[2],
+            "dissolve_by": key[3],
             "config": val,
         }
         for key, val in combinations.items()

@@ -27,6 +27,14 @@ from cartiflette.pipeline_constants import (
 )
 
 logger = logging.getLogger(__name__)
+
+logging.basicConfig(level=logging.INFO)
+
+logger.info("=" * 50)
+logger.info("\n" + __doc__)
+logger.info("=" * 50)
+
+
 parser = argparse.ArgumentParser(description="Crossproduct Script")
 
 parser.add_argument(
@@ -40,21 +48,21 @@ parser.add_argument(
     "-f",
     "--formats",
     default=",".join(PIPELINE_FORMATS),
-    help="Desired output formats, as a comma sperated values list",
+    help="Desired output formats, as a comma separated values list",
 )
 
 parser.add_argument(
     "-c",
     "--crs",
     default=",".join([str(x) for x in PIPELINE_CRS]),
-    help="Desired projections as EPSG codes, as a comma sperated values list",
+    help="Desired projections as EPSG codes, as a comma separated values list",
 )
 
 parser.add_argument(
     "-s",
     "--simplifications",
     default=",".join([str(x) for x in PIPELINE_SIMPLIFICATION_LEVELS]),
-    help="Desired simplifications levels, as a comma sperated values list",
+    help="Desired simplifications levels, as a comma separated values list",
 )
 
 
@@ -85,7 +93,7 @@ def main(
 
     configs = crossproduct_parameters_production(
         list_format=formats,
-        years=[year],
+        year=year,
         crs_list=crs,
         simplifications=simplifications,
         fs=fs,
