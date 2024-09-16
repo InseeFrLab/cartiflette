@@ -45,9 +45,10 @@ years_metadata = {int(x) for x in json.loads(args.years_metadata)}
 
 years = sorted(list(years_geodatasets | years_metadata))
 
-with open("vintages_operationnal_generation.json", "w") as out:
-    json.dump(years, out)
 logger.info(
     "selected downstream years for operationnal generation of datasets : %s",
     years,
 )
+
+with open("vintages_operationnal_generation.json", "w") as out:
+    json.dump(years, out)
