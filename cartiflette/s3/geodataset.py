@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from contextlib import ExitStack, nullcontext
 from copy import deepcopy
 from glob import glob
 import logging
@@ -15,6 +16,7 @@ except ImportError:
     Self = "S3GeoDataset"
 
 import geopandas as gpd
+from pebble import ThreadPool
 from s3fs import S3FileSystem
 
 
@@ -36,7 +38,7 @@ from cartiflette.utils import (
     ConfigDict,
     DICT_CORRESP_ADMINEXPRESS,
 )
-from cartiflette.config import FS
+from cartiflette.config import FS, THREADS_DOWNLOAD
 from cartiflette.utils.dict_correspondance import (
     create_format_driver,
     create_format_standardized,
@@ -102,6 +104,11 @@ class S3GeoDataset(S3Dataset):
 
         return new
 
+    def to_frame(self, **kwargs) -> gpd.GeoDataFrame:
+        return gpd.read_file(
+            os.path.join(self.local_dir, self.main_filename), **kwargs
+        )
+
     def copy(self):
         return self.__copy__()
 
@@ -148,15 +155,23 @@ class S3GeoDataset(S3Dataset):
 
     def enrich(
         self,
-        metadata_file: str,
-        dict_corresp: dict,
+        metadata_file: S3Dataset,
+        keys: list,
+        dtype: dict,
+        drop: list,
         format_output: str = "geojson",
     ):
         "enrich with metadata using mapshaper"
+        input_metadata = (
+            f"{metadata_file.local_dir}/{metadata_file.main_filename}"
+        )
         input_geodata = f"{self.local_dir}/{self.main_filename}"
         output = mapshaper_enrich(
             input_geodata_file=input_geodata,
-            input_metadata_file=metadata_file,
+            input_metadata_file=input_metadata,
+            keys=keys,
+            dtype=dtype,
+            drop=drop,
             output_dir=self.local_dir,
             output_name=self.main_filename.rsplit(".", maxsplit=1)[0],
             output_format=format_output,
@@ -350,18 +365,13 @@ class S3GeoDataset(S3Dataset):
                     "simplification": simplification,
                 }
             )
-            # place file into a unique folder
-            new_dir = f"{self.local_dir}/splitted/{new_config['value']}"
-            os.makedirs(new_dir)
-            shutil.move(file, new_dir)
 
-            # TODO: remove local_dir (replace by from_file)
             geodatasets.append(
-                S3GeoDataset(
+                from_file(
+                    file_path=file,
                     fs=self.fs,
-                    local_dir=new_dir,
                     **new_config,
-                )
+                ).copy()
             )
 
         return geodatasets
@@ -370,7 +380,8 @@ class S3GeoDataset(S3Dataset):
         self,
         metadata: S3Dataset,
         format_output="geojson",
-        niveau_polygons="COMMUNE",
+        init_geometry_level="COMMUNE",
+        dissolve_by="COMMUNE",
         niveau_agreg="DEPARTEMENT",
         crs=4326,
         simplification=0,
@@ -381,7 +392,7 @@ class S3GeoDataset(S3Dataset):
 
         Do the following processes:
             - join the current geodataset with the metadata to enrich it;
-            - dissolve geometries if niveau_polygons != "COMMUNE"
+            - dissolve geometries if init_geometry_level != dissolve_by
             - bring ultramarine territories closer
               if niveau_agreg == "FRANCE_ENTIERE_DROM_RAPPROCHES"
             - split the geodataset based on niveau_agreg
@@ -401,7 +412,11 @@ class S3GeoDataset(S3Dataset):
             The metadata file to use to enrich the geodataset
         format_output : str, optional
             The output format, by default "geojson".
-        niveau_polygons : str, optional
+        init_geometry_level : str, optional
+            The level of basic mesh for the geometries. The default is COMMUNE.
+            Should be among ['COMMUNE', 'IRIS', 'CANTON',
+            'ARRONDISSEMENT_MUNICIPAL']
+        dissolve_by : str, optional
             The level of basic mesh for the geometries. The default is COMMUNE.
             Should be among ['REGION', 'DEPARTEMENT', 'FRANCE_ENTIERE',
              'FRANCE_ENTIERE_DROM_RAPPROCHES', 'LIBELLE_REGION',
@@ -436,34 +451,76 @@ class S3GeoDataset(S3Dataset):
             dict_corresp = DICT_CORRESP_ADMINEXPRESS
 
         niveau_agreg = niveau_agreg.upper()
-        niveau_polygons = niveau_polygons.upper()
+        init_geometry_level = init_geometry_level.upper()
 
         simplification = simplification if simplification else 0
 
         # Enrich files with metadata (COG, etc.)
+
+        if init_geometry_level == "IRIS":
+            keys = ["CODE_IRIS", "CODE_IRIS"]
+        elif init_geometry_level == "COMMUNE":
+            keys = ["Insee_COM", "CODGEO"]
+        elif init_geometry_level == "CANTON":
+            keys = ["INSEE_CAN", "INSEE_CAN"]
+        else:
+            # TODO if new base mesh
+            pass
+
+        if init_geometry_level == "COMMUNE":
+            drop = [
+                "NOM_M",
+                "SIREN_EPCI",
+                "INSEE_CAN",
+                "INSEE_ARR",
+                "INSEE_DEP",
+                "INSEE_REG",
+            ]
+        elif dissolve_by == "IRIS":
+            drop = ["ID", "NOM_COMMUNE", "IRIS", "NOM_IRIS", "TYP_IRIS"]
+        elif dissolve_by == "CANTON":
+            drop = ["ID", "INSEE_CAN", "INSEE_DEP", "INSEE_REG"]
+        else:
+            # TODO if new base mesh
+            pass
+
+        dtype = {x: "str" for x in keys}
+        dtype.update(
+            {
+                "INSEE_DEP": "str",
+                "INSEE_REG": "str",
+                "CAN": "str",
+                "BURCENTRAL": "str",
+                "REG": "str",
+            }
+        )
+
         self.enrich(
-            metadata_file=metadata.local_files[0],
-            dict_corresp=dict_corresp,
+            metadata_file=metadata,
+            keys=keys,
+            dtype=dtype,
+            drop=drop,
             format_output=format_output,
         )
 
-        if niveau_polygons not in {"COMMUNE", "ARRONDISSEMENT_MUNICIPAL"}:
+        if init_geometry_level != dissolve_by:
             # Dissolve geometries if desired (will replace the local file
             # geodata file based on a communal mesh with  one using the desired
             # mesh
 
             # Identify which fields should be copied from the first feature in
             # each group of dissolved features:
+
             copy_fields = [
-                dict_corresp[niveau_polygons],
-                dict_corresp[niveau_agreg],
-                dict_corresp.get(f"LIBELLE_{niveau_polygons}"),
+                dict_corresp.get(dissolve_by),
+                dict_corresp.get(niveau_agreg),
+                dict_corresp.get(f"LIBELLE_{dissolve_by}"),
                 dict_corresp.get(f"LIBELLE_{niveau_agreg}"),
             ]
             copy_fields = [x for x in copy_fields if x]
 
             self.dissolve(
-                by=dict_corresp[niveau_polygons],
+                by=dict_corresp[dissolve_by],
                 copy_fields=copy_fields,
                 calc=["POPULATION=sum(POPULATION)"],
                 format_output=format_output,
@@ -472,8 +529,9 @@ class S3GeoDataset(S3Dataset):
         # Bring ultramarine territories closer to France if needed
         if niveau_agreg == "FRANCE_ENTIERE_DROM_RAPPROCHES":
             niveau_filter_drom = "DEPARTEMENT"
-            if niveau_polygons != "COMMUNE":
-                niveau_filter_drom = niveau_polygons
+
+            if dissolve_by != "COMMUNE":
+                niveau_filter_drom = dissolve_by
 
             self.bring_drom_closer(
                 level_agreg=niveau_filter_drom,
@@ -488,12 +546,30 @@ class S3GeoDataset(S3Dataset):
             simplification=simplification,
             split_variable=dict_corresp[niveau_agreg],
             filter_by=niveau_agreg,
-            borders=niveau_polygons,
+            borders=dissolve_by,
         )
 
+        # fix config for storage on S3
+        dataset_family = {"dataset_family": "production"}
+        [dset.config.update(dataset_family) for dset in new_datasets]
+        [dset.update_s3_path_evaluation() for dset in new_datasets]
+
         # Upload new datasets to S3
-        for dataset in new_datasets:
-            dataset.to_s3()
+        with ExitStack() as stack:
+            # enter context for each new dataset instead of looping to allow
+            # for multithreading (cleaned locally at exitstack anyway)
+            [stack.enter_context(dset) for dset in new_datasets]
+
+            if THREADS_DOWNLOAD > 1:
+                threads = min(THREADS_DOWNLOAD, len(new_datasets))
+                with ThreadPool(threads) as pool:
+
+                    def upload(dset):
+                        return dset.to_s3()
+
+                    list(pool.map(upload, new_datasets).result())
+            else:
+                [dset.to_s3() for dset in new_datasets]
 
         return new_datasets
 

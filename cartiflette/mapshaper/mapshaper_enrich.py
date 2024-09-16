@@ -3,11 +3,16 @@
 
 import os
 import subprocess
+from typing import List
 
 
 def mapshaper_enrich(
     input_geodata_file: str,
     input_metadata_file: str,
+    keys: List[str],
+    dtype: str = None,
+    drop: list = None,
+    rename: list = None,
     output_dir: str = "temp",
     output_name: str = "output",
     output_format: str = "geojson",
@@ -21,7 +26,18 @@ def mapshaper_enrich(
         Path to the input geodata file.
     input_metadata_file : str
         Path to the input metadata file to join to the geodata file.
-    output_dir : str
+    keys : List[str]
+        List of fields used for joining the dataframes. Should be a tuple
+        corresponding to left-field and right-field, for instance
+        ['INSEE_COM', 'CODGEO']
+    dtype : dict, optional
+        Dtypes (among "str", "string", "num", "number"), for
+        instance {"INSEE_REG": "str"} . Default is None.
+    drop : list, optional
+        List of columns to drop (if not None). Default is None.
+    rename : dict, optional
+        List of columns to rename (if not None). Default is None.
+    output_dir : str, optional
         Directory to store the output file. The default is "temp"
     output_name : str, optional
         The path to write the file to (without extension).
@@ -42,17 +58,22 @@ def mapshaper_enrich(
         pass
 
     output = f"{output_dir}/{output_name}.{output_format}"
+    dtype = ",".join(
+        [f"{key}:{val}" for key, val in dtype.items()] if dtype else []
+    )
+    keys = ",".join(keys)
+    drop = ",".join(drop if drop else [])
+    rename = ",".join(
+        [f"{key}={val}" for key, val in rename.items()] if rename else []
+    )
 
     # Mapshaper command for the enrichment process
     cmd = (
         f"mapshaper {input_geodata_file} "
         "name='' -proj EPSG:4326 "
-        f"-join {input_metadata_file} "
-        "keys=INSEE_COM,CODGEO "
-        "field-types=INSEE_COM:str,CODGEO:str "
-        "-filter-fields "
-        "INSEE_CAN,INSEE_ARR,SIREN_EPCI,INSEE_DEP,INSEE_REG,NOM_M invert "
-        "-rename-fields INSEE_DEP=DEP,INSEE_REG=REG "
+        f"-join {input_metadata_file} keys={keys} field-types={dtype} "
+        f"-filter-fields {drop} invert "
+        f"-rename-fields {rename} "
         "-each \"PAYS='France'\" "
         f"-o {output} force"
     )
