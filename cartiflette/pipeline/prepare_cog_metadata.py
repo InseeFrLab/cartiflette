@@ -42,6 +42,18 @@ def prepare_cog_metadata(
         warnings.warn(f"missing COG CANTON file for {year=}")
         path_bucket_cog_canton = None
 
+    # Find ARRONDISSEMENT dataset on S3
+    path = (
+        f"{bucket}/{path_within_bucket}/"
+        f"provider=Insee/dataset_family=COG/source=ARRONDISSEMENT/year={year}/"
+        "**/*.csv"
+    )
+    try:
+        path_bucket_cog_arrondissement = fs.glob(path)[0]
+    except IndexError:
+        warnings.warn(f"missing COG ARRONDISSEMENT file for {year=}")
+        path_bucket_cog_arrondissements = None
+
     # Find DEPARTEMENT dataset on S3
     path = (
         f"{bucket}/{path_within_bucket}/"
@@ -100,29 +112,43 @@ def prepare_cog_metadata(
         warnings.warn(f"{year=} metadata not constructed!")
         return
 
+    dtype = "string[pyarrow]"
+    with fs.open(path_bucket_cog_arrondissement, mode="rb") as remote_file:
+        cog_ar = pd.read_csv(
+            remote_file,
+            dtype_backend="pyarrow",
+            dtype={"ARR": dtype, "DEP": dtype, "REG": dtype},
+        )
+
     with fs.open(path_bucket_cog_departement, mode="rb") as remote_file:
         cog_dep = pd.read_csv(
             remote_file,
             dtype_backend="pyarrow",
-            dtype={"REG": "string[pyarrow]"},
+            dtype={"DEP": dtype, "REG": dtype},
         )
 
     with fs.open(path_bucket_cog_region, mode="rb") as remote_file:
         cog_region = pd.read_csv(
             remote_file,
             dtype_backend="pyarrow",
-            dtype={"REG": "string[pyarrow]"},
+            dtype={"REG": dtype},
         )
 
-    # Merge DEPARTEMENT and REGION COG metadata
+    # Merge ARR, DEPARTEMENT and REGION COG metadata
     cog_metadata = (
-        cog_dep.loc[:, ["DEP", "REG", "LIBELLE"]]
+        cog_ar.loc[:, ["ARR", "DEP", "REG", "LIBELLE"]]
+        .rename({"LIBELLE": "LIBELLE_ARRONDISSEMENT"})
         .merge(
-            cog_region.loc[:, ["REG", "LIBELLE"]],
-            on="REG",
-            suffixes=["_DEPARTEMENT", "_REGION"],
+            cog_dep.loc[:, ["DEP", "REG", "LIBELLE"]]
+            .merge(
+                cog_region.loc[:, ["REG", "LIBELLE"]],
+                on="REG",
+                suffixes=["_DEPARTEMENT", "_REGION"],
+            )
+            .drop(columns=["REG"]),
+            on="DEP",
+            how="outer",  # Nota : Mayotte not in ARR file
         )
-        .drop(columns=["REG"])
     )
 
     # Compute metadata at IRIS level
@@ -210,12 +236,24 @@ def prepare_cog_metadata(
                 warnings.warn(f"{year=} metadata for cantons not constructed!")
                 cantons_metadata = None
             else:
+                # Remove pseudo-cantons
+                ix = cantons[cantons.COMPCT.isnull()].index
+                cantons = cantons.drop(ix)
+
+                # Set pure "CANTON" code (without dep part) to prepare for
+                # join with IGN's CANTON geodataset
+                cantons["INSEE_CAN"] = cantons["CAN"].str[-2:]
+
                 # Merge CANTON metadata with COG metadata
+                # TODO
+                ## pb : Martinique (972) et Guyane (973) pas dans cantons
+
                 cantons_metadata = cantons.merge(cog_metadata, how="inner")
 
                 cantons_metadata = cantons_metadata.loc[
                     :,
                     [
+                        "INSEE_CAN",
                         "CAN",
                         "DEP",
                         "REG",
