@@ -128,9 +128,6 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Setuptools vs. poetry
-*.lock
-.toml
-
 *.sqlite
 *.sqlite*
+/argo-pipeline/src/cartiflette-s3-cache
