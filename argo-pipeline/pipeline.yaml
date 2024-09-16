@@ -87,20 +87,13 @@ spec:
             withParam: "{{tasks.operationnal-selection-of-vintages-to-generate.outputs.parameters.years}}"
 
           # STEP 5 : SPLIT DATASETS
-          - name: generate
-            template: split-dataset
+          - name: generate-datasets
+            template: generate-datasets
             dependencies: [ select-downstream-datasets-to-generate ]
             arguments:
               parameters:
-              - name: dissolve_by
-                value: "{{item.dissolve_by}}"
-              - name: territory
-                value: "{{item.territory}}"
-              - name: year
-                value: "{{item.year}}"
               - name: config
-                value: "{{item.config}}"
-            withParam: "{{tasks.select-downstream-datasets-to-generate.outputs.parameters.configs}}"
+                value: "{{tasks.select-downstream-datasets-to-generate.outputs.parameters.configs}}"
 
   # --------------------------
   # TEMPLATES DEFINITION
@@ -270,22 +263,24 @@ spec:
           "]
 
   # Step 2: creating template task for splitting ------------------
-    - name: split-dataset
+    - name: generate-datasets
       inputs:
         parameters:
-        - name: dissolve_by
-        - name: territory
-        - name: year
-        - name: config
+        - name: mesh_init
+        - name: source_geodata
+        - name: simplification
+        - config: config_generation
       container:
         image: inseefrlab/cartiflette:latest
         command: ["sh", "-c"]
         args: ["
           python /mnt/bin/src/split_merge_tiles.py \
-          --dissolve_by '{{inputs.parameters.dissolve_by}}' \
-          --territory '{{inputs.parameters.territory}}' \
-          --year '{{inputs.parameters.year}}' \
-          --config '{{inputs.parameters.config}}'"
+          -- year '{{inputs.parameters.year}}'\
+          --level_polygons '{{inputs.parameters.level_polygons}}'\
+          --source '{{inputs.parameters.source}}'\
+          --simplification '{{inputs.parameters.simplification}}'\
+          --dissolve_by '{{inputs.parameters.dissolve_by}}'\
+          --config_generation '{{inputs.parameters.config_generation}}'"
         ]
         volumeMounts:
           - name: volume-workflow-tmp
