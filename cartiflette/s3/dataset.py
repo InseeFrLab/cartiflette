@@ -11,6 +11,7 @@ import tempfile
 import warnings
 
 from diskcache import Cache
+import pandas as pd
 from s3fs import S3FileSystem
 from retrying import retry
 
@@ -104,6 +105,11 @@ class S3Dataset:
             self.local_dir = tempfile.mkdtemp()
             self.to_local_folder_for_mapshaper()
         return self
+
+    def to_frame(self, **kwargs) -> pd.DataFrame:
+        return pd.read_csv(
+            os.path.join(self.local_dir, self.main_filename), **kwargs
+        )
 
     def clean(self):
         "remove files from local dir"
