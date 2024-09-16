@@ -1,73 +1,81 @@
-import tempfile
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+from s3fs import S3FileSystem
 
 
-from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
+from cartiflette.config import (
+    BUCKET,
+    PATH_WITHIN_BUCKET,
+    FS,
+    INTERMEDIATE_FORMAT,
+)
 from cartiflette.s3 import S3GeoDataset, S3Dataset
 
 
 def mapshaperize_split_from_s3(
-    config, format_intermediate: str = "topojson", fs=FS
+    year: int,
+    init_geometry_level: str,
+    source: str,
+    simplification: int,
+    dissolve_by: str,
+    config_generation: dict,
+    fs: S3FileSystem = FS,
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
+    # config, format_intermediate: str = "topojson", fs=FS
 ):
-    format_output = config.get("format_output", "topojson")
-    filter_by = config.get("filter_by", "DEPARTEMENT")
-    level_polygons = config.get("level_polygons", "COMMUNE")
 
-    provider = config.get("provider", "IGN")
-    source = config.get("source", "EXPRESS-COG-CARTO-TERRITOIRE")
-    year = config.get("year", 2024)
-    dataset_family = config.get("dataset_family", "ADMINEXPRESS")
-    crs = config.get("crs", 4326)
-    simplification = config.get("simplification", 0)
+    kwargs = {
+        "fs": fs,
+        "bucket": bucket,
+        "path_within_bucket": path_within_bucket,
+        "year": year,
+        "borders": init_geometry_level,
+        "filter_by": "preprocessed",
+        "provider": "Cartiflette",
+        "territory": "france",
+    }
+    with S3Dataset(
+        dataset_family="metadata",
+        source="*",
+        crs=None,
+        value="tagc",
+        vectorfile_format="csv",
+        **kwargs,
+    ) as metadata, S3GeoDataset(
+        dataset_family="geodata",
+        source=source,
+        crs=4326,
+        value="before_cog",
+        vectorfile_format=INTERMEDIATE_FORMAT,
+        **kwargs,
+    ) as gis_file:
 
-    bucket = config.get("bucket", BUCKET)
-    path_within_bucket = config.get("path_within_bucket", PATH_WITHIN_BUCKET)
+        for crs, crs_configs in config_generation.items():
+            for config_one_file in crs_configs:
 
-    with tempfile.TemporaryDirectory() as tempdir:
-        raise Exception("TODO : remove local_dir")
-        kwargs = {
-            "fs": fs,
-            "local_dir": tempdir,
-            "bucket": bucket,
-            "path_within_bucket": path_within_bucket,
-            "year": year,
-            "borders": "france",
-            "filter_by": "preprocessed",
-            "territory": "france",
-        }
-        with S3Dataset(
-            provider="Insee",
-            dataset_family="COG-TAGC",
-            source="COG-TAGC",
-            crs=None,
-            value="tagc",
-            vectorfile_format="csv",
-            **kwargs,
-        ) as metadata, S3GeoDataset(
-            provider=provider,
-            dataset_family=dataset_family,
-            source=source,
-            crs=4326,
-            value="before_cog",
-            vectorfile_format=format_intermediate,
-            **kwargs,
-        ) as gis_file:
-            gis_file.create_downstream_geodatasets(
-                metadata,
-                format_output=format_output,
-                niveau_agreg=filter_by,
-                niveau_polygons=level_polygons,
-                crs=crs,
-                simplification=simplification,
-            )
+                gis_file.create_downstream_geodatasets(
+                    metadata,
+                    format_output=config_one_file["format"],
+                    niveau_agreg=config_one_file["territory"],
+                    init_geometry_level=init_geometry_level,
+                    dissolve_by=dissolve_by,
+                    crs=crs,
+                    simplification=simplification,
+                )
 
 
 if __name__ == "__main__":
     mapshaperize_split_from_s3(
-        {
-            "year": 2023,
-            "level_polygons": "COMMUNE",
-            "filter_by": "FRANCE_ENTIERE",
-            "format_output": "geojson",
-            "simplification": 50,
-        }
+        year=2023,
+        # init_geometry_level="IRIS",
+        # source="CONTOUR-IRIS",
+        init_geometry_level="CANTON",
+        source="EXPRESS-COG-CARTO-TERRITOIRE",
+        simplification=50,
+        dissolve_by="CANTON",
+        config_generation={
+            "2154": [{"territory": "REGION", "format": "geojson"}]
+        },
     )
