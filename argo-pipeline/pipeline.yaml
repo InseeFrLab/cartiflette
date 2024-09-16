@@ -252,7 +252,7 @@ spec:
     - name: select-downstream-datasets-to-generate
       inputs:
         parameters:
-          - name: years
+          - name: year
       outputs:
         parameters:
         - name: configs
@@ -266,7 +266,7 @@ spec:
             mountPath: /mnt
         env: *env_parameters
         args: ["
-          python /mnt/bin/src/crossproduct.py --year '{{inputs.parameters.years}}';
+          python /mnt/bin/src/crossproduct.py --year '{{inputs.parameters.year}}';
           "]
 
   # Step 2: creating template task for splitting ------------------
