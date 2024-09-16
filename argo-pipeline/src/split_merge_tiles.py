@@ -8,69 +8,105 @@ Create all geodatasets served by cartiflette
 """
 
 import argparse
-from cartiflette.config import PATH_WITHIN_BUCKET
-from cartiflette.pipeline import (
-    mapshaperize_split_from_s3,
-    mapshaperize_merge_split_from_s3,
-)
+import json
 import logging
 
+from s3fs import S3FileSystem
+
+from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
+from cartiflette.pipeline import (
+    mapshaperize_split_from_s3,
+    # mapshaperize_merge_split_from_s3,
+)
+
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+
+logger.info("=" * 50)
+logger.info("\n" + __doc__)
+logger.info("=" * 50)
 
 parser = argparse.ArgumentParser(description="Process command line arguments.")
-logger = logging.getLogger(__name__)
 
 # Define the arguments with their default values
 parser.add_argument(
-    "--path", type=str, default=PATH_WITHIN_BUCKET, help="Path in bucket"
+    "-y",
+    "--year",
+    default="2023",
+    help="Filter downstream vintage to process",
 )
 parser.add_argument(
-    "--format_output", type=str, default="geojson", help="Output format"
+    "-lp",
+    "--level_polygons_init",
+    default="COMMUNE",
+    help="Initial level of geometries (=mesh)",
 )
-parser.add_argument("--year", type=int, default=2023, help="Year for the data")
 parser.add_argument(
-    "--crs", type=int, default=4326, help="Coordinate Reference System"
-)
-parser.add_argument(
+    "-so",
     "--source",
-    type=str,
     default="EXPRESS-COG-CARTO-TERRITOIRE",
-    help="Data source",
+    help="Select upstream raw source to use for geometries",
 )
 parser.add_argument(
-    "--simplification", type=float, default=0, help="Simplification level"
+    "-si",
+    "--simplification",
+    default="0",
+    help="Desired simplification level",
 )
 parser.add_argument(
-    "--level_polygons", type=str, default="COMMUNE", help="Level of polygons"
+    "-d",
+    "--dissolve_by",
+    default="DEPARTEMENT",
+    help="Desired geometry dissolution level",
 )
 parser.add_argument(
-    "--filter_by", type=str, default="DEPARTEMENT", help="Splitting criteria"
+    "-c",
+    "--config_generation",
+    default='{"2154": [{"territory": "REGION", "format": "topojson"}]}',
+    help="Desired split level",
 )
 
 # Parse the arguments
 args = parser.parse_args()
 
-# Create a dictionary from the parsed arguments
-args_dict = {
-    "path_within_bucket": args.path,
-    "format_output": args.format_output,
-    "year": args.year,
-    "crs": args.crs,
-    "source": args.source,
-    "simplification": args.simplification,
-    "level_polygons": args.level_polygons,
-    "filter_by": args.filter_by,
-}
 
+def main(
+    year,
+    init_geometry_level,
+    source,
+    simplification,
+    dissolve_by,
+    config_generation: dict,
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
+    fs: S3FileSystem = FS,
+):
 
-def main(args_dict):
-    logger.info("Processing with provided arguments")
-    logger.info(
-        "Arguments for mapshaperize_split_from_s3 ---> {0}".format(args_dict)
+    result = mapshaperize_split_from_s3(
+        year=year,
+        init_geometry_level=init_geometry_level,
+        source=source,
+        simplification=simplification,
+        dissolve_by=dissolve_by,
+        config_generation=config_generation,
+        bucket=bucket,
+        path_within_bucket=path_within_bucket,
+        fs=fs,
     )
-    mapshaperize_split_from_s3(args_dict)
 
-    return args_dict
+    return result
 
 
 if __name__ == "__main__":
-    main(args_dict)
+    main(
+        year=args.year,
+        init_geometry_level=args.level_polygons_init,
+        source=args.source,
+        simplification=args.simplification,
+        dissolve_by=args.dissolve_by,
+        config_generation=json.loads(args.config_generation),
+        bucket=BUCKET,
+        path_within_bucket=PATH_WITHIN_BUCKET,
+        fs=FS,
+    )
