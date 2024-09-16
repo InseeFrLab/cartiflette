@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+import warnings
 from dotenv import load_dotenv
 import s3fs
 
@@ -29,4 +30,12 @@ RETRYING = True  # WHETHER TO USE RETRYING MODULE ON DOWNLOAD/UPLOAD
 # =============================================================================
 # PIPELINE CONFIG
 # =============================================================================
-DATASETS_HIGH_RESOLUTION = False
+
+# set to low resolution datasets for dev environment, high for anything else
+DATASETS_HIGH_RESOLUTION = (os.environ.get("ENVIRONMENT", "dev") != "dev")
+
+if not DATASETS_HIGH_RESOLUTION:
+    warnings.warn(
+        "cartiflette is running with dev configuration, using only low "
+        "resolution datasets"
+        )
