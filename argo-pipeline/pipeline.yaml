@@ -257,7 +257,7 @@ spec:
         parameters:
         - name: configs
           valueFrom:
-            path: configs_datasets_to_generate.json
+            path: "configs_datasets_to_generate/{{ inputs.parameters.year }}.json"
       container:
         image: inseefrlab/cartiflette:latest
         command: [sh, -c]
