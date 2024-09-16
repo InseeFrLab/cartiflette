@@ -65,6 +65,7 @@ AVAILABLE_DISSOLUTIONS_FROM_RAW_MESH = {
         "IRIS",
         "COMMUNE",
         "ARRONDISSEMENT_MUNICIPAL",
+        "EPCI",
         "ARRONDISSEMENT",
         "DEPARTEMENT",
         "REGION",
@@ -75,6 +76,7 @@ AVAILABLE_DISSOLUTIONS_FROM_RAW_MESH = {
     "COMMUNE": [
         "COMMUNE",
         "ARRONDISSEMENT_MUNICIPAL",
+        "EPCI",
         "ARRONDISSEMENT",
         "DEPARTEMENT",
         "REGION",
@@ -90,12 +92,13 @@ AVAILABLE_DISSOLUTIONS_FROM_RAW_MESH = {
 AVAILABLE_TERRITORIAL_SPLITS_FOR_BORDERS = {
     # borders -> [filter_by1, filter_by2, ... ]
     "IRIS": [
-        # "COMMUNE" -> two much files generated, trigger this only if usecase
-        # CANTON -> if INSEE confirms this can be done?
+        # "COMMUNE" -> too much files generated, trigger this only if usecase
+        # CANTON -> if INSEE can prepare a junction between IRIS and CANTON
         "BASSIN_VIE",
         "ZONE_EMPLOI",
         "UNITE_URBAINE",
         "AIRE_ATTRACTION_VILLES",
+        "ARRONDISSEMENT",
         "DEPARTEMENT",
         "REGION",
         "TERRITOIRE",
@@ -107,6 +110,7 @@ AVAILABLE_TERRITORIAL_SPLITS_FOR_BORDERS = {
         "ZONE_EMPLOI",
         "UNITE_URBAINE",
         "AIRE_ATTRACTION_VILLES",
+        "ARRONDISSEMENT",
         "DEPARTEMENT",
         "REGION",
         "TERRITOIRE",
@@ -118,6 +122,7 @@ AVAILABLE_TERRITORIAL_SPLITS_FOR_BORDERS = {
         "ZONE_EMPLOI",
         "UNITE_URBAINE",
         "AIRE_ATTRACTION_VILLES",
+        "ARRONDISSEMENT",
         "DEPARTEMENT",
         "REGION",
         "TERRITOIRE",
