@@ -15,6 +15,12 @@ import logging
 
 
 logger = logging.getLogger(__name__)
+
+logger.info("=" * 50)
+logger.info("\n" + __doc__)
+logger.info("=" * 50)
+
+
 parser = argparse.ArgumentParser(description="Crossproduct Script")
 
 parser.add_argument(
