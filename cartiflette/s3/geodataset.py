@@ -109,6 +109,10 @@ class S3GeoDataset(S3Dataset):
             os.path.join(self.local_dir, self.main_filename), **kwargs
         )
 
+    def _get_columns(self, **kwargs):
+        df = self.to_frame(**kwargs, rows=5)
+        return df.columns.tolist()
+
     def copy(self):
         return self.__copy__()
 
@@ -159,6 +163,7 @@ class S3GeoDataset(S3Dataset):
         keys: list,
         dtype: dict,
         drop: list,
+        rename: dict,
         format_output: str = "geojson",
     ):
         "enrich with metadata using mapshaper"
@@ -172,6 +177,7 @@ class S3GeoDataset(S3Dataset):
             keys=keys,
             dtype=dtype,
             drop=drop,
+            rename=rename,
             output_dir=self.local_dir,
             output_name=self.main_filename.rsplit(".", maxsplit=1)[0],
             output_format=format_output,
@@ -459,10 +465,16 @@ class S3GeoDataset(S3Dataset):
 
         if init_geometry_level == "IRIS":
             keys = ["CODE_IRIS", "CODE_IRIS"]
+            rename = dict()
         elif init_geometry_level == "COMMUNE":
-            keys = ["Insee_COM", "CODGEO"]
+            keys = ["INSEE_COM", "CODGEO"]
+            rename = {
+                "INSEE_DEP": "DEP",
+                "INSEE_REG": "REG",
+            }
         elif init_geometry_level == "CANTON":
             keys = ["INSEE_CAN", "INSEE_CAN"]
+            rename = dict()
         else:
             # TODO if new base mesh
             pass
@@ -495,11 +507,16 @@ class S3GeoDataset(S3Dataset):
             }
         )
 
+        if not rename:
+            # TODO
+            raise NotImplementedError("rename not defined here")
+
         self.enrich(
             metadata_file=metadata,
             keys=keys,
             dtype=dtype,
             drop=drop,
+            rename=rename,
             format_output=format_output,
         )
 

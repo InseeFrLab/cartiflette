@@ -106,6 +106,10 @@ class S3Dataset:
             self.to_local_folder_for_mapshaper()
         return self
 
+    def _get_columns(self, **kwargs):
+        df = self.to_frame(**kwargs, nrows=5)
+        return df.columns.tolist()
+
     def to_frame(self, **kwargs) -> pd.DataFrame:
         return pd.read_csv(
             os.path.join(self.local_dir, self.main_filename), **kwargs
