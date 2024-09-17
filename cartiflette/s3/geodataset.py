@@ -463,24 +463,28 @@ class S3GeoDataset(S3Dataset):
 
         # Enrich files with metadata (COG, etc.)
 
+        available_columns = set(self._get_columns()) | set(
+            metadata._get_columns()
+        )
+
         if init_geometry_level == "IRIS":
             keys = ["CODE_IRIS", "CODE_IRIS"]
-            rename = dict()
+            rename = {
+                "DEP": "INSEE_DEP",
+                "REG": "INSEE_REG",
+                "ARR": "INSEE_ARR",
+                "CODGEO": "INSEE_COM",
+            }
+            drop = ["ID", "NOM_COM", "IRIS", "NOM_IRIS"]
         elif init_geometry_level == "COMMUNE":
             keys = ["INSEE_COM", "CODGEO"]
             rename = {
-                "INSEE_DEP": "DEP",
-                "INSEE_REG": "REG",
+                "DEP": "INSEE_DEP",
+                "REG": "INSEE_REG",
+                "ARR": "INSEE_ARR",
             }
-        elif init_geometry_level == "CANTON":
-            keys = ["INSEE_CAN", "INSEE_CAN"]
-            rename = dict()
-        else:
-            # TODO if new base mesh
-            pass
-
-        if init_geometry_level == "COMMUNE":
             drop = [
+                "ID",
                 "NOM_M",
                 "SIREN_EPCI",
                 "INSEE_CAN",
@@ -488,24 +492,53 @@ class S3GeoDataset(S3Dataset):
                 "INSEE_DEP",
                 "INSEE_REG",
             ]
-        elif dissolve_by == "IRIS":
-            drop = ["ID", "NOM_COMMUNE", "IRIS", "NOM_IRIS", "TYP_IRIS"]
-        elif dissolve_by == "CANTON":
+        elif init_geometry_level == "CANTON":
+            keys = ["INSEE_CAN", "INSEE_CAN"]
+            rename = {
+                "DEP": "INSEE_DEP",
+                "REG": "INSEE_REG",
+                "ARR": "INSEE_ARR",
+                "CAN": "INSEE_CAN",
+            }
             drop = ["ID", "INSEE_CAN", "INSEE_DEP", "INSEE_REG"]
         else:
             # TODO if new base mesh
             pass
 
-        dtype = {x: "str" for x in keys}
-        dtype.update(
-            {
-                "INSEE_DEP": "str",
-                "INSEE_REG": "str",
-                "CAN": "str",
-                "BURCENTRAL": "str",
-                "REG": "str",
-            }
-        )
+        if len(set(keys) & available_columns) < len(set(keys)):
+            raise ValueError(
+                f"keys must be among {available_columns}, "
+                f"found {set(keys)} instead"
+            )
+
+        if len(set(rename.keys()) & available_columns) < len(rename):
+            missing = set(rename.keys()) - available_columns
+            raise ValueError(
+                f"rename must be among {available_columns}, following columns "
+                f"are missing : {missing}"
+            )
+
+        if len(set(drop) & available_columns) < len(drop):
+            missing = set(drop) - available_columns
+            raise ValueError(
+                f"drop must be among {available_columns}, following columns "
+                f"are missing : {missing}"
+            )
+
+        dtype = set(keys) | {
+            "INSEE_DEP",
+            "INSEE_REG",
+            "CAN",
+            "BURCENTRAL",
+            "REG",
+            "ZE2020",
+            "TUU2017",
+            "TDUU2017",
+            "TAAV2017",
+            "TDAAV2017",
+            "CATEAAV2020",
+        }
+        dtype = {x: "str" for x in dtype if x in available_columns}
 
         if not rename:
             logger.info("geodata columns are %s", self._get_columns())
@@ -521,6 +554,8 @@ class S3GeoDataset(S3Dataset):
             rename=rename,
             format_output=format_output,
         )
+
+        logger.info("new columns are %s", self._get_columns())
 
         if init_geometry_level != dissolve_by:
             # Dissolve geometries if desired (will replace the local file
