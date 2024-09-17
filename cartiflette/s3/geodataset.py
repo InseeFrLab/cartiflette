@@ -508,7 +508,9 @@ class S3GeoDataset(S3Dataset):
         )
 
         if not rename:
-            # TODO
+            logger.info("geodata columns are %s", self._get_columns())
+            logger.info("metada columns are %s", metadata._get_columns())
+            logger.info("columns to be dropped are %s", drop)
             raise NotImplementedError("rename not defined here")
 
         self.enrich(
