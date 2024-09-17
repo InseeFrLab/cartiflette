@@ -245,7 +245,7 @@ spec:
               template: generate-downstream-datasets-to-generate
               arguments:
                 parameters:
-                - name: year:
+                - name: year
                   value: "{{item.year}}"
                 withParam: "{{tasks.operationnal-selection-of-vintages-to-generate.outputs.parameters.years}}"
           - - name: generate-datasets
