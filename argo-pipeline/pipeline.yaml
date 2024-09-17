@@ -240,31 +240,31 @@ spec:
       inputs:
         parameters:
           - name: year
-        steps:
-          - - name: generate-downstream-datasets-to-generate
-              template: generate-downstream-datasets-to-generate
-              arguments:
-                parameters:
-                - name: year
-                  value: "{{item.year}}"
-                withParam: "{{tasks.operationnal-selection-of-vintages-to-generate.outputs.parameters.years}}"
-          - - name: generate-datasets
-              template: generate-datasets
-              arguments:
-                parameters:
-                - name: year
-                  value: "{{item.year}}"
-                - name: init_geometry_level
-                  value: "{{item.mesh_init}}"
-                - name: source
-                  value: "{{item.source_geodata}}"
-                - name: simplification
-                  value: "{{item.simplification}}"
-                - name: dissolve_by
-                  value: "{{item.dissolve_by}}"
-                - name: config_generation
-                  value: "{{item.config}}"
-              withParam: "{{task.generate-downstream-datasets.steps.generate-downstream-datasets-to-generate.outputs.parameters.configs}}"
+      steps:
+        - - name: generate-downstream-datasets-to-generate
+            template: generate-downstream-datasets-to-generate
+            arguments:
+              parameters:
+              - name: year
+                value: "{{item.year}}"
+              withParam: "{{tasks.operationnal-selection-of-vintages-to-generate.outputs.parameters.years}}"
+        - - name: generate-datasets
+            template: generate-datasets
+            arguments:
+              parameters:
+              - name: year
+                value: "{{item.year}}"
+              - name: init_geometry_level
+                value: "{{item.mesh_init}}"
+              - name: source
+                value: "{{item.source_geodata}}"
+              - name: simplification
+                value: "{{item.simplification}}"
+              - name: dissolve_by
+                value: "{{item.dissolve_by}}"
+              - name: config_generation
+                value: "{{item.config}}"
+            withParam: "{{steps.generate-downstream-datasets-to-generate.outputs.parameters.configs}}"
 
     - name: generate-downstream-datasets-to-generate
       inputs:
