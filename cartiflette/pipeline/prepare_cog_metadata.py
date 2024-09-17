@@ -112,27 +112,43 @@ def prepare_cog_metadata(
         warnings.warn(f"{year=} metadata not constructed!")
         return
 
+    def set_cols_to_uppercase(df):
+        df.columns = [x.upper() for x in df.columns]
+
     dtype = "string[pyarrow]"
     with fs.open(path_bucket_cog_arrondissement, mode="rb") as remote_file:
         cog_ar = pd.read_csv(
             remote_file,
             dtype_backend="pyarrow",
-            dtype={"ARR": dtype, "DEP": dtype, "REG": dtype},
+            dtype={
+                "ARR": dtype,
+                "arr": dtype,
+                "DEP": dtype,
+                "dep": dtype,
+                "REG": dtype,
+                "reg": dtype,
+            },
         )
+        set_cols_to_uppercase(cog_ar)
 
     with fs.open(path_bucket_cog_departement, mode="rb") as remote_file:
         cog_dep = pd.read_csv(
             remote_file,
             dtype_backend="pyarrow",
-            dtype={"DEP": dtype, "REG": dtype},
+            dtype={"DEP": dtype, "dep": dtype, "REG": dtype, "reg": dtype},
         )
+        set_cols_to_uppercase(cog_dep)
 
     with fs.open(path_bucket_cog_region, mode="rb") as remote_file:
         cog_region = pd.read_csv(
             remote_file,
             dtype_backend="pyarrow",
-            dtype={"REG": dtype},
+            dtype={
+                "REG": dtype,
+                "reg": dtype,
+            },
         )
+        set_cols_to_uppercase(cog_region)
 
     # Merge ARR, DEPARTEMENT and REGION COG metadata
     cog_metadata = (
@@ -165,12 +181,17 @@ def prepare_cog_metadata(
                     skiprows=5,
                     dtype_backend="pyarrow",
                     dtype={
-                        "REG": "string[pyarrow]",
-                        "DEP": "string[pyarrow]",
-                        "CODE_IRIS": "string[pyarrow]",
-                        "GRD_QUART": "string[pyarrow]",
+                        "REG": dtype,
+                        "DEP": dtype,
+                        "CODE_IRIS": dtype,
+                        "GRD_QUART": dtype,
+                        "reg": dtype,
+                        "dep": dtype,
+                        "code_iris": dtype,
+                        "grd_quart": dtype,
                     },
                 )
+                set_cols_to_uppercase(iris)
             except Exception as e:
                 warnings.warn(f"could not read TAGIRIS file: {e}")
                 warnings.warn(f"{year=} metadata for iris not constructed!")
@@ -195,7 +216,10 @@ def prepare_cog_metadata(
                     remote_file,
                     skiprows=5,
                     dtype_backend="pyarrow",
-                    dtype={"REG": "string[pyarrow]"},
+                    dtype={
+                        "REG": dtype,
+                        "reg": dtype,
+                    },
                 )
             except Exception as e:
                 warnings.warn(f"could not read TAGC file: {e}")
@@ -203,6 +227,7 @@ def prepare_cog_metadata(
                 cities = None
 
             else:
+                set_cols_to_uppercase(tagc)
                 # Merge TAGC metadata with COG metadata
                 cities = tagc.merge(cog_metadata)
                 cities = cities.rename({"LIBGEO": "LIBELLE_COMMUNE"}, axis=1)
@@ -229,8 +254,14 @@ def prepare_cog_metadata(
                 cantons = pd.read_csv(
                     remote_file,
                     dtype_backend="pyarrow",
-                    dtype={"REG": "string[pyarrow]", "DEP": "string[pyarrow]"},
+                    dtype={
+                        "REG": dtype,
+                        "reg": dtype,
+                        "DEP": dtype,
+                        "dep": dtype,
+                    },
                 )
+                set_cols_to_uppercase(cantons)
             except Exception as e:
                 warnings.warn(f"could not read CANTON file: {e}")
                 warnings.warn(f"{year=} metadata for cantons not constructed!")
