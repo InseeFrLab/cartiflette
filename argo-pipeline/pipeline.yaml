@@ -264,7 +264,7 @@ spec:
                   value: "{{item.dissolve_by}}"
                 - name: config_generation
                   value: "{{item.config}}"
-              withParam: "{{steps.generate-downstream-datasets-to-generate.outputs.parameters.configs}}"
+              withParam: "{{task.generate-downstream-datasets.steps.generate-downstream-datasets-to-generate.outputs.parameters.configs}}"
 
     - name: generate-downstream-datasets-to-generate
       inputs:
@@ -286,7 +286,6 @@ spec:
           python /mnt/bin/src/crossproduct.py --year '{{inputs.parameters.year}}';
           "]
 
-  # Step 2: creating template task for splitting ------------------
     - name: generate-datasets
       inputs:
         parameters:
