@@ -324,7 +324,6 @@ def create_one_year_geodataset_batch(
 
         func = partial(
             make_one_geodataset,
-            format_output=format_output,
             communal_districts=districts,
         )
 
@@ -365,6 +364,6 @@ def create_one_year_geodataset_batch(
     return {year: success}
 
 
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    created = create_one_year_geodataset_batch(2024)
+# if __name__ == "__main__":
+#     logging.basicConfig(level=logging.INFO)
+#     created = create_one_year_geodataset_batch(2024)
