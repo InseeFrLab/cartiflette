@@ -63,9 +63,9 @@ spec:
               parameters:
               - name: years
                 value: "{{tasks.select-downstream-vintage-to-process.outputs.parameters.metadata_vintage_to_update}}"
-          
+
           # STEP 4.1 : SELECT DOWNSTREAM YEARS TO GENERATE
-          # (DUMMY FAN-OUT STEP TO ENSURE SCALIBILITY AND RESULTS' MAX LENGTH IN NEXT STEP
+          # (FAN-OUT STEP TO ENSURE SCALIBILITY AND RESULTS' MAX LENGTH IN NEXT STEP)
           - name: operationnal-selection-of-vintages-to-generate
             template: operationnal-selection-of-vintages-to-generate
             dependencies: [ make-geodatasets, make-metadata ]
@@ -75,36 +75,18 @@ spec:
                 value: "{{tasks.make-geodatasets.outputs.parameters.updated_geodata}}"
               - name: years_metadata
                 value: "{{tasks.make-metadata.outputs.parameters.updated_metadata}}"
-                
-          # STEP 4.2 : SELECT DOWNSTREAM DATASETS TO GENERATE
-          - name: select-downstream-datasets-to-generate
-            template: select-downstream-datasets-to-generate
+
+          # STEP 5 : TASK WITH 2 NESTED STEPS FOR
+          # 5.1 selecting geodatasets to generate
+          # 5.2 creating selected geodatasets
+          - name: generate-downstream-datasets
+            template: generate-downstream-datasets
             dependencies: [ operationnal-selection-of-vintages-to-generate ]
             arguments:
               parameters:
               - name: year
                 value: "{{item}}"
             withParam: "{{tasks.operationnal-selection-of-vintages-to-generate.outputs.parameters.years}}"
-
-          # STEP 5 : SPLIT DATASETS
-          - name: generate-datasets
-            template: generate-datasets
-            dependencies: [ select-downstream-datasets-to-generate ]
-            arguments:
-              parameters:
-              - name: year
-                value: "{{item.year}}"
-              - name: init_geometry_level
-                value: "{{item.mesh_init}}"
-              - name: source
-                value: "{{item.source_geodata}}"
-              - name: simplification
-                value: "{{item.simplification}}"
-              - name: dissolve_by
-                value: "{{item.dissolve_by}}"
-              - name: config_generation
-                value: "{{item.config}}"
-            withParam: "{{tasks.select-downstream-datasets-to-generate.outputs.parameters.configs}}"
 
   # --------------------------
   # TEMPLATES DEFINITION
@@ -151,7 +133,7 @@ spec:
             value: https://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$AWS_S3_ENDPOINT
           - name: ENVIRONMENT
             value: dev
-            
+
     - name: download-all-sources
       outputs:
         parameters:
@@ -211,7 +193,7 @@ spec:
                 python /mnt/bin/src/make_geodata_datasets.py --path $PATH_WRITING_S3 --year '{{inputs.parameters.year}}';
                 "]
         env: *env_parameters
-        
+
     - name: make-metadata
       inputs:
         parameters:
@@ -231,8 +213,8 @@ spec:
                 python /mnt/bin/src/make_metadata_datasets.py --path $PATH_WRITING_S3 --years '{{inputs.parameters.years}}';
                 "]
         env: *env_parameters
-        
-    
+
+
     - name: operationnal-selection-of-vintages-to-generate
       inputs:
         parameters:
@@ -253,7 +235,38 @@ spec:
         args: ["
           python /mnt/bin/src/filter_vintages_operationnal.py --years-geodatasets '{{inputs.parameters.years_geodatasets}}' --years-metadata '{{inputs.parameters.years_metadata}}';
           "]
-    - name: select-downstream-datasets-to-generate
+
+    - name : generate-downstream-datasets
+      inputs:
+        parameters:
+          - name: year
+        steps:
+          - - name: generate-downstream-datasets-to-generate
+              template: generate-downstream-datasets-to-generate
+              arguments:
+                parameters:
+                - name: year:
+                  value: "{{item.year}}"
+                withParam: "{{tasks.operationnal-selection-of-vintages-to-generate.outputs.parameters.years}}"
+          - - name: generate-datasets
+              template: generate-datasets
+              arguments:
+                parameters:
+                - name: year
+                  value: "{{item.year}}"
+                - name: init_geometry_level
+                  value: "{{item.mesh_init}}"
+                - name: source
+                  value: "{{item.source_geodata}}"
+                - name: simplification
+                  value: "{{item.simplification}}"
+                - name: dissolve_by
+                  value: "{{item.dissolve_by}}"
+                - name: config_generation
+                  value: "{{item.config}}"
+              withParam: "{{steps.generate-downstream-datasets-to-generate.outputs.parameters.configs}}"
+
+    - name: generate-downstream-datasets-to-generate
       inputs:
         parameters:
           - name: year
@@ -283,7 +296,7 @@ spec:
         - name: simplification
         - name: dissolve_by
         - name: config_generation
-        
+
       container:
         image: inseefrlab/cartiflette:latest
         command: ["sh", "-c"]
@@ -300,4 +313,3 @@ spec:
           - name: volume-workflow-tmp
             mountPath: /mnt
         env: *env_parameters
-
