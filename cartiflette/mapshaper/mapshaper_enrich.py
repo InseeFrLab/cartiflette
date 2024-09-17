@@ -12,7 +12,7 @@ def mapshaper_enrich(
     keys: List[str],
     dtype: str = None,
     drop: list = None,
-    rename: list = None,
+    rename: dict = None,
     output_dir: str = "temp",
     output_name: str = "output",
     output_format: str = "geojson",
