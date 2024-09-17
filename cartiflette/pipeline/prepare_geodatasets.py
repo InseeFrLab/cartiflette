@@ -21,11 +21,11 @@ from cartiflette.config import (
     BUCKET,
     PATH_WITHIN_BUCKET,
     THREADS_DOWNLOAD,
+    INTERMEDIATE_FORMAT,
 )
 from cartiflette.pipeline_constants import (
     PIPELINE_DOWNLOAD_ARGS,
     PIPELINE_SIMPLIFICATION_LEVELS,
-    INTERMEDIATE_FORMAT,
 )
 from cartiflette.s3.geodataset import (
     S3GeoDataset,
