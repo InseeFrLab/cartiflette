@@ -240,14 +240,15 @@ spec:
       inputs:
         parameters:
           - name: year
+            value: "{{item}}"
+        withParam: "{{tasks.operationnal-selection-of-vintages-to-generate.outputs.parameters.years}}"
       steps:
         - - name: select-downstream-datasets-to-generate
             template: select-downstream-datasets-to-generate
             arguments:
               parameters:
               - name: year
-                value: "{{item}}"
-              withParam: "{{tasks.operationnal-selection-of-vintages-to-generate.outputs.parameters.years}}"
+                value: "{{tasks.generate-downstream-datasets.inputs.year}}"
         - - name: generate-datasets
             template: generate-datasets
             arguments:
