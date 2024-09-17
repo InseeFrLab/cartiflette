@@ -220,6 +220,10 @@ def prepare_cog_metadata(
                         "reg": dtype,
                     },
                 )
+                # drop CANTON-OU-VILLE (managed through proper CANTON layer),
+                # which may be tagged "CV" or "CANOV" in various vintages
+                drop = {"CANOV", "CV"} & set(tagc.columns)
+                tagc = tagc.drop(list(drop), axis=1)
             except Exception as e:
                 warnings.warn(f"could not read TAGC file: {e}")
                 warnings.warn(f"{year=} metadata for cities not constructed!")
