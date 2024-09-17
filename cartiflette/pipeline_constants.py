@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from .config import DATASETS_HIGH_RESOLUTION
+from cartiflette.config import DATASETS_HIGH_RESOLUTION
 
 # Keys for COG_TERRITOIRE and IRIS are True for high resolution and False for
 # low resolution of datasets
@@ -66,6 +66,10 @@ AVAILABLE_DISSOLUTIONS_FROM_RAW_MESH = {
         "COMMUNE",
         "ARRONDISSEMENT_MUNICIPAL",
         "EPCI",
+        "UNITE_URBAINE",
+        "ZONE_EMPLOI",
+        "BASSIN_VIE",
+        "AIRE_ATTRACTION_VILLES",
         "ARRONDISSEMENT",
         "DEPARTEMENT",
         "REGION",
@@ -77,6 +81,10 @@ AVAILABLE_DISSOLUTIONS_FROM_RAW_MESH = {
         "COMMUNE",
         "ARRONDISSEMENT_MUNICIPAL",
         "EPCI",
+        "UNITE_URBAINE",
+        "ZONE_EMPLOI",
+        "BASSIN_VIE",
+        "AIRE_ATTRACTION_VILLES",
         "ARRONDISSEMENT",
         "DEPARTEMENT",
         "REGION",
@@ -134,6 +142,13 @@ AVAILABLE_TERRITORIAL_SPLITS_FOR_BORDERS = {
         "FRANCE_ENTIERE",
         "FRANCE_ENTIERE_DROM_RAPPROCHES",
     ],
+    "EPCI": [
+        "DEPARTEMENT",
+        "REGION",
+        "TERRITOIRE",
+        "FRANCE_ENTIERE",
+        "FRANCE_ENTIERE_DROM_RAPPROCHES",
+    ],
     "CANTON": [
         "DEPARTEMENT",
         "REGION",
@@ -180,3 +195,33 @@ AVAILABLE_TERRITORIAL_SPLITS_FOR_BORDERS = {
         "FRANCE_ENTIERE_DROM_RAPPROCHES",
     ],
 }
+
+# Check integrity
+all_dissolutions = {
+    dissolution
+    for key, dissolutions in AVAILABLE_DISSOLUTIONS_FROM_RAW_MESH.items()
+    for dissolution in dissolutions
+}
+all_dissolutions = all_dissolutions
+
+all_borders = {
+    split
+    for key, splits in AVAILABLE_TERRITORIAL_SPLITS_FOR_BORDERS.items()
+    for split in splits
+} | {
+    # unwanted splits (too much files without due use case)
+    "IRIS",  # -> will never need to make a map for a given IRIS
+    "COMMUNE",  # -> should never need to make a map for a given COMMUNE
+    "ARRONDISSEMENT_MUNICIPAL",  # -> should never need to make a map for a given ARM
+    "CANTON",  # -> might need it ?
+    "EPCI",  # -> might need it ?
+}
+
+differences = all_borders ^ all_dissolutions
+if differences:
+    raise ValueError(
+        "keys of AVAILABLE_DISSOLUTIONS_FROM_RAW_MESH must be the same as "
+        "every available dissolution from "
+        "AVAILABLE_DISSOLUTIONS_FROM_RAW_MESH. Found the following "
+        f"differences : {differences}"
+    )
