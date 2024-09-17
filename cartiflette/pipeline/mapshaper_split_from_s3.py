@@ -66,16 +66,41 @@ def mapshaperize_split_from_s3(
                 )
 
 
-if __name__ == "__main__":
-    mapshaperize_split_from_s3(
-        year=2023,
-        # init_geometry_level="IRIS",
-        # source="CONTOUR-IRIS",
-        init_geometry_level="CANTON",
-        source="EXPRESS-COG-CARTO-TERRITOIRE",
-        simplification=50,
-        dissolve_by="CANTON",
-        config_generation={
-            "2154": [{"territory": "REGION", "format": "geojson"}]
-        },
-    )
+# if __name__ == "__main__":
+#     import logging
+#     logging.basicConfig(level=logging.INFO)
+#     mapshaperize_split_from_s3(
+#         year=2023,
+#         init_geometry_level="CANTON",
+#         source="EXPRESS-COG-CARTO-TERRITOIRE",
+#         simplification=50,
+#         dissolve_by="CANTON",
+#         config_generation={
+#             "2154": [{"territory": "TERRITOIRE", "format": "geojson"}]
+#         },
+#     )
+#     print("=+" * 25)
+
+    # mapshaperize_split_from_s3(
+    #     year=2023,
+    #     init_geometry_level="COMMUNE",
+    #     source="EXPRESS-COG-CARTO-TERRITOIRE",
+    #     simplification=50,
+    #     dissolve_by="ARRONDISSEMENT",
+    #     config_generation={
+    #         "2154": [{"territory": "REGION", "format": "geojson"}]
+    #     },
+    # )
+
+    # print("=+" * 25)
+
+    # mapshaperize_split_from_s3(
+    #     year=2023,
+    #     init_geometry_level="IRIS",
+    #     source="CONTOUR-IRIS",
+    #     simplification=50,
+    #     dissolve_by="DEPARTEMENT",
+    #     config_generation={
+    #         "2154": [{"territory": "REGION", "format": "geojson"}]
+    #     },
+    # )
