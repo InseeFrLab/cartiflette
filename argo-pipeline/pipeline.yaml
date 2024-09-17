@@ -104,7 +104,7 @@ spec:
                 value: "{{item.dissolve_by}}"
               - name: config_generation
                 value: "{{item.config}}"
-            withParam: "{{tasks.select-downstream-datasets-to-generate.outputs.parameters.configs.items}}"
+            withParam: "{{tasks.select-downstream-datasets-to-generate.outputs.parameters.configs}}"
 
   # --------------------------
   # TEMPLATES DEFINITION
