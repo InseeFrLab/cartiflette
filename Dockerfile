@@ -21,16 +21,14 @@ ENV \
   POETRY_CACHE_DIR='/var/cache/pypoetry' \
   POETRY_HOME='/usr/local'
 
+# Create structure
 COPY pyproject.toml .
 COPY poetry.lock .
 COPY README.md .
-
-RUN curl https://install.python-poetry.org/ | python - 
-RUN poetry install --only main --no-interaction
-
-# Create structure
 COPY cartiflette ./cartiflette
 COPY docker/test.py .
 
+RUN curl https://install.python-poetry.org/ | python - 
+RUN poetry install --only main --no-interaction
 
 CMD ["python", "test.py"]
