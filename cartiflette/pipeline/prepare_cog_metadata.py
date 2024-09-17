@@ -152,16 +152,15 @@ def prepare_cog_metadata(
 
     # Merge ARR, DEPARTEMENT and REGION COG metadata
     cog_metadata = (
-        cog_ar.loc[:, ["ARR", "DEP", "REG", "LIBELLE"]]
+        # Note : Mayotte (976) not in ARR -> take DEP & REG from cog_dep & cog_reg
+        cog_ar.loc[:, ["ARR", "DEP", "LIBELLE"]]
         .rename({"LIBELLE": "LIBELLE_ARRONDISSEMENT"})
         .merge(
-            cog_dep.loc[:, ["DEP", "REG", "LIBELLE"]]
-            .merge(
+            cog_dep.loc[:, ["DEP", "REG", "LIBELLE"]].merge(
                 cog_region.loc[:, ["REG", "LIBELLE"]],
                 on="REG",
                 suffixes=["_DEPARTEMENT", "_REGION"],
-            )
-            .drop(columns=["REG"]),
+            ),
             on="DEP",
             how="outer",  # Nota : Mayotte not in ARR file
         )
