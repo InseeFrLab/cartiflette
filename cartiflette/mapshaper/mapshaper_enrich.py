@@ -36,7 +36,8 @@ def mapshaper_enrich(
     drop : list, optional
         List of columns to drop (if not None). Default is None.
     rename : dict, optional
-        List of columns to rename (if not None). Default is None.
+        List of columns to rename (if not None) in a pandas' syntax-like.
+        To rename A -> B, pass {"A": "B"}. The default is None.
     output_dir : str, optional
         Directory to store the output file. The default is "temp"
     output_name : str, optional
@@ -63,8 +64,10 @@ def mapshaper_enrich(
     )
     keys = ",".join(keys)
     drop = ",".join(drop if drop else [])
+
+    # Warning : for mapshaper, to rename A -> B, use B=A syntax!
     rename = ",".join(
-        [f"{key}={val}" for key, val in rename.items()] if rename else []
+        [f"{val}={key}" for key, val in rename.items()] if rename else []
     )
 
     # Mapshaper command for the enrichment process
