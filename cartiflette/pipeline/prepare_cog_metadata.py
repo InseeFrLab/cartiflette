@@ -154,7 +154,7 @@ def prepare_cog_metadata(
     cog_metadata = (
         # Note : Mayotte (976) not in ARR -> take DEP & REG from cog_dep & cog_reg
         cog_ar.loc[:, ["ARR", "DEP", "LIBELLE"]]
-        .rename({"LIBELLE": "LIBELLE_ARRONDISSEMENT"})
+        .rename({"LIBELLE": "LIBELLE_ARRONDISSEMENT"}, axis=1)
         .merge(
             cog_dep.loc[:, ["DEP", "REG", "LIBELLE"]].merge(
                 cog_region.loc[:, ["REG", "LIBELLE"]],
@@ -232,7 +232,9 @@ def prepare_cog_metadata(
             else:
                 set_cols_to_uppercase(tagc)
                 # Merge TAGC metadata with COG metadata
-                cities = tagc.merge(cog_metadata)
+                cities = tagc.merge(
+                    cog_metadata.drop(["REG", "ARR"], axis=1), on="DEP"
+                )
                 cities = cities.rename({"LIBGEO": "LIBELLE_COMMUNE"}, axis=1)
                 cities["SOURCE_METADATA"] = "INSEE:COG"
 
