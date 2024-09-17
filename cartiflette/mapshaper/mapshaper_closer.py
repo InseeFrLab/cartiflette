@@ -4,6 +4,8 @@ import subprocess
 
 logger = logging.getLogger(__name__)
 
+# TODO : TOM (St-Martin, St-Barthelemy, St-Pierre-et-Miquelon)
+
 logical_conditions = {
     "EMPRISES": {
         "metropole": "bbox=-572324.2901945524,5061666.243842439,1064224.7522608414,6638201.7541528195",
