@@ -241,12 +241,12 @@ spec:
         parameters:
           - name: year
       steps:
-        - - name: generate-downstream-datasets-to-generate
-            template: generate-downstream-datasets-to-generate
+        - - name: select-downstream-datasets-to-generate
+            template: select-downstream-datasets-to-generate
             arguments:
               parameters:
               - name: year
-                value: "{{item.year}}"
+                value: "{{item}}"
               withParam: "{{tasks.operationnal-selection-of-vintages-to-generate.outputs.parameters.years}}"
         - - name: generate-datasets
             template: generate-datasets
@@ -264,9 +264,9 @@ spec:
                 value: "{{item.dissolve_by}}"
               - name: config_generation
                 value: "{{item.config}}"
-            withParam: "{{steps.generate-downstream-datasets-to-generate.outputs.parameters.configs}}"
+            withParam: "{{steps.select-downstream-datasets-to-generate.outputs.parameters.configs}}"
 
-    - name: generate-downstream-datasets-to-generate
+    - name: select-downstream-datasets-to-generate
       inputs:
         parameters:
           - name: year
