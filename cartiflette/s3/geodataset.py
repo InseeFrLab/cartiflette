@@ -515,7 +515,7 @@ class S3GeoDataset(S3Dataset):
             rename = {
                 "DEP": "INSEE_DEP",
                 "REG": "INSEE_REG",
-                "ARR": "INSEE_ARR",
+                # "ARR": "INSEE_ARR", # Missing ARR from CANTON metadata?
                 "CAN": "INSEE_CAN",
             }
             drop = ["ID", "INSEE_CAN", "INSEE_DEP", "INSEE_REG"]
