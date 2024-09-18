@@ -38,7 +38,7 @@ def mapshaper_combine_districts_and_cities(
     except FileExistsError:
         pass
 
-    fix_geo = "fix-geometry" if output_format == "topojson" else ""
+    # fix_geo = "fix-geometry" if output_format == "topojson" else ""
     output = f"{output_dir}/{output_name}.{output_format}"
 
     cmd = (
@@ -48,7 +48,9 @@ def mapshaper_combine_districts_and_cities(
         "-rename-layers COMMUNE,ARRONDISSEMENT_MUNICIPAL "
         "-merge-layers target=COMMUNE,ARRONDISSEMENT_MUNICIPAL force "
         "-rename-layers COMMUNE_ARRONDISSEMENT "
-        f"-o {output} {fix_geo} format={output_format} "
+        f"-o {output} "
+        # f"{fix_geo} "
+        f"format={output_format} "
         f'extension=".{output_format}"'
     )
     subprocess.run(cmd, shell=True, check=True, text=True)

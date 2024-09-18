@@ -70,9 +70,12 @@ def mapshaper_dissolve(
     if copy_fields:
         cmd += "copy-fields=" + ",".join(copy_fields)
 
-    fix_geo = "fix-geometry" if output_format == "topojson" else ""
+    # fix_geo = "fix-geometry" if output_format == "topojson" else ""
 
-    cmd += f" -o {output} force {fix_geo}"
+    cmd += (
+        f" -o {output} force "
+        # f"{fix_geo}"
+        )
 
     subprocess.run(
         cmd,

@@ -43,7 +43,7 @@ def mapshaper_simplify(
     except FileExistsError:
         pass
 
-    fix_geo = "fix-geometry" if output_format == "topojson" else ""
+    # fix_geo = "fix-geometry" if output_format == "topojson" else ""
 
     output = f"{output_dir}/{output_name}.{output_format}"
 
@@ -51,7 +51,8 @@ def mapshaper_simplify(
         f"mapshaper {input_file} "
         "-proj EPSG:4326 "
         f"{option_simplify} "
-        f" -o {output} force {fix_geo}"
+        f" -o {output} force "
+        # f"{fix_geo}"
     )
 
     subprocess.run(
