@@ -55,52 +55,55 @@ def mapshaperize_split_from_s3(
         for crs, crs_configs in config_generation.items():
             for config_one_file in crs_configs:
 
-                gis_file.create_downstream_geodatasets(
-                    metadata,
-                    format_output=config_one_file["format"],
-                    niveau_agreg=config_one_file["territory"],
-                    init_geometry_level=init_geometry_level,
-                    dissolve_by=dissolve_by,
-                    crs=crs,
-                    simplification=simplification,
-                )
+                with gis_file.copy() as gis_copy:
+                    gis_copy.create_downstream_geodatasets(
+                        metadata,
+                        format_output=config_one_file["format"],
+                        niveau_agreg=config_one_file["territory"],
+                        init_geometry_level=init_geometry_level,
+                        dissolve_by=dissolve_by,
+                        crs=crs,
+                        simplification=simplification,
+                    )
 
 
 # if __name__ == "__main__":
 #     import logging
+
 #     logging.basicConfig(level=logging.INFO)
-#     mapshaperize_split_from_s3(
-#         year=2023,
-#         init_geometry_level="CANTON",
-#         source="EXPRESS-COG-CARTO-TERRITOIRE",
-#         simplification=50,
-#         dissolve_by="CANTON",
-#         config_generation={
-#             "2154": [{"territory": "TERRITOIRE", "format": "geojson"}]
-#         },
-#     )
-#     print("=+" * 25)
 
-    # mapshaperize_split_from_s3(
-    #     year=2023,
-    #     init_geometry_level="COMMUNE",
-    #     source="EXPRESS-COG-CARTO-TERRITOIRE",
-    #     simplification=50,
-    #     dissolve_by="ARRONDISSEMENT",
-    #     config_generation={
-    #         "2154": [{"territory": "REGION", "format": "geojson"}]
-    #     },
-    # )
-
-    # print("=+" * 25)
-
-    # mapshaperize_split_from_s3(
-    #     year=2023,
-    #     init_geometry_level="IRIS",
-    #     source="CONTOUR-IRIS",
-    #     simplification=50,
-    #     dissolve_by="DEPARTEMENT",
-    #     config_generation={
-    #         "2154": [{"territory": "REGION", "format": "geojson"}]
-    #     },
-    # )
+#     # mapshaperize_split_from_s3(
+#     #     year=2024,
+#     #     init_geometry_level="CANTON",
+#     #     source="EXPRESS-COG-CARTO-TERRITOIRE",
+#     #     simplification=40,
+#     #     dissolve_by="CANTON",
+#     #     config_generation={
+#     #         "4326": [
+#     #             {"territory": "TERRITOIRE", "format": "topojson"},
+#     #             {"territory": "TERRITOIRE", "format": "gpkg"},
+#     #             {"territory": "TERRITOIRE", "format": "geojson"},
+#     #             {"territory": "REGION", "format": "topojson"},
+#     #             {"territory": "REGION", "format": "gpkg"},
+#     #             {"territory": "REGION", "format": "geojson"},
+#     #             {
+#     #                 "territory": "FRANCE_ENTIERE_DROM_RAPPROCHES",
+#     #                 "format": "topojson",
+#     #             },
+#     #             {
+#     #                 "territory": "FRANCE_ENTIERE_DROM_RAPPROCHES",
+#     #                 "format": "gpkg",
+#     #             },
+#     #             {
+#     #                 "territory": "FRANCE_ENTIERE_DROM_RAPPROCHES",
+#     #                 "format": "geojson",
+#     #             },
+#     #             {"territory": "FRANCE_ENTIERE", "format": "topojson"},
+#     #             {"territory": "FRANCE_ENTIERE", "format": "gpkg"},
+#     #             {"territory": "FRANCE_ENTIERE", "format": "geojson"},
+#     #             {"territory": "DEPARTEMENT", "format": "topojson"},
+#     #             {"territory": "DEPARTEMENT", "format": "gpkg"},
+#     #             {"territory": "DEPARTEMENT", "format": "geojson"},
+#     #         ]
+#     #     },
+#     # )
