@@ -72,7 +72,7 @@ def mapshaper_dissolve(
 
     fix_geo = "fix-geometry" if output_format == "topojson" else ""
 
-    cmd += f" -o {fix_geo} {output} force"
+    cmd += f" -o {output} force {fix_geo}"
 
     subprocess.run(
         cmd,
