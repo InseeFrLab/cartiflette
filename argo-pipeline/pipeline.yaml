@@ -301,7 +301,7 @@ spec:
           python /mnt/bin/src/split_merge_tiles.py \
           --year '{{inputs.parameters.year}}' \
           --level_polygons_init '{{inputs.parameters.init_geometry_level}}' \
-          --source '{{inputs.parameters.source}}'\
+          --source '{{inputs.parameters.source}}' \
           --simplification '{{inputs.parameters.simplification}}' \
           --dissolve_by '{{inputs.parameters.dissolve_by}}' \
           --config_generation '{{inputs.parameters.config_generation}}'"
