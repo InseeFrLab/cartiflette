@@ -26,16 +26,16 @@ spec:
       dag:
         tasks:
 
-          # STEP 0 : MOUNT VOLUMES AND CHECK PERMISSIONS
+          # TASK 0 : MOUNT VOLUMES AND CHECK PERMISSIONS
           - name: init-and-test-volume
             template: init-and-test-volume
 
-          # STEP 1 : RETRIEVE ALL (NEW) FILES FROM SOURCES AND UPLOAD TO MINIO
+          # TASK 1 : RETRIEVE ALL (NEW) FILES FROM SOURCES AND UPLOAD TO MINIO
           - name: download-all-sources
             template: download-all-sources
             dependencies: [ init-and-test-volume ]
 
-          # STEP 2 : CHECK WICH VINTAGE SHOULD BE RE-PROCESSED FROM (NEW) RAW SOURCES
+          # TASK 2 : CHECK WICH VINTAGE SHOULD BE RE-PROCESSED FROM (NEW) RAW SOURCES
           - name: select-downstream-vintage-to-process
             template: select-downstream-vintage-to-process
             dependencies: [ download-all-sources ]
@@ -44,8 +44,7 @@ spec:
               - name: download_results
                 value: "{{tasks.download-all-sources.outputs.parameters.download_all_results}}"
 
-          # STEP 3.1 : CREATE BASE GEODATASETS ON MINIO FROM RAW TERRITORIAL FILES
-          # TODO : skip to one pod for each available year
+          # TASK 3.1 : CREATE BASE GEODATASETS ON MINIO FROM RAW TERRITORIAL FILES
           - name: make-geodatasets
             template: make-geodatasets
             dependencies: [ select-downstream-vintage-to-process ]
@@ -55,7 +54,7 @@ spec:
                 value: "{{item}}"
             withParam: "{{tasks.select-downstream-vintage-to-process.outputs.parameters.geodatasets_vintage_to_update}}"
 
-          # STEP 3.2 : CREATE METADATA FILES ON MINIO FROM RAW INSEE FILES
+          # TASK 3.2 : CREATE METADATA FILES ON MINIO FROM RAW INSEE FILES
           - name: make-metadata
             template: make-metadata
             dependencies: [ select-downstream-vintage-to-process ]
@@ -64,7 +63,7 @@ spec:
               - name: years
                 value: "{{tasks.select-downstream-vintage-to-process.outputs.parameters.metadata_vintage_to_update}}"
 
-          # STEP 4.1 : SELECT DOWNSTREAM YEARS TO GENERATE
+          # TASK 4: SELECT DOWNSTREAM YEARS TO GENERATE
           # (FAN-OUT STEP TO ENSURE SCALIBILITY AND RESULTS' MAX LENGTH IN NEXT STEP)
           - name: operationnal-selection-of-vintages-to-generate
             template: operationnal-selection-of-vintages-to-generate
@@ -76,9 +75,9 @@ spec:
               - name: years_metadata
                 value: "{{tasks.make-metadata.outputs.parameters.updated_metadata}}"
 
-          # STEP 5 : TASK WITH 2 NESTED STEPS FOR
-          # 5.1 selecting geodatasets to generate
-          # 5.2 creating selected geodatasets
+          # TASK 5 : TASK WITH 2 NESTED STEPS FOR
+          # step 5.1 selecting geodatasets to generate
+          # step 5.2 creating selected geodatasets
           - name: generate-downstream-datasets
             template: generate-downstream-datasets
             dependencies: [ operationnal-selection-of-vintages-to-generate ]
@@ -252,7 +251,7 @@ spec:
             arguments:
               parameters:
               - name: year
-                value: "{{item.year}}"
+                value: "{{inputs.parameters.year}}"
               - name: init_geometry_level
                 value: "{{item.mesh_init}}"
               - name: source
