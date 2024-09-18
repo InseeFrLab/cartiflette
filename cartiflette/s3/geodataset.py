@@ -104,19 +104,37 @@ class S3GeoDataset(S3Dataset):
 
         return new
 
+    def to_gpkg(self):
+        """
+        Replace the current main_file by a geopackage format (not handled by
+        mapshaper, needs geopandas)
+        """
+        path = os.path.join(self.local_dir, self.main_filename)
+        path = path.rsplit(".", maxsplit=1)[0] + ".gpkg"
+        self.to_frame().to_file(path, driver="GPKG")
+        self._substitute_main_file(path)
+        self.config["vectorfile_format"] = "gpkg"
+
     def to_frame(self, **kwargs) -> gpd.GeoDataFrame:
+        "Read the geodataset from local file"
         return gpd.read_file(
             os.path.join(self.local_dir, self.main_filename), **kwargs
         )
 
     def _get_columns(self, **kwargs):
+        "Get the columns of the dataset"
         df = self.to_frame(**kwargs, rows=5)
         return df.columns.tolist()
 
     def copy(self):
+        """
+        Create a deepcopy of the S3GeoDataset (with a copy of initial file on
+        a new local dir if the initial object has a local file)
+        """
         return self.__copy__()
 
-    def _substitute_main_file(self, new_file):
+    def _substitute_main_file(self, new_file: str):
+        "Set a new file as reference for the S3GeoDataset from local disk"
         if not os.path.dirname(new_file) == self.local_dir:
             raise ValueError(
                 f"cannot substitute main_file with {new_file=} and "
@@ -546,6 +564,11 @@ class S3GeoDataset(S3Dataset):
             logger.info("columns to be dropped are %s", drop)
             raise NotImplementedError("rename not defined here")
 
+        to_gpkg = False
+        if format_output == "gpkg":
+            to_gpkg = True
+            format_output = "geojson"
+
         self.enrich(
             metadata_file=metadata,
             keys=keys,
@@ -613,6 +636,18 @@ class S3GeoDataset(S3Dataset):
             # enter context for each new dataset instead of looping to allow
             # for multithreading (cleaned locally at exitstack anyway)
             [stack.enter_context(dset) for dset in new_datasets]
+
+            if to_gpkg:
+                if THREADS_DOWNLOAD > 1:
+                    threads = min(THREADS_DOWNLOAD, len(new_datasets))
+                    with ThreadPool(threads) as pool:
+
+                        def convert(dset):
+                            return dset.to_gpkg()
+
+                        list(pool.map(to_gpkg, new_datasets).result())
+                else:
+                    [dset.to_gpkg() for dset in new_datasets]
 
             if THREADS_DOWNLOAD > 1:
                 threads = min(THREADS_DOWNLOAD, len(new_datasets))
