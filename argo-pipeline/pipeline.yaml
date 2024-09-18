@@ -246,7 +246,7 @@ spec:
             arguments:
               parameters:
               - name: year
-                value: "{{inputs.year}}"
+                value: "{{inputs.parameters.year}}"
         - - name: generate-datasets
             template: generate-datasets
             arguments:
