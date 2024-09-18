@@ -52,7 +52,7 @@ def prepare_cog_metadata(
         path_bucket_cog_arrondissement = fs.glob(path)[0]
     except IndexError:
         warnings.warn(f"missing COG ARRONDISSEMENT file for {year=}")
-        path_bucket_cog_arrondissements = None
+        path_bucket_cog_arrondissement = None
 
     # Find DEPARTEMENT dataset on S3
     path = (
