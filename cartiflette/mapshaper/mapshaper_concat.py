@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import os
-import subprocess
+
+from .utils import run
 
 
 def mapshaper_concat(
@@ -54,6 +55,6 @@ def mapshaper_concat(
         "singles"
     )
 
-    subprocess.run(cmd, shell=True, check=True, text=True)
+    run(cmd)
 
     return output

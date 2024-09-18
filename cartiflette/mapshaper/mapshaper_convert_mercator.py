@@ -1,5 +1,6 @@
 import os
-import subprocess
+
+from .utils import run
 
 
 def mapshaper_convert_mercator(
@@ -54,6 +55,6 @@ def mapshaper_convert_mercator(
         f'format={output_format} extension=".{output_format}" singles'
     )
 
-    subprocess.run(cmd, shell=True, check=True, text=True)
+    run(cmd)
 
     return output

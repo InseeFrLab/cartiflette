@@ -2,8 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import os
-import subprocess
 from typing import List
+
+from .utils import run
 
 
 def mapshaper_dissolve(
@@ -75,13 +76,8 @@ def mapshaper_dissolve(
     cmd += (
         f" -o {output} force "
         # f"{fix_geo}"
-        )
-
-    subprocess.run(
-        cmd,
-        shell=True,
-        check=True,
-        text=True,
     )
+
+    run(cmd)
 
     return output

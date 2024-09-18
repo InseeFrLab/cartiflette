@@ -7,7 +7,8 @@ Created on Fri Sep  6 17:15:30 2024
 """
 
 import os
-import subprocess
+
+from .utils import run
 
 
 def mapshaper_remove_cities_with_districts(
@@ -51,6 +52,6 @@ def mapshaper_remove_cities_with_districts(
         "-o force "
         f'{output} format={output_format} extension=".{output_format}" singles'
     )
-    subprocess.run(cmd, shell=True, check=True, text=True)
+    run(cmd)
 
     return output

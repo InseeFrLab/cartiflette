@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import os
-import subprocess
+
+from .utils import run
 
 
 def mapshaper_simplify(
@@ -55,11 +56,6 @@ def mapshaper_simplify(
         # f"{fix_geo}"
     )
 
-    subprocess.run(
-        cmd,
-        shell=True,
-        check=True,
-        text=True,
-    )
+    run(cmd)
 
     return output

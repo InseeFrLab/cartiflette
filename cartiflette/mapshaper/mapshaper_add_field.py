@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import os
-import subprocess
+
+from .utils import run
 
 
 def mapshaper_add_field(
@@ -54,11 +55,6 @@ def mapshaper_add_field(
     )
 
     # Run Mapshaper command
-    subprocess.run(
-        cmd,
-        shell=True,
-        check=True,
-        text=True,
-    )
+    run(cmd)
 
     return output

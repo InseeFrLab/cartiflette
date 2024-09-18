@@ -2,8 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import os
-import subprocess
 from typing import List
+
+from .utils import run
 
 
 def mapshaper_enrich(
@@ -82,12 +83,7 @@ def mapshaper_enrich(
     )
 
     # Run Mapshaper command
-    subprocess.run(
-        cmd,
-        shell=True,
-        check=True,
-        text=True,
-    )
+    run(cmd)
 
     return output
 

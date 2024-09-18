@@ -1,6 +1,7 @@
 import logging
 import os
-import subprocess
+
+from .utils import run
 
 logger = logging.getLogger(__name__)
 
@@ -106,19 +107,9 @@ def mapshaper_bring_closer(
             f"-o {output_dir}/metropole.{output_format}"
         )
 
-        subprocess.run(
-            idf_zoom,
-            shell=True,
-            check=True,
-            text=True,
-        )
+        run(idf_zoom)
 
-        subprocess.run(
-            france_metropolitaine,
-            shell=True,
-            check=True,
-            text=True,
-        )
+        run(france_metropolitaine)
 
         for region, shift_value in shift.items():
             logger.info("Processing %s", region)
@@ -129,12 +120,7 @@ def mapshaper_bring_closer(
                 f"-affine shift={shift_value} scale={scale[region]} "
                 f"-o {output_dir}/{region}.{output_format}"
             )
-            subprocess.run(
-                cmd,
-                shell=True,
-                check=True,
-                text=True,
-            )
+            run(cmd)
 
         # fix_geo = "fix-geometry" if output_format == "topojson" else ""
 
@@ -157,12 +143,7 @@ def mapshaper_bring_closer(
             # f"{fix_geo}"
         )
 
-        subprocess.run(
-            cmd_combined,
-            shell=True,
-            check=True,
-            text=True,
-        )
+        run(cmd_combined)
     except Exception:
         raise
 

@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import os
-import subprocess
+
+from .utils import run
 
 
 def mapshaper_process_communal_districts(
@@ -47,6 +48,6 @@ def mapshaper_process_communal_districts(
         "-o force "
         f'{output} format={output_format} extension=".{output_format}"'
     )
-    subprocess.run(cmd, shell=True, check=True, text=True)
+    run(cmd)
 
     return output

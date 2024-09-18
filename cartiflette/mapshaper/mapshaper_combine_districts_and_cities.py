@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import os
-import subprocess
+
+from .utils import run
 
 
 def mapshaper_combine_districts_and_cities(
@@ -53,6 +54,6 @@ def mapshaper_combine_districts_and_cities(
         f"format={output_format} "
         f'extension=".{output_format}"'
     )
-    subprocess.run(cmd, shell=True, check=True, text=True)
+    run(cmd)
 
     return output

@@ -2,8 +2,9 @@
 # -*- coding: utf-8 -*-
 from glob import glob
 import os
-import subprocess
 from typing import List
+
+from .utils import run
 
 
 def mapshaper_split(
@@ -56,17 +57,12 @@ def mapshaper_split(
         f"mapshaper {input_file} name='{layer_name}' -proj EPSG:{crs} "
         f"{option_simplify} "
         f"-split {split_variable} "
-        f"-o '{temp_output_dir}/' "
+        f"-o {temp_output_dir}/ "
         f'format={output_format} extension=".{output_format}" singles'
     )
 
     # Run Mapshaper command
-    subprocess.run(
-        cmd,
-        shell=True,
-        check=True,
-        text=True,
-    )
+    run(cmd)
 
     produced_files = glob(os.path.join(temp_output_dir, f"*.{output_format}"))
     final_files = [
