@@ -645,7 +645,7 @@ class S3GeoDataset(S3Dataset):
                         def convert(dset):
                             return dset.to_gpkg()
 
-                        list(pool.map(to_gpkg, new_datasets).result())
+                        list(pool.map(convert, new_datasets).result())
                 else:
                     [dset.to_gpkg() for dset in new_datasets]
 
