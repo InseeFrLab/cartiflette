@@ -74,14 +74,12 @@ def mapshaperize_split_from_s3(
                         )
                     except Exception as exc:
                         failed.append(
-                            [
                                 {
                                     "error": exc,
                                     "crs": crs,
                                     "config": config_one_file,
                                     "traceback": traceback.format_exc(),
                                 }
-                            ]
                         )
         if failed:
             for one_failed in failed:
