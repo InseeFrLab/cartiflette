@@ -5,6 +5,7 @@ from copy import deepcopy
 from glob import glob
 import logging
 import os
+import re
 import shutil
 import tempfile
 from typing import List
@@ -549,14 +550,19 @@ class S3GeoDataset(S3Dataset):
             "CAN",
             "BURCENTRAL",
             "REG",
-            "ZE2020",
-            "TUU2017",
-            "TDUU2017",
-            "TAAV2017",
-            "TDAAV2017",
-            "CATEAAV2020",
+            "ZE[0-9]{4}",
+            "TUU[0-9]{4}",
+            "TDUU[0-9]{4}",
+            "TAAV[0-9]{4}",
+            "TDAAV[0-9]{4}",
+            "CATEAAV[0-9]{4}",
         }
-        dtype = {x: "str" for x in dtype if x in available_columns}
+        dtype = {
+            col: "str"
+            for x in dtype
+            for col in available_columns
+            if re.match(x, col)
+        }
 
         if not rename:
             logger.info("geodata columns are %s", self._get_columns())
@@ -595,6 +601,14 @@ class S3GeoDataset(S3Dataset):
                 dict_corresp.get(f"LIBELLE_{niveau_agreg}"),
             ]
             copy_fields = [x for x in copy_fields if x]
+
+            # find exact fields with the regex patterns
+            copy_fields = [
+                col
+                for x in copy_fields
+                for col in self._get_columns()
+                if x.match(col)
+            ]
 
             self.dissolve(
                 by=dict_corresp[dissolve_by],
