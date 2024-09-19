@@ -5,6 +5,58 @@ import s3fs
 
 from cartiflette.config import FS, BUCKET, PATH_WITHIN_BUCKET
 
+from diskcache import Cache
+
+cache = Cache("cartiflette-s3-cache", timeout=3600)
+
+
+def s3_to_df(
+    fs: s3fs.S3FileSystem, path_in_bucket: str, **kwargs
+) -> pd.DataFrame:
+    """
+    Retrieve DataFrame from S3 with cache handling.
+
+    Parameters
+    ----------
+    fs : s3fs.S3FileSystem
+        An S3FileSystem object for interacting with the S3 bucket
+    path_in_bucket : str
+        Target file's path on S3 bucket
+    **kwargs :
+        Optionnal kwargs to pass to either pandas.read_excel or pandas.read_csv
+
+    Returns
+    -------
+    df : pd.DataFrame
+        Download dataset as dataframe
+
+    """
+
+    try:
+        return cache[("metadata", path_in_bucket)]
+    except KeyError:
+        pass
+
+    try:
+        with fs.open(path_in_bucket, mode="rb") as remote_file:
+            if path_in_bucket.endswith("csv") or path_in_bucket.endswith(
+                "txt"
+            ):
+                method = pd.read_csv
+            elif path_in_bucket.endswith("xls") or path_in_bucket.endswith(
+                "xlsx"
+            ):
+                method = pd.read_excel
+            df = method(remote_file, **kwargs)
+    except Exception as e:
+        warnings.warn(f"could not read {path_in_bucket=}: {e}")
+        raise
+
+    df.columns = [x.upper() for x in df.columns]
+    cache[("metadata", path_in_bucket)] = df
+
+    return df
+
 
 def prepare_cog_metadata(
     year: int,
@@ -31,109 +83,34 @@ def prepare_cog_metadata(
     # TODO : calcul des tables BANATIC, etc.
 
     paths_bucket = {}
-    for dataset in [
-        "CANTON",
-        "COMMUNE",
-        "ARRONDISSEMENT",
-        "DEPARTEMENT",
-        "REGION",
-    ]:
+
+    def retrieve_path(family: str, source: str, ext: str):
         path = (
             f"{bucket}/{path_within_bucket}/"
-            f"provider=Insee/dataset_family=COG/source={dataset}/year={year}/"
-            "**/*.csv"
+            f"provider=Insee/dataset_family={family}/source={source}"
+            f"/year={year}/**/*.{ext}"
         )
         try:
-            paths_bucket[dataset] = fs.glob(path)[0]
+            path = paths_bucket[(family, source)] = fs.glob(path)[0]
         except IndexError:
-            warnings.warn(f"missing COG {dataset} file for {year=}")
+            warnings.warn(f"missing {family} {source} file for {year=}")
 
-    # # Find CANTON dataset on S3
-    # path = (
-    #     f"{bucket}/{path_within_bucket}/"
-    #     f"provider=Insee/dataset_family=COG/source=CANTON/year={year}/"
-    #     "**/*.csv"
-    # )
-    # try:
-    #     path_bucket_cog_canton = fs.glob(path)[0]
-    # except IndexError:
-    #     warnings.warn(f"missing COG CANTON file for {year=}")
-    #     path_bucket_cog_canton = None
-
-    # # Find COMMUNE dataset on S3
-    # path = (
-    #     f"{bucket}/{path_within_bucket}/"
-    #     f"provider=Insee/dataset_family=COG/source=COMMUNE/year={year}/"
-    #     "**/*.csv"
-    # )
-    # try:
-    #     path_bucket_cog_arrondissement = fs.glob(path)[0]
-    # except IndexError:
-    #     warnings.warn(f"missing COG ARRONDISSEMENT file for {year=}")
-    #     path_bucket_cog_arrondissement = None
-
-    # # Find ARRONDISSEMENT dataset on S3
-    # path = (
-    #     f"{bucket}/{path_within_bucket}/"
-    #     f"provider=Insee/dataset_family=COG/source=ARRONDISSEMENT/year={year}/"
-    #     "**/*.csv"
-    # )
-    # try:
-    #     path_bucket_cog_arrondissement = fs.glob(path)[0]
-    # except IndexError:
-    #     warnings.warn(f"missing COG ARRONDISSEMENT file for {year=}")
-    #     path_bucket_cog_arrondissement = None
-
-    # # Find DEPARTEMENT dataset on S3
-    # path = (
-    #     f"{bucket}/{path_within_bucket}/"
-    #     f"provider=Insee/dataset_family=COG/source=DEPARTEMENT/year={year}/"
-    #     "**/*.csv"
-    # )
-    # try:
-    #     path_bucket_cog_departement = fs.glob(path)[0]
-    # except IndexError:
-    #     warnings.warn(f"missing COG DEPARTEMENT file for {year=}")
-    #     path_bucket_cog_departement = None
-
-    # # Find REGION dataset on S3
-    # path = (
-    #     f"{bucket}/{path_within_bucket}/"
-    #     f"provider=Insee/dataset_family=COG/source=REGION/year={year}/"
-    #     "**/*.csv"
-    # )
-    # try:
-    #     path_bucket_cog_region = fs.glob(path)[0]
-    # except IndexError:
-    #     warnings.warn(f"missing COG REGION file for {year=}")
-    #     path_bucket_cog_region = None
-
-    # Find TAGC APPARTENANCE dataset on S3
-    path = (
-        f"{bucket}/{path_within_bucket}/"
-        f"provider=Insee/dataset_family=TAGC/source=APPARTENANCE/year={year}/"
-        "**/*.xlsx"
-    )
-    try:
-        path_tagc = fs.glob(path)[0]
-    except IndexError:
-        warnings.warn(f"missing TAGC APPARTENANCE file for {year=}")
-        path_tagc = None
-
-    # Find TAGIRIS APPARTENANCE dataset on S3
-    path = (
-        f"{bucket}/{path_within_bucket}/"
-        f"provider=Insee/dataset_family=TAGIRIS/source=APPARTENANCE/"
-        f"year={year}/**/*.xlsx"
-    )
-    try:
-        path_tagiris = fs.glob(path)[0]
-    except IndexError:
-        warnings.warn(f"missing TAGIRIS APPARTENANCE file for {year=}")
-        path_tagiris = None
+    for family, source, ext in [
+        ("COG", "CANTON", "csv"),
+        ("COG", "COMMUNE", "csv"),
+        ("COG", "ARRONDISSEMENT", "csv"),
+        ("COG", "DEPARTEMENT", "csv"),
+        ("COG", "REGION", "csv"),
+        ("TAGC", "APPARTENANCE", "xlsx"),
+        ("TAGIRIS", "APPARTENANCE", "xlsx"),
+    ]:
+        retrieve_path(family=family, source=source, ext=ext)
 
     try:
-        [paths_bucket[x] for x in ("REGION", "DEPARTEMENT", "ARRONDISSEMENT")]
+        [
+            paths_bucket[("COG", x)]
+            for x in ("REGION", "DEPARTEMENT", "ARRONDISSEMENT")
+        ]
     except KeyError:
         warnings.warn(f"{year=} metadata not constructed!")
         return
@@ -141,41 +118,15 @@ def prepare_cog_metadata(
     def set_cols_to_uppercase(df):
         df.columns = [x.upper() for x in df.columns]
 
-    dtype = "string[pyarrow]"
+    kwargs = {"dtype_backend": "pyarrow", "dtype": "string[pyarrow]"}
+    cog_com = s3_to_df(fs, paths_bucket[("COG", "COMMUNE")], **kwargs)
 
-    with fs.open(paths_bucket["ARRONDISSEMENT"], mode="rb") as remote_file:
-        cog_ar = pd.read_csv(
-            remote_file,
-            dtype_backend="pyarrow",
-            dtype={
-                "ARR": dtype,
-                "arr": dtype,
-                "DEP": dtype,
-                "dep": dtype,
-                "REG": dtype,
-                "reg": dtype,
-            },
-        )
-        set_cols_to_uppercase(cog_ar)
+    cog_arm = cog_com.query("TYPECOM=='ARM'")
+    cog_arm = cog_arm.loc[:, ["TYPECOM", "COM", "LIBELLE", "COMPARENT"]]
 
-    with fs.open(paths_bucket["DEPARTEMENT"], mode="rb") as remote_file:
-        cog_dep = pd.read_csv(
-            remote_file,
-            dtype_backend="pyarrow",
-            dtype={"DEP": dtype, "dep": dtype, "REG": dtype, "reg": dtype},
-        )
-        set_cols_to_uppercase(cog_dep)
-
-    with fs.open(paths_bucket["REGION"], mode="rb") as remote_file:
-        cog_region = pd.read_csv(
-            remote_file,
-            dtype_backend="pyarrow",
-            dtype={
-                "REG": dtype,
-                "reg": dtype,
-            },
-        )
-        set_cols_to_uppercase(cog_region)
+    cog_ar = s3_to_df(fs, paths_bucket[("COG", "ARRONDISSEMENT")], **kwargs)
+    cog_dep = s3_to_df(fs, paths_bucket[("COG", "DEPARTEMENT")], **kwargs)
+    cog_reg = s3_to_df(fs, paths_bucket[("COG", "REGION")], **kwargs)
 
     # Merge ARR, DEPARTEMENT and REGION COG metadata
     cog_metadata = (
@@ -184,7 +135,7 @@ def prepare_cog_metadata(
         .rename({"LIBELLE": "LIBELLE_ARRONDISSEMENT"}, axis=1)
         .merge(
             cog_dep.loc[:, ["DEP", "REG", "LIBELLE"]].merge(
-                cog_region.loc[:, ["REG", "LIBELLE"]],
+                cog_reg.loc[:, ["REG", "LIBELLE"]],
                 on="REG",
                 suffixes=["_DEPARTEMENT", "_REGION"],
             ),
@@ -194,76 +145,32 @@ def prepare_cog_metadata(
     )
 
     # Compute metadata at IRIS level
-    if path_tagiris is None:
+    try:
+        path = paths_bucket[("TAGIRIS", "APPARTENANCE")]
+        iris = s3_to_df(fs, path, skiprows=5, **kwargs)
+    except Exception:
         warnings.warn(f"{year=} metadata for iris not constructed!")
         iris = None
-
     else:
-        # Read datasets from S3 into Pandas DataFrames
-        with fs.open(path_tagiris, mode="rb") as remote_file:
-            try:
-                iris = pd.read_excel(
-                    remote_file,
-                    skiprows=5,
-                    dtype_backend="pyarrow",
-                    dtype={
-                        "REG": dtype,
-                        "DEP": dtype,
-                        "CODE_IRIS": dtype,
-                        "GRD_QUART": dtype,
-                        "reg": dtype,
-                        "dep": dtype,
-                        "code_iris": dtype,
-                        "grd_quart": dtype,
-                    },
-                )
-                set_cols_to_uppercase(iris)
-            except Exception as e:
-                warnings.warn(f"could not read TAGIRIS file: {e}")
-                warnings.warn(f"{year=} metadata for iris not constructed!")
-                iris = None
-
-            else:
-                iris = iris.drop(columns=["LIBCOM", "UU2020", "REG", "DEP"])
-                iris = iris.rename(
-                    {"DEPCOM": "CODGEO", "LIB_IRIS": "LIBELLE_IRIS"}, axis=1
-                )
+        iris = iris.drop(columns=["LIBCOM", "UU2020", "REG", "DEP"])
+        rename = {"DEPCOM": "CODGEO", "LIB_IRIS": "LIBELLE_IRIS"}
+        iris = iris.rename(rename, axis=1)
 
     # Compute metadata at COMMUNE level
-    if path_tagc is None:
-        warnings.warn(f"{year=} metadata for cities/iris not constructed!")
+    try:
+        path = paths_bucket[("TAGC", "APPARTENANCE")]
+        tagc = s3_to_df(fs, path, skiprows=5, **kwargs)
+    except Exception:
+        warnings.warn(f"{year=} metadata for cities not constructed!")
         cities = None
-
     else:
-        # Read datasets from S3 into Pandas DataFrames
-        with fs.open(path_tagc, mode="rb") as remote_file:
-            try:
-                tagc = pd.read_excel(
-                    remote_file,
-                    skiprows=5,
-                    dtype_backend="pyarrow",
-                    dtype={
-                        "REG": dtype,
-                        "reg": dtype,
-                    },
-                )
-                # drop CANTON-OU-VILLE (managed through proper CANTON layer),
-                # which may be tagged "CV" or "CANOV" in various vintages
-                drop = {"CANOV", "CV"} & set(tagc.columns)
-                tagc = tagc.drop(list(drop), axis=1)
-            except Exception as e:
-                warnings.warn(f"could not read TAGC file: {e}")
-                warnings.warn(f"{year=} metadata for cities not constructed!")
-                cities = None
-
-            else:
-                set_cols_to_uppercase(tagc)
-                # Merge TAGC metadata with COG metadata
-                cities = tagc.merge(
-                    cog_metadata.drop(["REG", "ARR"], axis=1), on="DEP"
-                )
-                cities = cities.rename({"LIBGEO": "LIBELLE_COMMUNE"}, axis=1)
-                cities["SOURCE_METADATA"] = "INSEE:COG"
+        drop = {"CANOV", "CV"} & set(tagc.columns)
+        tagc = tagc.drop(list(drop), axis=1)
+        cities = tagc.merge(
+            cog_metadata.drop(["REG", "ARR"], axis=1), on="DEP"
+        )
+        cities = cities.rename({"LIBGEO": "LIBELLE_COMMUNE"}, axis=1)
+        cities["SOURCE_METADATA"] = "INSEE:COG"
 
     if iris is not None and cities is not None:
         iris_metadata = cities.merge(iris)
@@ -276,61 +183,39 @@ def prepare_cog_metadata(
 
     # Compute metadata for CANTON
     try:
-        paths_bucket["CANTON"]
-    except KeyError:
+        cantons = s3_to_df(fs, paths_bucket[("COG", "CANTON")], **kwargs)
+    except Exception:
         warnings.warn(f"{year=} metadata for cantons not constructed!")
         cantons_metadata = None
-
     else:
-        # Read datasets from S3 into Pandas DataFrames
-        with fs.open(paths_bucket["CANTON"], mode="rb") as remote_file:
-            try:
-                cantons = pd.read_csv(
-                    remote_file,
-                    dtype_backend="pyarrow",
-                    dtype={
-                        "REG": dtype,
-                        "reg": dtype,
-                        "DEP": dtype,
-                        "dep": dtype,
-                    },
-                )
-                set_cols_to_uppercase(cantons)
-            except Exception as e:
-                warnings.warn(f"could not read CANTON file: {e}")
-                warnings.warn(f"{year=} metadata for cantons not constructed!")
-                cantons_metadata = None
-            else:
-                # Remove pseudo-cantons
-                ix = cantons[cantons.COMPCT.isnull()].index
-                cantons = cantons.drop(ix)
+        # Remove pseudo-cantons
+        ix = cantons[cantons.COMPCT.isnull()].index
+        cantons = cantons.drop(ix)
 
-                # Set pure "CANTON" code (without dep part) to prepare for
-                # join with IGN's CANTON geodataset
-                cantons["INSEE_CAN"] = cantons["CAN"].str[-2:]
+        # Set pure "CANTON" code (without dep part) to prepare for
+        # join with IGN's CANTON geodataset
+        cantons["INSEE_CAN"] = cantons["CAN"].str[-2:]
 
-                # Merge CANTON metadata with COG metadata
-                # TODO
-                ## pb : Martinique (972) et Guyane (973) pas dans cantons
+        # Merge CANTON metadata with COG metadata
+        # TODO
+        ## pb : Martinique (972) et Guyane (973) pas dans cantons
 
-                cantons_metadata = cantons.merge(cog_metadata, how="inner")
-
-                cantons_metadata = cantons_metadata.loc[
-                    :,
-                    [
-                        "INSEE_CAN",
-                        "CAN",
-                        "DEP",
-                        "REG",
-                        "BURCENTRAL",
-                        "TYPECT",
-                        "LIBELLE",
-                        "LIBELLE_DEPARTEMENT",
-                        "LIBELLE_REGION",
-                    ],
-                ]
-
-                cantons_metadata["SOURCE_METADATA"] = "INSEE:COG"
+        cantons_metadata = cantons.merge(cog_metadata, how="inner")
+        keep = [
+            [
+                "INSEE_CAN",
+                "CAN",
+                "DEP",
+                "REG",
+                "BURCENTRAL",
+                "TYPECT",
+                "LIBELLE",
+                "LIBELLE_DEPARTEMENT",
+                "LIBELLE_REGION",
+            ]
+        ]
+        cantons_metadata = cantons_metadata.loc[:, keep]
+        cantons_metadata["SOURCE_METADATA"] = "INSEE:COG"
 
     return {
         "IRIS": iris_metadata,
