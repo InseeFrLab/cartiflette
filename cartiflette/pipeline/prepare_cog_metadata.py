@@ -96,6 +96,7 @@ def prepare_cog_metadata(
             warnings.warn(f"missing {family} {source} file for {year=}")
 
     for family, source, ext in [
+        ("COG", "COMMUNE-OUTRE-MER", "csv"),
         ("COG", "CANTON", "csv"),
         ("COG", "COMMUNE", "csv"),
         ("COG", "ARRONDISSEMENT", "csv"),
@@ -127,6 +128,22 @@ def prepare_cog_metadata(
     cog_ar = s3_to_df(fs, paths_bucket[("COG", "ARRONDISSEMENT")], **kwargs)
     cog_dep = s3_to_df(fs, paths_bucket[("COG", "DEPARTEMENT")], **kwargs)
     cog_reg = s3_to_df(fs, paths_bucket[("COG", "REGION")], **kwargs)
+    cog_tom = s3_to_df(
+        fs, paths_bucket[("COG", "COMMUNE-OUTRE-MER")], **kwargs
+    )
+
+    keep = ["COM_COMER", "LIBELLE", "COMER", "LIBELLE_COMER"]
+    cog_tom = cog_tom.query("NATURE_ZONAGE=='COM'").loc[:, keep]
+
+    cog_tom = cog_tom.rename(
+        {
+            "COMER": "DEP",
+            "LIBELLE_COMER": "LIBELLE_DEPARTEMENT",
+            "COM_COMER": "CODGEO",
+            "LIBELLE": "LIBELLE_COMMUNE",
+        },
+        axis=1,
+    )
 
     # Merge ARR, DEPARTEMENT and REGION COG metadata
     cog_metadata = (
@@ -166,11 +183,37 @@ def prepare_cog_metadata(
     else:
         drop = {"CANOV", "CV"} & set(tagc.columns)
         tagc = tagc.drop(list(drop), axis=1)
+
+        for col in tagc.columns:
+            ix = tagc[tagc[col].str.fullmatch("Z+", case=False)].index
+            tagc.loc[ix, col] = pd.NA
         cities = tagc.merge(
-            cog_metadata.drop(["REG", "ARR"], axis=1), on="DEP"
+            cog_metadata, on=["ARR", "DEP", "REG"], how="inner"
         )
+
+        # Hack while Mayotte is missing from COG ARRONDISSEMENT
+        mayotte = (
+            tagc.merge(
+                cities[["CODGEO", "LIBELLE_DEPARTEMENT"]],
+                on="CODGEO",
+                how="outer",
+            )
+            .query("LIBELLE_DEPARTEMENT.isnull()")
+            .drop("LIBELLE_DEPARTEMENT", axis=1)
+            .merge(
+                cog_metadata.drop("ARR", axis=1),
+                on=["DEP", "REG"],
+                how="inner",
+            )
+        )
+
+        cities = pd.concat([cities, mayotte], ignore_index=True)
         cities = cities.rename({"LIBGEO": "LIBELLE_COMMUNE"}, axis=1)
+        cities = pd.concat([cities, cog_tom], ignore_index=True)
+
         cities["SOURCE_METADATA"] = "INSEE:COG"
+
+        # TODO : add ARM
 
     if iris is not None and cities is not None:
         iris_metadata = cities.merge(iris)
