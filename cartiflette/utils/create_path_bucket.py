@@ -20,6 +20,7 @@ class ConfigDict(TypedDict):
     year: str
     crs: Optional[int]
     value: str
+    filename: Optional[str]
 
 
 def create_path_bucket(config: ConfigDict) -> str:
@@ -55,13 +56,16 @@ def create_path_bucket(config: ConfigDict) -> str:
     value = config.get("value")
     crs = config.get("crs", 2154)
     simplification = config.get("simplification", 0)
+    filename = config.get("filename")
 
     if simplification is None:
         simplification = 0
 
     simplification = int(simplification)
 
-    filename = config.get("filename")
+    # Un hack pour modifier la valeur si jamais le pattern du filename n'est pas raw.{vectorfile_format}
+    if filename == "value":
+        filename = value
 
     write_path = (
         f"{bucket}/{path_within_bucket}"
@@ -78,7 +82,7 @@ def create_path_bucket(config: ConfigDict) -> str:
     ).replace("'", "")
 
     if filename:
-        write_path += f"/{filename}"
+        write_path += f"/{filename}.{vectorfile_format}"
     elif vectorfile_format == "shp":
         write_path += "/"
     else:
