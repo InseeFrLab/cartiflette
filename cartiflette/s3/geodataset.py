@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from contextlib import ExitStack, nullcontext
+from contextlib import ExitStack
 from copy import deepcopy
 from glob import glob
 import logging
@@ -39,7 +39,7 @@ from cartiflette.utils import (
     ConfigDict,
     DICT_CORRESP_ADMINEXPRESS,
 )
-from cartiflette.config import FS, THREADS_DOWNLOAD
+from cartiflette.config import FS, THREADS_DOWNLOAD, INTERMEDIATE_FORMAT
 from cartiflette.utils.dict_correspondance import (
     create_format_driver,
     create_format_standardized,
@@ -581,7 +581,7 @@ class S3GeoDataset(S3Dataset):
             dtype=dtype,
             drop=drop,
             rename=rename,
-            format_output=format_output,
+            format_output=INTERMEDIATE_FORMAT,
         )
 
         logger.info("new columns are %s", self._get_columns())
@@ -594,44 +594,55 @@ class S3GeoDataset(S3Dataset):
             # Identify which fields should be copied from the first feature in
             # each group of dissolved features:
 
-            copy_fields = [
-                dict_corresp.get(dissolve_by),
-                dict_corresp.get(niveau_agreg),
-                dict_corresp.get(f"LIBELLE_{dissolve_by}"),
-                dict_corresp.get(f"LIBELLE_{niveau_agreg}"),
+            imbrications = {
+                "IRIS": ["COMMUNE", "ARRONDISSEMENT", "DEPARTEMENT", "REGION"],
+                "ARRONDISSEMENT_MUNICIPAL": [
+                    "ARRONDISSEMENT",
+                    "DEPARTEMENT",
+                    "REGION",
+                ],
+                "COMMUNE": ["ARRONDISSEMENT", "DEPARTEMENT", "REGION"],
+                "CANTON": ["ARRONDISSEMENT", "DEPARTEMENT", "REGION"],
+                "ARRONDISSEMENT": ["DEPARTEMENT", "REGION"],
+                "DEPARTEMENT": ["REGION"],
+            }
+
+            keys = [dissolve_by]
+            keys += imbrications.get(dissolve_by, ["DEPARTEMENT", "REGION"])
+
+            keep = [dict_corresp.get(key) for key in keys] + [
+                dict_corresp.get(f"LIBELLE_{key}") for key in keys
             ]
-            copy_fields = [x for x in copy_fields if x]
+            keep = [x for x in keep if x]
 
             # find exact fields with the regex patterns
-            copy_fields = [
-                col
-                for x in copy_fields
-                for col in self._get_columns()
-                if x.match(col)
+            available_columns = self._get_columns()
+            keep = [
+                col for x in keep for col in available_columns if x.match(col)
             ]
             by = [
                 col
-                for col in self._get_columns()
+                for col in available_columns
                 if dict_corresp[dissolve_by].match(col)
             ][0]
 
+            calc = []
+            if "POPULATION" in available_columns:
+                calc.append("POPULATION=sum(POPULATION)")
+
             self.dissolve(
                 by=by,
-                copy_fields=copy_fields,
-                calc=["POPULATION=sum(POPULATION)"],
-                format_output=format_output,
+                copy_fields=keep,
+                calc=calc,
+                format_output=INTERMEDIATE_FORMAT,
             )
 
         # Bring ultramarine territories closer to France if needed
         if niveau_agreg == "FRANCE_ENTIERE_DROM_RAPPROCHES":
-            niveau_filter_drom = "DEPARTEMENT"
-
-            if dissolve_by != "COMMUNE":
-                niveau_filter_drom = dissolve_by
 
             self.bring_drom_closer(
-                level_agreg=niveau_filter_drom,
-                format_output=format_output,
+                level_agreg=dissolve_by,
+                format_output=INTERMEDIATE_FORMAT,
             )
 
         # Split datasets, based on the desired "niveau_agreg" and proceed to
@@ -719,7 +730,7 @@ class S3GeoDataset(S3Dataset):
             input_city_file=city_file,
             output_dir=f"{self.local_dir}/singles",
             output_name="COMMUNE",
-            output_format=format_output,
+            output_format=INTERMEDIATE_FORMAT,
         )
 
         # note : communal_districts has it's self local_dir which should be
@@ -731,7 +742,7 @@ class S3GeoDataset(S3Dataset):
             input_communal_districts_file=communal_districts_file,
             output_dir=f"{self.local_dir}/districts",
             output_name="ARRONDISSEMENT_MUNICIPAL",
-            output_format=format_output,
+            output_format=INTERMEDIATE_FORMAT,
         )
 
         # MERGE CITIES AND ARRONDISSEMENT
