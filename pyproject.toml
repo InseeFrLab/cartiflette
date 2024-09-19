@@ -37,7 +37,7 @@ retrying = "^1.3.4"
 PyQt5 = {version = "^5.15", markers = "sys_platform == 'win32'"}
 PyQt5-Qt5 = {version = "5.15.2", markers = "sys_platform == 'win32'"}
 PyQtWebEngine-Qt5 = {version = "5.15.2", markers = "sys_platform == 'win32'"}
-spyder = "^5.4.2"
+spyder = "^6.0.0"
 pytest = "^8.1.1"
 
 [build-system]
