@@ -19,6 +19,7 @@ DICT_CORRESP_ADMINEXPRESS = {
     "TERRITOIRE": re.compile("AREA"),
     "EPCI": re.compile("EPCI"),
     "COMMUNE": re.compile("INSEE_COM"),
+    "CANTON": re.compile("INSEE_CAN"),
 }
 
 

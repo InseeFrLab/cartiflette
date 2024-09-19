@@ -609,9 +609,14 @@ class S3GeoDataset(S3Dataset):
                 for col in self._get_columns()
                 if x.match(col)
             ]
+            by = [
+                col
+                for col in self._get_columns()
+                if dict_corresp[dissolve_by].match(col)
+            ][0]
 
             self.dissolve(
-                by=dict_corresp[dissolve_by],
+                by=by,
                 copy_fields=copy_fields,
                 calc=["POPULATION=sum(POPULATION)"],
                 format_output=format_output,
@@ -631,11 +636,16 @@ class S3GeoDataset(S3Dataset):
 
         # Split datasets, based on the desired "niveau_agreg" and proceed to
         # desired level of simplification
+        split_by = [
+            col
+            for col in self._get_columns()
+            if dict_corresp[niveau_agreg].match(col)
+        ][0]
         new_datasets = self.split_file(
             crs=crs,
             format_output=format_output,
             simplification=simplification,
-            split_variable=dict_corresp[niveau_agreg],
+            split_variable=split_by,
             filter_by=niveau_agreg,
             borders=dissolve_by,
         )
