@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import logging
+import traceback
 from s3fs import S3FileSystem
 
 
@@ -11,6 +13,9 @@ from cartiflette.config import (
     INTERMEDIATE_FORMAT,
 )
 from cartiflette.s3 import S3GeoDataset, S3Dataset
+
+
+logger = logging.getLogger(__name__)
 
 
 def mapshaperize_split_from_s3(
@@ -52,19 +57,42 @@ def mapshaperize_split_from_s3(
         **kwargs,
     ) as gis_file:
 
+        failed = []
         for crs, crs_configs in config_generation.items():
             for config_one_file in crs_configs:
 
                 with gis_file.copy() as gis_copy:
-                    gis_copy.create_downstream_geodatasets(
-                        metadata,
-                        format_output=config_one_file["format"],
-                        niveau_agreg=config_one_file["territory"],
-                        init_geometry_level=init_geometry_level,
-                        dissolve_by=dissolve_by,
-                        crs=crs,
-                        simplification=simplification,
-                    )
+                    try:
+                        gis_copy.create_downstream_geodatasets(
+                            metadata,
+                            format_output=config_one_file["format"],
+                            niveau_agreg=config_one_file["territory"],
+                            init_geometry_level=init_geometry_level,
+                            dissolve_by=dissolve_by,
+                            crs=crs,
+                            simplification=simplification,
+                        )
+                    except Exception as exc:
+                        failed.append(
+                            [
+                                {
+                                    "error": exc,
+                                    "crs": crs,
+                                    "config": config_one_file,
+                                    "traceback": traceback.format_exc(),
+                                }
+                            ]
+                        )
+        if failed:
+            for one_failed in failed:
+                logger.error("=" * 50)
+                logger.error("error: %s", one_failed["error"])
+                logger.error("crs: %s", one_failed["crs"])
+                logger.error("config:\n%s", one_failed["config"])
+                logger.error("-" * 50)
+                logger.error("traceback:\n%s", one_failed["traceback"])
+
+            raise ValueError(f"{len(failed)} file(s) generation(s) failed")
 
 
 # if __name__ == "__main__":
