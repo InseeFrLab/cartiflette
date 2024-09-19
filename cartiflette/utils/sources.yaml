@@ -271,6 +271,16 @@ Insee:
         pattern: "*.txt"
         id: 2666684
         filename: comsimp2017-txt.zip
+    COMMUNE-OUTRE-MER:
+      2024:
+        id: 7766585
+        filename: v_commune_comer_2024.csv
+      2023:
+        id: 6800675
+        filename: v_commune_comer_2023.csv
+      2022:
+        id: 6051727
+        filename: com_comer_2022.csv
     CANTON:
       2024:
         id: 7766585

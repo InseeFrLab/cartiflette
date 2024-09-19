@@ -47,7 +47,14 @@ PIPELINE_DOWNLOAD_ARGS = {
     "COG": [
         "Insee",
         "COG",
-        ["COMMUNE", "CANTON", "ARRONDISSEMENT", "DEPARTEMENT", "REGION"],
+        [
+            "COMMUNE",
+            "CANTON",
+            "ARRONDISSEMENT",
+            "DEPARTEMENT",
+            "REGION",
+            "COMMUNE-OUTRE-MER",
+        ],
         "france_entiere",
     ],
     "TAGC": ["Insee", "TAGC", "APPARTENANCE"],
