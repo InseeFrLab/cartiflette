@@ -19,7 +19,12 @@ DICT_CORRESP_ADMINEXPRESS = {
     "TERRITOIRE": re.compile("AREA"),
     "EPCI": re.compile("EPCI"),
     "COMMUNE": re.compile("INSEE_COM"),
+    "LIBELLE_COMMUNE": re.compile("LIBELLE_COMMUNE"),
+    "LIBELLE_CANTON": re.compile("LIBELLE_CANTON"),
     "CANTON": re.compile("INSEE_CAN"),
+    "ARRONDISSEMENT_MUNICIPAL": re.compile("INSEE_COMMUNE"),
+    "LIBELLE_ARRONDISSEMENT_MUNICIPAL": re.compile("LIBELLE_COMMUNE"),
+    # TODO : libelle_epci?
 }
 
 
