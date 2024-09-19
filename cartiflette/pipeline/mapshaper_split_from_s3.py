@@ -58,6 +58,7 @@ def mapshaperize_split_from_s3(
     ) as gis_file:
 
         failed = []
+        success = []
         for crs, crs_configs in config_generation.items():
             for config_one_file in crs_configs:
 
@@ -74,12 +75,19 @@ def mapshaperize_split_from_s3(
                         )
                     except Exception as exc:
                         failed.append(
-                                {
-                                    "error": exc,
-                                    "crs": crs,
-                                    "config": config_one_file,
-                                    "traceback": traceback.format_exc(),
-                                }
+                            {
+                                "error": exc,
+                                "crs": crs,
+                                "config": config_one_file,
+                                "traceback": traceback.format_exc(),
+                            }
+                        )
+                    else:
+                        success.append(
+                            {
+                                "crs": crs,
+                                "config": config_one_file,
+                            }
                         )
         if failed:
             for one_failed in failed:
@@ -90,46 +98,34 @@ def mapshaperize_split_from_s3(
                 logger.error("-" * 50)
                 logger.error("traceback:\n%s", one_failed["traceback"])
 
+            logger.info(
+                f"{len(success)} file(s) generation(s) succeeded : %s", success
+            )
+
             raise ValueError(f"{len(failed)} file(s) generation(s) failed")
 
 
-# if __name__ == "__main__":
-#     import logging
+if __name__ == "__main__":
+    import logging
 
-#     logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO)
 
-#     # mapshaperize_split_from_s3(
-#     #     year=2024,
-#     #     init_geometry_level="CANTON",
-#     #     source="EXPRESS-COG-CARTO-TERRITOIRE",
-#     #     simplification=40,
-#     #     dissolve_by="CANTON",
-#     #     config_generation={
-#     #         "4326": [
-#     #             {"territory": "TERRITOIRE", "format": "topojson"},
-#     #             {"territory": "TERRITOIRE", "format": "gpkg"},
-#     #             {"territory": "TERRITOIRE", "format": "geojson"},
-#     #             {"territory": "REGION", "format": "topojson"},
-#     #             {"territory": "REGION", "format": "gpkg"},
-#     #             {"territory": "REGION", "format": "geojson"},
-#     #             {
-#     #                 "territory": "FRANCE_ENTIERE_DROM_RAPPROCHES",
-#     #                 "format": "topojson",
-#     #             },
-#     #             {
-#     #                 "territory": "FRANCE_ENTIERE_DROM_RAPPROCHES",
-#     #                 "format": "gpkg",
-#     #             },
-#     #             {
-#     #                 "territory": "FRANCE_ENTIERE_DROM_RAPPROCHES",
-#     #                 "format": "geojson",
-#     #             },
-#     #             {"territory": "FRANCE_ENTIERE", "format": "topojson"},
-#     #             {"territory": "FRANCE_ENTIERE", "format": "gpkg"},
-#     #             {"territory": "FRANCE_ENTIERE", "format": "geojson"},
-#     #             {"territory": "DEPARTEMENT", "format": "topojson"},
-#     #             {"territory": "DEPARTEMENT", "format": "gpkg"},
-#     #             {"territory": "DEPARTEMENT", "format": "geojson"},
-#     #         ]
-#     #     },
-#     # )
+    mapshaperize_split_from_s3(
+        year=2023,
+        init_geometry_level="IRIS",
+        source="CONTOUR-IRIS",
+        simplification=40,
+        dissolve_by="ARRONDISSEMENT",
+        config_generation={
+            "4326": [
+                # {
+                #     "territory": "FRANCE_ENTIERE_DROM_RAPPROCHES",
+                #     "format": "topojson",
+                # },
+                {
+                    "territory": "FRANCE_ENTIERE_DROM_RAPPROCHES",
+                    "format": "gpkg",
+                },
+            ]
+        },
+    )
