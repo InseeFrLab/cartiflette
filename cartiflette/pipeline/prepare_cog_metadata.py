@@ -30,53 +30,83 @@ def prepare_cog_metadata(
 
     # TODO : calcul des tables BANATIC, etc.
 
-    # Find CANTON dataset on S3
-    path = (
-        f"{bucket}/{path_within_bucket}/"
-        f"provider=Insee/dataset_family=COG/source=CANTON/year={year}/"
-        "**/*.csv"
-    )
-    try:
-        path_bucket_cog_canton = fs.glob(path)[0]
-    except IndexError:
-        warnings.warn(f"missing COG CANTON file for {year=}")
-        path_bucket_cog_canton = None
+    paths_bucket = {}
+    for dataset in [
+        "CANTON",
+        "COMMUNE",
+        "ARRONDISSEMENT",
+        "DEPARTEMENT",
+        "REGION",
+    ]:
+        path = (
+            f"{bucket}/{path_within_bucket}/"
+            f"provider=Insee/dataset_family=COG/source={dataset}/year={year}/"
+            "**/*.csv"
+        )
+        try:
+            paths_bucket[dataset] = fs.glob(path)[0]
+        except IndexError:
+            warnings.warn(f"missing COG {dataset} file for {year=}")
 
-    # Find ARRONDISSEMENT dataset on S3
-    path = (
-        f"{bucket}/{path_within_bucket}/"
-        f"provider=Insee/dataset_family=COG/source=ARRONDISSEMENT/year={year}/"
-        "**/*.csv"
-    )
-    try:
-        path_bucket_cog_arrondissement = fs.glob(path)[0]
-    except IndexError:
-        warnings.warn(f"missing COG ARRONDISSEMENT file for {year=}")
-        path_bucket_cog_arrondissement = None
+    # # Find CANTON dataset on S3
+    # path = (
+    #     f"{bucket}/{path_within_bucket}/"
+    #     f"provider=Insee/dataset_family=COG/source=CANTON/year={year}/"
+    #     "**/*.csv"
+    # )
+    # try:
+    #     path_bucket_cog_canton = fs.glob(path)[0]
+    # except IndexError:
+    #     warnings.warn(f"missing COG CANTON file for {year=}")
+    #     path_bucket_cog_canton = None
 
-    # Find DEPARTEMENT dataset on S3
-    path = (
-        f"{bucket}/{path_within_bucket}/"
-        f"provider=Insee/dataset_family=COG/source=DEPARTEMENT/year={year}/"
-        "**/*.csv"
-    )
-    try:
-        path_bucket_cog_departement = fs.glob(path)[0]
-    except IndexError:
-        warnings.warn(f"missing COG DEPARTEMENT file for {year=}")
-        path_bucket_cog_departement = None
+    # # Find COMMUNE dataset on S3
+    # path = (
+    #     f"{bucket}/{path_within_bucket}/"
+    #     f"provider=Insee/dataset_family=COG/source=COMMUNE/year={year}/"
+    #     "**/*.csv"
+    # )
+    # try:
+    #     path_bucket_cog_arrondissement = fs.glob(path)[0]
+    # except IndexError:
+    #     warnings.warn(f"missing COG ARRONDISSEMENT file for {year=}")
+    #     path_bucket_cog_arrondissement = None
 
-    # Find REGION dataset on S3
-    path = (
-        f"{bucket}/{path_within_bucket}/"
-        f"provider=Insee/dataset_family=COG/source=REGION/year={year}/"
-        "**/*.csv"
-    )
-    try:
-        path_bucket_cog_region = fs.glob(path)[0]
-    except IndexError:
-        warnings.warn(f"missing COG REGION file for {year=}")
-        path_bucket_cog_region = None
+    # # Find ARRONDISSEMENT dataset on S3
+    # path = (
+    #     f"{bucket}/{path_within_bucket}/"
+    #     f"provider=Insee/dataset_family=COG/source=ARRONDISSEMENT/year={year}/"
+    #     "**/*.csv"
+    # )
+    # try:
+    #     path_bucket_cog_arrondissement = fs.glob(path)[0]
+    # except IndexError:
+    #     warnings.warn(f"missing COG ARRONDISSEMENT file for {year=}")
+    #     path_bucket_cog_arrondissement = None
+
+    # # Find DEPARTEMENT dataset on S3
+    # path = (
+    #     f"{bucket}/{path_within_bucket}/"
+    #     f"provider=Insee/dataset_family=COG/source=DEPARTEMENT/year={year}/"
+    #     "**/*.csv"
+    # )
+    # try:
+    #     path_bucket_cog_departement = fs.glob(path)[0]
+    # except IndexError:
+    #     warnings.warn(f"missing COG DEPARTEMENT file for {year=}")
+    #     path_bucket_cog_departement = None
+
+    # # Find REGION dataset on S3
+    # path = (
+    #     f"{bucket}/{path_within_bucket}/"
+    #     f"provider=Insee/dataset_family=COG/source=REGION/year={year}/"
+    #     "**/*.csv"
+    # )
+    # try:
+    #     path_bucket_cog_region = fs.glob(path)[0]
+    # except IndexError:
+    #     warnings.warn(f"missing COG REGION file for {year=}")
+    #     path_bucket_cog_region = None
 
     # Find TAGC APPARTENANCE dataset on S3
     path = (
@@ -102,13 +132,9 @@ def prepare_cog_metadata(
         warnings.warn(f"missing TAGIRIS APPARTENANCE file for {year=}")
         path_tagiris = None
 
-    if any(
-        x is None
-        for x in (
-            path_bucket_cog_region,
-            path_bucket_cog_departement,
-        )
-    ):
+    try:
+        [paths_bucket[x] for x in ("REGION", "DEPARTEMENT", "ARRONDISSEMENT")]
+    except KeyError:
         warnings.warn(f"{year=} metadata not constructed!")
         return
 
@@ -116,7 +142,8 @@ def prepare_cog_metadata(
         df.columns = [x.upper() for x in df.columns]
 
     dtype = "string[pyarrow]"
-    with fs.open(path_bucket_cog_arrondissement, mode="rb") as remote_file:
+
+    with fs.open(paths_bucket["ARRONDISSEMENT"], mode="rb") as remote_file:
         cog_ar = pd.read_csv(
             remote_file,
             dtype_backend="pyarrow",
@@ -131,7 +158,7 @@ def prepare_cog_metadata(
         )
         set_cols_to_uppercase(cog_ar)
 
-    with fs.open(path_bucket_cog_departement, mode="rb") as remote_file:
+    with fs.open(paths_bucket["DEPARTEMENT"], mode="rb") as remote_file:
         cog_dep = pd.read_csv(
             remote_file,
             dtype_backend="pyarrow",
@@ -139,7 +166,7 @@ def prepare_cog_metadata(
         )
         set_cols_to_uppercase(cog_dep)
 
-    with fs.open(path_bucket_cog_region, mode="rb") as remote_file:
+    with fs.open(paths_bucket["REGION"], mode="rb") as remote_file:
         cog_region = pd.read_csv(
             remote_file,
             dtype_backend="pyarrow",
@@ -248,13 +275,15 @@ def prepare_cog_metadata(
         cities_metadata = None
 
     # Compute metadata for CANTON
-    if path_bucket_cog_canton is None:
+    try:
+        paths_bucket["CANTON"]
+    except KeyError:
         warnings.warn(f"{year=} metadata for cantons not constructed!")
         cantons_metadata = None
 
     else:
         # Read datasets from S3 into Pandas DataFrames
-        with fs.open(path_bucket_cog_canton, mode="rb") as remote_file:
+        with fs.open(paths_bucket["CANTON"], mode="rb") as remote_file:
             try:
                 cantons = pd.read_csv(
                     remote_file,
