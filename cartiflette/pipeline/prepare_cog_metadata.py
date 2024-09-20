@@ -1,13 +1,20 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import io
+import logging
+import re
 import warnings
 
+from diskcache import Cache
 import pandas as pd
 import s3fs
 
 from cartiflette.config import FS, BUCKET, PATH_WITHIN_BUCKET
 
-from diskcache import Cache
 
 cache = Cache("cartiflette-s3-cache", timeout=3600)
+logger = logging.getLogger(__name__)
 
 
 def s3_to_df(
@@ -33,26 +40,34 @@ def s3_to_df(
     """
 
     try:
+        raise KeyError
         return cache[("metadata", path_in_bucket)]
     except KeyError:
         pass
 
     try:
         with fs.open(path_in_bucket, mode="rb") as remote_file:
-            if path_in_bucket.endswith("csv") or path_in_bucket.endswith(
-                "txt"
-            ):
-                method = pd.read_csv
-            elif path_in_bucket.endswith("xls") or path_in_bucket.endswith(
-                "xlsx"
-            ):
-                method = pd.read_excel
-            df = method(remote_file, **kwargs)
+            remote = io.BytesIO(remote_file.read())
+        if path_in_bucket.endswith("csv") or path_in_bucket.endswith("txt"):
+            df = pd.read_csv(remote, **kwargs)
+
+        elif path_in_bucket.endswith("xls") or path_in_bucket.endswith("xlsx"):
+            try:
+                df = pd.read_excel(remote, **kwargs)
+            except ValueError:
+                # try with calamine
+                df = pd.read_excel(remote, engine="calamine", **kwargs)
+
     except Exception as e:
         warnings.warn(f"could not read {path_in_bucket=}: {e}")
         raise
-
     df.columns = [x.upper() for x in df.columns]
+
+    # Remove 'ZZZZZ'-like values from INSEE datasets
+    for col in df.columns:
+        ix = df[df[col].str.fullmatch("Z+", case=False)].index
+        df.loc[ix, col] = pd.NA
+
     cache[("metadata", path_in_bucket)] = df
 
     return df
@@ -84,28 +99,32 @@ def prepare_cog_metadata(
 
     paths_bucket = {}
 
-    def retrieve_path(family: str, source: str, ext: str):
+    def retrieve_path(provider, family: str, source: str, ext: str):
         path = (
             f"{bucket}/{path_within_bucket}/"
-            f"provider=Insee/dataset_family={family}/source={source}"
+            f"provider={provider}/dataset_family={family}/source={source}"
             f"/year={year}/**/*.{ext}"
         )
+        logger.debug(path)
         try:
             path = paths_bucket[(family, source)] = fs.glob(path)[0]
         except IndexError:
             warnings.warn(f"missing {family} {source} file for {year=}")
 
-    for family, source, ext in [
-        ("COG", "COMMUNE-OUTRE-MER", "csv"),
-        ("COG", "CANTON", "csv"),
-        ("COG", "COMMUNE", "csv"),
-        ("COG", "ARRONDISSEMENT", "csv"),
-        ("COG", "DEPARTEMENT", "csv"),
-        ("COG", "REGION", "csv"),
-        ("TAGC", "APPARTENANCE", "xlsx"),
-        ("TAGIRIS", "APPARTENANCE", "xlsx"),
+    for provider, family, source, ext in [
+        ("Insee", "COG", "COMMUNE-OUTRE-MER", "csv"),
+        ("Insee", "COG", "CANTON", "csv"),
+        ("Insee", "COG", "COMMUNE", "csv"),
+        ("Insee", "COG", "ARRONDISSEMENT", "csv"),
+        ("Insee", "COG", "DEPARTEMENT", "csv"),
+        ("Insee", "COG", "REGION", "csv"),
+        ("Insee", "TAGC", "APPARTENANCE", "xlsx"),
+        ("Insee", "TAGIRIS", "APPARTENANCE", "xlsx"),
+        ("DGCL", "BANATIC", "CORRESPONDANCE-SIREN-INSEE-COMMUNES", "xlsx"),
+        ("Insee", "INTERCOMMUNALITES", "EPCI-FP", "xlsx"),
+        ("Insee", "INTERCOMMUNALITES", "EPT", "xlsx"),
     ]:
-        retrieve_path(family=family, source=source, ext=ext)
+        retrieve_path(provider=provider, family=family, source=source, ext=ext)
 
     try:
         [
@@ -128,22 +147,75 @@ def prepare_cog_metadata(
     cog_ar = s3_to_df(fs, paths_bucket[("COG", "ARRONDISSEMENT")], **kwargs)
     cog_dep = s3_to_df(fs, paths_bucket[("COG", "DEPARTEMENT")], **kwargs)
     cog_reg = s3_to_df(fs, paths_bucket[("COG", "REGION")], **kwargs)
-    cog_tom = s3_to_df(
-        fs, paths_bucket[("COG", "COMMUNE-OUTRE-MER")], **kwargs
+
+    try:
+        cog_tom = s3_to_df(
+            fs, paths_bucket[("COG", "COMMUNE-OUTRE-MER")], **kwargs
+        )
+        keep = ["COM_COMER", "LIBELLE", "COMER", "LIBELLE_COMER"]
+        cog_tom = cog_tom.query("NATURE_ZONAGE=='COM'").loc[:, keep]
+
+        cog_tom = cog_tom.rename(
+            {
+                "COMER": "DEP",
+                "LIBELLE_COMER": "LIBELLE_DEPARTEMENT",
+                "COM_COMER": "CODGEO",
+                "LIBELLE": "LIBELLE_COMMUNE",
+            },
+            axis=1,
+        )
+
+    except Exception:
+        cog_tom = None
+
+    siren = s3_to_df(
+        fs,
+        paths_bucket[("BANATIC", "CORRESPONDANCE-SIREN-INSEE-COMMUNES")],
+        **kwargs,
+    )
+    pop_communes = {
+        "PTOT_[0-9]{4}": "POPULATION_TOTALE",
+        "PMUN_[0-9]{4}": "POPULATION_MUNICIPALE",
+        "PCAP_[0-9]{4}": "POPULATION_COMPTEE_A_PART",
+    }
+    rename = {
+        col: new
+        for pattern, new in pop_communes.items()
+        for col in siren.columns
+        if re.match(pattern, col)
+    }
+    rename.update({"SIREN": "SIREN_COMMUNE"})
+    siren = siren.drop(["REG_COM", "DEP_COM", "NOM_COM"], axis=1).rename(
+        rename, axis=1
     )
 
-    keep = ["COM_COMER", "LIBELLE", "COMER", "LIBELLE_COMER"]
-    cog_tom = cog_tom.query("NATURE_ZONAGE=='COM'").loc[:, keep]
+    try:
+        epci_fp = s3_to_df(
+            fs,
+            paths_bucket[("INTERCOMMUNALITES", "EPCI-FP")],
+            skiprows=5,
+            **kwargs,
+        )
+        epci_fp = epci_fp.dropna()
+        epci_fp = epci_fp.loc[:, ["EPCI", "LIBEPCI"]].rename(
+            {"LIBEPCI": "LIBELLE_EPCI"}, axis=1
+        )
+    except Exception:
+        epci_fp = None
 
-    cog_tom = cog_tom.rename(
-        {
-            "COMER": "DEP",
-            "LIBELLE_COMER": "LIBELLE_DEPARTEMENT",
-            "COM_COMER": "CODGEO",
-            "LIBELLE": "LIBELLE_COMMUNE",
-        },
-        axis=1,
-    )
+    try:
+        ept = s3_to_df(
+            fs,
+            paths_bucket[("INTERCOMMUNALITES", "EPT")],
+            skiprows=5,
+            **kwargs,
+        )
+        ept = ept.dropna()
+        ept = ept.loc[:, ["EPT", "LIBEPT"]].rename(
+            {"LIBEPT": "LIBELLE_EPT"}, axis=1
+        )
+    except Exception:
+        ept = None
 
     # Merge ARR, DEPARTEMENT and REGION COG metadata
     cog_metadata = (
@@ -170,7 +242,7 @@ def prepare_cog_metadata(
         iris = None
     else:
         iris = iris.drop(columns=["LIBCOM", "UU2020", "REG", "DEP"])
-        rename = {"DEPCOM": "CODGEO", "LIB_IRIS": "LIBELLE_IRIS"}
+        rename = {"DEPCOM": "CODE_ARM", "LIB_IRIS": "LIBELLE_IRIS"}
         iris = iris.rename(rename, axis=1)
 
     # Compute metadata at COMMUNE level
@@ -184,9 +256,19 @@ def prepare_cog_metadata(
         drop = {"CANOV", "CV"} & set(tagc.columns)
         tagc = tagc.drop(list(drop), axis=1)
 
-        for col in tagc.columns:
-            ix = tagc[tagc[col].str.fullmatch("Z+", case=False)].index
-            tagc.loc[ix, col] = pd.NA
+        # Add labels for EPCI-FP and EPT
+        if epci_fp is not None:
+            try:
+                tagc = tagc.merge(epci_fp, on="EPCI", how="left")
+            except KeyError:
+                pass
+
+        if ept is not None:
+            try:
+                tagc = tagc.merge(ept, on="EPT", how="left")
+            except KeyError:
+                pass
+
         cities = tagc.merge(
             cog_metadata, on=["ARR", "DEP", "REG"], how="inner"
         )
@@ -209,14 +291,37 @@ def prepare_cog_metadata(
 
         cities = pd.concat([cities, mayotte], ignore_index=True)
         cities = cities.rename({"LIBGEO": "LIBELLE_COMMUNE"}, axis=1)
-        cities = pd.concat([cities, cog_tom], ignore_index=True)
 
-        cities["SOURCE_METADATA"] = "INSEE:COG"
+        if cog_tom is not None:
+            cities = pd.concat([cities, cog_tom], ignore_index=True)
 
-        # TODO : add ARM
+        cities = cities.merge(
+            cog_arm.drop("TYPECOM", axis=1).rename(
+                {
+                    "COM": "CODE_ARM",
+                    "LIBELLE": "LIBELLE_ARRONDISSEMENT_MUNICIPAL",
+                },
+                axis=1,
+            ),
+            how="left",
+            left_on="CODGEO",
+            right_on="COMPARENT",
+        ).drop("COMPARENT", axis=1)
+        ix = cities[cities.CODE_ARM.isnull()].index
+        cities.loc[ix, "CODE_ARM"] = cities.loc[ix, "CODGEO"]
+        cities.loc[ix, "LIBELLE_ARRONDISSEMENT_MUNICIPAL"] = cities.loc[
+            ix, "LIBELLE_COMMUNE"
+        ]
+
+        cities = cities.merge(
+            siren, how="left", left_on="CODGEO", right_on="INSEE"
+        ).drop("INSEE", axis=1)
+
+        cities["SOURCE_METADATA"] = "Cartiflette, d'après INSEE & DGCL"
 
     if iris is not None and cities is not None:
-        iris_metadata = cities.merge(iris)
+        iris_metadata = cities.merge(iris, on="CODE_ARM", how="left")
+        iris_metadata = iris_metadata.drop(list(pop_communes.values()), axis=1)
     else:
         iris_metadata = None
     if cities is not None:
@@ -240,32 +345,58 @@ def prepare_cog_metadata(
         cantons["INSEE_CAN"] = cantons["CAN"].str[-2:]
 
         # Merge CANTON metadata with COG metadata
-        # TODO
-        ## pb : Martinique (972) et Guyane (973) pas dans cantons
+        # TODO : Martinique (972) and Guyane (973) missing from CANTON
 
-        cantons_metadata = cantons.merge(cog_metadata, how="inner")
+        cantons_metadata = cantons.merge(
+            # Nota : we do not have the CANTON -> ARR imbrication as of yet
+            # (except of course as a geospatial join...)
+            cog_metadata.drop(
+                ["ARR", "LIBELLE_ARRONDISSEMENT"], axis=1
+            ).drop_duplicates(),
+            on=["REG", "DEP"],
+            how="inner",
+        )
         keep = [
-            [
-                "INSEE_CAN",
-                "CAN",
-                "DEP",
-                "REG",
-                "BURCENTRAL",
-                "TYPECT",
-                "LIBELLE",
-                "LIBELLE_DEPARTEMENT",
-                "LIBELLE_REGION",
-            ]
+            "INSEE_CAN",
+            "CAN",
+            "DEP",
+            "REG",
+            "BURCENTRAL",
+            "TYPECT",
+            "LIBELLE",
+            "LIBELLE_DEPARTEMENT",
+            "LIBELLE_REGION",
         ]
-        cantons_metadata = cantons_metadata.loc[:, keep]
-        cantons_metadata["SOURCE_METADATA"] = "INSEE:COG"
+        cantons_metadata = cantons_metadata.loc[:, keep].rename(
+            {"LIBELLE": "LIBELLE_CANTON"}, axis=1
+        )
+        cantons_metadata["SOURCE_METADATA"] = "Cartiflette d'après INSEE"
 
+    rename = {
+        "DEP": "INSEE_DEP",
+        "REG": "INSEE_REG",
+        "ARR": "INSEE_ARR",
+        "CODGEO": "INSEE_COM",
+        "CAN": "INSEE_CAN",
+    }
     return {
-        "IRIS": iris_metadata,
-        "COMMUNE": cities_metadata,
-        "CANTON": cantons_metadata,
+        "IRIS": (
+            iris_metadata.rename(rename, axis=1)
+            if iris_metadata is not None
+            else None
+        ),
+        "COMMUNE": (
+            cities_metadata.rename(rename, axis=1)
+            if cities_metadata is not None
+            else None
+        ),
+        "CANTON": (
+            cantons_metadata.rename(rename, axis=1)
+            if cantons_metadata is not None
+            else None
+        ),
     }
 
 
-if __name__ == "__main__":
-    prepare_cog_metadata(2023)
+# if __name__ == "__main__":
+#     prepare_cog_metadata(2024)
