@@ -496,7 +496,7 @@ class S3GeoDataset(S3Dataset):
             # }
             drop = ["ID", "NOM_COM", "IRIS", "NOM_IRIS"]
         elif init_geometry_level == "COMMUNE":
-            keys = ["INSEE_COM", "CODGEO"]
+            keys = ["INSEE_COM", "INSEE_COM"]
             # rename = {
             #     "DEP": "INSEE_DEP",
             #     "REG": "INSEE_REG",
