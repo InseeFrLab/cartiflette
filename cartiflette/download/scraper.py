@@ -362,15 +362,6 @@ def download_to_tempfile_http(
             # unchanged file -> exit
             logger.info("md5 matched at %s - download prevented", url)
             return False, None, None
-    finally:
-        try:
-            # No MD5 in header -> check requested file's size
-            expected_file_size = int(head["Content-length"])
-            logger.debug("File size is %s", expected_file_size)
-        except KeyError:
-            expected_file_size = None
-            msg = f"Content-Length not found in header at url {url}"
-            logger.debug(msg)
 
     with tempfile.NamedTemporaryFile("wb", delete=False) as temp_file:
         file_path = temp_file.name
@@ -379,6 +370,18 @@ def download_to_tempfile_http(
         r = session.get(url, stream=True, **kwargs)
         if not r.ok:
             raise IOError(f"download failed with {r.status_code} code")
+
+        try:
+            # Nota : check Content-length after full request (not only head
+            # request), some sites are adapting the header to the kind of
+            # http request performed
+            head = r.headers
+            expected_file_size = int(head["Content-length"])
+            logger.debug("File size is %s", expected_file_size)
+        except KeyError:
+            expected_file_size = None
+            msg = f"Content-Length not found in header at url {url}"
+            logger.debug(msg)
 
         # =====================================================================
         # This is not working (yet) with requests-cache:
@@ -412,6 +415,7 @@ def download_to_tempfile_http(
     elif expected_file_size:
         # check that the downloaded file is the expected size
         if not expected_file_size == os.path.getsize(file_path):
+            print(expected_file_size, os.path.getsize(file_path))
             os.unlink(file_path)
             raise IOError("download failed (corrupted file)")
 
