@@ -41,7 +41,7 @@ download_results = args.download_results
 
 download_results = json.loads(download_results)
 
-if os.environ["ENVIRONMENT"] == "dev":
+if os.environ.get("ENVIRONMENT", None) == "dev":
     logging.warning("dev environment -> force generation of each vintage")
     json_md5 = f"{BUCKET}/{PATH_WITHIN_BUCKET}/md5.json"
     with FS.open(json_md5, "r") as f:
@@ -76,7 +76,7 @@ else:
 finally:
     years_geodata = sorted(list(years_geodata))
 
-    if os.environ["ENVIRONMENT"] == "dev":
+    if os.environ.get("ENVIRONMENT", None) == "dev":
         years_geodata = years
 
     with open("geodatasets_years.json", "w") as out:
@@ -102,7 +102,7 @@ else:
 finally:
     years_metadata = sorted(list(years_metadata))
 
-    if os.environ["ENVIRONMENT"] == "dev":
+    if os.environ.get("ENVIRONMENT", None) == "dev":
         years_metadata = years
 
     with open("metadata_years.json", "w") as out:
