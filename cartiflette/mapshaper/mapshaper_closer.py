@@ -38,7 +38,7 @@ logical_conditions = {
 shift = {
     # X, Y shift
     "guadeloupe": "6355000,3330000",
-    "martinique": "6_480_000,3505000",
+    "martinique": "6480000,3505000",
     "guyane": "5760000,4720000",
     "reunion": "-6170_000,7560000",
     "mayotte": "-4885000,6590_000",
