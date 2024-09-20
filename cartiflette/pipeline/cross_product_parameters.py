@@ -347,7 +347,7 @@ def crossproduct_parameters_production(
     )
 
     # get best combination available among COMMUNE/IRIS/CANTON
-    # -> for each geodataset to generate, keep IRIS if available, COMMUNE
+    # -> for each geodataset to generate, keep COMMUNE if available, IRIS
     # otherwise (and CANTON for border=CANTON generation)
     dups = [
         "dissolve_by",
@@ -358,7 +358,7 @@ def crossproduct_parameters_production(
         "mesh_init",
     ]
     combinations = combinations.sort_values(dups, ascending=False)
-    combinations = combinations.drop_duplicates(dups[:-1], keep="first")
+    combinations = combinations.drop_duplicates(dups[:-1], keep="last")
 
     def cascade_dict(df, keys: list):
         try:
