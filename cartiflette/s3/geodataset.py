@@ -443,11 +443,11 @@ class S3GeoDataset(S3Dataset):
             'ARRONDISSEMENT_MUNICIPAL']
         dissolve_by : str, optional
             The level of basic mesh for the geometries. The default is COMMUNE.
-            Should be among ['REGION', 'DEPARTEMENT', 'FRANCE_ENTIERE',
-             'FRANCE_ENTIERE_DROM_RAPPROCHES', 'LIBELLE_REGION',
-             'LIBELLE_DEPARTEMENT', 'BASSIN_VIE', 'AIRE_ATTRACTION_VILLES',
-             'UNITE_URBAINE', 'ZONE_EMPLOI', 'TERRITOIRE',
-             'ARRONDISSEMENT_MUNICIPAL']
+            Should be among [
+                'REGION', 'DEPARTEMENT', 'BASSIN_VIE',
+                'AIRE_ATTRACTION_VILLES', 'UNITE_URBAINE', 'ZONE_EMPLOI',
+                'TERRITOIRE', 'ARRONDISSEMENT_MUNICIPAL', 'EPCI', 'EPT',
+                ]
         niveau_agreg : str, optional
             The level of aggregation for splitting the dataset into singletons,
             by default "DEPARTEMENT".
@@ -488,20 +488,20 @@ class S3GeoDataset(S3Dataset):
 
         if init_geometry_level == "IRIS":
             keys = ["CODE_IRIS", "CODE_IRIS"]
-            rename = {
-                "DEP": "INSEE_DEP",
-                "REG": "INSEE_REG",
-                "ARR": "INSEE_ARR",
-                "CODGEO": "INSEE_COM",
-            }
+            # rename = {
+            #     "DEP": "INSEE_DEP",
+            #     "REG": "INSEE_REG",
+            #     "ARR": "INSEE_ARR",
+            #     "CODGEO": "INSEE_COM",
+            # }
             drop = ["ID", "NOM_COM", "IRIS", "NOM_IRIS"]
         elif init_geometry_level == "COMMUNE":
             keys = ["INSEE_COM", "CODGEO"]
-            rename = {
-                "DEP": "INSEE_DEP",
-                "REG": "INSEE_REG",
-                "ARR": "INSEE_ARR",
-            }
+            # rename = {
+            #     "DEP": "INSEE_DEP",
+            #     "REG": "INSEE_REG",
+            #     "ARR": "INSEE_ARR",
+            # }
             drop = [
                 "ID",
                 "NOM_M",
@@ -513,12 +513,12 @@ class S3GeoDataset(S3Dataset):
             ]
         elif init_geometry_level == "CANTON":
             keys = ["INSEE_CAN", "INSEE_CAN"]
-            rename = {
-                "DEP": "INSEE_DEP",
-                "REG": "INSEE_REG",
-                # "ARR": "INSEE_ARR", # Missing ARR from CANTON metadata?
-                "CAN": "INSEE_CAN",
-            }
+            # rename = {
+            #     "DEP": "INSEE_DEP",
+            #     "REG": "INSEE_REG",
+            #     # "ARR": "INSEE_ARR", # Missing ARR from CANTON metadata?
+            #     "CAN": "INSEE_CAN",
+            # }
             drop = ["ID", "INSEE_CAN", "INSEE_DEP", "INSEE_REG"]
         else:
             # TODO if new base mesh
@@ -530,12 +530,12 @@ class S3GeoDataset(S3Dataset):
                 f"found {set(keys)} instead"
             )
 
-        if len(set(rename.keys()) & available_columns) < len(rename):
-            missing = set(rename.keys()) - available_columns
-            raise ValueError(
-                f"rename must be among {available_columns}, following columns "
-                f"are missing : {missing}"
-            )
+        # if len(set(rename.keys()) & available_columns) < len(rename):
+        #     missing = set(rename.keys()) - available_columns
+        #     raise ValueError(
+        #         f"rename must be among {available_columns}, following columns "
+        #         f"are missing : {missing}"
+        #     )
 
         if len(set(drop) & available_columns) < len(drop):
             missing = set(drop) - available_columns
@@ -564,11 +564,11 @@ class S3GeoDataset(S3Dataset):
             if re.match(x, col)
         }
 
-        if not rename:
-            logger.info("geodata columns are %s", self._get_columns())
-            logger.info("metada columns are %s", metadata._get_columns())
-            logger.info("columns to be dropped are %s", drop)
-            raise NotImplementedError("rename not defined here")
+        # if not rename:
+        #     logger.info("geodata columns are %s", self._get_columns())
+        #     logger.info("metada columns are %s", metadata._get_columns())
+        #     logger.info("columns to be dropped are %s", drop)
+        #     raise NotImplementedError("rename not defined here")
 
         to_gpkg = False
         if format_output == "gpkg":
@@ -580,7 +580,7 @@ class S3GeoDataset(S3Dataset):
             keys=keys,
             dtype=dtype,
             drop=drop,
-            rename=rename,
+            rename={},
             format_output=INTERMEDIATE_FORMAT,
         )
 
@@ -627,8 +627,11 @@ class S3GeoDataset(S3Dataset):
             ][0]
 
             calc = []
-            if "POPULATION" in available_columns:
-                calc.append("POPULATION=sum(POPULATION)")
+            pops = [
+                x for x in available_columns if re.match("POPULATION.*", x)
+            ]
+            if pops:
+                calc.append(f"{x}=sum({x})" for x in pops)
 
             self.dissolve(
                 by=by,
