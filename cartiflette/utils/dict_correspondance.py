@@ -18,13 +18,16 @@ DICT_CORRESP_ADMINEXPRESS = {
     "ZONE_EMPLOI": re.compile("ZE[0-9]{4}"),
     "TERRITOIRE": re.compile("AREA"),
     "EPCI": re.compile("EPCI"),
+    "LIBELLE_EPCI": re.compile("LIBELLE_EPCI"),
+    "EPT": re.compile("EPT"),
+    "LIBELLE_EPT": re.compile("LIBELLE_EPT"),
     "COMMUNE": re.compile("INSEE_COM"),
     "LIBELLE_COMMUNE": re.compile("LIBELLE_COMMUNE"),
     "LIBELLE_CANTON": re.compile("LIBELLE_CANTON"),
     "CANTON": re.compile("INSEE_CAN"),
     "ARRONDISSEMENT_MUNICIPAL": re.compile("INSEE_COMMUNE"),
     "LIBELLE_ARRONDISSEMENT_MUNICIPAL": re.compile("LIBELLE_COMMUNE"),
-    # TODO : libelle_epci?
+    # TODO: code SIREN ?
 }
 
 
