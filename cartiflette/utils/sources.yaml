@@ -499,8 +499,40 @@ Insee:
         article: "7708995"
         pattern: "*.xlsx"
         filename: "reference_IRIS_geo2022.zip"
+  INTERCOMMUNALITES:
+    structure:  https://www.insee.fr/fr/statistiques/fichier/{article}/{filename}
+    EPCI-FP:
+      2024:
+        article: "2510634"
+        pattern: "*.xlsx"
+        filename: "epci_au_01-01-2024.zip"
+      2023:
+        article: "2510634"
+        pattern: "*.xlsx"
+        filename: "Intercommunalite_Metropole_au_01-01-2023.zip"
+      2022:
+        article: "2510634"
+        pattern: "*.xlsx"
+        filename: "Intercommunalite_Metropole_au_01-01-2022.zip"
+      2021:
+        article: "2510634"
+        pattern: "*.xlsx"
+        filename: "Intercommunalite_Metropole_au_01-01-2021.zip"
+      2020:
+        article: "2510634"
+        pattern: "*.xlsx"
+        filename: "Intercommunalite_Metropole_au_01-01-2020_v1.zip"
+    EPT:
+      2024:
+        article: "2510634"
+        pattern: "*.xlsx"
+        filename: "ept_au_01-01-2024.zip"
+      2023:
+        article: "2510634"
+        pattern: "*.xlsx"
+        filename: "ept_au_01-01-2023.zip"
 
-    
+
   BV:
     pattern: "com_bv*.dbf"
     #-> nota : zip dans des zip
