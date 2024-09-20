@@ -1,3 +1,18 @@
+DGCL:
+  BANATIC:
+    CORRESPONDANCE-SIREN-INSEE-COMMUNES:
+      file: https://www.data.gouv.fr/fr/datasets/r/42b16d68-958e-4518-8551-93e095fe8fda
+      2024:
+        pattern: "*2024.xlsx"
+      2023:
+        pattern: "*2023.xlsx"
+      2022:
+        pattern: "*2022.xlsx"
+      2021:
+        pattern: "*2021.xlsx"
+      2020:
+        pattern: "*2020.xlsx"
+        
 IGN:
   
   ADMINEXPRESS:
