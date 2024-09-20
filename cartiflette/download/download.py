@@ -270,35 +270,35 @@ def _download_and_store_sources(
 
     # Check wether (some) urls are reused in this batch
     reused_urls = set()
-    for y in years:
-        datasets = [
-            RawDataset(
-                bucket=bucket,
-                path_within_bucket=path_within_bucket,
-                **x,
-            )
-            for x in combinations
-            if x["year"] == y
-        ]
+    datasets = [
+        RawDataset(
+            bucket=bucket,
+            path_within_bucket=path_within_bucket,
+            **x,
+        )
+        for y in years
+        for x in combinations
+        if x["year"] == y
+    ]
 
-        def try_get_path(dset):
-            try:
-                return dset.get_path_from_provider()
-            except ValueError:
-                # Do not bother to log this, there will be warning later on
-                # when Cartiflette tries to retrieve the datasets
-                pass
+    def try_get_path(dset):
+        try:
+            return dset.get_path_from_provider()
+        except ValueError:
+            # Do not bother to log this, there will be warning later on
+            # when Cartiflette tries to retrieve the datasets
+            pass
 
-        reused = {
-            (url, md5)
-            for (url, md5), count in Counter(
-                (try_get_path(dset), dset.md5)
-                for dset in datasets
-                if try_get_path(dset)
-            ).items()
-            if count > 1
-        }
-        reused_urls.update(reused)
+    reused = {
+        (url, md5)
+        for (url, md5), count in Counter(
+            (try_get_path(dset), dset.md5)
+            for dset in datasets
+            if try_get_path(dset)
+        ).items()
+        if count > 1
+    }
+    reused_urls.update(reused)
     reused_urls = list(reused_urls)
     # reused_urls = [(url_1, md5_1), (url_2, md5_2)]
 
@@ -327,7 +327,7 @@ def _download_and_store_sources(
                         finally:
                             index += 1
             else:
-                for url, md5 in combinations:
+                for url, md5 in reused_urls:
                     try:
                         s.simple_download(url, md5)
                     except Exception:
