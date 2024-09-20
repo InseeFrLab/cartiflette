@@ -244,7 +244,7 @@ class S3GeoDataset(S3Dataset):
 
     def dissolve(
         self,
-        by: str,
+        by: List[str],
         copy_fields: List[str] = None,
         calc: List[str] = None,
         format_output: str = "geojson",
@@ -260,8 +260,8 @@ class S3GeoDataset(S3Dataset):
 
         Parameters
         ----------
-        by : str
-            Field used to dissolve
+        by : List[str]
+            Fields used to dissolve
         calc : Listr[str], optional
             Fields on which computed should be operated, describing valid js
             functions. For instance ["POPULATION=sum(POPULATION)"]. The default
@@ -284,7 +284,7 @@ class S3GeoDataset(S3Dataset):
             copy_fields=copy_fields,
             calc=calc,
             output_dir=self.local_dir,
-            output_name=by,
+            output_name="_".join(by),
             output_format=format_output,
         )
         self._substitute_main_file(out)
@@ -488,38 +488,17 @@ class S3GeoDataset(S3Dataset):
 
         if init_geometry_level == "IRIS":
             keys = ["CODE_IRIS", "CODE_IRIS"]
-            # rename = {
-            #     "DEP": "INSEE_DEP",
-            #     "REG": "INSEE_REG",
-            #     "ARR": "INSEE_ARR",
-            #     "CODGEO": "INSEE_COM",
-            # }
-            drop = ["ID", "NOM_COM", "IRIS", "NOM_IRIS"]
+            drop = ["ID", "NOM_COM"]
         elif init_geometry_level == "COMMUNE":
             keys = ["INSEE_COM", "INSEE_COM"]
-            # rename = {
-            #     "DEP": "INSEE_DEP",
-            #     "REG": "INSEE_REG",
-            #     "ARR": "INSEE_ARR",
-            # }
             drop = [
+                "POPULATION",
                 "ID",
                 "NOM_M",
-                "SIREN_EPCI",
-                "INSEE_CAN",
-                "INSEE_ARR",
-                "INSEE_DEP",
-                "INSEE_REG",
             ]
         elif init_geometry_level == "CANTON":
             keys = ["INSEE_CAN", "INSEE_CAN"]
-            # rename = {
-            #     "DEP": "INSEE_DEP",
-            #     "REG": "INSEE_REG",
-            #     # "ARR": "INSEE_ARR", # Missing ARR from CANTON metadata?
-            #     "CAN": "INSEE_CAN",
-            # }
-            drop = ["ID", "INSEE_CAN", "INSEE_DEP", "INSEE_REG"]
+            drop = ["ID"]
         else:
             # TODO if new base mesh
             pass
@@ -530,13 +509,6 @@ class S3GeoDataset(S3Dataset):
                 f"found {set(keys)} instead"
             )
 
-        # if len(set(rename.keys()) & available_columns) < len(rename):
-        #     missing = set(rename.keys()) - available_columns
-        #     raise ValueError(
-        #         f"rename must be among {available_columns}, following columns "
-        #         f"are missing : {missing}"
-        #     )
-
         if len(set(drop) & available_columns) < len(drop):
             missing = set(drop) - available_columns
             raise ValueError(
@@ -545,6 +517,8 @@ class S3GeoDataset(S3Dataset):
             )
 
         dtype = set(keys) | {
+            "SIREN_EPCI",
+            "SIREN_COMMUNE",
             "INSEE_DEP",
             "INSEE_REG",
             "CAN",
@@ -591,50 +565,41 @@ class S3GeoDataset(S3Dataset):
             # geodata file based on a communal mesh with  one using the desired
             # mesh
 
-            # Identify which fields should be copied from the first feature in
-            # each group of dissolved features:
-
-            imbrications = {
-                "IRIS": ["COMMUNE", "ARRONDISSEMENT", "DEPARTEMENT", "REGION"],
-                "ARRONDISSEMENT_MUNICIPAL": [
-                    "ARRONDISSEMENT",
-                    "DEPARTEMENT",
-                    "REGION",
-                ],
-                "COMMUNE": ["ARRONDISSEMENT", "DEPARTEMENT", "REGION"],
-                "CANTON": ["ARRONDISSEMENT", "DEPARTEMENT", "REGION"],
-                "ARRONDISSEMENT": ["DEPARTEMENT", "REGION"],
-                "DEPARTEMENT": ["REGION"],
-            }
-
-            keys = [dissolve_by]
-            keys += imbrications.get(dissolve_by, ["DEPARTEMENT", "REGION"])
-
-            keep = [dict_corresp.get(key) for key in keys] + [
-                dict_corresp.get(f"LIBELLE_{key}") for key in keys
-            ]
-            keep = [x for x in keep if x]
-
-            # find exact fields with the regex patterns
-            available_columns = self._get_columns()
-            keep = [
-                col for x in keep for col in available_columns if x.match(col)
-            ]
+            # Dissolve by both dissolve_by AND niveau_agreg to ensure both
+            # dissolution and splitability
+            gdf = self.to_frame()
+            available_columns = gdf.columns.tolist()
             by = [
                 col
                 for col in available_columns
                 if dict_corresp[dissolve_by].match(col)
             ][0]
+            if niveau_agreg != "FRANCE_ENTIERE_DROM_RAPPROCHES":
+                aggreg_col = [
+                    col
+                    for col in available_columns
+                    if dict_corresp[niveau_agreg].match(col)
+                ][0]
+            else:
+                aggreg_col = "AREA"
+            keys = [by, aggreg_col]
+
+            # And keep all columns which are identical in each subgroup after
+            # dissolution + summable columns
+            keep = (
+                gdf.drop("geometry", axis=1).groupby(keys).nunique() == 1
+            ).all()
+            keep = keep[keep].index.tolist()
 
             calc = []
             pops = [
                 x for x in available_columns if re.match("POPULATION.*", x)
             ]
             if pops:
-                calc.append(f"{x}=sum({x})" for x in pops)
+                calc += [f"{x}=sum({x})" for x in pops]
 
             self.dissolve(
-                by=by,
+                by=[by, aggreg_col],
                 copy_fields=keep,
                 calc=calc,
                 format_output=INTERMEDIATE_FORMAT,
@@ -650,11 +615,17 @@ class S3GeoDataset(S3Dataset):
 
         # Split datasets, based on the desired "niveau_agreg" and proceed to
         # desired level of simplification
-        split_by = [
-            col
-            for col in self._get_columns()
-            if dict_corresp[niveau_agreg].match(col)
-        ][0]
+        try:
+            columns = self._get_columns()
+            split_by = [
+                col for col in columns if dict_corresp[niveau_agreg].match(col)
+            ][0]
+        except IndexError as exc:
+            raise ValueError(
+                f"{dict_corresp[niveau_agreg]} not found among {columns} "
+                "for datasets split"
+            ) from exc
+
         new_datasets = self.split_file(
             crs=crs,
             format_output=format_output,
