@@ -1,0 +1,10 @@
+pyarrow>=15.0
+geopandas>=1.0.1
+openpyxl
+PyYAML
+py7zr
+requests
+s3fs
+topojson
+tqdm
+xlrd
