@@ -21,18 +21,15 @@ logical_conditions = {
         "saint-barthelemy": "bbox=-7003557.376380256, 2018598.440800959, -6985037.106437805, 2033965.5078367123",
     },
     "REGION": {"ile de france": "INSEE_REG == 11", "zoom idf": 1.5},
-    # "DEPARTEMENT": {
-    #     "ile de france": "['75', '92', '93', '94'].includes(INSEE_DEP)",
-    #     "zoom idf": 4,
-    # },
-    # "REGION": {"ile de france": "INSEE_REG == 11", "zoom idf": 1.5},
-    # "BASSIN_VIE": {"ile de france": "BV2012 == 75056", "zoom idf": 1.5},
-    # "UNITE_URBAINE": {"ile de france": "UU2020 == '00851'", "zoom idf": 1.5},
-    # "ZONE_EMPLOI": {"ile de france": "ZE2020 == 1109", "zoom idf": 1.5},
-    # "AIRE_ATTRACTION_VILLES": {
-    #     "ile de france": "AAV2020 == '001'",
-    #     "zoom idf": 1.5,
-    # },
+    # Set specific js selection commands for specific agregations, only
+    # if these areas are not within departements
+    "BASSIN_VIE": {"ile de france": "BV2012 == 75056", "zoom idf": 1.5},
+    "UNITE_URBAINE": {"ile de france": "UU2020 == '00851'", "zoom idf": 1.5},
+    "ZONE_EMPLOI": {"ile de france": "ZE2020 == 1109", "zoom idf": 1.5},
+    "AIRE_ATTRACTION_VILLES": {
+        "ile de france": "AAV2020 == '001'",
+        "zoom idf": 1.2,
+    },
 }
 
 shift = {
