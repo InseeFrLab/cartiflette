@@ -115,6 +115,7 @@ class S3GeoDataset(S3Dataset):
         self.to_frame().to_file(path, driver="GPKG")
         self._substitute_main_file(path)
         self.config["vectorfile_format"] = "gpkg"
+        self.update_s3_path_evaluation()
 
     def to_frame(self, **kwargs) -> gpd.GeoDataFrame:
         "Read the geodataset from local file"
