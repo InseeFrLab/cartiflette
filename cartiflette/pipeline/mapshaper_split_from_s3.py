@@ -105,27 +105,37 @@ def mapshaperize_split_from_s3(
             raise ValueError(f"{len(failed)} file(s) generation(s) failed")
 
 
-if __name__ == "__main__":
-    import logging
+# if __name__ == "__main__":
+#     import logging
 
-    logging.basicConfig(level=logging.INFO)
+#     logging.basicConfig(level=logging.INFO)
 
-    mapshaperize_split_from_s3(
-        year=2023,
-        init_geometry_level="IRIS",
-        source="CONTOUR-IRIS",
-        simplification=40,
-        dissolve_by="ARRONDISSEMENT",
-        config_generation={
-            "4326": [
-                # {
-                #     "territory": "FRANCE_ENTIERE_DROM_RAPPROCHES",
-                #     "format": "topojson",
-                # },
-                {
-                    "territory": "FRANCE_ENTIERE_DROM_RAPPROCHES",
-                    "format": "gpkg",
-                },
-            ]
-        },
-    )
+#     mapshaperize_split_from_s3(
+#         year=2023,
+#         init_geometry_level="COMMUNE",
+#         source="EXPRESS-COG-CARTO-TERRITOIRE",
+#         simplification=40,
+#         dissolve_by="AIRE_ATTRACTION_VILLES",
+#         config_generation={
+#             "4326": [
+#                 {"territory": "TERRITOIRE", "format": "topojson"},
+#                 {"territory": "TERRITOIRE", "format": "gpkg"},
+#                 {"territory": "TERRITOIRE", "format": "geojson"},
+#                 {
+#                     "territory": "FRANCE_ENTIERE_DROM_RAPPROCHES",
+#                     "format": "topojson",
+#                 },
+#                 {
+#                     "territory": "FRANCE_ENTIERE_DROM_RAPPROCHES",
+#                     "format": "gpkg",
+#                 },
+#                 {
+#                     "territory": "FRANCE_ENTIERE_DROM_RAPPROCHES",
+#                     "format": "geojson",
+#                 },
+#                 {"territory": "FRANCE_ENTIERE", "format": "topojson"},
+#                 {"territory": "FRANCE_ENTIERE", "format": "gpkg"},
+#                 {"territory": "FRANCE_ENTIERE", "format": "shapefile"},
+#             ]
+#         },
+#     )
