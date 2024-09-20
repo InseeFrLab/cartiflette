@@ -29,7 +29,10 @@ def download_from_cartiflette_inner(
     provider: str = "IGN",
     dataset_family: str = "ADMINEXPRESS",
     source: str = "EXPRESS-COG-TERRITOIRE",
+    filename: str = "raw",
     return_as_json: bool = False,
+    *args,
+    **kwargs,
 ) -> typing.Union[gpd.GeoDataFrame, str]:
     """
     Downloads and aggregates official geographic datasets using the Cartiflette API
@@ -97,6 +100,7 @@ def download_from_cartiflette_inner(
             year=year,
             crs=crs,
             simplification=simplification,
+            filename=filename,
         )
         gdf_list.append(gdf_single)
 
@@ -123,6 +127,7 @@ def download_cartiflette_single(
     value: typing.Union[str, int, float] = "28",
     crs: typing.Union[list, str, int, float] = 2154,
     simplification: typing.Union[str, int, float] = None,
+    filename: str = "raw",
     *args,
     **kwargs,
 ):
@@ -148,6 +153,7 @@ def download_cartiflette_single(
             "dataset_family": dataset_family,
             "source": source,
             "simplification": simplification,
+            "filename": filename
         }
     )
 
