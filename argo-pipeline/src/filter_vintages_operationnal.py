@@ -11,8 +11,14 @@ output/input.
 
 import argparse
 import json
+import os
 import logging
 
+from cartiflette.config import (
+    BUCKET,
+    PATH_WITHIN_BUCKET,
+    FS,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +56,10 @@ years_geodatasets = {
 years_metadata = {int(x) for x in json.loads(args.years_metadata)}
 
 years = sorted(list(years_geodatasets | years_metadata))
+
+if os.environ.get("ENVIRONMENT", None) == "dev":
+    logging.warning("dev environment -> restrict generation to 2023, 2024 ")
+    years = [2023, 2024]
 
 logger.info(
     "selected downstream years for operationnal generation of datasets : %s",
