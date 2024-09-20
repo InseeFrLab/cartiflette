@@ -40,8 +40,8 @@ shift = {
     "guadeloupe": "6355000,3330000",
     "martinique": "6480000,3505000",
     "guyane": "5760000,4720000",
-    "reunion": "-6170_000,7560000",
-    "mayotte": "-4885000,6590_000",
+    "reunion": "-6170000,7560000",
+    "mayotte": "-4885000,6590000",
     "saint-martin": "5690000,-900000",
     "saint-pierre-et-miquelon": "2880000,-2910000",
     "saint-barthelemy": "5670000,-730000",
@@ -178,13 +178,3 @@ def mapshaper_bring_closer(
                 pass
 
     return output
-
-
-if __name__ == "__main__":
-    mapshaper_bring_closer(
-        input_file="/tmp/tmpg09eez5_/INSEE_ARR.geojson",
-        output_dir="/tmp/tmpg09eez5_",
-        output_name="idf_combined",
-        output_format="geojson",
-        level_agreg="ARRONDISSEMENT",
-    )
