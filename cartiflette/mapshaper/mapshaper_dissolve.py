@@ -59,9 +59,11 @@ def mapshaper_dissolve(
 
     output = f"{output_dir}/{output_name}.{output_format}"
 
+    name = "_".join(by)
+    by = ",".join(by)
     cmd = (
         f"mapshaper {input_file} "
-        f"name='by' "
+        f"name='{name}' "
         "-proj EPSG:4326 "
         f"-dissolve {by} "
     )
