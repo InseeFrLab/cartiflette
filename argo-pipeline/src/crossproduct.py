@@ -101,7 +101,10 @@ def main(
         path_within_bucket=path_within_bucket,
     )
 
-    os.makedirs("configs_datasets_to_generate")
+    try:
+        os.makedirs("configs_datasets_to_generate")
+    except FileExistsError:
+        pass
 
     with open(f"configs_datasets_to_generate/{year}.json", "w") as out:
         json.dump(configs, out)
