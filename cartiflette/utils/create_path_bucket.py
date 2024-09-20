@@ -26,7 +26,6 @@ class ConfigDict(TypedDict):
     filename: Optional[str]
 
 
-
 def create_path_bucket(config: ConfigDict) -> str:
     """
     This function creates a file path for a vector file within a specified
@@ -84,8 +83,11 @@ def create_path_bucket(config: ConfigDict) -> str:
         f"/{simplification=}"
     ).replace("'", "")
 
-    if filename:
+    if filename and "." not in filename:
+        # small hack to avoid rewriting the S3Dataset and S3GeoDataset classes
         write_path += f"/{filename}.{vectorfile_format}"
+    elif filename:
+        write_path += f"/{filename}"
     elif vectorfile_format == "shp":
         write_path += "/"
     else:
