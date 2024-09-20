@@ -117,6 +117,19 @@ class S3GeoDataset(S3Dataset):
         self.config["vectorfile_format"] = "gpkg"
         self.update_s3_path_evaluation()
 
+    def to_shapefile(self):
+        """
+        TODO Quick and dirty hack, to be removed to handle native mapshaper
+        output
+        Replace the current main_file by a shapefile format (using geopandas)
+        """
+        path = os.path.join(self.local_dir, self.main_filename)
+        path = path.rsplit(".", maxsplit=1)[0] + ".shp"
+        self.to_frame().to_file(path)
+        self._substitute_main_file(path)
+        self.config["vectorfile_format"] = "shp"
+        self.update_s3_path_evaluation()
+
     def to_frame(self, **kwargs) -> gpd.GeoDataFrame:
         "Read the geodataset from local file"
         return gpd.read_file(
@@ -546,8 +559,12 @@ class S3GeoDataset(S3Dataset):
         #     raise NotImplementedError("rename not defined here")
 
         to_gpkg = False
+        to_shp = False
         if format_output == "gpkg":
             to_gpkg = True
+            format_output = "geojson"
+        elif format_output == "shapefile":
+            to_shp = True
             format_output = "geojson"
 
         self.enrich(
@@ -647,17 +664,21 @@ class S3GeoDataset(S3Dataset):
             # for multithreading (cleaned locally at exitstack anyway)
             [stack.enter_context(dset) for dset in new_datasets]
 
-            if to_gpkg:
+            if to_gpkg or to_shp:
+                if to_gpkg:
+                    method = "to_gpkg"
+                elif to_shp:
+                    method = "to_shapefile"
                 if THREADS_DOWNLOAD > 1:
                     threads = min(THREADS_DOWNLOAD, len(new_datasets))
                     with ThreadPool(threads) as pool:
 
                         def convert(dset):
-                            return dset.to_gpkg()
+                            return getattr(dset, method)()
 
                         list(pool.map(convert, new_datasets).result())
                 else:
-                    [dset.to_gpkg() for dset in new_datasets]
+                    [getattr(dset, method)() for dset in new_datasets]
 
             if THREADS_DOWNLOAD > 1:
                 threads = min(THREADS_DOWNLOAD, len(new_datasets))
