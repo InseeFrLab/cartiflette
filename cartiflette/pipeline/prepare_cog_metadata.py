@@ -168,26 +168,29 @@ def prepare_cog_metadata(
     except Exception:
         cog_tom = None
 
-    siren = s3_to_df(
-        fs,
-        paths_bucket[("BANATIC", "CORRESPONDANCE-SIREN-INSEE-COMMUNES")],
-        **kwargs,
-    )
-    pop_communes = {
-        "PTOT_[0-9]{4}": "POPULATION_TOTALE",
-        "PMUN_[0-9]{4}": "POPULATION_MUNICIPALE",
-        "PCAP_[0-9]{4}": "POPULATION_COMPTEE_A_PART",
-    }
-    rename = {
-        col: new
-        for pattern, new in pop_communes.items()
-        for col in siren.columns
-        if re.match(pattern, col)
-    }
-    rename.update({"SIREN": "SIREN_COMMUNE"})
-    siren = siren.drop(["REG_COM", "DEP_COM", "NOM_COM"], axis=1).rename(
-        rename, axis=1
-    )
+    try:
+        siren = s3_to_df(
+            fs,
+            paths_bucket[("BANATIC", "CORRESPONDANCE-SIREN-INSEE-COMMUNES")],
+            **kwargs,
+        )
+        pop_communes = {
+            "PTOT_[0-9]{4}": "POPULATION_TOTALE",
+            "PMUN_[0-9]{4}": "POPULATION_MUNICIPALE",
+            "PCAP_[0-9]{4}": "POPULATION_COMPTEE_A_PART",
+        }
+        rename = {
+            col: new
+            for pattern, new in pop_communes.items()
+            for col in siren.columns
+            if re.match(pattern, col)
+        }
+        rename.update({"SIREN": "SIREN_COMMUNE"})
+        siren = siren.drop(["REG_COM", "DEP_COM", "NOM_COM"], axis=1).rename(
+            rename, axis=1
+        )
+    except Exception:
+        siren = None
 
     try:
         epci_fp = s3_to_df(
@@ -313,9 +316,10 @@ def prepare_cog_metadata(
             ix, "LIBELLE_COMMUNE"
         ]
 
-        cities = cities.merge(
-            siren, how="left", left_on="CODGEO", right_on="INSEE"
-        ).drop("INSEE", axis=1)
+        if siren is not None:
+            cities = cities.merge(
+                siren, how="left", left_on="CODGEO", right_on="INSEE"
+            ).drop("INSEE", axis=1)
 
         cities["SOURCE_METADATA"] = "Cartiflette, d'après INSEE & DGCL"
 
