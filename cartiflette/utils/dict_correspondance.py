@@ -5,6 +5,7 @@ Collection of utils to reformat inputs
 import re
 
 # TODO : rename and explicit purpose of constant!
+# only keys used for splitting/dissolution
 DICT_CORRESP_ADMINEXPRESS = {
     "IRIS": re.compile("IRIS"),
     "REGION": re.compile("INSEE_REG"),
@@ -12,23 +13,25 @@ DICT_CORRESP_ADMINEXPRESS = {
     "ARRONDISSEMENT": re.compile("INSEE_ARR"),
     "FRANCE_ENTIERE": re.compile("PAYS"),
     "FRANCE_ENTIERE_DROM_RAPPROCHES": re.compile("PAYS"),
-    "LIBELLE_REGION": re.compile("LIBELLE_REGION"),
-    "LIBELLE_DEPARTEMENT": re.compile("LIBELLE_DEPARTEMENT"),
+    # "LIBELLE_REGION": re.compile("LIBELLE_REGION"),
+    # "LIBELLE_DEPARTEMENT": re.compile("LIBELLE_DEPARTEMENT"),
     "BASSIN_VIE": re.compile("BV[0-9]{4}"),
     "AIRE_ATTRACTION_VILLES": re.compile("AAV[0-9]{4}"),
     "UNITE_URBAINE": re.compile("UU[0-9]{4}"),
     "ZONE_EMPLOI": re.compile("ZE[0-9]{4}"),
     "TERRITOIRE": re.compile("AREA"),
     "EPCI": re.compile("EPCI"),
-    "LIBELLE_EPCI": re.compile("LIBELLE_EPCI"),
+    # "LIBELLE_EPCI": re.compile("LIBELLE_EPCI"),
     "EPT": re.compile("EPT"),
-    "LIBELLE_EPT": re.compile("LIBELLE_EPT"),
+    # "LIBELLE_EPT": re.compile("LIBELLE_EPT"),
     "COMMUNE": re.compile("INSEE_COM"),
-    "LIBELLE_COMMUNE": re.compile("LIBELLE_COMMUNE"),
-    "LIBELLE_CANTON": re.compile("LIBELLE_CANTON"),
+    # "LIBELLE_COMMUNE": re.compile("LIBELLE_COMMUNE"),
+    # "LIBELLE_CANTON": re.compile("LIBELLE_CANTON"),
     "CANTON": re.compile("INSEE_CAN"),
-    "ARRONDISSEMENT_MUNICIPAL": re.compile("INSEE_COMMUNE"),
-    "LIBELLE_ARRONDISSEMENT_MUNICIPAL": re.compile("LIBELLE_COMMUNE"),
+    "ARRONDISSEMENT_MUNICIPAL": re.compile("CODE_ARM"),
+    # "LIBELLE_ARRONDISSEMENT_MUNICIPAL": re.compile(
+    #     "LIBELLE_ARRONDISSEMENT_MUNICIPAL"
+    # ),
     # TODO: code SIREN ?
 }
 
