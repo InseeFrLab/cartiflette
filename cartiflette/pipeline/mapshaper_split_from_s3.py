@@ -72,6 +72,11 @@ def mapshaperize_split_from_s3(
 
                 warnings = []
                 for field in niveau_agreg, dissolve_by:
+                    if field in [
+                        "FRANCE_ENTIERE",
+                        "FRANCE_ENTIERE_DROM_RAPPROCHES",
+                    ]:
+                        continue
                     try:
                         metadata.find_column_name(field, available)
                     except (ValueError, IndexError) as exc:
