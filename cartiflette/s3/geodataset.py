@@ -35,10 +35,7 @@ from cartiflette.mapshaper import (
     mapshaper_simplify,
     mapshaper_add_field,
 )
-from cartiflette.utils import (
-    ConfigDict,
-    DICT_CORRESP_ADMINEXPRESS,
-)
+from cartiflette.utils import ConfigDict
 from cartiflette.config import FS, THREADS_DOWNLOAD, INTERMEDIATE_FORMAT
 from cartiflette.utils.dict_correspondance import (
     create_format_driver,
@@ -481,8 +478,6 @@ class S3GeoDataset(S3Dataset):
 
         """
 
-        dict_corresp = DICT_CORRESP_ADMINEXPRESS
-
         niveau_agreg = niveau_agreg.upper()
         init_geometry_level = init_geometry_level.upper()
 
@@ -581,17 +576,11 @@ class S3GeoDataset(S3Dataset):
             # dissolution and splitability
             gdf = self.to_frame()
             available_columns = gdf.columns.tolist()
-            by = [
-                col
-                for col in available_columns
-                if dict_corresp[dissolve_by].match(col)
-            ][0]
+            by = self.find_column_name(dissolve_by, available_columns)
             if niveau_agreg != "FRANCE_ENTIERE_DROM_RAPPROCHES":
-                aggreg_col = [
-                    col
-                    for col in available_columns
-                    if dict_corresp[niveau_agreg].match(col)
-                ][0]
+                aggreg_col = self.find_column_name(
+                    niveau_agreg, available_columns
+                )
             else:
                 aggreg_col = "AREA"
             keys = [by, aggreg_col]
@@ -627,16 +616,8 @@ class S3GeoDataset(S3Dataset):
 
         # Split datasets, based on the desired "niveau_agreg" and proceed to
         # desired level of simplification
-        try:
-            columns = self._get_columns()
-            split_by = [
-                col for col in columns if dict_corresp[niveau_agreg].match(col)
-            ][0]
-        except IndexError as exc:
-            raise ValueError(
-                f"{dict_corresp[niveau_agreg]} not found among {columns} "
-                "for datasets split"
-            ) from exc
+        columns = self._get_columns()
+        split_by = self.find_column_name(niveau_agreg, columns)
 
         new_datasets = self.split_file(
             crs=crs,
@@ -726,7 +707,10 @@ class S3GeoDataset(S3Dataset):
         # note : communal_districts has it's self local_dir which should be
         # in f"{self.local_dir}/{communal_districts.config['territory']}" !
         communal_districts.to_mercator(format_output=format_output)
-        communal_districts_file = f"{communal_districts.local_dir}/{communal_districts.main_filename}"
+        communal_districts_file = (
+            f"{communal_districts.local_dir}/"
+            f"{communal_districts.main_filename}"
+        )
 
         communal_districts_file = mapshaper_process_communal_districts(
             input_communal_districts_file=communal_districts_file,
