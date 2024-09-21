@@ -4,7 +4,9 @@ Collection of utils to reformat inputs
 
 import re
 
+# TODO : rename and explicit purpose of constant!
 DICT_CORRESP_ADMINEXPRESS = {
+    "IRIS": re.compile("IRIS"),
     "REGION": re.compile("INSEE_REG"),
     "DEPARTEMENT": re.compile("INSEE_DEP"),
     "ARRONDISSEMENT": re.compile("INSEE_ARR"),
