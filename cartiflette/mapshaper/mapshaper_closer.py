@@ -10,6 +10,9 @@ logger = logging.getLogger(__name__)
 logical_conditions = {
     "EMPRISES": {
         # left, bottom, right, top (epsg=3857)
+        # IdF -> bounding box of Paris' "petite couronne" which should catch
+        # the whole region
+        "ile de france": "bbox=238800,6222000,291200,6277000",
         "metropole": "bbox=-572324.2901945524,5061666.243842439,1064224.7522608414,6638201.7541528195",
         "guadeloupe": "bbox=-6880639.760944527,1785277.734007631,-6790707.017202182,1864381.5053494961",
         "martinique": "bbox=-6815985.711078632,1618842.9696702233,-6769303.6899859235,1675227.3853840816",
@@ -20,16 +23,12 @@ logical_conditions = {
         "saint-pierre-et-miquelon": "bbox=-6298822.299318486, 5894013.594517256, -6239181.296921183, 5973004.907786214",
         "saint-barthelemy": "bbox=-7003557.376380256, 2018598.440800959, -6985037.106437805, 2033965.5078367123",
     },
-    "REGION": {"ile de france": "INSEE_REG == 11", "zoom idf": 1.5},
-    # Set specific js selection commands for specific agregations, only
-    # if these areas are not within departements
-    "BASSIN_VIE": {"ile de france": "BV2012 == 75056", "zoom idf": 1.5},
-    "UNITE_URBAINE": {"ile de france": "UU2020 == '00851'", "zoom idf": 1.5},
-    "ZONE_EMPLOI": {"ile de france": "ZE2020 == 1109", "zoom idf": 1.5},
-    "AIRE_ATTRACTION_VILLES": {
-        "ile de france": "AAV2020 == '001'",
-        "zoom idf": 1.2,
-    },
+    "REGION": 1.5,
+    "BASSIN_VIE": 1.5,
+    "UNITE_URBAINE": 1.5,
+    "ZONE_EMPLOI": 1.5,
+    "AIRE_ATTRACTION_VILLES": 1.2,
+    "DEPARTEMENT": 4,
 }
 
 shift = {
@@ -92,15 +91,8 @@ def mapshaper_bring_closer(
     except FileExistsError:
         pass
 
-    agreg_conditions = logical_conditions.get(
-        level_agreg,
-        {
-            "ile de france": "['75', '92', '93', '94'].includes(INSEE_DEP)",
-            "zoom idf": 4,
-        },
-    )
-    logical_idf = agreg_conditions["ile de france"]
-    zoom_idf = agreg_conditions["zoom idf"]
+    logical_idf = logical_conditions["EMPRISES"]["ile de france"]
+    zoom_idf = logical_conditions.get(level_agreg, 1.5)
     logical_metropole = logical_conditions["EMPRISES"]["metropole"]
 
     try:
