@@ -424,7 +424,6 @@ class S3GeoDataset(S3Dataset):
         niveau_agreg="DEPARTEMENT",
         crs=4326,
         simplification=0,
-        dict_corresp=None,
     ) -> List[Self]:
         """
         Create "children" geodatasets based on arguments and send them to S3.
@@ -474,10 +473,6 @@ class S3GeoDataset(S3Dataset):
             datasets into. By default 4326.
         simplification : int, optional
             The degree of wanted simplification, by default 0.
-        dict_corresp: dict
-            A dictionary giving correspondance between niveau_agreg argument
-            and variable names. The default is None, which will result to
-            DICT_CORRESP_ADMINEXPRESS.
 
         Returns
         -------
@@ -486,8 +481,7 @@ class S3GeoDataset(S3Dataset):
 
         """
 
-        if not dict_corresp:
-            dict_corresp = DICT_CORRESP_ADMINEXPRESS
+        dict_corresp = DICT_CORRESP_ADMINEXPRESS
 
         niveau_agreg = niveau_agreg.upper()
         init_geometry_level = init_geometry_level.upper()
