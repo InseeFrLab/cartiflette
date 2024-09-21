@@ -59,8 +59,32 @@ def mapshaperize_split_from_s3(
 
         failed = []
         success = []
+        skipped = []
         for crs, crs_configs in config_generation.items():
             for config_one_file in crs_configs:
+
+                # Check that both niveau_agreg and dissolve_by correspond to
+                # definitive fields from either metadata/geodata
+                niveau_agreg = config_one_file["territory"]
+                available = set(gis_file._get_columns()) | set(
+                    metadata._get_columns()
+                )
+
+                warnings = []
+                for field in niveau_agreg, dissolve_by:
+                    try:
+                        metadata.find_column_name(field, available)
+                    except (ValueError, IndexError) as exc:
+                        warnings.append(str(exc))
+                if warnings:
+                    skipped.append(
+                        {
+                            "warning": " - ".join(warnings),
+                            "crs": crs,
+                            "config": config_one_file,
+                        }
+                    )
+                    continue
 
                 with gis_file.copy() as gis_copy:
                     try:
@@ -89,53 +113,42 @@ def mapshaperize_split_from_s3(
                                 "config": config_one_file,
                             }
                         )
+        if skipped:
+            for one_skipped in skipped:
+                logger.warning("-" * 50)
+                logger.warning(one_skipped["warning"])
+                logger.warning("crs: %s", one_skipped["crs"])
+                logger.warning("config: %s", one_skipped["config"])
         if failed:
             for one_failed in failed:
                 logger.error("=" * 50)
                 logger.error("error: %s", one_failed["error"])
                 logger.error("crs: %s", one_failed["crs"])
-                logger.error("config:\n%s", one_failed["config"])
+                logger.error("config: %s", one_failed["config"])
                 logger.error("-" * 50)
                 logger.error("traceback:\n%s", one_failed["traceback"])
 
-            logger.info(
-                f"{len(success)} file(s) generation(s) succeeded : %s", success
-            )
-
+        logger.info(
+            f"{len(skipped)} file(s) generation(s) were skipped : %s",
+            skipped,
+        )
+        logger.info(
+            f"{len(success)} file(s) generation(s) succeeded : %s", success
+        )
+        if failed:
             raise ValueError(f"{len(failed)} file(s) generation(s) failed")
 
 
-# if __name__ == "__main__":
-#     import logging
+if __name__ == "__main__":
+    import logging
 
-#     logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO)
 
-#     mapshaperize_split_from_s3(
-#         year=2023,
-#         init_geometry_level="COMMUNE",
-#         source="EXPRESS-COG-CARTO-TERRITOIRE",
-#         simplification=40,
-#         dissolve_by="AIRE_ATTRACTION_VILLES",
-#         config_generation={
-#             "4326": [
-#                 {"territory": "TERRITOIRE", "format": "topojson"},
-#                 {"territory": "TERRITOIRE", "format": "gpkg"},
-#                 {"territory": "TERRITOIRE", "format": "geojson"},
-#                 {
-#                     "territory": "FRANCE_ENTIERE_DROM_RAPPROCHES",
-#                     "format": "topojson",
-#                 },
-#                 {
-#                     "territory": "FRANCE_ENTIERE_DROM_RAPPROCHES",
-#                     "format": "gpkg",
-#                 },
-#                 {
-#                     "territory": "FRANCE_ENTIERE_DROM_RAPPROCHES",
-#                     "format": "geojson",
-#                 },
-#                 {"territory": "FRANCE_ENTIERE", "format": "topojson"},
-#                 {"territory": "FRANCE_ENTIERE", "format": "gpkg"},
-#                 {"territory": "FRANCE_ENTIERE", "format": "shapefile"},
-#             ]
-#         },
-#     )
+    mapshaperize_split_from_s3(
+        year=2023,
+        init_geometry_level="IRIS",
+        source="CONTOUR-IRIS",
+        simplification=40,
+        dissolve_by="IRIS",
+        config_generation={"4326": [{"territory": "EPT", "format": "gpkg"}]},
+    )
