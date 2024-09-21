@@ -8,6 +8,7 @@ import logging
 import os
 import shutil
 import tempfile
+from typing import List
 import warnings
 
 from diskcache import Cache
@@ -20,6 +21,7 @@ from cartiflette.config import FS, RETRYING
 from cartiflette.utils import (
     create_path_bucket,
     ConfigDict,
+    DICT_CORRESP_ADMINEXPRESS,
 )
 
 logger = logging.getLogger(__name__)
@@ -107,8 +109,47 @@ class S3Dataset:
         return self
 
     def _get_columns(self, **kwargs):
+        "return the current dataset's columns"
         df = self.to_frame(**kwargs, nrows=5)
         return df.columns.tolist()
+
+    @staticmethod
+    def find_column_name(column: str, columns: List[str]) -> str:
+        """
+        Retrieve a column's full name among available columns, using a
+        compiled regex expression from DICT_CORRESP_ADMINEXPRESS.
+
+        Parameters
+        ----------
+        column : str
+            The searched column
+        columns : List[str]
+            The list of columns to search into.
+
+        Raises
+        ------
+        ValueError
+            If the searched column corresponds to more than one result.
+        IndexError
+            If the searched column is not found.
+
+
+        Returns
+        -------
+        str
+            The column's full name.
+
+        """
+        compiled = DICT_CORRESP_ADMINEXPRESS[column]
+        founds = [col for col in columns if compiled.match(col)]
+        if len(founds) > 1:
+            raise ValueError(f"{column=} matched multiple columns : {founds=}")
+        try:
+            return founds[0]
+        except IndexError as exc:
+            raise IndexError(
+                f"{column=}/{compiled=} not found among {columns=}"
+            ) from exc
 
     def to_frame(self, **kwargs) -> pd.DataFrame:
         return pd.read_csv(
