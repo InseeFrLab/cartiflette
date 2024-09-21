@@ -94,6 +94,8 @@ def main(
                 path_within_bucket=path_within_bucket,
                 year=year,
             )
+            if metadata is None:
+                continue
 
             for key in ["COMMUNE", "CANTON", "IRIS"]:
                 try:
