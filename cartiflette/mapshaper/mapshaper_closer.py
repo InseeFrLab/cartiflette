@@ -26,7 +26,7 @@ logical_conditions = {
     "UNITE_URBAINE": 1.5,
     "ZONE_EMPLOI": 1.5,
     "AIRE_ATTRACTION_VILLES": 1.2,
-    "DEPARTEMENT": 4,
+    "DEPARTEMENT": 3,
 }
 
 shift = {
