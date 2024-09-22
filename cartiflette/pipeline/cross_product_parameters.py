@@ -103,7 +103,7 @@ def crossproduct_parameters_production(
     year : int
         Desired vintage. For ex. 2023
     crs_list : list
-        A list of desired CRS (Coordinate Reference Systems).
+        A list of desired epsg (Coordinate Reference Systems).
         For ex. [4326, 2154]
     simplifications : list, optional
         A list of simplification for cross-product generation. The default is
@@ -135,9 +135,9 @@ def crossproduct_parameters_production(
         {
             'territory': territorial split ('REGION', 'FRANCE_ENTIERE', ...): [
                 {
-                    'crs':
+                    'epsg':
                         desired EPSG projection ('4326', ...)
-                    'format':
+                    'format_output':
                         desired format ('topojson', ...)
                 }, ...
             ]
@@ -162,13 +162,13 @@ def crossproduct_parameters_production(
                 'dissolve_by': 'CANTON',
                 'config': {
                     'FRANCE_ENTIERE': [{
-                            'format': 'gpkg',
-                            'crs': 4326
+                            'format_output': 'gpkg',
+                            'epsg': 4326
                         }, ...
                     ],
                     'FRANCE_ENTIERE_DROM_RAPPROCHES': [{
-                            'format': 'gpkg',
-                            'crs': 4326
+                            'format_output': 'gpkg',
+                            'epsg': 4326
                         }, ...
                     ], ...
                 }
@@ -232,8 +232,10 @@ def crossproduct_parameters_production(
         )
     )
     combinations = (
-        combinations.join(pd.Series(list_format, name="format"), how="cross")
-        .join(pd.Series(crs_list, name="crs"), how="cross")
+        combinations.join(
+            pd.Series(list_format, name="format_output"), how="cross"
+        )
+        .join(pd.Series(crs_list, name="epsg"), how="cross")
         .join(pd.Series(simplifications, name="simplification"), how="cross")
     )
 
@@ -347,8 +349,8 @@ def crossproduct_parameters_production(
     dups = [
         "dissolve_by",
         "territory",
-        "format",
-        "crs",
+        "format_output",
+        "epsg",
         "simplification",
         "mesh_init",
     ]
