@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 logical_conditions = {
     "EMPRISES": {
         # left, bottom, right, top (epsg=3857)
-        "ile de france": "IDF=1",
+        "ile de france": "IDF==1",
         "metropole": "bbox=-572324.2901945524,5061666.243842439,1064224.7522608414,6638201.7541528195",
         "guadeloupe": "bbox=-6880639.760944527,1785277.734007631,-6790707.017202182,1864381.5053494961",
         "martinique": "bbox=-6815985.711078632,1618842.9696702233,-6769303.6899859235,1675227.3853840816",
