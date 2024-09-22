@@ -10,6 +10,7 @@ Create all geodatasets served by cartiflette
 import argparse
 import json
 import logging
+import os
 
 from s3fs import S3FileSystem
 
@@ -39,7 +40,7 @@ parser.add_argument(
 parser.add_argument(
     "-lp",
     "--level_polygons_init",
-    default="COMMUNE",
+    default="ARRONDISSEMENT_MUNICIPAL",
     help="Initial level of geometries (=mesh)",
 )
 parser.add_argument(
@@ -51,7 +52,7 @@ parser.add_argument(
 parser.add_argument(
     "-si",
     "--simplification",
-    default="0",
+    default="40",
     help="Desired simplification level",
 )
 parser.add_argument(
@@ -63,7 +64,7 @@ parser.add_argument(
 parser.add_argument(
     "-c",
     "--config_generation",
-    default='{"FRANCE_ENTIERE": [{"format": "gpkg", "crs": "4326"}]}',
+    default='{"FRANCE_ENTIERE": [{"format_output": "gpkg", "epsg": "4326"}]}',
     help="Desired split level",
 )
 
@@ -99,6 +100,10 @@ def main(
         f"{year}/{init_geometry_level}/{source}/{simplification}/{dissolve_by}"
         "/result.json"
     )
+    try:
+        os.makedirs(os.path.dirname(out_path))
+    except FileExistsError:
+        pass
     with open(out_path, "w") as out:
         json.dump(result, out)
 
