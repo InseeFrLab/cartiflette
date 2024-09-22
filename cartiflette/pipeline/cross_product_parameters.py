@@ -93,7 +93,8 @@ def crossproduct_parameters_production(
     geodatasets. Only the best available process to generate a given dataset
     are kep (for instance among available IRIS and COMMUNE candidates).
 
-    Note that the length of the return represents the number of downstream pods.
+    Note that the length of the return represents the number of downstream
+    pods.
 
     Parameters:
     -----------
@@ -132,10 +133,10 @@ def crossproduct_parameters_production(
         correspond to a specific geodataset to be generated.
 
         {
-            crs (projection, for inst. 4326) : [
+            'territory': territorial split ('REGION', 'FRANCE_ENTIERE', ...): [
                 {
-                    'territory':
-                        territorial split ('REGION', 'FRANCE_ENTIERE', ...)
+                    'crs':
+                        desired EPSG projection ('4326', ...)
                     'format':
                         desired format ('topojson', ...)
                 }, ...
@@ -160,22 +161,16 @@ def crossproduct_parameters_production(
                 'simplification': 0,
                 'dissolve_by': 'CANTON',
                 'config': {
-                    2154: [{
-                            'territory': 'TERRITOIRE',
-                            'format': 'gpkg'
-                        },
-                        ...,
-                        {
-                            'territory': 'DEPARTEMENT',
-                            'format': 'geojson'
-                        }
+                    'FRANCE_ENTIERE': [{
+                            'format': 'gpkg',
+                            'crs': 4326
+                        }, ...
                     ],
-                    4326: [{
-                            'territory': 'TERRITOIRE',
-                            'format': 'gpkg'
-                        },
-                        ...,
-                    ]
+                    'FRANCE_ENTIERE_DROM_RAPPROCHES': [{
+                            'format': 'gpkg',
+                            'crs': 4326
+                        }, ...
+                    ], ...
                 }
             }, {
                 'mesh_init': 'CANTON',
@@ -190,7 +185,7 @@ def crossproduct_parameters_production(
     # prepare a list of (potential) sources from cartiflette's config
     # (the result will depend of the resolution in the config)
     sources = {
-        "COMMUNE": PIPELINE_DOWNLOAD_ARGS["ADMIN-EXPRESS"],
+        "ARRONDISSEMENT_MUNICIPAL": PIPELINE_DOWNLOAD_ARGS["ADMIN-EXPRESS"],
         "IRIS": PIPELINE_DOWNLOAD_ARGS["IRIS"],
         "CANTON": PIPELINE_DOWNLOAD_ARGS["ADMIN-EXPRESS"],
     }
@@ -379,7 +374,7 @@ def crossproduct_parameters_production(
         combinations,
         [
             ["mesh_init", "geodata_source", "simplification", "dissolve_by"],
-            "crs",
+            "territory",
         ],
     )
     logger.info(f"{len(combinations)} pods will be created")
