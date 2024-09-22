@@ -57,6 +57,7 @@ def mapshaper_split(
         f"mapshaper {input_file} name='{layer_name}' -proj EPSG:{crs} "
         f"{option_simplify} "
         f"-split {split_variable} "
+        "-drop IDF "  # remove IDF used for tagging IdF entities on every level
         f"-o {temp_output_dir}/ "
         f'format={output_format} extension=".{output_format}" singles'
     )
