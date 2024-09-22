@@ -382,24 +382,24 @@ def prepare_cog_metadata(
         "ARR": "INSEE_ARR",
         "CODGEO": "INSEE_COM",
         "CAN": "INSEE_CAN",
+        "CODE_ARM": "INSEE_ARM",
     }
-    return {
-        "IRIS": (
-            iris_metadata.rename(rename, axis=1)
-            if iris_metadata is not None
-            else None
-        ),
-        "COMMUNE": (
-            cities_metadata.rename(rename, axis=1)
-            if cities_metadata is not None
-            else None
-        ),
-        "CANTON": (
-            cantons_metadata.rename(rename, axis=1)
-            if cantons_metadata is not None
-            else None
-        ),
-    }
+
+    return_dict = {}
+    ile_de_france = pd.DataFrame([{"REG": "11", "IDF": 1}])
+    for label, df in [
+        ("IRIS", iris_metadata),
+        ("ARRONDISSEMENT_MUNICIPAL", cities_metadata),
+        ("CANTON", cantons_metadata),
+    ]:
+        if df is not None:
+            df = df.merge(ile_de_france, on="REG", how="left")
+            df["IDF"] = df["IDF"].fillna(0).astype(int)
+            df = df.rename(rename, axis=1)
+        return_dict[label] = df
+    return_dict
+
+    return return_dict
 
 
 # if __name__ == "__main__":
