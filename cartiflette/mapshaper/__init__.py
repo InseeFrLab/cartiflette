@@ -3,7 +3,7 @@ Handling spatial data with mapshaper behind the stage
 """
 
 from .mapshaper_split import mapshaper_split
-from .mapshaper_convert_mercator import mapshaper_convert_mercator
+from .mapshaper_convert_reproject import mapshaper_convert_reproject
 from .mapshaper_closer import mapshaper_bring_closer
 from .mapshaper_enrich import mapshaper_enrich
 from .mapshaper_dissolve import mapshaper_dissolve
@@ -22,7 +22,7 @@ from .mapshaper_add_field import mapshaper_add_field
 
 
 __all__ = [
-    "mapshaper_convert_mercator",
+    "mapshaper_convert_reproject",
     "mapshaper_bring_closer",
     "mapshaper_enrich",
     "mapshaper_split",

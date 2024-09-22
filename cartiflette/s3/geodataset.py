@@ -23,7 +23,7 @@ from s3fs import S3FileSystem
 
 from .dataset import S3Dataset
 from cartiflette.mapshaper import (
-    mapshaper_convert_mercator,
+    mapshaper_convert_reproject,
     mapshaper_enrich,
     mapshaper_bring_closer,
     mapshaper_split,
@@ -159,12 +159,13 @@ class S3GeoDataset(S3Dataset):
         os.unlink(f"{self.local_dir}/{self.main_filename}")
         self.main_filename = os.path.basename(new_file)
 
-    def to_mercator(self, format_output: str = "geojson"):
-        "project to mercator using mapshaper"
+    def reproject(self, epsg: int = 4326, format_output: str = "geojson"):
+        "project to a given EPSG using mapshaper"
         input_file = f"{self.local_dir}/{self.main_filename}"
 
-        new_file = mapshaper_convert_mercator(
+        new_file = mapshaper_convert_reproject(
             input_file=input_file,
+            epsg=epsg,
             output_dir=self.local_dir,
             output_name=self.main_filename.rsplit(".", maxsplit=1)[0],
             output_format=format_output,
@@ -706,7 +707,7 @@ class S3GeoDataset(S3Dataset):
 
         # note : communal_districts has it's self local_dir which should be
         # in f"{self.local_dir}/{communal_districts.config['territory']}" !
-        communal_districts.to_mercator(format_output=format_output)
+        communal_districts.reproject(format_output=format_output, epsg=4326)
         communal_districts_file = (
             f"{communal_districts.local_dir}/"
             f"{communal_districts.main_filename}"
@@ -847,14 +848,14 @@ def concat_s3geodataset(
 
         if os.path.exists(os.path.join(dset.local_dir, dset.main_filename)):
             # already downloaded, but not sure of the current projection
-            dset.to_mercator(format_output=vectorfile_format)
+            dset.reproject(format_output=vectorfile_format, epsg=4326)
 
             shutil.copy(
                 os.path.join(dset.local_dir, dset.main_filename), destination
             )
         else:
             with dset:
-                dset.to_mercator(format_output=vectorfile_format)
+                dset.reproject(format_output=vectorfile_format, epsg=4326)
                 shutil.copy(
                     os.path.join(dset.local_dir, dset.main_filename),
                     destination,

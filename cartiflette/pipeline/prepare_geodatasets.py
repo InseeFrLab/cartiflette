@@ -131,7 +131,7 @@ def create_one_year_geodataset_batch(
     """
     Merge cities datasets into a single file (full France territory).
 
-    All files are retrieved from S3, projected to mercator coordinates, then
+    All files are retrieved from S3, projected to 4326 coordinates, then
     merged using mapshaper. Every computation is done on the disk, inside
     a temporary dir.
 

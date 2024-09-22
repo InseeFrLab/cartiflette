@@ -3,15 +3,16 @@ import os
 from .utils import run
 
 
-def mapshaper_convert_mercator(
+def mapshaper_convert_reproject(
     input_file: str,
+    epsg: int = 4326,
     output_dir: str = "temp",
     output_name: str = "output",
     output_format: str = "geojson",
     filter_by: str = "",
 ) -> str:
     """
-    Project a file to mercator.
+    Project a file to a given EPSG (into a given format).
     If identifier is given, will filter the file based on the following
     criteria: AREA='{identifier}'
 
@@ -19,7 +20,9 @@ def mapshaper_convert_mercator(
     ----------
     input_file : str
         Path to the input file.
-    output_dir : str
+    epsg : int, optional
+        EPSG code to project into. The default is 4326.
+    output_dir : str, optional
         Directory to store the output file. The default is "temp"
     output_name : str, optional
         The path to write the file to (without extension).
@@ -49,7 +52,7 @@ def mapshaper_convert_mercator(
 
     cmd = (
         f"mapshaper {input_file} name='{output_name}' "
-        "-proj EPSG:4326 "
+        fz"-proj EPSG:{epsg} "
         f"{filter_by}"
         f"-o {output} force "
         f'format={output_format} extension=".{output_format}" singles'
