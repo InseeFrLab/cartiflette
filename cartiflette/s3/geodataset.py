@@ -724,7 +724,7 @@ class S3GeoDataset(S3Dataset):
             input_city_file=city_file,
             input_communal_districts_file=communal_districts_file,
             output_dir=self.local_dir,
-            output_name="COMMUNE_ARRONDISSEMENT",
+            output_name="ARRONDISSEMENT_MUNICIPAL",
             output_format=format_output,
         )
 
@@ -737,7 +737,7 @@ class S3GeoDataset(S3Dataset):
         os.unlink(os.path.join(self.local_dir, self.main_filename))
 
         new_config = deepcopy(self.config)
-        new_config.update({"borders": "COMMUNE_ARRONDISSEMENT"})
+        new_config.update({"borders": "ARRONDISSEMENT_MUNICIPAL"})
         new_dataset = from_file(file_path=composite, **new_config)
 
         return new_dataset

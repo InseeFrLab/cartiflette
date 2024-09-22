@@ -64,7 +64,7 @@ class TestDownloadFromCartiflette(unittest.TestCase):
         ile_de_france_commune_arrondissement = carti_download(
             values=["75"],
             crs=4326,
-            borders="COMMUNE_ARRONDISSEMENT",
+            borders="ARRONDISSEMENT_MUNICIPAL",
             vectorfile_format="topojson",
             filter_by="DEPARTEMENT",
             source="EXPRESS-COG-CARTO-TERRITOIRE",
@@ -83,9 +83,7 @@ class TestDownloadFromCartiflette(unittest.TestCase):
         ].unique()
         self.assertCountEqual(unique_insee_com, ["75056"])
 
-        unique_statut = ile_de_france_commune_arrondissement[
-            "STATUT"
-        ].unique()
+        unique_statut = ile_de_france_commune_arrondissement["STATUT"].unique()
         self.assertCountEqual(unique_statut, ["Arrondissement municipal"])
 
         unique_insee_cog = ile_de_france_commune_arrondissement[

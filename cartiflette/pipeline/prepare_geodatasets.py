@@ -61,8 +61,8 @@ def make_one_geodataset(
     simplification : int
         Level of desired simplification.
     communal_districts : S3GeoDataset, optional
-        Geodataset for communal districts, already downloaded. Only needed if
-        `mesh == 'COMMUNE'`. The default is None.
+        Geodataset for communal districts (only : no cities are in), already
+        downloaded. Only needed if `mesh == 'COMMUNE'`. The default is None.
 
     Returns
     -------
@@ -316,7 +316,7 @@ def create_one_year_geodataset_batch(
         # download communal_districts and enter context for commune/canton/iris
 
         args = (
-            list(product([commune], [True, False], simplifications_values))
+            list(product([commune], [True], simplifications_values))
             + list((product([canton], [False], simplifications_values)))
             + list((product([iris], [False], simplifications_values)))
         )
@@ -364,6 +364,6 @@ def create_one_year_geodataset_batch(
     return {year: success}
 
 
-# if __name__ == "__main__":
-#     logging.basicConfig(level=logging.INFO)
-#     created = create_one_year_geodataset_batch(2024)
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    created = create_one_year_geodataset_batch(2023)

@@ -42,13 +42,18 @@ def mapshaper_combine_districts_and_cities(
     # fix_geo = "fix-geometry" if output_format == "topojson" else ""
     output = f"{output_dir}/{output_name}.{output_format}"
 
+    rename = "INSEE_ARM=INSEE_COG,NOM_ARM=NOM"
+    drop = "STATUT,INSEE_ARR,INSEE_CAN,INSEE_DEP,INSEE_REG,SIREN_EPCI"
+
     cmd = (
         f"mapshaper {input_city_file} {input_communal_districts_file} "
         "snap combine-files "
         "-proj EPSG:4326 "
         "-rename-layers COMMUNE,ARRONDISSEMENT_MUNICIPAL "
         "-merge-layers target=COMMUNE,ARRONDISSEMENT_MUNICIPAL force "
-        "-rename-layers COMMUNE_ARRONDISSEMENT "
+        "-rename-layers ARRONDISSEMENT_MUNICIPAL "
+        f"-rename-fields {rename} "
+        f"-drop fields={drop} "
         f"-o {output} "
         # f"{fix_geo} "
         f"format={output_format} "
