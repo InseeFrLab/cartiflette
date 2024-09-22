@@ -102,30 +102,53 @@ class S3GeoDataset(S3Dataset):
 
         return new
 
-    def to_gpkg(self):
+    def to_format(self, format_output: str, epsg: int):
+        if format_output == INTERMEDIATE_FORMAT and epsg == 4326:
+            return self
+
+        if format_output in {
+            "shapefile",
+            "geojson",
+            "topojson",
+            "json",
+            "dbf",
+            "csv",
+            "tsv",
+            "svg",
+        }:
+            self.reproject(epsg=epsg, format_output=format_output)
+        else:
+            getattr(self, f"to_{format_output}")(epsg)
+        return self
+
+    def to_gpkg(self, epsg: int):
         """
         Replace the current main_file by a geopackage format (not handled by
         mapshaper, needs geopandas)
         """
         path = os.path.join(self.local_dir, self.main_filename)
         path = path.rsplit(".", maxsplit=1)[0] + ".gpkg"
-        self.to_frame().to_file(path, driver="GPKG")
+        gdf = self.to_frame()
+        if epsg != 4326:
+            gdf = gdf.to_crs(epsg)
+        gdf.to_file(path, driver="GPKG")
         self._substitute_main_file(path)
         self.config["vectorfile_format"] = "gpkg"
+        self.config["crs"] = epsg
         self.update_s3_path_evaluation()
 
-    def to_shapefile(self):
-        """
-        TODO Quick and dirty hack, to be removed to handle native mapshaper
-        output
-        Replace the current main_file by a shapefile format (using geopandas)
-        """
-        path = os.path.join(self.local_dir, self.main_filename)
-        path = path.rsplit(".", maxsplit=1)[0] + ".shp"
-        self.to_frame().to_file(path)
-        self._substitute_main_file(path)
-        self.config["vectorfile_format"] = "shp"
-        self.update_s3_path_evaluation()
+    # def to_shapefile(self):
+    #     """
+    #     TODO Quick and dirty hack, to be removed to handle native mapshaper
+    #     output
+    #     Replace the current main_file by a shapefile format (using geopandas)
+    #     """
+    #     path = os.path.join(self.local_dir, self.main_filename)
+    #     path = path.rsplit(".", maxsplit=1)[0] + ".shp"
+    #     self.to_frame().to_file(path)
+    #     self._substitute_main_file(path)
+    #     self.config["vectorfile_format"] = "shp"
+    #     self.update_s3_path_evaluation()
 
     def to_frame(self, **kwargs) -> gpd.GeoDataFrame:
         "Read the geodataset from local file"
@@ -172,6 +195,10 @@ class S3GeoDataset(S3Dataset):
             filter_by=self.config["territory"],
         )
         self._substitute_main_file(new_file)
+        self.config["crs"] = epsg
+        self.config["vectorfile_format"] = format_output
+        self.update_s3_path_evaluation()
+        return new_file
 
     def add_field(
         self, label: str, value: str, format_output: str = "geojson"
@@ -416,14 +443,14 @@ class S3GeoDataset(S3Dataset):
     def create_downstream_geodatasets(
         self,
         metadata: S3Dataset,
-        format_output="geojson",
-        init_geometry_level="COMMUNE",
+        init_geometry_level="IRIS",
         dissolve_by="COMMUNE",
         niveau_agreg="DEPARTEMENT",
-        crs=4326,
         simplification=0,
+        output_crs_conf: list = None,
     ) -> List[Self]:
         """
+        TODO : update docstring (arguments also)
         Create "children" geodatasets based on arguments and send them to S3.
 
         Do the following processes:
@@ -449,9 +476,8 @@ class S3GeoDataset(S3Dataset):
         format_output : str, optional
             The output format, by default "geojson".
         init_geometry_level : str, optional
-            The level of basic mesh for the geometries. The default is COMMUNE.
-            Should be among ['COMMUNE', 'IRIS', 'CANTON',
-            'ARRONDISSEMENT_MUNICIPAL']
+            The level of basic mesh for the geometries. The default is IRIS.
+            Should be among ['IRIS', 'CANTON', 'ARRONDISSEMENT_MUNICIPAL']
         dissolve_by : str, optional
             The level of basic mesh for the geometries. The default is COMMUNE.
             Should be among [
@@ -493,8 +519,8 @@ class S3GeoDataset(S3Dataset):
         if init_geometry_level == "IRIS":
             keys = ["CODE_IRIS", "CODE_IRIS"]
             drop = ["ID", "NOM_COM"]
-        elif init_geometry_level == "COMMUNE":
-            keys = ["INSEE_COM", "INSEE_COM"]
+        elif init_geometry_level == "ARRONDISSEMENT_MUNICIPAL":
+            keys = ["INSEE_ARM", "INSEE_ARM"]
             drop = [
                 "POPULATION",
                 "ID",
@@ -542,21 +568,6 @@ class S3GeoDataset(S3Dataset):
             if re.match(x, col)
         }
 
-        # if not rename:
-        #     logger.info("geodata columns are %s", self._get_columns())
-        #     logger.info("metada columns are %s", metadata._get_columns())
-        #     logger.info("columns to be dropped are %s", drop)
-        #     raise NotImplementedError("rename not defined here")
-
-        to_gpkg = False
-        to_shp = False
-        if format_output == "gpkg":
-            to_gpkg = True
-            format_output = "geojson"
-        elif format_output == "shapefile":
-            to_shp = True
-            format_output = "geojson"
-
         self.enrich(
             metadata_file=metadata,
             keys=keys,
@@ -599,6 +610,8 @@ class S3GeoDataset(S3Dataset):
             ]
             if pops:
                 calc += [f"{x}=sum({x})" for x in pops]
+            if "IDF" in available_columns:
+                calc += ["IDF=max(IDF)"]
 
             self.dissolve(
                 by=[by, aggreg_col],
@@ -621,8 +634,8 @@ class S3GeoDataset(S3Dataset):
         split_by = self.find_column_name(niveau_agreg, columns)
 
         new_datasets = self.split_file(
-            crs=crs,
-            format_output=format_output,
+            crs=4326,
+            format_output=INTERMEDIATE_FORMAT,
             simplification=simplification,
             split_variable=split_by,
             filter_by=niveau_agreg,
@@ -632,6 +645,12 @@ class S3GeoDataset(S3Dataset):
         # fix config for storage on S3
         dataset_family = {"dataset_family": "production"}
         [dset.config.update(dataset_family) for dset in new_datasets]
+
+        new_datasets = [
+            dset.copy().to_format(**config)
+            for dset in new_datasets
+            for config in output_crs_conf
+        ]
         [dset.update_s3_path_evaluation() for dset in new_datasets]
 
         # Upload new datasets to S3
@@ -639,22 +658,6 @@ class S3GeoDataset(S3Dataset):
             # enter context for each new dataset instead of looping to allow
             # for multithreading (cleaned locally at exitstack anyway)
             [stack.enter_context(dset) for dset in new_datasets]
-
-            if to_gpkg or to_shp:
-                if to_gpkg:
-                    method = "to_gpkg"
-                elif to_shp:
-                    method = "to_shapefile"
-                if THREADS_DOWNLOAD > 1:
-                    threads = min(THREADS_DOWNLOAD, len(new_datasets))
-                    with ThreadPool(threads) as pool:
-
-                        def convert(dset):
-                            return getattr(dset, method)()
-
-                        list(pool.map(convert, new_datasets).result())
-                else:
-                    [getattr(dset, method)() for dset in new_datasets]
 
             if THREADS_DOWNLOAD > 1:
                 threads = min(THREADS_DOWNLOAD, len(new_datasets))
