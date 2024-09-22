@@ -315,6 +315,12 @@ def prepare_cog_metadata(
         cities.loc[ix, "LIBELLE_ARRONDISSEMENT_MUNICIPAL"] = cities.loc[
             ix, "LIBELLE_COMMUNE"
         ]
+        # Set unique ARR code (as "NumDEP" + "NumARR") to ensure dissolution
+        # is ok
+        ix = cities[(cities.ARR.notnull())].index
+        cities.loc[ix, "INSEE_ARR"] = (
+            cities.loc[ix, "DEP"] + cities.loc[ix, "ARR"]
+        )
 
         if siren is not None:
             cities = cities.merge(
@@ -379,9 +385,9 @@ def prepare_cog_metadata(
     rename = {
         "DEP": "INSEE_DEP",
         "REG": "INSEE_REG",
-        "ARR": "INSEE_ARR",
+        # "ARR": "INSEE_ARR", <- carefull, there is a INSEE_ARR already there!
         "CODGEO": "INSEE_COM",
-        "CAN": "INSEE_CAN",
+        # "CAN": "INSEE_CAN", <- carefull, there is a INSEE_CAN already there!
         "CODE_ARM": "INSEE_ARM",
     }
 
