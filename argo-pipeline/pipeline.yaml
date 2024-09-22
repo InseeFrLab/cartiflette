@@ -293,7 +293,11 @@ spec:
         - name: simplification
         - name: dissolve_by
         - name: config_generation
-
+      outputs:
+        parameters:
+        - name: result
+          valueFrom:
+            path: "{{ inputs.parameters.year} }/{{ inputs.parameters.init_geometry_level }}/{{ inputs.parameters.source }}/{{ inputs.parameters.simplification }}/{{ inputs.parameters.dissolve_by }}/result.json"
       container:
         image: inseefrlab/cartiflette:latest
         command: ["sh", "-c"]

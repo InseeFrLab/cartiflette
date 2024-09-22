@@ -63,7 +63,7 @@ parser.add_argument(
 parser.add_argument(
     "-c",
     "--config_generation",
-    default='{"2154": [{"territory": "REGION", "format": "topojson"}]}',
+    default='{"FRANCE_ENTIERE": [{"format": "gpkg", "crs": "4326"}]}',
     help="Desired split level",
 )
 
@@ -94,6 +94,13 @@ def main(
         path_within_bucket=path_within_bucket,
         fs=fs,
     )
+
+    out_path = (
+        f"{year}/{init_geometry_level}/{source}/{simplification}/{dissolve_by}"
+        "/result.json"
+    )
+    with open(out_path, "w") as out:
+        json.dump(result, out)
 
     return result
 
