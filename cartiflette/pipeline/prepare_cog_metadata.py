@@ -380,6 +380,21 @@ def prepare_cog_metadata(
         cantons_metadata = cantons_metadata.loc[:, keep].rename(
             {"LIBELLE": "LIBELLE_CANTON"}, axis=1
         )
+
+        # Hack to add PARIS :
+        canton_paris = pd.DataFrame(
+            [
+                {
+                    "INSEE_CAN": "NR",
+                    "CAN": "NR",
+                    "DEP": "75",
+                    "REG": "11",
+                    "LIBELLE_CANTON": "Paris",
+                    "LIBELLE_DEPARTEMENT": "Paris",
+                    "LIBELLE_REGION": "Île-de-France",
+                }
+            ]
+        )
         cantons_metadata["SOURCE_METADATA"] = "Cartiflette d'après INSEE"
 
     rename = {
