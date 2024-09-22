@@ -52,7 +52,7 @@ def mapshaper_convert_reproject(
 
     cmd = (
         f"mapshaper {input_file} name='{output_name}' "
-        fz"-proj EPSG:{epsg} "
+        f"-proj EPSG:{epsg} "
         f"{filter_by}"
         f"-o {output} force "
         f'format={output_format} extension=".{output_format}" singles'
