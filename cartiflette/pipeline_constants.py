@@ -95,12 +95,12 @@ AVAILABLE_DISSOLUTIONS_FROM_RAW_MESH = {
         "DEPARTEMENT",
         "REGION",
         "TERRITOIRE",
-        "FRANCE_ENTIERE",
-        "FRANCE_ENTIERE_DROM_RAPPROCHES",
     ],
     "ARRONDISSEMENT_MUNICIPAL": [
-        "COMMUNE",
         "ARRONDISSEMENT_MUNICIPAL",
+    ],
+    "COMMUNE": [
+        "COMMUNE",
         "EPCI",
         "EPT",
         "UNITE_URBAINE",
@@ -111,14 +111,9 @@ AVAILABLE_DISSOLUTIONS_FROM_RAW_MESH = {
         "DEPARTEMENT",
         "REGION",
         "TERRITOIRE",
-        "FRANCE_ENTIERE",
-        "FRANCE_ENTIERE_DROM_RAPPROCHES",
     ],
     "CANTON": [
         "CANTON",
-        "TERRITOIRE",
-        "FRANCE_ENTIERE",
-        "FRANCE_ENTIERE_DROM_RAPPROCHES",
     ],
 }
 
@@ -249,7 +244,10 @@ all_borders = {
     "EPCI",  # -> might need it ?
 }
 
-differences = all_borders ^ all_dissolutions
+differences = (all_borders ^ all_dissolutions) - {
+    "FRANCE_ENTIERE",
+    "FRANCE_ENTIERE_DROM_RAPPROCHES",
+}
 if differences:
     raise ValueError(
         "keys of AVAILABLE_DISSOLUTIONS_FROM_RAW_MESH must be the same as "
