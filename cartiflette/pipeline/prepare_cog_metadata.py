@@ -421,10 +421,9 @@ def prepare_cog_metadata(
             df["IDF"] = df["IDF"].fillna(0).astype(int)
             df = df.rename(rename, axis=1)
         return_dict[label] = df
-    return_dict
 
     return return_dict
 
 
 # if __name__ == "__main__":
-#     prepare_cog_metadata(2024)
+#     prepare_cog_metadata(2023)
