@@ -535,21 +535,25 @@ Insee:
   POPULATION:
     structure:  https://www.insee.fr/fr/statistiques/fichier/{article}/{filename}
     POPULATION-IRIS-FRANCE-HORS-MAYOTTE:
-      2020:
+      2022:
+        # Nota : pop 2020 with geometries 2021
         article: "7704076"
         pattern: "*.xlsx"
         filename: "base-ic-evol-struct-pop-2020_xlsx.zip"
-      2019:
+      2021:
+      # Nota : pop 2019 with geometries 2020
         article: "6543200"
         pattern: "*.xlsx"
         filename: "base-ic-evol-struct-pop-2019.zip"
         
     POPULATION-IRIS-COM:
-      2020:
+      2022:
+        # Nota : pop 2020 with geometries 2021
         article: "7704076"
         pattern: "*.xlsx"
         filename: "base-ic-evol-struct-pop-2020-com_xlsx.zip"
-      2019:
+      2021:
+        # Nota : pop 2019 with geometries 2020
         article: "6543200"
         pattern: "*.xlsx"
         filename: "base-ic-evol-struct-pop-2019-com.zip"
