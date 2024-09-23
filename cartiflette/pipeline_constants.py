@@ -66,6 +66,12 @@ PIPELINE_DOWNLOAD_ARGS = {
     ],
     "EPCI-FP": ["Insee", "INTERCOMMUNALITES", "EPCI-FP"],
     "EPT": ["Insee", "INTERCOMMUNALITES", "EPT"],
+    "POPULATION": [
+        "Insee",
+        "POPULATION",
+        "POPULATION-IRIS-FRANCE-HORS-MAYOTTE",
+    ],
+    "POPULATION-COM": ["Insee", "POPULATION", "POPULATION-IRIS-COM"],
 }
 
 PIPELINE_CRS = [4326]
