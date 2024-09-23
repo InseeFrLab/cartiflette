@@ -89,7 +89,12 @@ def main(
             if metadata is None:
                 continue
 
-            for key in ["ARRONDISSEMENT_MUNICIPAL", "CANTON", "IRIS"]:
+            for key in [
+                "COMMUNE",
+                "ARRONDISSEMENT_MUNICIPAL",
+                "CANTON",
+                "IRIS",
+            ]:
                 try:
                     metadata_border = metadata[key]
                 except KeyError:
