@@ -21,12 +21,9 @@ logical_conditions = {
         "saint-pierre-et-miquelon": "bbox=-6298822.299318486, 5894013.594517256, -6239181.296921183, 5973004.907786214",
         "saint-barthelemy": "bbox=-7003557.376380256, 2018598.440800959, -6985037.106437805, 2033965.5078367123",
     },
-    "REGION": 1.5,
-    "BASSIN_VIE": 1.5,
-    "UNITE_URBAINE": 1.5,
-    "ZONE_EMPLOI": 1.5,
     "AIRE_ATTRACTION_VILLES": 1.2,
-    "DEPARTEMENT": 2,
+    "DEPARTEMENT": 3,
+    "IRIS": 4,
 }
 
 shift = {
@@ -91,6 +88,15 @@ def mapshaper_bring_closer(
 
     logical_idf = logical_conditions["EMPRISES"]["ile de france"]
     zoom_idf = logical_conditions.get(level_agreg, 1.5)
+    if zoom_idf < 1.5:
+        shift_idf = "-650000,275000"
+    if zoom_idf < 2:
+        shift_idf = "-650000,400000"
+    elif zoom_idf < 3:
+        shift_idf = "-650000,500000"
+    elif zoom_idf > 3:
+        shift_idf = "-650000,700000"
+
     logical_metropole = logical_conditions["EMPRISES"]["metropole"]
 
     try:
@@ -98,7 +104,7 @@ def mapshaper_bring_closer(
             f"mapshaper -i {input_file} "
             f"-proj EPSG:3857 "
             f'-filter "{logical_idf}" '
-            f"-affine shift=-650000,275000 scale={zoom_idf} "
+            f"-affine shift={shift_idf} scale={zoom_idf} "
             f"-o {output_dir}/idf_zoom.{output_format}"
         )
 
