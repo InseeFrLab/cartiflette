@@ -526,6 +526,13 @@ class S3GeoDataset(S3Dataset):
                 "ID",
                 "NOM_M",
             ]
+        elif init_geometry_level == "COMMUNE":
+            keys = ["INSEE_COM", "INSEE_COM"]
+            drop = [
+                "POPULATION",
+                "ID",
+                "NOM_M",
+            ]
         elif init_geometry_level == "CANTON":
             keys = ["INSEE_CAN", "INSEE_CAN"]
             drop = ["ID"]
