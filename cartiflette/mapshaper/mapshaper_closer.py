@@ -94,7 +94,7 @@ def mapshaper_bring_closer(
         shift_idf = "-650000,400000"
     elif zoom_idf < 3:
         shift_idf = "-650000,500000"
-    elif zoom_idf > 3:
+    else:
         shift_idf = "-650000,700000"
 
     logical_metropole = logical_conditions["EMPRISES"]["metropole"]
