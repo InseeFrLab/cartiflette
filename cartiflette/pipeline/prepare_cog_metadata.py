@@ -395,6 +395,9 @@ def prepare_cog_metadata(
                 }
             ]
         )
+        cantons_metadata = pd.concat(
+            [cantons_metadata, canton_paris], ignore_index=True
+        )
         cantons_metadata["SOURCE_METADATA"] = "Cartiflette d'après INSEE"
 
     rename = {
