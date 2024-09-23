@@ -8,9 +8,12 @@ import warnings
 
 from diskcache import Cache
 import pandas as pd
+import numpy as np
+import polars as pl
+from pebble import ThreadPool
 import s3fs
 
-from cartiflette.config import FS, BUCKET, PATH_WITHIN_BUCKET
+from cartiflette.config import FS, BUCKET, PATH_WITHIN_BUCKET, THREADS_DOWNLOAD
 
 
 cache = Cache("cartiflette-s3-cache", timeout=3600)
@@ -40,23 +43,27 @@ def s3_to_df(
     """
 
     try:
-        raise KeyError
         return cache[("metadata", path_in_bucket)]
     except KeyError:
         pass
 
     try:
+
         with fs.open(path_in_bucket, mode="rb") as remote_file:
             remote = io.BytesIO(remote_file.read())
         if path_in_bucket.endswith("csv") or path_in_bucket.endswith("txt"):
-            df = pd.read_csv(remote, **kwargs)
+            df = pl.read_csv(
+                remote, infer_schema_length=0, **kwargs
+            ).to_pandas()
 
         elif path_in_bucket.endswith("xls") or path_in_bucket.endswith("xlsx"):
-            try:
-                df = pd.read_excel(remote, **kwargs)
-            except ValueError:
-                # try with calamine
-                df = pd.read_excel(remote, engine="calamine", **kwargs)
+            kwargs.update({"header_row": kwargs["skip_rows"]})
+            df = pl.read_excel(
+                remote,
+                has_header=True,
+                infer_schema_length=0,
+                read_options=kwargs,
+            ).to_pandas()
 
     except Exception as e:
         warnings.warn(f"could not read {path_in_bucket=}: {e}")
@@ -65,7 +72,7 @@ def s3_to_df(
 
     # Remove 'ZZZZZ'-like values from INSEE datasets
     for col in df.columns:
-        ix = df[df[col].str.fullmatch("Z+", case=False)].index
+        ix = df[df[col].fillna("").str.fullmatch("Z+", case=False)].index
         df.loc[ix, col] = pd.NA
 
     cache[("metadata", path_in_bucket)] = df
@@ -97,6 +104,9 @@ def prepare_cog_metadata(
 
     # TODO : calcul des tables BANATIC, etc.
 
+    # =========================================================================
+    #     Part 1. : retrieve all paths on S3
+    # =========================================================================
     paths_bucket = {}
 
     def retrieve_path(provider, family: str, source: str, ext: str):
@@ -111,7 +121,7 @@ def prepare_cog_metadata(
         except IndexError:
             warnings.warn(f"missing {family} {source} file for {year=}")
 
-    for provider, family, source, ext in [
+    args = [
         ("Insee", "COG", "COMMUNE-OUTRE-MER", "csv"),
         ("Insee", "COG", "CANTON", "csv"),
         ("Insee", "COG", "COMMUNE", "csv"),
@@ -123,8 +133,17 @@ def prepare_cog_metadata(
         ("DGCL", "BANATIC", "CORRESPONDANCE-SIREN-INSEE-COMMUNES", "xlsx"),
         ("Insee", "INTERCOMMUNALITES", "EPCI-FP", "xlsx"),
         ("Insee", "INTERCOMMUNALITES", "EPT", "xlsx"),
-    ]:
-        retrieve_path(provider=provider, family=family, source=source, ext=ext)
+        ("Insee", "POPULATION", "POPULATION-IRIS-COM", "xlsx"),
+        ("Insee", "POPULATION", "POPULATION-IRIS-FRANCE-HORS-MAYOTTE", "xlsx"),
+    ]
+    if THREADS_DOWNLOAD > 1:
+        with ThreadPool(THREADS_DOWNLOAD) as pool:
+            list(pool.map(retrieve_path, *zip(*args)).result())
+    else:
+        for provider, family, source, ext in args:
+            retrieve_path(
+                provider=provider, family=family, source=source, ext=ext
+            )
 
     try:
         [
@@ -135,99 +154,51 @@ def prepare_cog_metadata(
         warnings.warn(f"{year=} metadata not constructed!")
         return
 
-    def set_cols_to_uppercase(df):
-        df.columns = [x.upper() for x in df.columns]
+    # =========================================================================
+    #     Part 2. : download and read all datasets from S3
+    # =========================================================================
 
-    kwargs = {"dtype_backend": "pyarrow", "dtype": "string[pyarrow]"}
-    cog_com = s3_to_df(fs, paths_bucket[("COG", "COMMUNE")], **kwargs)
+    def download(key, skip_rows):
+        try:
+            path = paths_bucket[key]
+            return key, s3_to_df(fs, path, skip_rows=skip_rows)
+        except KeyError:
+            # not there
+            return key, pd.DataFrame()
 
-    cog_arm = cog_com.query("TYPECOM=='ARM'")
-    cog_arm = cog_arm.loc[:, ["TYPECOM", "COM", "LIBELLE", "COMPARENT"]]
-
-    cog_ar = s3_to_df(fs, paths_bucket[("COG", "ARRONDISSEMENT")], **kwargs)
-    cog_dep = s3_to_df(fs, paths_bucket[("COG", "DEPARTEMENT")], **kwargs)
-    cog_reg = s3_to_df(fs, paths_bucket[("COG", "REGION")], **kwargs)
-
-    try:
-        cog_tom = s3_to_df(
-            fs, paths_bucket[("COG", "COMMUNE-OUTRE-MER")], **kwargs
-        )
-        keep = ["COM_COMER", "LIBELLE", "COMER", "LIBELLE_COMER"]
-        cog_tom = cog_tom.query("NATURE_ZONAGE=='COM'").loc[:, keep]
-
-        cog_tom = cog_tom.rename(
-            {
-                "COMER": "DEP",
-                "LIBELLE_COMER": "LIBELLE_DEPARTEMENT",
-                "COM_COMER": "CODGEO",
-                "LIBELLE": "LIBELLE_COMMUNE",
-            },
-            axis=1,
-        )
-
-    except Exception:
-        cog_tom = None
-
-    try:
-        siren = s3_to_df(
-            fs,
-            paths_bucket[("BANATIC", "CORRESPONDANCE-SIREN-INSEE-COMMUNES")],
-            **kwargs,
-        )
-        pop_communes = {
-            "PTOT_[0-9]{4}": "POPULATION_TOTALE",
-            "PMUN_[0-9]{4}": "POPULATION_MUNICIPALE",
-            "PCAP_[0-9]{4}": "POPULATION_COMPTEE_A_PART",
-        }
-        rename = {
-            col: new
-            for pattern, new in pop_communes.items()
-            for col in siren.columns
-            if re.match(pattern, col)
-        }
-        rename.update({"SIREN": "SIREN_COMMUNE"})
-        siren = siren.drop(["REG_COM", "DEP_COM", "NOM_COM"], axis=1).rename(
-            rename, axis=1
-        )
-    except Exception:
-        siren = None
-
-    try:
-        epci_fp = s3_to_df(
-            fs,
-            paths_bucket[("INTERCOMMUNALITES", "EPCI-FP")],
-            skiprows=5,
-            **kwargs,
-        )
-        epci_fp = epci_fp.dropna()
-        epci_fp = epci_fp.loc[:, ["EPCI", "LIBEPCI"]].rename(
-            {"LIBEPCI": "LIBELLE_EPCI"}, axis=1
-        )
-    except Exception:
-        epci_fp = None
-
-    try:
-        ept = s3_to_df(
-            fs,
-            paths_bucket[("INTERCOMMUNALITES", "EPT")],
-            skiprows=5,
-            **kwargs,
-        )
-        ept = ept.dropna()
-        ept = ept.loc[:, ["EPT", "LIBEPT"]].rename(
-            {"LIBEPT": "LIBELLE_EPT"}, axis=1
-        )
-    except Exception:
-        ept = None
+    args = [
+        (("COG", "COMMUNE"), 0),
+        (("COG", "ARRONDISSEMENT"), 0),
+        (("COG", "DEPARTEMENT"), 0),
+        (("COG", "REGION"), 0),
+        (("COG", "COMMUNE-OUTRE-MER"), 0),
+        (("BANATIC", "CORRESPONDANCE-SIREN-INSEE-COMMUNES"), 0),
+        (("POPULATION", "POPULATION-IRIS-FRANCE-HORS-MAYOTTE"), 5),
+        (("POPULATION", "POPULATION-IRIS-COM"), 5),
+        (("INTERCOMMUNALITES", "EPCI-FP"), 5),
+        (("INTERCOMMUNALITES", "EPT"), 5),
+        (("TAGIRIS", "APPARTENANCE"), 5),
+        (("TAGC", "APPARTENANCE"), 5),
+        (("COG", "CANTON"), 0),
+    ]
+    if THREADS_DOWNLOAD > 1:
+        with ThreadPool(THREADS_DOWNLOAD) as pool:
+            ddf = dict(pool.map(download, *zip(*args)).result())
+    else:
+        ddf = {key: download(key, skip)[-1] for key, skip in args}
 
     # Merge ARR, DEPARTEMENT and REGION COG metadata
     cog_metadata = (
-        # Note : Mayotte (976) not in ARR -> take DEP & REG from cog_dep & cog_reg
-        cog_ar.loc[:, ["ARR", "DEP", "LIBELLE"]]
+        # Note : Mayotte (976) not in ARR
+        # -> take DEP & REG from cog dep & cog reg
+        ddf[("COG", "ARRONDISSEMENT")]
+        .loc[:, ["ARR", "DEP", "LIBELLE"]]
         .rename({"LIBELLE": "LIBELLE_ARRONDISSEMENT"}, axis=1)
         .merge(
-            cog_dep.loc[:, ["DEP", "REG", "LIBELLE"]].merge(
-                cog_reg.loc[:, ["REG", "LIBELLE"]],
+            ddf[("COG", "DEPARTEMENT")]
+            .loc[:, ["DEP", "REG", "LIBELLE"]]
+            .merge(
+                ddf[("COG", "REGION")].loc[:, ["REG", "LIBELLE"]],
                 on="REG",
                 suffixes=["_DEPARTEMENT", "_REGION"],
             ),
@@ -235,70 +206,75 @@ def prepare_cog_metadata(
             how="outer",  # Nota : Mayotte not in ARR file
         )
     )
+    # Ex. cog_metadata :
+    #    ARR DEP LIBELLE_ARRONDISSEMENT REG LIBELLE_DEPARTEMENT  \
+    # 0  011  01                 Belley  84                 Ain
+    # 1  012  01        Bourg-en-Bresse  84                 Ain
 
-    # Compute metadata at IRIS level
-    try:
-        path = paths_bucket[("TAGIRIS", "APPARTENANCE")]
-        iris = s3_to_df(fs, path, skiprows=5, **kwargs)
-    except Exception:
-        warnings.warn(f"{year=} metadata for iris not constructed!")
-        iris = None
-    else:
-        iris = iris.drop(columns=["LIBCOM", "UU2020", "REG", "DEP"])
-        rename = {"DEPCOM": "CODE_ARM", "LIB_IRIS": "LIBELLE_IRIS"}
-        iris = iris.rename(rename, axis=1)
+    #          LIBELLE_REGION
+    # 0  Auvergne-Rhône-Alpes
+    # 1  Auvergne-Rhône-Alpes
 
     # Compute metadata at COMMUNE level
-    try:
-        path = paths_bucket[("TAGC", "APPARTENANCE")]
-        tagc = s3_to_df(fs, path, skiprows=5, **kwargs)
-    except Exception:
+    tagc = ddf[("TAGC", "APPARTENANCE")]
+    if tagc.empty:
         warnings.warn(f"{year=} metadata for cities not constructed!")
-        cities = None
+        cities = pd.DataFrame()
+        arm = pd.DataFrame()
     else:
         drop = {"CANOV", "CV"} & set(tagc.columns)
         tagc = tagc.drop(list(drop), axis=1)
 
-        # Add labels for EPCI-FP and EPT
-        if epci_fp is not None:
+        # Add labels for EPCI-FP
+        epci_fp = ddf[("INTERCOMMUNALITES", "EPCI-FP")]
+        if not epci_fp.empty:
+            epci_fp = epci_fp.dropna()
+            epci_fp = epci_fp.loc[:, ["EPCI", "LIBEPCI"]].rename(
+                {"LIBEPCI": "LIBELLE_EPCI"}, axis=1
+            )
             try:
                 tagc = tagc.merge(epci_fp, on="EPCI", how="left")
             except KeyError:
+                # EPCI column missing from TAGC
                 pass
 
-        if ept is not None:
+        # Add labels for EPT
+        ept = ddf[("INTERCOMMUNALITES", "EPT")]
+        if not ept.empty:
+            ept = ept.dropna()
+            ept = ept.loc[:, ["EPT", "LIBEPT"]].rename(
+                {"LIBEPT": "LIBELLE_EPT"}, axis=1
+            )
             try:
                 tagc = tagc.merge(ept, on="EPT", how="left")
             except KeyError:
+                # EPT column missing from TAGC
                 pass
 
         cities = tagc.merge(
             cog_metadata, on=["ARR", "DEP", "REG"], how="inner"
         )
-
-        # Hack while Mayotte is missing from COG ARRONDISSEMENT
-        mayotte = (
-            tagc.merge(
-                cities[["CODGEO", "LIBELLE_DEPARTEMENT"]],
-                on="CODGEO",
-                how="outer",
-            )
-            .query("LIBELLE_DEPARTEMENT.isnull()")
-            .drop("LIBELLE_DEPARTEMENT", axis=1)
-            .merge(
-                cog_metadata.drop("ARR", axis=1),
-                on=["DEP", "REG"],
-                how="inner",
-            )
-        )
-
-        cities = pd.concat([cities, mayotte], ignore_index=True)
         cities = cities.rename({"LIBGEO": "LIBELLE_COMMUNE"}, axis=1)
 
-        if cog_tom is not None:
+        cog_tom = ddf[("COG", "COMMUNE-OUTRE-MER")]
+        if not cog_tom.empty:
+            keep = ["COM_COMER", "LIBELLE", "COMER", "LIBELLE_COMER"]
+            cog_tom = cog_tom.query("NATURE_ZONAGE=='COM'").loc[:, keep]
+            cog_tom = cog_tom.rename(
+                {
+                    "COMER": "DEP",
+                    "LIBELLE_COMER": "LIBELLE_DEPARTEMENT",
+                    "COM_COMER": "CODGEO",
+                    "LIBELLE": "LIBELLE_COMMUNE",
+                },
+                axis=1,
+            )
             cities = pd.concat([cities, cog_tom], ignore_index=True)
 
-        cities = cities.merge(
+        cog_arm = ddf[("COG", "COMMUNE")].query("TYPECOM=='ARM'")
+        cog_arm = cog_arm.loc[:, ["TYPECOM", "COM", "LIBELLE", "COMPARENT"]]
+
+        arm = cities.merge(
             cog_arm.drop("TYPECOM", axis=1).rename(
                 {
                     "COM": "CODE_ARM",
@@ -310,41 +286,99 @@ def prepare_cog_metadata(
             left_on="CODGEO",
             right_on="COMPARENT",
         ).drop("COMPARENT", axis=1)
-        ix = cities[cities.CODE_ARM.isnull()].index
-        cities.loc[ix, "CODE_ARM"] = cities.loc[ix, "CODGEO"]
-        cities.loc[ix, "LIBELLE_ARRONDISSEMENT_MUNICIPAL"] = cities.loc[
+        ix = arm[arm.CODE_ARM.isnull()].index
+        arm.loc[ix, "CODE_ARM"] = arm.loc[ix, "CODGEO"]
+        arm.loc[ix, "LIBELLE_ARRONDISSEMENT_MUNICIPAL"] = arm.loc[
             ix, "LIBELLE_COMMUNE"
         ]
         # Set unique ARR code (as "NumDEP" + "NumARR") to ensure dissolution
         # is ok
-        ix = cities[(cities.ARR.notnull())].index
-        cities.loc[ix, "INSEE_ARR"] = (
-            cities.loc[ix, "DEP"] + cities.loc[ix, "ARR"]
-        )
+        for df in arm, cities:
+            ix = df[(df.ARR.notnull())].index
+            df.loc[ix, "INSEE_ARR"] = df.loc[ix, "DEP"] + df.loc[ix, "ARR"]
 
-        if siren is not None:
+        siren = ddf[("BANATIC", "CORRESPONDANCE-SIREN-INSEE-COMMUNES")]
+        if not siren.empty:
+            year = re.compile("[0-9]{4}")
+            pop_communes = {
+                "PTOT_([0-9]{4})": "POPULATION_TOTALE_",
+                "PMUN_[0-9]{4}": "POPULATION_MUNICIPALE",
+                "PCAP_[0-9]{4}": "POPULATION_COMPTEE_A_PART",
+            }
+            rename = {
+                col: f"{new}_" + re.findall("[0-9]{4}", col)[0]
+                for pattern, new in pop_communes.items()
+                for col in siren.columns
+                if re.match(pattern, col)
+            }
+            rename.update({"SIREN": "SIREN_COMMUNE"})
+            siren = siren.drop(
+                ["REG_COM", "DEP_COM", "NOM_COM"], axis=1
+            ).rename(rename, axis=1)
+
             cities = cities.merge(
                 siren, how="left", left_on="CODGEO", right_on="INSEE"
             ).drop("INSEE", axis=1)
 
-        cities["SOURCE_METADATA"] = "Cartiflette, d'après INSEE & DGCL"
+            # Do not keep populations for ARM (info is not available on ARM
+            # level for LYON or MARSEILLE)
+            drop = {
+                col: f"{new}_" + re.findall("[0-9]{4}", col)[0]
+                for pattern, new in pop_communes.items()
+                for col in siren.columns
+                if re.match(pattern, col)
+            }
+            arm = arm.merge(
+                siren[["SIREN_COMMUNE", "INSEE"]],
+                how="left",
+                left_on="CODGEO",
+                right_on="INSEE",
+            ).drop(
+                ["INSEE"],
+                axis=1,
+            )
+        for df in arm, cities:
+            df["SOURCE_METADATA"] = "Cartiflette, d'après INSEE & DGCL"
 
-    if iris is not None and cities is not None:
-        iris_metadata = cities.merge(iris, on="CODE_ARM", how="left")
-        iris_metadata = iris_metadata.drop(list(pop_communes.values()), axis=1)
+    # Compute metadata at IRIS level
+    iris = ddf[("TAGIRIS", "APPARTENANCE")]
+    if iris.empty:
+        warnings.warn(f"{year=} metadata for iris not constructed!")
+        iris = pd.DataFrame()
     else:
-        iris_metadata = None
-    if cities is not None:
-        cities_metadata = cities
-    else:
-        cities_metadata = None
+        iris = iris.drop(columns=["LIBCOM", "UU2020", "REG", "DEP"])
+        rename = {"DEPCOM": "CODE_ARM", "LIB_IRIS": "LIBELLE_IRIS"}
+        iris = iris.rename(rename, axis=1)
 
-    # Compute metadata for CANTON
-    try:
-        cantons = s3_to_df(fs, paths_bucket[("COG", "CANTON")], **kwargs)
-    except Exception:
+        # retrieve populations
+        pop_iris = pd.concat(
+            [
+                ddf[("POPULATION", "POPULATION-IRIS-FRANCE-HORS-MAYOTTE")],
+                ddf[("POPULATION", "POPULATION-IRIS-COM")],
+            ],
+            ignore_index=True,
+        )
+        if pop_iris.empty:
+            # all iris population dataframe are empty, triggering an exception
+            pop_iris = pd.DataFrame()
+        else:
+            pop_iris_field = re.compile("P[0-9]{2}_POP$")
+            pop_iris_field = [
+                x for x in pop_iris.columns if pop_iris_field.match(x)
+            ][0]
+            pop_iris = pop_iris.loc[:, ["IRIS", pop_iris_field]].rename(
+                {
+                    pop_iris_field: "POPULATION_"
+                    + re.findall("([0-9]{2})", pop_iris_field)[0]
+                }
+            )
+
+        iris = arm.merge(iris, on="CODE_ARM", how="left")
+
+    # Compute metadata at CANTON level
+    cantons = ddf[("COG", "CANTON")]
+    if cantons.empty:
         warnings.warn(f"{year=} metadata for cantons not constructed!")
-        cantons_metadata = None
     else:
         # Remove pseudo-cantons
         ix = cantons[cantons.COMPCT.isnull()].index
@@ -355,16 +389,17 @@ def prepare_cog_metadata(
         cantons["INSEE_CAN"] = cantons["CAN"].str[-2:]
 
         # Merge CANTON metadata with COG metadata
-        # TODO : Martinique (972) and Guyane (973) missing from CANTON
-
-        cantons_metadata = cantons.merge(
+        cantons = cantons.merge(
             # Nota : we do not have the CANTON -> ARR imbrication as of yet
             # (except of course as a geospatial join...)
             cog_metadata.drop(
                 ["ARR", "LIBELLE_ARRONDISSEMENT"], axis=1
             ).drop_duplicates(),
             on=["REG", "DEP"],
-            how="inner",
+            # Note : Martinique (972) and Guyane (973) missing from CANTON
+            # as well as Paris (75)
+            # -> go for outer join
+            how="outer",
         )
         keep = [
             "INSEE_CAN",
@@ -377,28 +412,17 @@ def prepare_cog_metadata(
             "LIBELLE_DEPARTEMENT",
             "LIBELLE_REGION",
         ]
-        cantons_metadata = cantons_metadata.loc[:, keep].rename(
+        cantons = cantons.loc[:, keep].rename(
             {"LIBELLE": "LIBELLE_CANTON"}, axis=1
         )
 
-        # Hack to add PARIS :
-        canton_paris = pd.DataFrame(
-            [
-                {
-                    "INSEE_CAN": "NR",
-                    "CAN": "NR",
-                    "DEP": "75",
-                    "REG": "11",
-                    "LIBELLE_CANTON": "Paris",
-                    "LIBELLE_DEPARTEMENT": "Paris",
-                    "LIBELLE_REGION": "Île-de-France",
-                }
-            ]
-        )
-        cantons_metadata = pd.concat(
-            [cantons_metadata, canton_paris], ignore_index=True
-        )
-        cantons_metadata["SOURCE_METADATA"] = "Cartiflette d'après INSEE"
+        # Hack to set PARIS with the same key as on IGN's dataset
+        ix = cantons[cantons.DEP == "75"].index
+        cantons.loc[ix, "INSEE_CAN"] = "NR"
+        cantons.loc[ix, "CAN"] = "NR"
+        cantons.loc[ix, "LIBELLE_CANTON"] = "Paris"
+
+        cantons["SOURCE_METADATA"] = "Cartiflette d'après INSEE"
 
     rename = {
         "DEP": "INSEE_DEP",
@@ -412,18 +436,16 @@ def prepare_cog_metadata(
     return_dict = {}
     ile_de_france = pd.DataFrame([{"REG": "11", "IDF": 1}])
     for label, df in [
-        ("IRIS", iris_metadata),
-        ("ARRONDISSEMENT_MUNICIPAL", cities_metadata),
-        ("CANTON", cantons_metadata),
+        ("IRIS", iris),
+        ("COMMUNE", cities),
+        ("CANTON", cantons),
+        ("ARRONDISSEMENT_MUNICIPAL", arm),
     ]:
-        if df is not None:
+        if not df.empty:
+            df = df.replace(np.nan, pd.NA)
             df = df.merge(ile_de_france, on="REG", how="left")
             df["IDF"] = df["IDF"].fillna(0).astype(int)
             df = df.rename(rename, axis=1)
         return_dict[label] = df
 
     return return_dict
-
-
-# if __name__ == "__main__":
-#     prepare_cog_metadata(2023)

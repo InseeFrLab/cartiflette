@@ -33,6 +33,8 @@ urllib3 = "<2"
 retrying = "^1.3.4"
 pandas = "^2.2.2"
 python-calamine = "^0.2.3"
+polars = "^1.8.1"
+fastexcel = "^0.11.6"
 
 
 [tool.poetry.group.dev.dependencies]
