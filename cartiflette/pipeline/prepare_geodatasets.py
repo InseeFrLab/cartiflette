@@ -215,7 +215,11 @@ def create_one_year_geodataset_batch(
     # Construct S3GeoDataset for municipal districts
     raw_config = deepcopy(config)
     kwargs = {"territory": "metropole", "filename": "ARRONDISSEMENT_MUNICIPAL"}
-    districts = S3GeoDataset(**kwargs, **raw_config)
+    try:
+        districts = S3GeoDataset(**kwargs, **raw_config)
+    except ValueError:
+        # ARM is missing
+        districts = None
 
     input_geodatasets = {}
     # Retrieve raw files of cities, cantons and iris
@@ -312,11 +316,18 @@ def create_one_year_geodataset_batch(
         input_geodatasets["IRIS"]
         if input_geodatasets["IRIS"]
         else nullcontext()
-    ) as iris, districts as districts:
+    ) as iris, (
+        districts if districts else nullcontext()
+    ) as districts:
         # download communal_districts and enter context for commune/canton/iris
 
+        if districts:
+            with_districts = [False, True]
+        else:
+            with_districts = [False]
+            warnings.warn("ARM could not be fetched")
         args = (
-            list(product([commune], [True], simplifications_values))
+            list(product([commune], with_districts, simplifications_values))
             + list((product([canton], [False], simplifications_values)))
             + list((product([iris], [False], simplifications_values)))
         )
