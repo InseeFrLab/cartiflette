@@ -186,6 +186,7 @@ def crossproduct_parameters_production(
     # (the result will depend of the resolution in the config)
     sources = {
         "ARRONDISSEMENT_MUNICIPAL": PIPELINE_DOWNLOAD_ARGS["ADMIN-EXPRESS"],
+        "COMMUNE": PIPELINE_DOWNLOAD_ARGS["ADMIN-EXPRESS"],
         "IRIS": PIPELINE_DOWNLOAD_ARGS["IRIS"],
         "CANTON": PIPELINE_DOWNLOAD_ARGS["ADMIN-EXPRESS"],
     }
