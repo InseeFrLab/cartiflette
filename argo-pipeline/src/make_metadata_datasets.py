@@ -32,9 +32,6 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     "-p", "--path", help="Path within bucket", default=PATH_WITHIN_BUCKET
 )
-parser.add_argument(
-    "-lp", "--localpath", help="Local temporary file", default="temp"
-)
 
 parser.add_argument(
     "-y", "--years", help="Vintage to perform computation on", default="[]"
@@ -45,14 +42,11 @@ args = parser.parse_args()
 
 bucket = BUCKET
 path_within_bucket = args.path
-local_path = args.localpath
 years = args.years
 
 years = json.loads(years)
 
 fs = FS
-
-os.makedirs(local_path, exist_ok=True)
 
 
 def main(
@@ -68,8 +62,6 @@ def main(
             logger.info("-" * 50)
             logger.info("Computing metadata for year=%s", year)
             logger.info("-" * 50)
-
-            os.makedirs(f"{local_path}/{year}", exist_ok=True)
 
             config = {
                 "bucket": bucket,
