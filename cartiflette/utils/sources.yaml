@@ -559,12 +559,6 @@ Insee:
         pattern: "*.xlsx"
         filename: "base-ic-evol-struct-pop-2019-com.zip"
 
-    POPULATION-MAYOTTE:
-    # COM -> see https://www.insee.fr/fr/information/2409261
-      2017:
-        filename: "mayotte-RP2017-tableaux_pop_legale.xlsx"
-        article: "5392668"
-
   BV:
     pattern: "com_bv*.dbf"
     #-> nota : zip dans des zip
