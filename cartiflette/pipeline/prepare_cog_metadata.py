@@ -132,8 +132,8 @@ def prepare_cog_metadata(
         ("Insee", "TAGC", "APPARTENANCE", "xlsx"),
         ("Insee", "TAGIRIS", "APPARTENANCE", "xlsx"),
         ("DGCL", "BANATIC", "CORRESPONDANCE-SIREN-INSEE-COMMUNES", "xlsx"),
-        ("Insee", "INTERCOMMUNALITES", "EPCI-FP", "xlsx"),
-        ("Insee", "INTERCOMMUNALITES", "EPT", "xlsx"),
+        ("Insee", "ZONAGES", "EPCI-FP", "xlsx"),
+        ("Insee", "ZONAGES", "EPT", "xlsx"),
         ("Insee", "POPULATION", "POPULATION-IRIS-COM", "xlsx"),
         ("Insee", "POPULATION", "POPULATION-IRIS-FRANCE-HORS-MAYOTTE", "xlsx"),
     ]
@@ -176,8 +176,8 @@ def prepare_cog_metadata(
         (("BANATIC", "CORRESPONDANCE-SIREN-INSEE-COMMUNES"), 0),
         (("POPULATION", "POPULATION-IRIS-FRANCE-HORS-MAYOTTE"), 5),
         (("POPULATION", "POPULATION-IRIS-COM"), 5),
-        (("INTERCOMMUNALITES", "EPCI-FP"), 5),
-        (("INTERCOMMUNALITES", "EPT"), 5),
+        (("ZONAGES", "EPCI-FP"), 5),
+        (("ZONAGES", "EPT"), 5),
         (("TAGIRIS", "APPARTENANCE"), 5),
         (("TAGC", "APPARTENANCE"), 5),
         (("COG", "CANTON"), 0),
@@ -227,7 +227,7 @@ def prepare_cog_metadata(
         tagc = tagc.drop(list(drop), axis=1)
 
         # Add labels for EPCI-FP
-        epci_fp = ddf[("INTERCOMMUNALITES", "EPCI-FP")]
+        epci_fp = ddf[("ZONAGES", "EPCI-FP")]
         if not epci_fp.empty:
             epci_fp = epci_fp.dropna()
             epci_fp = epci_fp.loc[:, ["EPCI", "LIBEPCI"]].rename(
@@ -240,7 +240,7 @@ def prepare_cog_metadata(
                 pass
 
         # Add labels for EPT
-        ept = ddf[("INTERCOMMUNALITES", "EPT")]
+        ept = ddf[("ZONAGES", "EPT")]
         if not ept.empty:
             ept = ept.dropna()
             ept = ept.loc[:, ["EPT", "LIBEPT"]].rename(
