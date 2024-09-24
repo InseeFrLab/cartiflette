@@ -313,8 +313,8 @@ def create_one_year_geodataset_batch(
                     concat, fs=fs, **input_geodatasets["COMMUNE"].config
                 )
                 input_geodatasets["COMMUNE"] = full_cities
-
-    except KeyError:
+    except (AttributeError, KeyError):
+        # input_geodatasets["IRIS"] is None
         pass
 
     with (
