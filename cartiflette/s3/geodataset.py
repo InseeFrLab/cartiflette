@@ -631,7 +631,7 @@ class S3GeoDataset(S3Dataset):
                 by_keys.append("IDF")
 
             self.dissolve(
-                by=[by, aggreg_col],
+                by=by_keys,
                 copy_fields=keep,
                 calc=calc,
                 format_output=INTERMEDIATE_FORMAT,
