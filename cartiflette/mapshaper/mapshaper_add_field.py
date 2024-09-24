@@ -14,7 +14,10 @@ def mapshaper_add_field(
     output_format: str = "geojson",
 ) -> str:
     """
-    Add a static field (= a column/attribute) to the dataset.
+    Add a field (= a column/attribute) to the dataset.
+    To add a static value, please set it between double+singles quotes,
+    ("'blah'" for instance). To add a dynamic field (from existing fields), use
+    a single double quote string (for isntance "INSEE_DEP+INSEE_CAN").
 
     Parameters
     ----------
@@ -23,7 +26,7 @@ def mapshaper_add_field(
     label : str
         The added field's name.
     value : str
-        The static value of the added field.
+        The value of the added field.
     output_dir : str
         Directory to store the output file. The default is "temp"
     output_name : str, optional
