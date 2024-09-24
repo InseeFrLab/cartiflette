@@ -236,15 +236,15 @@ def prepare_cog_metadata(
 
         # Add various labels for zoning plans
         zoning = {
-            "EPCI-FP": "LIBEPCI",
-            "EPT": "LIBEPT",
-            "UNITES-URBAINES": "LIBUU",
-            "BASSINS-VIE": "LIBBV",
-            "AIRES-ATTRACTION-VILLES": "LIBAAV",
-            "ZONES-EMPLOI": "LIBZE",
+            "EPCI-FP": ("EPCI", "LIBEPCI"),
+            "EPT": ("EPT", "LIBEPT"),
+            "UNITES-URBAINES": ("UU", "LIBUU"),
+            "BASSINS-VIE": ("BV", "LIBBV"),
+            "AIRES-ATTRACTION-VILLES": ("AAV", "LIBAAV"),
+            "ZONES-EMPLOI": ("ZE", "LIBZE"),
         }
-        for key, label in zoning:
-            labels = ddf[("ZONAGES", key)]
+        for file_key, (key, label) in zoning.items():
+            labels = ddf[("ZONAGES", file_key)]
             if not labels.empty:
                 labels = labels.dropna()
 
@@ -256,7 +256,7 @@ def prepare_cog_metadata(
                     ]
                     if len(found) > 1 or not found:
                         warnings.warn(
-                            f"could not find {target} in zonage {key}"
+                            f"could not find {target} in zonage {file_key}"
                         )
                     else:
                         return found[0]
@@ -268,11 +268,14 @@ def prepare_cog_metadata(
 
                 labels = labels.loc[:, [pk_insee, label_insee]]
                 labels = labels.rename(
-                    {label_insee: f"LIBELLE_{key}", pk_insee: key}, axis=1
+                    {
+                        label_insee: f"LIBELLE_{file_key.replace('-', '_')}",
+                    },
+                    axis=1,
                 )
                 try:
-                    tagc = tagc.merge(labels, on=key, how="left")
-                except KeyError:
+                    tagc = tagc.merge(labels, on=pk_insee, how="left")
+                except KeyError as e:
                     pass
 
         cities = tagc.merge(
