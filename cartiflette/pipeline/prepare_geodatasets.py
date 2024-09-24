@@ -88,11 +88,7 @@ def make_one_geodataset(
 
     kwargs = {"format_output": INTERMEDIATE_FORMAT}
 
-    source = (
-        # Note : need to escape the ', hence the raw-string
-        r"Cartiflette d\'après IGN simplifié à {simplification} %"
-    )
-
+    source = f"Cartiflette d'après IGN simplifié à {simplification} %"
     new_dset = dset.copy()
     if with_municipal_district:
         # substitute communal districts
