@@ -625,6 +625,11 @@ class S3GeoDataset(S3Dataset):
             if "IDF" in available_columns:
                 calc += ["IDF=max(IDF)"]
 
+            by_keys = [by, aggreg_col]
+            if niveau_agreg == "FRANCE_ENTIERE_DROM_RAPPROCHES":
+                # Hack to avoid zooming on whole area outside IdF
+                by_keys.append("IDF")
+
             self.dissolve(
                 by=[by, aggreg_col],
                 copy_fields=keep,
