@@ -148,6 +148,7 @@ class Layer:
             AttributeError,
             fiona.errors.DriverError,
             pyogrio.errors.DataSourceError,
+            pyogrio.errors.CRSError,
         ):
             # Non-native-GIS dataset
             self.crs = None
