@@ -299,9 +299,8 @@ def prepare_cog_metadata(
 
         siren = ddf[("BANATIC", "CORRESPONDANCE-SIREN-INSEE-COMMUNES")]
         if not siren.empty:
-            year = re.compile("[0-9]{4}")
             pop_communes = {
-                "PTOT_([0-9]{4})": "POPULATION_TOTALE_",
+                "PTOT_([0-9]{4})": "POPULATION_TOTALE",
                 "PMUN_[0-9]{4}": "POPULATION_MUNICIPALE",
                 "PCAP_[0-9]{4}": "POPULATION_COMPTEE_A_PART",
             }
