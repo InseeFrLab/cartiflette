@@ -201,11 +201,13 @@ class Scraper(requests_cache.CachedSession):
 
             datafile.set_temp_file_path(temp_archive_file_raw)
 
+            simple_copy = ["Microsoft Excel 2007+", "Unicode text", "CSV text"]
+
             if "7-zip" in filetype:
                 root_folder, files_locations = datafile.unpack(protocol="7z")
             elif "Zip archive" in filetype:
                 root_folder, files_locations = datafile.unpack(protocol="zip")
-            elif "Unicode text" in filetype or "CSV text" in filetype:
+            elif any(x for x in simple_copy if x in filetype):
                 # copy in temp directory without processing
                 root_folder = tempfile.mkdtemp()
                 with open(temp_archive_file_raw, "rb") as f:
@@ -213,13 +215,17 @@ class Scraper(requests_cache.CachedSession):
                     filename = "_".join(
                         x for x in re.split(r"\W+", filename) if x
                     )
-                    path = os.path.join(root_folder, filename + ".csv")
+                    if filetype == "Microsoft Excel 2007+":
+                        ext = ".xlsx"
+                    else:
+                        ext = ".csv"
+
+                    path = os.path.join(root_folder, filename + ext)
                     with open(path, "wb") as out:
                         out.write(f.read())
 
-                logger.debug("Storing CSV to %s", root_folder)
+                logger.debug("Storing file to %s", root_folder)
                 files_locations = ((path,),)
-
             else:
                 raise NotImplementedError(f"{filetype} encountered")
         except Exception as e:
