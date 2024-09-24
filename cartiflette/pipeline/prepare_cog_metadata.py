@@ -380,17 +380,14 @@ def prepare_cog_metadata(
     if cantons.empty:
         warnings.warn(f"{year=} metadata for cantons not constructed!")
     else:
-        # Remove pseudo-cantons
-        ix = cantons[cantons.COMPCT.isnull()].index
-        cantons = cantons.drop(ix)
 
         # Set pure "CANTON" code (without dep part) to prepare for
         # join with IGN's CANTON geodataset
         cantons["INSEE_CAN"] = cantons["CAN"].str[-2:]
 
-        # Add Lyon : single CANTON since creation of the metropole, not
-        # covering the whole dept, so this should be added before the merge
-        # operation like Paris, Martinique, etc.
+        # Add Lyon if missing (<2024): single CANTON since creation of the
+        # metropole, not covering the whole dept, so this should be added
+        # before the merge operation like Paris, Martinique, etc.
         ix = cantons[
             (cantons.DEP == "69") & (cantons.NCC.str.contains("LYON"))
         ].index
@@ -423,7 +420,7 @@ def prepare_cog_metadata(
             ).drop_duplicates(),
             on=["REG", "DEP"],
             # Note : Martinique (972) and Guyane (973) missing from CANTON
-            # as well as Paris (75)
+            # as well as Paris (75) for older vintages
             # -> go for outer join
             how="outer",
         )
@@ -442,19 +439,20 @@ def prepare_cog_metadata(
             {"LIBELLE": "LIBELLE_CANTON"}, axis=1
         )
 
-        # Hack to set PARIS, GUYANE and MARTINIQUE with the same key as
-        # (derived from) IGN's dataset
+        # Hack to set PARIS, GUYANE and MARTINIQUE with the same key as IGN's
+        # dataset (if trully missing)
         for dep, label in {
-            "75": "Paris",
+            "75": "Paris",  # missing for year <2024
             "973": "Guyane",
             "972": "Martinique",
         }.items():
             ix = cantons[cantons.DEP == dep].index
-            cantons.loc[ix, "INSEE_CAN"] = "NR"
-            cantons.loc[ix, "CAN"] = (
-                cantons.loc[ix, "DEP"] + cantons.loc[ix, "INSEE_CAN"]
-            )
-            cantons.loc[ix, "LIBELLE_CANTON"] = label
+            if cantons.loc[ix, "CAN"].isnull().all():
+                cantons.loc[ix, "INSEE_CAN"] = "NR"
+                cantons.loc[ix, "CAN"] = (
+                    cantons.loc[ix, "DEP"] + cantons.loc[ix, "INSEE_CAN"]
+                )
+                cantons.loc[ix, "LIBELLE_CANTON"] = label
 
         cantons["SOURCE_METADATA"] = "Cartiflette d'après INSEE"
 
