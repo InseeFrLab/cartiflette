@@ -13,6 +13,7 @@ import traceback
 from typing import Union, List
 import warnings
 
+import geopandas as gpd
 from pebble import ThreadPool
 import s3fs
 
@@ -30,6 +31,7 @@ from cartiflette.pipeline_constants import (
 from cartiflette.s3.geodataset import (
     S3GeoDataset,
     concat_s3geodataset,
+    from_frame,
 )
 
 logger = logging.getLogger(__name__)
@@ -86,19 +88,9 @@ def make_one_geodataset(
 
     kwargs = {"format_output": INTERMEDIATE_FORMAT}
 
-    source_arm = (
-        f' {PIPELINE_DOWNLOAD_ARGS["ADMIN-EXPRESS"][2]}'
-        if with_municipal_district and "IRIS" in dset.config["source"]
-        else ""
-    )
-
     source = (
         # Note : need to escape the ', hence the raw-string
-        r"Cartiflette d\'après IGN "
-        + " ("
-        + dset.config["source"]
-        + source_arm
-        + f") simplifié à {simplification} %"
+        r"Cartiflette d\'après IGN simplifié à {simplification} %"
     )
 
     new_dset = dset.copy()
@@ -303,6 +295,27 @@ def create_one_year_geodataset_batch(
                 # clean intermediate datasets from local disk at exit (keep
                 # only concatenated S3GeoDataset, which exists only on local
                 # disk)
+
+    try:
+        # Capture ultramarine territories geometries from IRIS to complete the
+        # COMMUNE geodataset
+        with TemporaryDirectory() as tempdir:
+            with input_geodatasets["IRIS"].copy() as temp:
+                tom_from_iris = temp.only_ultramarine_territories().to_frame()
+                tom_from_iris = tom_from_iris.rename(
+                    {"NOM_COM": "NOM"}, axis=1
+                )
+                cities = input_geodatasets["COMMUNE"].to_frame()
+                concat = gpd.pd.concat(
+                    [tom_from_iris, cities], ignore_index=True
+                )
+                full_cities = from_frame(
+                    concat, fs=fs, **input_geodatasets["COMMUNE"].config
+                )
+                input_geodatasets["COMMUNE"] = full_cities
+
+    except KeyError:
+        pass
 
     with (
         input_geodatasets["COMMUNE"]

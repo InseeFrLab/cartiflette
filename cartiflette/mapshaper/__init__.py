@@ -19,6 +19,9 @@ from .mapshaper_combine_districts_and_cities import (
 )
 from .mapshaper_simplify import mapshaper_simplify
 from .mapshaper_add_field import mapshaper_add_field
+from .mapshaper_capture_cities_from_ultramarine_territories import (
+    mapshaper_capture_cities_from_ultramarine_territories,
+)
 
 
 __all__ = [
@@ -33,4 +36,5 @@ __all__ = [
     "mapshaper_combine_districts_and_cities",
     "mapshaper_simplify",
     "mapshaper_add_field",
+    "mapshaper_capture_cities_from_ultramarine_territories",
 ]

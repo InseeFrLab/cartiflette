@@ -34,6 +34,7 @@ from cartiflette.mapshaper import (
     mapshaper_combine_districts_and_cities,
     mapshaper_simplify,
     mapshaper_add_field,
+    mapshaper_capture_cities_from_ultramarine_territories,
 )
 from cartiflette.utils import ConfigDict
 from cartiflette.config import FS, THREADS_DOWNLOAD, INTERMEDIATE_FORMAT
@@ -680,6 +681,54 @@ class S3GeoDataset(S3Dataset):
 
         return new_datasets
 
+    def only_ultramarine_territories(self) -> Self:
+        """
+        Extracts only ultramarine territories from the given IRIS file and
+        dissolve it to cities.
+
+        Returns
+        -------
+        S3GeoDataset : new object with only the subset for COM
+
+        """
+        iris_file = f"{self.local_dir}/{self.main_filename}"
+        tom = mapshaper_capture_cities_from_ultramarine_territories(
+            input_city_file=iris_file,
+            output_dir=f"{self.local_dir}/tom",
+            output_name="TOM",
+            output_format=INTERMEDIATE_FORMAT,
+        )
+        new_config = deepcopy(self.config)
+        new_config.update(
+            {"filter_by": "COLLECTIVITE_OUTRE_MER", "value": "France"}
+        )
+        tom = from_file(file_path=tom, **new_config)
+
+        gdf = tom.to_frame()
+        available_columns = gdf.columns.tolist()
+        by = self.find_column_name("COMMUNE", available_columns)
+        # keep all columns which are identical in each subgroup after
+        # dissolution + summable columns (like pop)
+        keep = (
+            gdf.drop("geometry", axis=1).groupby([by]).nunique() == 1
+        ).all()
+        keep = keep[keep].index.tolist()
+
+        calc = []
+        pops = [x for x in available_columns if re.match("POPULATION.*", x)]
+        if pops:
+            calc += [f"{x}=sum({x})" for x in pops]
+        if "IDF" in available_columns:
+            calc += ["IDF=max(IDF)"]
+
+        tom.dissolve(
+            by=[by],
+            copy_fields=keep,
+            calc=calc,
+            format_output=INTERMEDIATE_FORMAT,
+        )
+        return tom
+
     def substitute_municipal_districts(
         self,
         communal_districts: Self,
@@ -755,6 +804,50 @@ class S3GeoDataset(S3Dataset):
         return new_dataset
 
 
+def from_frame(
+    gdf: gpd.GeoDataFrame,
+    fs: S3FileSystem = FS,
+    **config: ConfigDict,
+) -> S3GeoDataset:
+    """
+    Create a new S3GeoDataset from a GeoDataFrame, config and fs.
+
+    The new object will write the the geodataframe into a new tempdir; this
+    tempdir will be cleaned at __exit__ method's execution. Therefore, the new
+    object should be created with a with statement, for instance:
+    >>> new_dset = geodataset.from_frame(gdf, fs, **config) as new_file:
+    >>> with new_dset:
+    >>>     print(new_file)
+
+    Parameters
+    ----------
+    gdf : gpd.GeoDataFrame
+        GeoDataFrame to construct the S3GeoDataset from.
+    fs : S3FileSystem, optional
+        The S3FileSytem to use for storage. The default is FS.
+    **config : ConfigDict
+        Other arguments to define the path on the S3 to the dataset.
+
+    Returns
+    -------
+    dset : S3GeoDataset
+        New S3GeoDataset object.
+
+    """
+
+    extension = config.get("vectorfile_format", INTERMEDIATE_FORMAT)
+    filename = config.get("filename", None)
+    if not filename:
+        filename = config.get("borders", "file")
+    if "." not in filename:
+        filename = f"{filename}.{extension}"
+    with tempfile.TemporaryDirectory() as tempdir:
+        gdf.to_file(f"{tempdir}/{filename}")
+        dset = from_file(f"{tempdir}/{filename}", fs, **config)
+
+    return dset
+
+
 def from_file(
     file_path: str,
     fs: S3FileSystem = FS,
@@ -810,7 +903,7 @@ def from_file(
     dset.main_filename = filename
 
     # Then create a copy to ensure the creation of a new tempdir
-    dset = deepcopy(dset)
+    dset = dset.copy()
 
     return dset
 
