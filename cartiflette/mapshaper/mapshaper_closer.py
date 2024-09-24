@@ -24,6 +24,7 @@ logical_conditions = {
     "AIRE_ATTRACTION_VILLES": 1.2,
     "DEPARTEMENT": 3,
     "ARRONDISSEMENT_MUNICIPAL": 3.5,
+    "EPT": 3.5,
     "IRIS": 4,
 }
 
