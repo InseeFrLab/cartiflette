@@ -57,7 +57,8 @@ def s3_to_df(
             ).to_pandas()
 
         elif path_in_bucket.endswith("xls") or path_in_bucket.endswith("xlsx"):
-            kwargs.update({"header_row": kwargs["skip_rows"]})
+            # carefull, with polars skip_rows and header_row are summed !
+            kwargs = {"header_row": kwargs["skip_rows"]}
             df = pl.read_excel(
                 remote,
                 has_header=True,
