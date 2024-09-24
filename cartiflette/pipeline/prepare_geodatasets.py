@@ -313,8 +313,9 @@ def create_one_year_geodataset_batch(
                     concat, fs=fs, **input_geodatasets["COMMUNE"].config
                 )
                 input_geodatasets["COMMUNE"] = full_cities
-    except (AttributeError, KeyError):
-        # input_geodatasets["IRIS"] is None
+    except (AttributeError, KeyError, IndexError):
+        # AttributeError : input_geodatasets["IRIS"] is None
+        # IndexError : INSEE_COM field was not found in the dataset
         pass
 
     with (
