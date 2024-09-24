@@ -134,6 +134,10 @@ def prepare_cog_metadata(
         ("DGCL", "BANATIC", "CORRESPONDANCE-SIREN-INSEE-COMMUNES", "xlsx"),
         ("Insee", "ZONAGES", "EPCI-FP", "xlsx"),
         ("Insee", "ZONAGES", "EPT", "xlsx"),
+        ("Insee", "ZONAGES", "UNITES-URBAINES", "xlsx"),
+        ("Insee", "ZONAGES", "BASSINS-VIE", "xlsx"),
+        ("Insee", "ZONAGES", "AIRES-ATTRACTION-VILLES", "xlsx"),
+        ("Insee", "ZONAGES", "ZONES-EMPLOI", "xlsx"),
         ("Insee", "POPULATION", "POPULATION-IRIS-COM", "xlsx"),
         ("Insee", "POPULATION", "POPULATION-IRIS-FRANCE-HORS-MAYOTTE", "xlsx"),
     ]
@@ -178,6 +182,10 @@ def prepare_cog_metadata(
         (("POPULATION", "POPULATION-IRIS-COM"), 5),
         (("ZONAGES", "EPCI-FP"), 5),
         (("ZONAGES", "EPT"), 5),
+        (("ZONAGES", "UNITES-URBAINES"), 5),
+        (("ZONAGES", "BASSINS-VIE"), 5),
+        (("ZONAGES", "AIRES-ATTRACTION-VILLES"), 5),
+        (("ZONAGES", "ZONES-EMPLOI"), 5),
         (("TAGIRIS", "APPARTENANCE"), 5),
         (("TAGC", "APPARTENANCE"), 5),
         (("COG", "CANTON"), 0),
@@ -226,31 +234,46 @@ def prepare_cog_metadata(
         drop = {"CANOV", "CV"} & set(tagc.columns)
         tagc = tagc.drop(list(drop), axis=1)
 
-        # Add labels for EPCI-FP
-        epci_fp = ddf[("ZONAGES", "EPCI-FP")]
-        if not epci_fp.empty:
-            epci_fp = epci_fp.dropna()
-            epci_fp = epci_fp.loc[:, ["EPCI", "LIBEPCI"]].rename(
-                {"LIBEPCI": "LIBELLE_EPCI"}, axis=1
-            )
-            try:
-                tagc = tagc.merge(epci_fp, on="EPCI", how="left")
-            except KeyError:
-                # EPCI column missing from TAGC
-                pass
+        # Add various labels for zoning plans
+        zoning = {
+            "EPCI-FP": "LIBEPCI",
+            "EPT": "LIBEPT",
+            "UNITES-URBAINES": "LIBUU",
+            "BASSINS-VIE": "LIBBV",
+            "AIRES-ATTRACTION-VILLES": "LIBAAV",
+            "ZONES-EMPLOI": "LIBZE",
+        }
+        for key, label in zoning:
+            labels = ddf[("ZONAGES", key)]
+            if not labels.empty:
+                labels = labels.dropna()
 
-        # Add labels for EPT
-        ept = ddf[("ZONAGES", "EPT")]
-        if not ept.empty:
-            ept = ept.dropna()
-            ept = ept.loc[:, ["EPT", "LIBEPT"]].rename(
-                {"LIBEPT": "LIBELLE_EPT"}, axis=1
-            )
-            try:
-                tagc = tagc.merge(ept, on="EPT", how="left")
-            except KeyError:
-                # EPT column missing from TAGC
-                pass
+                def find_from_pattern(target):
+                    found = [
+                        x
+                        for x in labels.columns
+                        if re.match(target + "([0-9]{4})?", x)
+                    ]
+                    if len(found) > 1 or not found:
+                        warnings.warn(
+                            f"could not find {target} in zonage {key}"
+                        )
+                    else:
+                        return found[0]
+
+                pk_insee = find_from_pattern(key)
+                label_insee = find_from_pattern(label)
+                if not (pk_insee and label_insee):
+                    continue
+
+                labels = labels.loc[:, [pk_insee, label_insee]]
+                labels = labels.rename(
+                    {label_insee: f"LIBELLE_{key}", pk_insee: key}, axis=1
+                )
+                try:
+                    tagc = tagc.merge(labels, on=key, how="left")
+                except KeyError:
+                    pass
 
         cities = tagc.merge(
             cog_metadata, on=["ARR", "DEP", "REG"], how="inner"
