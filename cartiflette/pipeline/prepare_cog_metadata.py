@@ -388,6 +388,32 @@ def prepare_cog_metadata(
         # join with IGN's CANTON geodataset
         cantons["INSEE_CAN"] = cantons["CAN"].str[-2:]
 
+        # Add Lyon : single CANTON since creation of the metropole, not
+        # covering the whole dept, so this should be added before the merge
+        # operation like Paris, Martinique, etc.
+        ix = cantons[
+            (cantons.DEP == "69") & (cantons.NCC.str.contains("LYON"))
+        ].index
+        if ix.empty:
+            cantons = pd.concat(
+                [
+                    cantons,
+                    pd.DataFrame(
+                        [
+                            {
+                                "CAN": "69NR",
+                                "DEP": "69",
+                                "REG": "84",
+                                "INSEE_CAN": "NR",
+                                "LIBELLE": "Lyon",
+                                "INSEE_CAN": "NR",
+                            }
+                        ]
+                    ),
+                ],
+                ignore_index=True,
+            )
+
         # Merge CANTON metadata with COG metadata
         cantons = cantons.merge(
             # Nota : we do not have the CANTON -> ARR imbrication as of yet
@@ -416,11 +442,19 @@ def prepare_cog_metadata(
             {"LIBELLE": "LIBELLE_CANTON"}, axis=1
         )
 
-        # Hack to set PARIS with the same key as on IGN's dataset
-        ix = cantons[cantons.DEP == "75"].index
-        cantons.loc[ix, "INSEE_CAN"] = "NR"
-        cantons.loc[ix, "CAN"] = "NR"
-        cantons.loc[ix, "LIBELLE_CANTON"] = "Paris"
+        # Hack to set PARIS, GUYANE and MARTINIQUE with the same key as
+        # (derived from) IGN's dataset
+        for dep, label in {
+            "75": "Paris",
+            "973": "Guyane",
+            "972": "Martinique",
+        }.items():
+            ix = cantons[cantons.DEP == dep].index
+            cantons.loc[ix, "INSEE_CAN"] = "NR"
+            cantons.loc[ix, "CAN"] = (
+                cantons.loc[ix, "DEP"] + cantons.loc[ix, "INSEE_CAN"]
+            )
+            cantons.loc[ix, "LIBELLE_CANTON"] = label
 
         cantons["SOURCE_METADATA"] = "Cartiflette d'après INSEE"
 
