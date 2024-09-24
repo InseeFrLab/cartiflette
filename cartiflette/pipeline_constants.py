@@ -78,9 +78,9 @@ PIPELINE_DOWNLOAD_ARGS = {
     "POPULATION-COM": ["Insee", "POPULATION", "POPULATION-IRIS-COM"],
 }
 
-PIPELINE_CRS = [4326]
-PIPELINE_SIMPLIFICATION_LEVELS = [40]
-PIPELINE_FORMATS = ["geojson"]  # , "topojson", "gpkg"]
+PIPELINE_CRS = [2154, 4326, 3857]
+PIPELINE_SIMPLIFICATION_LEVELS = [0, 40]
+PIPELINE_FORMATS = ["geojson", "topojson", "gpkg"]
 
 # which dissolutions can be operated from a given raw geodataset, depending
 # of it's source (either from IRIS or from COMMUNES)
