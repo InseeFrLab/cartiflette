@@ -110,8 +110,6 @@ spec:
           - name: volume-workflow-tmp
             mountPath: /mnt
         env: &env_parameters
-          - name: PATH_WRITING_S3
-            value: "test"
           - name: PYTHONPATH
             value: "${PYTHONPATH}:/mnt/bin"
           - name: AWS_ACCESS_KEY_ID
@@ -130,8 +128,10 @@ spec:
             value: minio.lab.sspcloud.fr
           - name: MC_HOST_s3
             value: https://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$AWS_S3_ENDPOINT
+          - name: PATH_WRITING_S3
+            value: "test"
           - name: ENVIRONMENT
-            value: dev
+            value: preprod
 
     - name: download-all-sources
       outputs:
