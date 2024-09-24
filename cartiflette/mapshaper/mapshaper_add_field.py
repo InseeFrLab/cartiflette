@@ -48,7 +48,7 @@ def mapshaper_add_field(
 
     cmd = (
         f"mapshaper {input_file} "
-        f"-each \"{label}='{value}'\" "
+        f'-each "{label}={value}" '
         "-proj EPSG:4326 "
         f" -o {output}  "
         f'format={output_format} extension=".{output_format}" force'

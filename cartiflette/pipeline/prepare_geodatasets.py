@@ -113,7 +113,7 @@ def make_one_geodataset(
     with new_dset, districts:
         processed_dset = districts if with_municipal_district else new_dset
         processed_dset.simplify(simplification=simplification, **kwargs)
-        processed_dset.add_field("GEODATA_SOURCE", source)
+        processed_dset.add_field("GEODATA_SOURCE", f"'{source}'")
         processed_dset.to_s3()
         uploaded = processed_dset.s3_dirpath
 
