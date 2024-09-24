@@ -203,7 +203,7 @@ class S3GeoDataset(S3Dataset):
     def add_field(
         self, label: str, value: str, format_output: str = "geojson"
     ):
-        "add a static field using mapshaper"
+        "add a static/dynamic field using mapshaper"
         input_geodata = f"{self.local_dir}/{self.main_filename}"
         output = mapshaper_add_field(
             input_file=input_geodata,
@@ -534,8 +534,9 @@ class S3GeoDataset(S3Dataset):
                 "NOM_M",
             ]
         elif init_geometry_level == "CANTON":
-            keys = ["INSEE_CAN", "INSEE_CAN"]
+            keys = ["CAN", "CAN"]
             drop = ["ID"]
+            self.add_field("CAN", "INSEE_DEP+INSEE_CAN")
         else:
             # TODO if new base mesh
             pass
