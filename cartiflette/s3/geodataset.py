@@ -609,7 +609,10 @@ class S3GeoDataset(S3Dataset):
             # And keep all columns which are identical in each subgroup after
             # dissolution + summable columns
             keep = (
-                gdf.drop("geometry", axis=1).groupby(keys).nunique() == 1
+                gdf.drop("geometry", axis=1)
+                .groupby(keys, dropna=False)
+                .nunique()
+                == 1
             ).all()
             keep = keep[keep].index.tolist()
 
