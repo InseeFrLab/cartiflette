@@ -10,7 +10,7 @@ DICT_CORRESP_ADMINEXPRESS = {
     "IRIS": re.compile("IRIS"),
     "REGION": re.compile("INSEE_REG"),
     "DEPARTEMENT": re.compile("INSEE_DEP"),
-    "ARRONDISSEMENT": re.compile("INSEE_ARR"),
+    "ARRONDISSEMENT": re.compile("ARR"),
     "FRANCE_ENTIERE": re.compile("PAYS"),
     "FRANCE_ENTIERE_DROM_RAPPROCHES": re.compile("PAYS"),
     # "LIBELLE_REGION": re.compile("LIBELLE_REGION"),
@@ -27,7 +27,7 @@ DICT_CORRESP_ADMINEXPRESS = {
     "COMMUNE": re.compile("INSEE_COM"),
     # "LIBELLE_COMMUNE": re.compile("LIBELLE_COMMUNE"),
     # "LIBELLE_CANTON": re.compile("LIBELLE_CANTON"),
-    "CANTON": re.compile("INSEE_CAN"),
+    "CANTON": re.compile("CAN"),
     "ARRONDISSEMENT_MUNICIPAL": re.compile("INSEE_ARM"),
     # "LIBELLE_ARRONDISSEMENT_MUNICIPAL": re.compile(
     #     "LIBELLE_ARRONDISSEMENT_MUNICIPAL"
