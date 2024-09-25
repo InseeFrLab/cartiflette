@@ -247,7 +247,7 @@ IGN:
         structure: "{url_prefix}{prefix}/{prefix}_{version}__SHP_{territory}_{date}/{prefix}_{version}__SHP_{territory}_{date}.7z"
       2023:
         prefix: IRIS-GE
-        date: "2024-01-01"
+        date: "2023-01-01"
         version: "3-0"
         url_prefix: https://data.geopf.fr/telechargement/download/
         # Nota : attention, c'est un fichier global (FRA) mais qui comprend des fichiers territoriaux -> territory reste dans pattern
@@ -623,24 +623,24 @@ Insee:
     
     POPULATION-IRIS-FRANCE-HORS-MAYOTTE:
       2022:
-        # Nota : pop 2020 with 2021 geometries
+        # Nota : pop 2020 with 2022 geometries
         article: "7704076"
         pattern: "*.xlsx"
         filename: "base-ic-evol-struct-pop-2020_xlsx.zip"
       2021:
-      # Nota : pop 2019 with 2020 geometries
+        # Nota : pop 2019 with 2021 geometries
         article: "6543200"
         pattern: "*.xlsx"
         filename: "base-ic-evol-struct-pop-2019.zip"
         
     POPULATION-IRIS-COM:
       2022:
-        # Nota : pop 2020 with 2021 geometries
+        # Nota : pop 2020 with 2022 geometries
         article: "7704076"
         pattern: "*.xlsx"
         filename: "base-ic-evol-struct-pop-2020-com_xlsx.zip"
       2021:
-        # Nota : pop 2019 with 2020 geometries
+        # Nota : pop 2019 with 2021 geometries
         article: "6543200"
         pattern: "*.xlsx"
         filename: "base-ic-evol-struct-pop-2019-com.zip"
