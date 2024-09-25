@@ -251,7 +251,7 @@ IGN:
         version: "3-0"
         url_prefix: https://data.geopf.fr/telechargement/download/
         # Nota : attention, c'est un fichier global (FRA) mais qui comprend des fichiers territoriaux -> territory reste dans pattern
-        structure: "{url_prefix}{prefix}/{prefix}_{version}__SHP_FRA_{date}/{prefix}_{version}__SHP_FRA_{date}.7z"
+        structure: "{url_prefix}{prefix}/{prefix}_{version}__SHP__FRA_{date}/{prefix}_{version}__SHP__FRA_{date}.7z"
 
 Insee:
   COG:
