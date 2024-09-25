@@ -21,6 +21,7 @@ During the operation:
 """
 
 import argparse
+from datetime import date
 import logging
 import os
 import json
@@ -43,11 +44,13 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     "-p", "--path", help="Path within bucket", default=PATH_WITHIN_BUCKET
 )
+
+default_years = ",".join(str(x) for x in range(2020, date.today().year + 1))
 parser.add_argument(
     "--years",
     type=str,
     help="List of years to perform download on (as comma separated values)",
-    default=None,
+    default=default_years,
 )
 
 parser.add_argument(
@@ -63,6 +66,10 @@ bucket = BUCKET
 path_within_bucket = args.path
 years = args.years
 skip = args.skip
+
+if os.environ.get("ENVIRONMENT", None) == "dev":
+    logging.warning("dev environment -> restrict download to 2023 & 2024 only")
+    years = "2023,2024"
 
 if years:
     years = [int(x) for x in years.split(",")]

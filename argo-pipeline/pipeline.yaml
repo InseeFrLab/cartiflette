@@ -143,7 +143,7 @@ spec:
         image: inseefrlab/cartiflette:latest
         command: [sh, -c]
         args: ["
-          python /mnt/bin/src/download_all_sources.py --path $PATH_WRITING_S3 --years 2024,2023;
+          python /mnt/bin/src/download_all_sources.py --path $PATH_WRITING_S3;
           "]
         volumeMounts:
           - name: volume-workflow-tmp
