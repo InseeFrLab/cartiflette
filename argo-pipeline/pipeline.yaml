@@ -240,8 +240,8 @@ spec:
         parameters:
           - name: year
       steps:
-        - - name: select-downstream-datasets-to-generate
-            template: select-downstream-datasets-to-generate
+        - - name: select-configs-for-generation
+            template: select-configs-for-generation
             arguments:
               parameters:
               - name: year
@@ -262,9 +262,9 @@ spec:
                 value: "{{item.dissolve_by}}"
               - name: config_generation
                 value: "{{item.config}}"
-            withParam: "{{steps.select-downstream-datasets-to-generate.outputs.parameters.configs}}"
+            withParam: "{{steps.select-configs-for-generation.outputs.parameters.configs}}"
 
-    - name: select-downstream-datasets-to-generate
+    - name: select-configs-for-generation
       inputs:
         parameters:
           - name: year
