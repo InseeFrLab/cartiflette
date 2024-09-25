@@ -90,7 +90,9 @@ def make_one_geodataset(
 
     kwargs = {"format_output": INTERMEDIATE_FORMAT}
 
-    source = f"Cartiflette d'après IGN simplifié à {simplification} %"
+    # Note : must escape the ' for the js command in mapshaper,
+    # hence the raw string
+    source = r"Cartiflette d\'après IGN simplifié à " + f"{simplification} %"
     new_dset = dset.copy()
     if with_municipal_district:
         # substitute communal districts
