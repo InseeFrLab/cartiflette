@@ -1,4 +1,3 @@
-from collections import OrderedDict
 import logging
 
 import pandas as pd
@@ -58,32 +57,11 @@ def flatten_dict_to_list(dict_with_list: dict) -> list:
     return flattened_list
 
 
-def multiindex_to_nested_dict(
-    df: pd.DataFrame, value_only=False
-) -> OrderedDict:
-    if isinstance(df.index, pd.MultiIndex):
-        return OrderedDict(
-            (k, multiindex_to_nested_dict(df.loc[k]))
-            for k in df.index.remove_unused_levels().levels[0]
-        )
-    else:
-        if value_only:
-            return OrderedDict((k, df.loc[k].values[0]) for k in df.index)
-        else:
-            d = OrderedDict()
-            for idx in df.index:
-                d_col = OrderedDict()
-                for col in df.columns:
-                    d_col[col] = df.loc[idx, col]
-                d[idx] = d_col
-            return d
-
-
 def crossproduct_parameters_production(
     list_format: list,
     year: int,
     crs_list: list,
-    simplifications: list = PIPELINE_SIMPLIFICATION_LEVELS,
+    simplifications: list = None,
     fs: S3FileSystem = FS,
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
@@ -107,7 +85,7 @@ def crossproduct_parameters_production(
         For ex. [4326, 2154]
     simplifications : list, optional
         A list of simplification for cross-product generation. The default is
-        PIPELINE_SIMPLIFICATION_LEVELS.
+        None and will result to PIPELINE_SIMPLIFICATION_LEVELS.
     fs : S3FileSystem, optional
         S3FileSystem used for storage. The default is FS.
     bucket : str, optional
@@ -181,6 +159,9 @@ def crossproduct_parameters_production(
             }
         ]
     """
+
+    if not simplifications:
+        simplifications = PIPELINE_SIMPLIFICATION_LEVELS
 
     # prepare a list of (potential) sources from cartiflette's config
     # (the result will depend of the resolution in the config)
@@ -341,7 +322,7 @@ def crossproduct_parameters_production(
     )
 
     logger.debug(
-        f"found {len(combinations)} combinations of downstream geodatasets"
+        "found %s combinations of downstream geodatasets", len(combinations)
     )
 
     # get best combination available among COMMUNE/IRIS/CANTON
@@ -380,7 +361,8 @@ def crossproduct_parameters_production(
             "territory",
         ],
     )
-    logger.info(f"{len(combinations)} pods will be created")
+    logger.info("%s pods will be created", len(combinations))
+    logger.info("combinations are %s", combinations)
 
     combinations = [
         {

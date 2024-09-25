@@ -91,6 +91,11 @@ def main(
         simplifications if simplifications else PIPELINE_SIMPLIFICATION_LEVELS
     )
 
+    logger.info("Crossproduct with year=%s", year)
+    logger.info("Crossproduct with simplifications=%s", simplifications)
+    logger.info("Crossproduct with formats=%s", formats)
+    logger.info("Crossproduct with crs=%s", crs)
+
     configs = crossproduct_parameters_production(
         list_format=formats,
         year=year,
