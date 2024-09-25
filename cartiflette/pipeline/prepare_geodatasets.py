@@ -23,10 +23,12 @@ from cartiflette.config import (
     PATH_WITHIN_BUCKET,
     THREADS_DOWNLOAD,
     INTERMEDIATE_FORMAT,
+    DATASETS_HIGH_RESOLUTION,
 )
 from cartiflette.pipeline_constants import (
     PIPELINE_DOWNLOAD_ARGS,
     PIPELINE_SIMPLIFICATION_LEVELS,
+    COG_TERRITOIRE,
 )
 from cartiflette.s3.geodataset import (
     S3GeoDataset,
@@ -187,7 +189,7 @@ def create_one_year_geodataset_batch(
         "path_within_bucket": path_within_bucket,
         "provider": "IGN",
         "dataset_family": "ADMINEXPRESS",
-        "source": "EXPRESS-COG-CARTO-TERRITOIRE",
+        "source": COG_TERRITOIRE[DATASETS_HIGH_RESOLUTION],
         "borders": None,
         "crs": "*",
         "filter_by": "origin",

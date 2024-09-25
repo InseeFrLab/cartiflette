@@ -144,23 +144,25 @@ def mapshaperize_split_from_s3(
     return {"success": len(success), "skipped": len(skipped)}
 
 
-if __name__ == "__main__":
-    import logging
+# if __name__ == "__main__":
+#     import logging
+#     from cartiflette.pipeline_constants import COG_TERRITOIRE
+#     from cartiflette.config import DATASETS_HIGH_RESOLUTION
 
-    logging.basicConfig(level=logging.INFO)
+#     logging.basicConfig(level=logging.INFO)
 
-    mapshaperize_split_from_s3(
-        year=2023,
-        init_geometry_level="ARRONDISSEMENT_MUNICIPAL",
-        source="EXPRESS-COG-CARTO-TERRITOIRE",
-        simplification=40,
-        dissolve_by="DEPARTEMENT",
-        config_generation={
-            "FRANCE_ENTIERE_DROM_RAPPROCHES": [
-                {"format_output": "gpkg", "epsg": "4326"},
-                {"format_output": "geojson", "epsg": "4326"},
-                {"format_output": "gpkg", "epsg": "2154"},
-                {"format_output": "geojson", "epsg": "2154"},
-            ]
-        },
-    )
+#     mapshaperize_split_from_s3(
+#         year=2023,
+#         init_geometry_level="ARRONDISSEMENT_MUNICIPAL",
+#         source=COG_TERRITOIRE[DATASETS_HIGH_RESOLUTION],
+#         simplification=40,
+#         dissolve_by="DEPARTEMENT",
+#         config_generation={
+#             "FRANCE_ENTIERE_DROM_RAPPROCHES": [
+#                 {"format_output": "gpkg", "epsg": "4326"},
+#                 {"format_output": "geojson", "epsg": "4326"},
+#                 {"format_output": "gpkg", "epsg": "2154"},
+#                 {"format_output": "geojson", "epsg": "2154"},
+#             ]
+#         },
+#     )

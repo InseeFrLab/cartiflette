@@ -14,12 +14,14 @@ import os
 
 from s3fs import S3FileSystem
 
-from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
-from cartiflette.pipeline import (
-    mapshaperize_split_from_s3,
-    # mapshaperize_merge_split_from_s3,
+from cartiflette.config import (
+    BUCKET,
+    PATH_WITHIN_BUCKET,
+    FS,
+    DATASETS_HIGH_RESOLUTION,
 )
-
+from cartiflette.pipeline import mapshaperize_split_from_s3
+from cartiflette.pipeline_constants import COG_TERRITOIRE
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -46,7 +48,7 @@ parser.add_argument(
 parser.add_argument(
     "-so",
     "--source",
-    default="EXPRESS-COG-CARTO-TERRITOIRE",
+    default=COG_TERRITOIRE[DATASETS_HIGH_RESOLUTION],
     help="Select upstream raw source to use for geometries",
 )
 parser.add_argument(

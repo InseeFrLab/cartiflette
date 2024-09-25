@@ -1,10 +1,12 @@
 """A simple API to expose cartiflette files"""
+
 import typing
 from fastapi import FastAPI, Response
 from fastapi.responses import FileResponse
 
 from cartiflette.api import download_from_cartiflette_inner
-from cartiflette.config import PATH_WITHIN_BUCKET
+from cartiflette.config import PATH_WITHIN_BUCKET, DATASETS_HIGH_RESOLUTION
+from cartiflette.pipeline_constants import COG_TERRITOIRE  # , IRIS
 
 app = FastAPI(
     title="API de récupération des fonds de carte avec <code>cartiflette</code>",
@@ -42,9 +44,10 @@ def download_from_cartiflette_api(
         year=2022,
         crs=4326,
         simplification=simplification,
-        provider="IGN",
-        dataset_family="ADMINEXPRESS",
-        source="EXPRESS-COG-CARTO-TERRITOIRE",
+        provider="Cartiflette",
+        dataset_family="production",
+        # TODO : source can also be IRIS[DATASETS_HIGH_RESOLUTION]
+        source=COG_TERRITOIRE[DATASETS_HIGH_RESOLUTION],
         return_as_json=False,
         path_within_bucket=PATH_WITHIN_BUCKET,
     )
