@@ -325,6 +325,9 @@ def crossproduct_parameters_production(
         "found %s combinations of downstream geodatasets", len(combinations)
     )
 
+    if len(combinations) == 0:
+        raise ValueError(f"no combination available for {year=}")
+
     # get best combination available among COMMUNE/IRIS/CANTON
     # -> for each geodataset to generate, keep COMMUNE if available, IRIS
     # otherwise (and CANTON for border=CANTON generation)
