@@ -24,6 +24,7 @@ spec:
   # ---------------------------
 
       dag:
+        failFast: false
         tasks:
 
           # TASK 0 : MOUNT VOLUMES AND CHECK PERMISSIONS
