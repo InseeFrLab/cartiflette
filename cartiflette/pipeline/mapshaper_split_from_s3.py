@@ -3,6 +3,9 @@
 
 import logging
 import traceback
+from typing import List
+
+from pebble import ThreadPool
 from s3fs import S3FileSystem
 
 
@@ -11,6 +14,7 @@ from cartiflette.config import (
     PATH_WITHIN_BUCKET,
     FS,
     INTERMEDIATE_FORMAT,
+    THREADS_DOWNLOAD,
 )
 from cartiflette.s3 import S3GeoDataset, S3Dataset
 
@@ -28,7 +32,6 @@ def mapshaperize_split_from_s3(
     fs: S3FileSystem = FS,
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
-    # config, format_intermediate: str = "topojson", fs=FS
 ):
 
     kwargs = {
@@ -118,30 +121,114 @@ def mapshaperize_split_from_s3(
                     )
     if skipped:
         for one_skipped in skipped:
-            logger.warning("-" * 50)
-            logger.warning(one_skipped["warning"])
-            logger.warning("aggregation: %s", one_skipped["aggreg"])
-            logger.warning("config: %s", one_skipped["config"])
+            msg = "\n".join(
+                [
+                    "-" * 50,
+                    one_skipped["warning"],
+                    f"aggregation: {one_skipped['aggreg']}",
+                    f"config: {one_skipped['config']}",
+                ]
+            )
+            logger.warning(msg)
     if failed:
         for one_failed in failed:
-            logger.error("=" * 50)
-            logger.error("error: %s", one_failed["error"])
-            logger.error("aggregation: %s", one_failed["aggreg"])
-            logger.error("config: %s", one_failed["config"])
-            logger.error("-" * 50)
-            logger.error("traceback:\n%s", one_failed["traceback"])
+            msg = "\n".join(
+                [
+                    "=" * 50,
+                    f"error: {one_failed['error']}",
+                    f"aggregation: {one_failed['aggreg']}",
+                    f"config: {one_failed['config']}",
+                    "-" * 50,
+                    f"traceback:\n{one_failed['traceback']}",
+                ]
+            )
+            logger.error(msg)
+
+    return {
+        "success": len(success),
+        "skipped": len(skipped),
+        "failed": len(failed),
+    }
+
+
+def mapshaperize_split_from_s3_multithreading(
+    year: int,
+    configs: List[dict],
+    fs: S3FileSystem = FS,
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
+):
+
+    results = {"success": 0, "skipped": 0, "failed": 0}
+    if len(THREADS_DOWNLOAD) > 1:
+        with ThreadPool(min(len(configs), THREADS_DOWNLOAD)) as pool:
+            args = [
+                (
+                    year,
+                    d["mesh_init"],
+                    d["source_geodata"],
+                    d["simplification"],
+                    d["dissolve_by"],
+                    d["config"],
+                    fs,
+                    bucket,
+                    path_within_bucket,
+                )
+                for d in configs
+            ]
+            iterator = pool.map(
+                mapshaperize_split_from_s3, *zip(*args), timeout=60 * 10
+            ).result()
+
+            failed = False
+            index = 0
+            while True:
+                try:
+                    this_result = next(iterator)
+                except StopIteration:
+                    break
+                except Exception:
+                    logger.error(traceback.format_exc())
+                    logger.error("args were %s", args[index])
+                else:
+                    for key in "success", "skipped", "failed":
+                        results[key] += this_result[key]
+                finally:
+                    index += 1
+    else:
+        for d in configs:
+            try:
+                this_result = mapshaperize_split_from_s3(
+                    year=year,
+                    fs=fs,
+                    bucket=bucket,
+                    path_within_bucket=path_within_bucket,
+                    **d,
+                )
+            except Exception:
+                logger.error(traceback.format_exc())
+                logger.error("args were %s", d)
+            else:
+                for key in "success", "skipped", "failed":
+                    results[key] += this_result[key]
+
+    skipped = results["skipped"]
+    success = results["success"]
+    failed = results["failed"]
 
     logger.info(
-        f"{len(skipped)} file(s) generation(s) were skipped : %s",
+        "%s file(s) generation(s) were skipped : %s",
+        len(skipped),
         skipped,
     )
     logger.info(
-        f"{len(success)} file(s) generation(s) succeeded : %s", success
+        "%s file(s) generation(s) succeeded : %s",
+        len(success),
+        success,
     )
+    logger.error("%s file(s) generation(s) failed: %s", len(failed), failed)
     if failed:
-        raise ValueError(f"{len(failed)} file(s) generation(s) failed")
-
-    return {"success": len(success), "skipped": len(skipped)}
+        raise ValueError("some datasets' generation failed")
 
 
 # if __name__ == "__main__":

@@ -253,17 +253,8 @@ spec:
               parameters:
               - name: year
                 value: "{{inputs.parameters.year}}"
-              - name: init_geometry_level
-                value: "{{item.mesh_init}}"
-              - name: source
-                value: "{{item.source_geodata}}"
-              - name: simplification
-                value: "{{item.simplification}}"
-              - name: dissolve_by
-                value: "{{item.dissolve_by}}"
               - name: config_generation
-                value: "{{item.config}}"
-            withParam: "{{steps.select-configs-for-generation.outputs.parameters.configs}}"
+                value: "{{steps.select-configs-for-generation.outputs.parameters.configs}}"
 
     - name: select-configs-for-generation
       inputs:
@@ -289,26 +280,18 @@ spec:
       inputs:
         parameters:
         - name: year
-        - name: init_geometry_level
-        - name: source
-        - name: simplification
-        - name: dissolve_by
         - name: config_generation
       outputs:
         parameters:
         - name: result
           valueFrom:
-            path: "{{ inputs.parameters.year }}/{{ inputs.parameters.init_geometry_level }}/{{ inputs.parameters.source }}/{{ inputs.parameters.simplification }}/{{ inputs.parameters.dissolve_by }}/result.json"
+            path: "generation/{{ inputs.parameters.year }}/result.json"
       container:
         image: inseefrlab/cartiflette:latest
         command: ["sh", "-c"]
         args: ["
           python /mnt/bin/src/split_merge_tiles.py \
           --year '{{inputs.parameters.year}}' \
-          --level_polygons_init '{{inputs.parameters.init_geometry_level}}' \
-          --source '{{inputs.parameters.source}}' \
-          --simplification '{{inputs.parameters.simplification}}' \
-          --dissolve_by '{{inputs.parameters.dissolve_by}}' \
           --config_generation '{{inputs.parameters.config_generation}}'"
         ]
         volumeMounts:
