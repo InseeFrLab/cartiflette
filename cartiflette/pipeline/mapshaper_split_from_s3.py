@@ -217,16 +217,16 @@ def mapshaperize_split_from_s3_multithreading(
     failed = results["failed"]
 
     logger.info(
-        "%s file(s) generation(s) were skipped : %s",
+        "%s dataset(s) generation(s) were skipped : %s",
         len(skipped),
         skipped,
     )
     logger.info(
-        "%s file(s) generation(s) succeeded : %s",
+        "%s dataset(s) generation(s) succeeded : %s",
         len(success),
         success,
     )
-    logger.error("%s file(s) generation(s) failed: %s", len(failed), failed)
+    logger.error("%s dataset(s) generation(s) failed: %s", len(failed), failed)
     if failed:
         raise ValueError("some datasets' generation failed")
 
