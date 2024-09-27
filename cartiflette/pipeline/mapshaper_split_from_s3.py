@@ -33,6 +33,12 @@ def mapshaperize_split_from_s3(
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
 ):
+    logger.info(
+        "processing %s from '%s' geometries and dissolve on '%s'",
+        year,
+        init_geometry_level,
+        dissolve_by,
+    )
 
     kwargs = {
         "fs": fs,
@@ -160,7 +166,7 @@ def mapshaperize_split_from_s3_multithreading(
 ):
 
     results = {"success": 0, "skipped": 0, "failed": 0}
-    if len(THREADS_DOWNLOAD) > 1:
+    if THREADS_DOWNLOAD > 1:
         with ThreadPool(min(len(configs), THREADS_DOWNLOAD)) as pool:
             args = [
                 (
@@ -197,6 +203,9 @@ def mapshaperize_split_from_s3_multithreading(
                     index += 1
     else:
         for d in configs:
+            d["init_geometry_level"] = d.pop("mesh_init")
+            d["source"] = d.pop("source_geodata")
+            d["config_generation"] = d.pop("config")
             try:
                 this_result = mapshaperize_split_from_s3(
                     year=year,
@@ -216,17 +225,9 @@ def mapshaperize_split_from_s3_multithreading(
     success = results["success"]
     failed = results["failed"]
 
-    logger.info(
-        "%s file(s) generation(s) were skipped : %s",
-        len(skipped),
-        skipped,
-    )
-    logger.info(
-        "%s file(s) generation(s) succeeded : %s",
-        len(success),
-        success,
-    )
-    logger.error("%s file(s) generation(s) failed: %s", len(failed), failed)
+    logger.info("%s file(s) generation(s) were skipped", skipped)
+    logger.info("%s file(s) generation(s) succeeded", success)
+    logger.error("%s file(s) generation(s) failed", failed)
     if failed:
         raise ValueError("some datasets' generation failed")
 

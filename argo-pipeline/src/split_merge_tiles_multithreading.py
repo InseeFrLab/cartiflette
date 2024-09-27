@@ -59,7 +59,7 @@ def main(
 
     result = mapshaperize_split_from_s3_multithreading(
         year=year,
-        config_generation=config_generation,
+        configs=config_generation,
         bucket=bucket,
         path_within_bucket=path_within_bucket,
         fs=fs,
