@@ -3,6 +3,7 @@
 from contextlib import ExitStack
 from copy import deepcopy
 from glob import glob
+from itertools import product
 import logging
 import os
 import re
@@ -38,6 +39,7 @@ from cartiflette.mapshaper import (
 )
 from cartiflette.utils import ConfigDict
 from cartiflette.config import FS, THREADS_DOWNLOAD, INTERMEDIATE_FORMAT
+from cartiflette.pipeline_constants import PIPELINE_CRS, PIPELINE_FORMATS
 from cartiflette.utils.dict_correspondance import (
     create_format_driver,
     create_format_standardized,
@@ -448,7 +450,6 @@ class S3GeoDataset(S3Dataset):
         dissolve_by="COMMUNE",
         niveau_agreg="DEPARTEMENT",
         simplification=0,
-        output_crs_conf: list = None,
     ) -> List[Self]:
         """
         TODO : update docstring (arguments also)
@@ -505,6 +506,11 @@ class S3GeoDataset(S3Dataset):
             The output path of the processed and split shapefiles.
 
         """
+
+        output_crs_conf = [
+            {"epsg": x[0], "format_output": x[1]}
+            for x in product(PIPELINE_CRS, PIPELINE_FORMATS)
+        ]
 
         niveau_agreg = niveau_agreg.upper()
         init_geometry_level = init_geometry_level.upper()

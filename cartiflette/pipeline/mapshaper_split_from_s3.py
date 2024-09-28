@@ -28,7 +28,7 @@ def mapshaperize_split_from_s3(
     source: str,
     simplification: int,
     dissolve_by: str,
-    config_generation: dict,
+    territorial_splits: list,
     fs: S3FileSystem = FS,
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
@@ -70,7 +70,7 @@ def mapshaperize_split_from_s3(
         failed = []
         success = []
         skipped = []
-        for niveau_agreg, territory_configs in config_generation.items():
+        for niveau_agreg in territorial_splits:
 
             # Check that both niveau_agreg and dissolve_by correspond to
             # definitive fields from either metadata/geodata
@@ -94,7 +94,6 @@ def mapshaperize_split_from_s3(
                     {
                         "warning": " - ".join(warnings),
                         "aggreg": niveau_agreg,
-                        "config": territory_configs,
                     }
                 )
                 continue
@@ -103,7 +102,6 @@ def mapshaperize_split_from_s3(
                 try:
                     gis_copy.create_downstream_geodatasets(
                         metadata,
-                        output_crs_conf=territory_configs,
                         niveau_agreg=niveau_agreg,
                         init_geometry_level=init_geometry_level,
                         dissolve_by=dissolve_by,
@@ -114,7 +112,6 @@ def mapshaperize_split_from_s3(
                         {
                             "error": exc,
                             "aggreg": niveau_agreg,
-                            "config": territory_configs,
                             "traceback": traceback.format_exc(),
                         }
                     )
@@ -122,7 +119,6 @@ def mapshaperize_split_from_s3(
                     success.append(
                         {
                             "aggreg": niveau_agreg,
-                            "config": territory_configs,
                         }
                     )
     if skipped:
@@ -175,7 +171,7 @@ def mapshaperize_split_from_s3_multithreading(
                     d["source_geodata"],
                     d["simplification"],
                     d["dissolve_by"],
-                    d["config"],
+                    d["territories"],
                     fs,
                     bucket,
                     path_within_bucket,
@@ -205,7 +201,7 @@ def mapshaperize_split_from_s3_multithreading(
         for d in configs:
             d["init_geometry_level"] = d.pop("mesh_init")
             d["source"] = d.pop("source_geodata")
-            d["config_generation"] = d.pop("config")
+            d["territorial_splits"] = d.pop("config")
             try:
                 this_result = mapshaperize_split_from_s3(
                     year=year,

@@ -58,9 +58,7 @@ def flatten_dict_to_list(dict_with_list: dict) -> list:
 
 
 def crossproduct_parameters_production(
-    list_format: list,
     year: int,
-    crs_list: list,
     simplifications: list = None,
     fs: S3FileSystem = FS,
     bucket: str = BUCKET,
@@ -76,13 +74,8 @@ def crossproduct_parameters_production(
 
     Parameters:
     -----------
-    list_format : list
-        A list of desired formats. For ex. ['geojson', 'topojson']
     year : int
         Desired vintage. For ex. 2023
-    crs_list : list
-        A list of desired epsg (Coordinate Reference Systems).
-        For ex. [4326, 2154]
     simplifications : list, optional
         A list of simplification for cross-product generation. The default is
         None and will result to PIPELINE_SIMPLIFICATION_LEVELS.
@@ -105,59 +98,30 @@ def crossproduct_parameters_production(
             * source_geodata: str (for instance 'EXPRESS-COG-CARTO-TERRITOIRE')
             * simplification: str (for instance '2021')
             * dissolve_by: str (for instance 'ARRONDISSEMENT')
-            * config: List[dict]
-
-        Each config dictionnary has the following structure and should
-        correspond to a specific geodataset to be generated.
-
-        {
-            'territory': territorial split ('REGION', 'FRANCE_ENTIERE', ...): [
-                {
-                    'epsg':
-                        desired EPSG projection ('4326', ...)
-                    'format_output':
-                        desired format ('topojson', ...)
-                }, ...
-            ]
-        }
+            * config: List[str] of territorial splits
 
     Example:
     --------
     Example usage:
-        >>> formats = ['geojson', 'gpkg']
         >>> year = 2023
-        >>> crs_list = [4326, 2154]
         >>> simplifications = [0, 40]
-        >>> result = crossproduct_parameters_production(
-               formats, year, crs_list, simplifications
-            )
+        >>> result = crossproduct_parameters_production(year, simplifications)
         >>> print(result)
-        >>> [
-            {
-                'mesh_init': 'CANTON',
-                'source_geodata': 'EXPRESS-COG-CARTO-TERRITOIRE',
-                'simplification': 0,
-                'dissolve_by': 'CANTON',
-                'config': {
-                    'FRANCE_ENTIERE': [{
-                            'format_output': 'gpkg',
-                            'epsg': 4326
-                        }, ...
-                    ],
-                    'FRANCE_ENTIERE_DROM_RAPPROCHES': [{
-                            'format_output': 'gpkg',
-                            'epsg': 4326
-                        }, ...
-                    ], ...
-                }
-            }, {
-                'mesh_init': 'CANTON',
+        >>> [{
+                'mesh_init': 'ARRONDISSEMENT_MUNICIPAL',
                 'source_geodata': 'EXPRESS-COG-CARTO-TERRITOIRE',
                 'simplification': 40,
-                'dissolve_by': 'CANTON',
-                'config': {...}
+                'dissolve_by': 'ARRONDISSEMENT_MUNICIPAL',
+                'territories': ['ZONE_EMPLOI', ..., 'AIRE_ATTRACTION_VILLES']
+            }, ..., {
+                'mesh_init': 'IRIS',
+                'source_geodata': 'CONTOUR-IRIS',
+                'simplification': 40,
+                'dissolve_by': 'IRIS',
+                'territories': ['ZONE_EMPLOI', ..., 'AIRE_ATTRACTION_VILLES']
             }
         ]
+
     """
 
     if not simplifications:
@@ -214,10 +178,11 @@ def crossproduct_parameters_production(
         )
     )
     combinations = (
-        combinations.join(
-            pd.Series(list_format, name="format_output"), how="cross"
-        )
-        .join(pd.Series(crs_list, name="epsg"), how="cross")
+        combinations
+        # .join(
+        #     pd.Series(list_format, name="format_output"), how="cross"
+        # )
+        # .join(pd.Series(crs_list, name="epsg"), how="cross")
         .join(pd.Series(simplifications, name="simplification"), how="cross")
     )
 
@@ -334,37 +299,22 @@ def crossproduct_parameters_production(
     dups = [
         "dissolve_by",
         "territory",
-        "format_output",
-        "epsg",
+        # "format_output",
+        # "epsg",
         "simplification",
         "mesh_init",
     ]
     combinations = combinations.sort_values(dups, ascending=False)
     combinations = combinations.drop_duplicates(dups[:-1], keep="last")
 
-    def cascade_dict(df, keys: list):
-        try:
-            return (
-                df.set_index(keys[0])
-                .groupby(keys[0])
-                .apply(lambda x: cascade_dict(x, keys[1:]))
-            ).to_dict()
-        except (AttributeError, IndexError, ValueError):
-            return (
-                df.set_index(keys)
-                .groupby(keys)
-                .apply(lambda x: x.to_dict(orient="records"))
-                .to_dict()
-            )
-
-    combinations = cascade_dict(
-        combinations,
-        [
-            ["mesh_init", "geodata_source", "simplification", "dissolve_by"],
-            "territory",
-        ],
+    keys = ["mesh_init", "geodata_source", "simplification", "dissolve_by"]
+    combinations = (
+        combinations.set_index(keys)
+        .groupby(keys)["territory"]
+        .agg(list)
+        .to_dict()
     )
-    logger.info("%s pods will be created", len(combinations))
+    logger.info("%s batch datasets will be created", len(combinations))
     logger.info("combinations are %s", combinations)
 
     combinations = [
@@ -373,7 +323,7 @@ def crossproduct_parameters_production(
             "source_geodata": key[1],
             "simplification": key[2],
             "dissolve_by": key[3],
-            "config": val,
+            "territories": val,
         }
         for key, val in combinations.items()
     ]

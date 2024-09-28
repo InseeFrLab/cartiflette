@@ -22,8 +22,8 @@ from cartiflette.config import (
 )
 from cartiflette.pipeline_constants import (
     PIPELINE_SIMPLIFICATION_LEVELS,
-    PIPELINE_FORMATS,
-    PIPELINE_CRS,
+    # PIPELINE_FORMATS,
+    # PIPELINE_CRS,
 )
 
 logger = logging.getLogger(__name__)
@@ -44,19 +44,19 @@ parser.add_argument(
     help="Filter downstream vintage to process",
 )
 
-parser.add_argument(
-    "-f",
-    "--formats",
-    default=",".join(PIPELINE_FORMATS),
-    help="Desired output formats, as a comma separated values list",
-)
+# parser.add_argument(
+#     "-f",
+#     "--formats",
+#     default=",".join(PIPELINE_FORMATS),
+#     help="Desired output formats, as a comma separated values list",
+# )
 
-parser.add_argument(
-    "-c",
-    "--crs",
-    default=",".join([str(x) for x in PIPELINE_CRS]),
-    help="Desired projections as EPSG codes, as a comma separated values list",
-)
+# parser.add_argument(
+#     "-c",
+#     "--crs",
+#     default=",".join([str(x) for x in PIPELINE_CRS]),
+#     help="Desired projections as EPSG codes, as a comma separated values list",
+# )
 
 parser.add_argument(
     "-s",
@@ -69,8 +69,8 @@ parser.add_argument(
 args = parser.parse_args()
 
 year = args.year
-formats = args.formats.split(",")
-crs = args.crs.split(",")
+# formats = args.formats.split(",")
+# crs = args.crs.split(",")
 simplifications = args.simplifications.split(",")
 
 
@@ -97,9 +97,9 @@ def main(
     logger.info("Crossproduct with crs=%s", crs)
 
     configs = crossproduct_parameters_production(
-        list_format=formats,
+        # list_format=formats,
         year=year,
-        crs_list=crs,
+        # crs_list=crs,
         simplifications=simplifications,
         fs=fs,
         bucket=bucket,
@@ -120,8 +120,6 @@ if __name__ == "__main__":
     configs = main(
         year=year,
         simplifications=simplifications,
-        formats=formats,
-        crs=crs,
         bucket=BUCKET,
         path_within_bucket=PATH_WITHIN_BUCKET,
         fs=FS,

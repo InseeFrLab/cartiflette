@@ -40,9 +40,9 @@ parser.add_argument(
 
 parser.add_argument(
     "-c",
-    "--config_generation",
-    default='[{"mesh_init":"ARRONDISSEMENT_MUNICIPAL","source_geodata":"EXPRESS-COG-TERRITOIRE","simplification":"0","dissolve_by":"ARRONDISSEMENT_MUNICIPAL","config":{"AIRE_ATTRACTION_VILLES":[{"format_output":"topojson","epsg":"4326"}],"ARRONDISSEMENT":[{"format_output":"topojson","epsg":"4326"}]}}]',
-    help="Desired split level",
+    "--configs",
+    default="[{'mesh_init':'ARRONDISSEMENT_MUNICIPAL','source_geodata':'EXPRESS-COG-CARTO-TERRITOIRE','simplification':40,'dissolve_by':'ARRONDISSEMENT_MUNICIPAL','territories':['FRANCE_ENTIERE_DROM_RAPPROCHES','FRANCE_ENTIERE']}]",
+    help="Configurations for child datasets",
 )
 
 # Parse the arguments
