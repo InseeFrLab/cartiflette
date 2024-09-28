@@ -70,6 +70,9 @@ def mapshaperize_split_from_s3(
         failed = []
         success = []
         skipped = []
+        logger.warning("="*50)
+        logger.warning(config_generation)
+        logger.warning("="*50)
         for niveau_agreg, territory_configs in config_generation.items():
 
             # Check that both niveau_agreg and dissolve_by correspond to
