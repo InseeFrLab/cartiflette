@@ -185,6 +185,9 @@ def mapshaperize_split_from_s3_multithreading(
                 )
                 for d in configs
             ]
+            logger.warning("$"*50)
+            logger.warning(args)
+            logger.warning("$"*50)
             iterator = pool.map(
                 mapshaperize_split_from_s3, *zip(*args), timeout=60 * 10
             ).result()
