@@ -290,7 +290,7 @@ spec:
         image: inseefrlab/cartiflette:latest
         command: ["sh", "-c"]
         args: ["
-          python /mnt/bin/src/split_merge_tiles.py \
+          python /mnt/bin/src/split_merge_tiles_multithreading.py \
           --year '{{inputs.parameters.year}}' \
           --config_generation '{{inputs.parameters.config_generation}}'"
         ]

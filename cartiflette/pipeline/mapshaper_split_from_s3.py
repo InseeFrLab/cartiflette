@@ -70,9 +70,6 @@ def mapshaperize_split_from_s3(
         failed = []
         success = []
         skipped = []
-        logger.warning("="*50)
-        logger.warning(config_generation)
-        logger.warning("="*50)
         for niveau_agreg, territory_configs in config_generation.items():
 
             # Check that both niveau_agreg and dissolve_by correspond to
@@ -185,9 +182,6 @@ def mapshaperize_split_from_s3_multithreading(
                 )
                 for d in configs
             ]
-            logger.warning("$"*50)
-            logger.warning(args)
-            logger.warning("$"*50)
             iterator = pool.map(
                 mapshaperize_split_from_s3, *zip(*args), timeout=60 * 10
             ).result()
@@ -234,7 +228,7 @@ def mapshaperize_split_from_s3_multithreading(
     logger.info("%s file(s) generation(s) were skipped", skipped)
     logger.info("%s file(s) generation(s) succeeded", success)
     logger.error("%s file(s) generation(s) failed", failed)
-    
+
     if failed:
         raise ValueError("some datasets' generation failed")
 
