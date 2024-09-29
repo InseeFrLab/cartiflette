@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 logger.info("=" * 50)
-logger.info("\n" + __doc__)
+logger.info("\n%s", __doc__)
 logger.info("=" * 50)
 
 parser = argparse.ArgumentParser(description="Process command line arguments.")
@@ -70,7 +70,7 @@ def main(
         os.makedirs(os.path.dirname(out_path))
     except FileExistsError:
         pass
-    with open(out_path, "w") as out:
+    with open(out_path, "w", encoding="utf8") as out:
         json.dump(result, out)
 
     return result
@@ -79,7 +79,7 @@ def main(
 if __name__ == "__main__":
     main(
         year=args.year,
-        config_generation=json.loads(args.config_generation),
+        config_generation=json.loads(args.configs),
         bucket=BUCKET,
         path_within_bucket=PATH_WITHIN_BUCKET,
         fs=FS,

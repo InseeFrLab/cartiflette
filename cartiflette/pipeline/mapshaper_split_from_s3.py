@@ -228,6 +228,12 @@ def mapshaperize_split_from_s3_multithreading(
     if failed:
         raise ValueError("some datasets' generation failed")
 
+    return {
+        "success": len(success),
+        "skipped": len(skipped),
+        "failed": len(failed),
+    }
+
 
 # if __name__ == "__main__":
 #     import logging
