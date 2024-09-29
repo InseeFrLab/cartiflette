@@ -292,7 +292,7 @@ spec:
         args: ["
           python /mnt/bin/src/split_merge_tiles_multithreading.py \
           --year '{{inputs.parameters.year}}' \
-          --config_generation '{{inputs.parameters.config_generation}}'"
+          --configs '{{inputs.parameters.config_generation}}'"
         ]
         volumeMounts:
           - name: volume-workflow-tmp
