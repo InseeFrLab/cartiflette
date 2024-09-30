@@ -147,9 +147,9 @@ def mapshaperize_split_from_s3(
             logger.error(msg)
 
     return {
-        "success": len(success),
-        "skipped": len(skipped),
-        "failed": len(failed),
+        "success": success,
+        "skipped": skipped,
+        "failed": failed,
     }
 
 
