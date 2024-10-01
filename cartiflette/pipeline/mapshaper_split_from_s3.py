@@ -194,7 +194,7 @@ def mapshaperize_split_from_s3_multithreading(
                     logger.error("args were %s", args[index])
                 else:
                     for key in "success", "skipped", "failed":
-                        results[key] += this_result[key]
+                        results[key] += len(this_result[key])
                 finally:
                     index += 1
     else:
