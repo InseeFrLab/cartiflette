@@ -86,7 +86,7 @@ def main(
                 path_within_bucket=path_within_bucket,
                 year=year,
             )
-            if metadata.empty:
+            if metadata is None:
                 continue
 
             for key in [
@@ -99,7 +99,7 @@ def main(
                     metadata_border = metadata[key]
                 except KeyError:
                     continue
-                if metadata_border is None:
+                if metadata_border.empty:
                     continue
                 config["borders"] = key
                 path_raw_s3 = create_path_bucket(config)
