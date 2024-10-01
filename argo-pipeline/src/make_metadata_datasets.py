@@ -86,7 +86,7 @@ def main(
                 path_within_bucket=path_within_bucket,
                 year=year,
             )
-            if metadata is None:
+            if metadata.empty:
                 continue
 
             for key in [
