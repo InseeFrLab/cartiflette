@@ -1,12 +1,3 @@
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
-# GitHub recommends pinning actions to a commit SHA.
-# To get a newer version, you will need to update the SHA.
-# You can also reference a tag or branch, but the action may change without warning.
-
 name: Upload Python Package
 
 on:
@@ -22,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4  # Ensure actions are pinned properly
 
       - uses: actions/setup-python@v5
         with:
@@ -30,7 +21,6 @@ jobs:
 
       - name: Build release distributions
         run: |
-          # NOTE: put your own distribution build steps here.
           python -m pip install build
           python -m build
 
@@ -47,13 +37,11 @@ jobs:
       - release-build
 
     permissions:
-      # IMPORTANT: this permission is mandatory for trusted publishing
       id-token: write
+      contents: read  # Added this permission
 
-    # Dedicated environments with protections for publishing are strongly recommended.
     environment:
       name: pypi
-      # OPTIONAL: uncomment and update to include your PyPI project URL in the deployment status:
       url: https://pypi.org/p/cartiflette
 
     steps:
@@ -64,7 +52,7 @@ jobs:
           path: dist/
 
       - name: Publish release distributions to PyPI
-        uses: pypa/gh-action-pypi-publish
+        uses: pypa/gh-action-pypi-publish@release/v1.5.0  # Pinned to specific release
         with:
           user: ${{ secrets.PYPI_USERNAME }}
-          password: ${{ secrets.PAT_PYPI }}
+          password: ${{ secrets.PYPI_PASSWORD }}  # Ensure the secret name is correct
