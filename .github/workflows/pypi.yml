@@ -54,7 +54,7 @@ jobs:
     environment:
       name: pypi
       # OPTIONAL: uncomment and update to include your PyPI project URL in the deployment status:
-      # url: https://pypi.org/p/YOURPROJECT
+      url: https://pypi.org/p/cartiflette
 
     steps:
       - name: Retrieve release distributions
