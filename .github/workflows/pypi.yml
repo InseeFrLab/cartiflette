@@ -54,5 +54,5 @@ jobs:
       - name: Publish release distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          user: ${{ secrets.PYPI_USERNAME }}
+          user: __token__
           password: ${{ secrets.PYPI_PASSWORD }}  # Ensure the secret name is correct
