@@ -52,7 +52,7 @@ jobs:
           path: dist/
 
       - name: Publish release distributions to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1.5.0  # Pinned to specific release
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: ${{ secrets.PYPI_USERNAME }}
           password: ${{ secrets.PYPI_PASSWORD }}  # Ensure the secret name is correct
