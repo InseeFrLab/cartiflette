@@ -41,7 +41,7 @@ jobs:
       contents: read  # Added this permission
 
     environment:
-      name: pypi
+      name: publish
       url: https://pypi.org/p/cartiflette
 
     steps:
