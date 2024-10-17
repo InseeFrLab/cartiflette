@@ -117,7 +117,7 @@ mapshaperize_split_from_s3(
 mapshaperize_merge_split_from_s3(
     {
         "path_within_bucket": path_within_bucket,
-        "level_polygons": "COMMUNE_ARRONDISSEMENT",
+        "level_polygons": "ARRONDISSEMENT_MUNICIPAL",
         "filter_by": "FRANCE_ENTIERE_DROM_RAPPROCHES",
         "simplification": 50,
     }
@@ -127,7 +127,7 @@ mapshaperize_merge_split_from_s3(
     {
         "path_within_bucket": path_within_bucket,
         "level_polygons": "BASSIN_VIE",
-        "format": "topojson", 
+        "format": "topojson",
         "filter_by": "FRANCE_ENTIERE_DROM_RAPPROCHES",
         "simplification": 50,
     }
