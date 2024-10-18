@@ -13,6 +13,7 @@ DICT_CORRESP_ADMINEXPRESS = {
     "ARRONDISSEMENT": re.compile("ARR"),
     "FRANCE_ENTIERE": re.compile("PAYS"),
     "FRANCE_ENTIERE_DROM_RAPPROCHES": re.compile("PAYS"),
+    "FRANCE_ENTIERE_IDF_DROM_RAPPROCHES": re.compile("PAYS"),
     # "LIBELLE_REGION": re.compile("LIBELLE_REGION"),
     # "LIBELLE_DEPARTEMENT": re.compile("LIBELLE_DEPARTEMENT"),
     "BASSIN_VIE": re.compile("BV[0-9]{4}"),

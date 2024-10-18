@@ -21,11 +21,11 @@ logical_conditions = {
         "saint-pierre-et-miquelon": "bbox=-6298822.299318486, 5894013.594517256, -6239181.296921183, 5973004.907786214",
         "saint-barthelemy": "bbox=-7003557.376380256, 2018598.440800959, -6985037.106437805, 2033965.5078367123",
     },
-    "AIRE_ATTRACTION_VILLES": 1.2,
-    "DEPARTEMENT": 3,
-    "ARRONDISSEMENT_MUNICIPAL": 3.5,
-    "EPT": 3.5,
-    "IRIS": 4,
+    "AIRE_ATTRACTION_VILLES": 2.4,
+    "DEPARTEMENT": 6,
+    "ARRONDISSEMENT_MUNICIPAL": 7,
+    "EPT": 7,
+    "IRIS": 8,
 }
 
 shift = {
@@ -54,6 +54,7 @@ scale = {
 
 def mapshaper_bring_closer(
     input_file: str,
+    bring_out_idf: str = True,
     output_dir: str = "temp",
     output_name: str = "output",
     output_format: str = "geojson",
@@ -66,6 +67,8 @@ def mapshaper_bring_closer(
     ----------
     input_file : str
         Path to the input file.
+    bring_out_idf : bool, optional
+        If True, will extract IdF and zoom on it. The default is True.
     output_dir : str
         Directory to store the output file. The default is "temp"
     output_name : str, optional
@@ -102,14 +105,6 @@ def mapshaper_bring_closer(
     logical_metropole = logical_conditions["EMPRISES"]["metropole"]
 
     try:
-        idf_zoom = (
-            f"mapshaper -i {input_file} "
-            f"-proj EPSG:3857 "
-            f'-filter "{logical_idf}" '
-            f"-affine shift={shift_idf} scale={zoom_idf} "
-            f"-o {output_dir}/idf_zoom.{output_format}"
-        )
-
         france_metropolitaine = (
             f"mapshaper -i {input_file} "
             f"-proj EPSG:3857 "
@@ -117,7 +112,16 @@ def mapshaper_bring_closer(
             f"-o {output_dir}/metropole.{output_format}"
         )
 
-        run(idf_zoom)
+        if bring_out_idf:
+            idf_zoom = (
+                f"mapshaper -i {input_file} "
+                f"-proj EPSG:3857 "
+                f'-filter "{logical_idf}" '
+                f"-affine shift={shift_idf} scale={zoom_idf} "
+                f"-o {output_dir}/idf_zoom.{output_format}"
+            )
+
+            run(idf_zoom)
 
         run(france_metropolitaine)
 
@@ -135,11 +139,14 @@ def mapshaper_bring_closer(
         # fix_geo = "fix-geometry" if output_format == "topojson" else ""
 
         output = f"{output_dir}/{output_name}.{output_format}"
+        bring_out_idf = (
+            f"{output_dir}/idf_zoom.{output_format} " if bring_out_idf else ""
+        )
         cmd_combined = (
             f"mapshaper "
             f"{output_dir}/metropole.{output_format} "
-            f"{output_dir}/idf_zoom.{output_format} "
-            f"{output_dir}/guadeloupe.{output_format} "
+            + bring_out_idf
+            + f"{output_dir}/guadeloupe.{output_format} "
             f"{output_dir}/martinique.{output_format} "
             f"{output_dir}/guyane.{output_format} "
             f"{output_dir}/reunion.{output_format} "
@@ -149,6 +156,7 @@ def mapshaper_bring_closer(
             f"-rename-layers FRANCE,IDF,GDP,MTQ,GUY,REU,MAY "
             f"-merge-layers target=FRANCE,IDF,GDP,MTQ,GUY,REU,MAY force "
             f"-rename-layers FRANCE_TRANSFORMED "
+            "-explode "
             f"-o {output} "
             # f"{fix_geo}"
         )

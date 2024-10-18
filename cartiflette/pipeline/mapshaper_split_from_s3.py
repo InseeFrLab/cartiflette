@@ -83,6 +83,7 @@ def mapshaperize_split_from_s3(
                 if field in [
                     "FRANCE_ENTIERE",
                     "FRANCE_ENTIERE_DROM_RAPPROCHES",
+                    "FRANCE_ENTIERE_IDF_DROM_RAPPROCHES",
                 ]:
                     continue
                 try:

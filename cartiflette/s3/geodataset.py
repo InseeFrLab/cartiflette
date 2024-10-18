@@ -335,6 +335,7 @@ class S3GeoDataset(S3Dataset):
         self,
         level_agreg: str = "DEPARTEMENT",
         format_output: str = "geojson",
+        bring_out_idf: bool = True,
     ):
         """
         Bring ultramarine territories closer to France. This method is executed
@@ -351,6 +352,8 @@ class S3GeoDataset(S3Dataset):
         format_output : str, optional
             The desired output format (which will also be used for intermediate
             files creation). The default is "geojson".
+        bring_out_idf : bool, optional
+            If True, will extract IdF and zoom on it. The default is True.
 
         Returns
         -------
@@ -360,6 +363,7 @@ class S3GeoDataset(S3Dataset):
 
         out = mapshaper_bring_closer(
             input_file=f"{self.local_dir}/{self.main_filename}",
+            bring_out_idf=bring_out_idf,
             output_dir=self.local_dir,
             output_name="idf_combined",
             output_format=format_output,
@@ -460,6 +464,7 @@ class S3GeoDataset(S3Dataset):
             - dissolve geometries if init_geometry_level != dissolve_by
             - bring ultramarine territories closer
               if niveau_agreg == "FRANCE_ENTIERE_DROM_RAPPROCHES"
+            - extract IDF if niveau_agreg=="FRANCE_ENTIERE_IDF_DROM_RAPPROCHES"
             - split the geodataset based on niveau_agreg
             - project the geodataset into the given CRS
             - convert the file into the chosen output
@@ -604,7 +609,10 @@ class S3GeoDataset(S3Dataset):
             gdf = self.to_frame()
             available_columns = gdf.columns.tolist()
             by = self.find_column_name(dissolve_by, available_columns)
-            if niveau_agreg != "FRANCE_ENTIERE_DROM_RAPPROCHES":
+            if niveau_agreg not in (
+                "FRANCE_ENTIERE_DROM_RAPPROCHES",
+                "FRANCE_ENTIERE_IDF_DROM_RAPPROCHES",
+            ):
                 aggreg_col = self.find_column_name(
                     niveau_agreg, available_columns
                 )
@@ -632,9 +640,6 @@ class S3GeoDataset(S3Dataset):
                 calc += ["IDF=max(IDF)"]
 
             by_keys = [by, aggreg_col]
-            # if niveau_agreg == "FRANCE_ENTIERE_DROM_RAPPROCHES":
-            #     # Hack to avoid zooming on whole area outside IdF
-            #     by_keys.append("IDF")
 
             self.dissolve(
                 by=by_keys,
@@ -644,11 +649,16 @@ class S3GeoDataset(S3Dataset):
             )
 
         # Bring ultramarine territories closer to France if needed
-        if niveau_agreg == "FRANCE_ENTIERE_DROM_RAPPROCHES":
-
+        if niveau_agreg in (
+            "FRANCE_ENTIERE_DROM_RAPPROCHES",
+            "FRANCE_ENTIERE_IDF_DROM_RAPPROCHES",
+        ):
             self.bring_drom_closer(
                 level_agreg=dissolve_by,
                 format_output=INTERMEDIATE_FORMAT,
+                bring_out_idf=(
+                    niveau_agreg == "FRANCE_ENTIERE_IDF_DROM_RAPPROCHES"
+                ),
             )
 
         # Split datasets, based on the desired "niveau_agreg" and proceed to
