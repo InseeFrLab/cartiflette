@@ -41,7 +41,7 @@ parser.add_argument(
 parser.add_argument(
     "-c",
     "--configs",
-    default="[{'mesh_init':'ARRONDISSEMENT_MUNICIPAL','source_geodata':'EXPRESS-COG-CARTO-TERRITOIRE','simplification':40,'dissolve_by':'ARRONDISSEMENT_MUNICIPAL','territories':['FRANCE_ENTIERE_DROM_RAPPROCHES','FRANCE_ENTIERE']}]",
+    default='[{"mesh_init":"ARRONDISSEMENT_MUNICIPAL","source_geodata":"EXPRESS-COG-CARTO-TERRITOIRE","simplification":40,"dissolve_by":"ARRONDISSEMENT_MUNICIPAL","territories":["FRANCE_ENTIERE_DROM_RAPPROCHES","FRANCE_ENTIERE"]}]',
     help="Configurations for child datasets",
 )
 
