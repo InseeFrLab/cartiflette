@@ -504,7 +504,7 @@ def prepare_cog_metadata(
     ]:
         if not df.empty:
             df = df.replace(np.nan, pd.NA)
-            df = df.merge(ile_de_france, on="REG", how="left")
+            df = df.merge(ile_de_france, on="DEP", how="left")
             df["IDF"] = df["IDF"].fillna(0).astype(int)
             df = df.rename(rename, axis=1)
         return_dict[label] = df
