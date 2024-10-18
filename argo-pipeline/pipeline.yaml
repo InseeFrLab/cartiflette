@@ -132,6 +132,7 @@ spec:
           - name: PATH_WRITING_S3
             value: "test"
           - name: ENVIRONMENT
+            # set value to "dev" to simplify pipeline execution (2 years, only topojson, etc.)
             value: dev
 
     - name: download-all-sources
