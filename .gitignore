@@ -130,4 +130,5 @@ dmypy.json
 
 *.sqlite
 *.sqlite*
-/argo-pipeline/src/cartiflette-s3-cache
+**/cartiflette-s3-cache/*
+*.json

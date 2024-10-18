@@ -31,4 +31,6 @@ COPY docker/test.py .
 RUN curl https://install.python-poetry.org/ | python - 
 RUN poetry install --only main --no-interaction
 
+# TODO : is this necessary? This should throw an exception if datasets have not
+# already been (manually) uploaded ?
 CMD ["python", "test.py"]

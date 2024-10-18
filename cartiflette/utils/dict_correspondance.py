@@ -2,18 +2,38 @@
 Collection of utils to reformat inputs
 """
 
+import re
+
+# TODO : rename and explicit purpose of constant!
+# only keys used for splitting/dissolution
 DICT_CORRESP_ADMINEXPRESS = {
-    "REGION": "INSEE_REG",
-    "DEPARTEMENT": "INSEE_DEP",
-    "FRANCE_ENTIERE": "PAYS",
-    "FRANCE_ENTIERE_DROM_RAPPROCHES": "PAYS",
-    "LIBELLE_REGION": "LIBELLE_REGION",
-    "LIBELLE_DEPARTEMENT": "LIBELLE_DEPARTEMENT",
-    "BASSIN_VIE": "BV2012",
-    "AIRE_ATTRACTION_VILLES": "AAV2020",
-    "UNITE_URBAINE": "UU2020",
-    "ZONE_EMPLOI": "ZE2020",
-    "TERRITOIRE": "AREA",
+    "IRIS": re.compile("IRIS"),
+    "REGION": re.compile("INSEE_REG"),
+    "DEPARTEMENT": re.compile("INSEE_DEP"),
+    "ARRONDISSEMENT": re.compile("ARR"),
+    "FRANCE_ENTIERE": re.compile("PAYS"),
+    "FRANCE_ENTIERE_DROM_RAPPROCHES": re.compile("PAYS"),
+    "FRANCE_ENTIERE_IDF_DROM_RAPPROCHES": re.compile("PAYS"),
+    # "LIBELLE_REGION": re.compile("LIBELLE_REGION"),
+    # "LIBELLE_DEPARTEMENT": re.compile("LIBELLE_DEPARTEMENT"),
+    "BASSIN_VIE": re.compile("BV[0-9]{4}"),
+    "AIRE_ATTRACTION_VILLES": re.compile("AAV[0-9]{4}"),
+    "UNITE_URBAINE": re.compile("UU[0-9]{4}"),
+    "ZONE_EMPLOI": re.compile("ZE[0-9]{4}"),
+    "TERRITOIRE": re.compile("AREA"),
+    "EPCI": re.compile("EPCI"),
+    # "LIBELLE_EPCI": re.compile("LIBELLE_EPCI"),
+    "EPT": re.compile("EPT"),
+    # "LIBELLE_EPT": re.compile("LIBELLE_EPT"),
+    "COMMUNE": re.compile("INSEE_COM"),
+    # "LIBELLE_COMMUNE": re.compile("LIBELLE_COMMUNE"),
+    # "LIBELLE_CANTON": re.compile("LIBELLE_CANTON"),
+    "CANTON": re.compile("CAN"),
+    "ARRONDISSEMENT_MUNICIPAL": re.compile("INSEE_ARM"),
+    # "LIBELLE_ARRONDISSEMENT_MUNICIPAL": re.compile(
+    #     "LIBELLE_ARRONDISSEMENT_MUNICIPAL"
+    # ),
+    # TODO: code SIREN ?
 }
 
 

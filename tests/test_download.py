@@ -5,14 +5,14 @@ import os
 import requests_cache
 import logging
 
-from cartiflette.download.dataset import Dataset
+from cartiflette.download.dataset import RawDataset
 from cartiflette.download.scraper import (
-    MasterScraper,
+    Scraper,
     validate_file,
     download_to_tempfile_http,
 )
-from cartiflette.download.download import _download_sources
-from cartiflette.download import download_all
+from cartiflette.download.download import _download_and_store_sources
+from cartiflette.pipeline import download_all
 from cartiflette.utils import import_yaml_config
 from tests.conftest import (
     DUMMY_FILE_1,
@@ -24,14 +24,14 @@ from tests.mockups import (
     mock_httpscraper_download_success,
     mock_httpscraper_download_success_corrupt_hash,
     mock_httpscraper_download_success_corrupt_length,
-    mock_Dataset_without_s3,
+    mock_RawDataset_without_s3,
     total_mock_s3,
 )
 
 logger = logging.getLogger(__name__)
 
 
-def test_Dataset():
+def test_RawDataset():
     """
     __md5__
     __get_last_md5__
@@ -70,7 +70,7 @@ def test_http_proxy():
         del os.environ["https_proxy"]
     except KeyError:
         pass
-    dummy_scraper = MasterScraper()
+    dummy_scraper = Scraper()
     try:
         assert isinstance(dummy_scraper, requests_cache.CachedSession)
         assert dummy_scraper.proxies == {
@@ -88,7 +88,7 @@ def test_http_download(mock_httpscraper_download_success):
     """
 
     # Initialisation
-    dummy_scraper = MasterScraper()
+    dummy_scraper = Scraper()
     dummy = "https://dummy"
 
     # Fourniture du même hash -> pas de téléchargement
@@ -120,7 +120,7 @@ def test_download_ko_length(
     le Content-length ne correspond pas au contenu (simule un fichier corrompu)
     -> doit déclencher un IOError
     """
-    dummy_scraper = MasterScraper()
+    dummy_scraper = Scraper()
     with pytest.raises(IOError):
         result = download_to_tempfile_http("dummy", session=dummy_scraper)
 
@@ -133,12 +133,12 @@ def test_download_ko_md5(
     avec son contenu (simule un fichier corrompu)
     -> doit déclencher un IOError
     """
-    dummy_scraper = MasterScraper()
+    dummy_scraper = Scraper()
     with pytest.raises(IOError):
         result = download_to_tempfile_http("dummy", session=dummy_scraper)
 
 
-# def test_MasterScraper_ko():
+# def test_Scraper_ko():
 #     """
 #     download_unzip
 #     * Tester que si échec du téléchargement, le fichier temporaire est supprimé
@@ -148,7 +148,7 @@ def test_download_ko_md5(
 #     pass
 
 
-# def test_MasterScraper_ok():
+# def test_Scraper_ok():
 #     """
 #     download_unzip
 #     * Si succès, contrôle de la présence du fichier temporaire (puis le
@@ -159,7 +159,7 @@ def test_download_ko_md5(
 #     pass
 
 
-def test_sources_yaml(mock_Dataset_without_s3):
+def test_sources_yaml(mock_RawDataset_without_s3):
     yaml = import_yaml_config()
 
     errors_type0 = []
@@ -168,7 +168,7 @@ def test_sources_yaml(mock_Dataset_without_s3):
     errors_type3 = []
     errors_type4 = []
 
-    with MasterScraper() as scraper:
+    with Scraper() as scraper:
         for provider, provider_yaml in yaml.items():
             if not isinstance(provider_yaml, dict):
                 continue
@@ -208,7 +208,7 @@ def test_sources_yaml(mock_Dataset_without_s3):
                                 territory = None
                             try:
                                 print(str_yaml)
-                                ds = Dataset(
+                                ds = RawDataset(
                                     dataset_family,
                                     source,
                                     int(year),
@@ -250,24 +250,20 @@ def test_sources_yaml(mock_Dataset_without_s3):
                                     f"got code {r.status_code} on {url}"
                                 )
     if errors_type0:
-        logger.warning(
-            "Champs du YAML non testés\n" + "\n".join(errors_type0)
-        )
+        logger.warning("Champs du YAML non testés\n" + "\n".join(errors_type0))
 
     if errors_type1 + errors_type2 + errors_type3 + errors_type4:
         if errors_type1:
             logger.error("=" * 50)
             logger.error(
-                "Objet(s) Dataset(s) non instancié(s)\n"
+                "Objet(s) RawDataset(s) non instancié(s)\n"
                 + "\n".join(errors_type1)
             )
             logger.error("-" * 50)
 
         if errors_type2:
             logger.error("=" * 50)
-            logger.error(
-                "URL non reconstituées:\n" + "\n".join(errors_type2)
-            )
+            logger.error("URL non reconstituées:\n" + "\n".join(errors_type2))
             logger.error("-" * 50)
 
         if errors_type3:
@@ -278,14 +274,11 @@ def test_sources_yaml(mock_Dataset_without_s3):
         if errors_type4:
             logger.error("=" * 50)
             logger.error(
-                "Requête HTTP avec code d'erreur:\n"
-                + "\n".join(errors_type4)
+                "Requête HTTP avec code d'erreur:\n" + "\n".join(errors_type4)
             )
             logger.error("-" * 50)
 
-    assert (
-        len(errors_type1 + errors_type2 + errors_type3 + errors_type4) == 0
-    )
+    assert len(errors_type1 + errors_type2 + errors_type3 + errors_type4) == 0
 
 
 def test_download_all(total_mock_s3):

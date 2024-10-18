@@ -5,28 +5,56 @@
 # pipeline, please refer yourself to cartiflette\download\pipeline.py
 # =============================================================================
 
-from collections import OrderedDict
+from collections import OrderedDict, Counter
 from itertools import product
 import logging
-from pebble import ThreadPool
-import s3fs
 import shutil
 import traceback
 from typing import Union
 
-from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS, THREADS_DOWNLOAD
+from pebble import ThreadPool
+from retrying import retry
+import s3fs
+
+from cartiflette.config import (
+    BUCKET,
+    PATH_WITHIN_BUCKET,
+    FS,
+    THREADS_DOWNLOAD,
+    RETRYING,
+)
 from cartiflette.utils import (
     deep_dict_update,
     create_path_bucket,
 )
-from cartiflette.download.scraper import MasterScraper
-from cartiflette.download.dataset import Dataset
+from .scraper import Scraper
+from .dataset import RawDataset
 
 logger = logging.getLogger(__name__)
 
 
+if not RETRYING:
+    # patch retrying
+    def retry(*args, **kwargs):
+        def decorator(func):
+            return func
+
+        return decorator
+
+
+def _result_is_ko(result):
+    """
+    return True if result is ko
+    used to check if _upload_raw_dataset_to_s3 should be retried
+    """
+    return result is not None and len(result) == 0
+
+
+@retry(
+    retry_on_result=_result_is_ko, stop_max_attempt_number=3, wait_fixed=2000
+)
 def _upload_raw_dataset_to_s3(
-    dataset: Dataset,
+    dataset: RawDataset,
     result: dict,
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
@@ -40,8 +68,8 @@ def _upload_raw_dataset_to_s3(
 
     Parameters
     ----------
-    dataset : Dataset
-        Dataset object to store into s3
+    dataset : RawDataset
+        RawDataset object to store into s3
     result : dict
         result of the dataset's download
     bucket : str, optional
@@ -80,7 +108,7 @@ def _upload_raw_dataset_to_s3(
     try:
         # DUPLICATE SOURCES IN BUCKET
         errors_encountered = False
-        dataset_paths = dict()
+        dataset_paths = {}
         for key, layer in result["layers"].items():
             layer_paths = []
             for path, rename_basename in layer.files_to_upload.items():
@@ -105,7 +133,7 @@ def _upload_raw_dataset_to_s3(
 
                 layer_paths.append(path_within)
 
-                logger.debug(f"upload to {path_within}")
+                logger.info("upload to %s", path_within)
 
                 try:
                     fs.put(path, path_within, recursive=True)
@@ -114,7 +142,9 @@ def _upload_raw_dataset_to_s3(
                     errors_encountered = True
 
             if any(x.lower().endswith(".shp") for x in layer_paths):
-                layer_paths = [x for x in layer_paths if x.lower().endswith(".shp")]
+                layer_paths = [
+                    x for x in layer_paths if x.lower().endswith(".shp")
+                ]
 
             dataset_paths[key] = layer_paths
 
@@ -131,22 +161,20 @@ def _upload_raw_dataset_to_s3(
         # to allow for further tentatives)
         dataset.update_json_md5(result["hash"])
         return dataset_paths
-    else:
-        return {}
+    return {}
 
 
-def _download_sources(
+def _download_and_store_sources(
     providers: Union[list[str, ...], str],
     dataset_families: Union[list[str, ...], str],
     sources: Union[list[str, ...], str],
-    territories: Union[list[str, ...], str],
     years: Union[list[str, ...], str],
+    territories: Union[list[str, ...], str] = None,
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
     fs: s3fs.S3FileSystem = FS,
     upload: bool = True,
 ) -> dict:
-    # TODO : contrôler return
     """
     Main function to perform downloads of datasets and store them the s3.
     All available combinations will be tested; hence an unfound file might not
@@ -162,10 +190,12 @@ def _download_sources(
         List of datasets family in the yaml file
     sources : list[str, ...]
         List of sources in the yaml file
-    territories : list[str, ...]
-        List of territoires in the yaml file
     years : list[int, ...]
         List of years in the yaml file
+    territories : list[str, ...], optional
+        List of territoires in the yaml file. The default is None (corresponds
+        to datasets where that field is absent), which will set
+        "territory=france_entiere" when uploading to the S3 FileSystem.
     bucket : str, optional
         Bucket to use. The default is BUCKET.
     path_within_bucket : str, optional
@@ -178,10 +208,6 @@ def _download_sources(
 
     Returns
     -------
-    dict
-        DESCRIPTION.
-
-
     files : dict
         Structure of the nested dict will use the following keys :
             provider
@@ -192,22 +218,23 @@ def _download_sources(
                                 {downloaded: bool, paths: list:str}
         For instance:
             {
-                'IGN': {
-                    'BDTOPO': {
-                        'ROOT': {
+                'Insee': {
+                    'COG': {
+                        'COMMUNE': {
                             'france_entiere': {
-                                2017: {
+                                2023: {
                                     'downloaded': True,
                                     'paths': {
-                                        'CHEF_LIEU': [
-                                            'projet-cartiflette/diffusion/shapefiles-test4/year=2017/administrative_level=None/crs=4326/None=None/vectorfile_format=shp/provider=IGN/dataset_family=BDTOPO/source=ROOT/territory=martinique/CHEF_LIEU.shp'
-                                        ],
-                                        'COMMUNE': [
-                                            'projet-cartiflette/diffusion/shapefiles-test4/year=2017/administrative_level=None/crs=4326/None=None/vectorfile_format=shp/provider=IGN/dataset_family=BDTOPO/source=ROOT/territory=martinique/COMMUNE.shp'
-                                        ],
-                                        'ARRONDISSEMENT': [
-                                            'projet-cartiflette/diffusion/shapefiles-test4/year=2017/administrative_level=None/crs=4326/None=None/vectorfile_format=shp/provider=IGN/dataset_family=BDTOPO/source=ROOT/territory=metropole/ARRONDISSEMENT.shp'
-                                        ]
+                                        'dummy_file_2023': [
+                                            'projet-cartiflette/.../dummmy.csv'
+                                            ]
+                                    }
+                                },
+                                2024: {
+                                    'downloaded': True,
+                                    'paths': {
+                                        'dummy_file_2024': [
+                                            'projet-cartiflette/.../dummy.csv']
                                     }
                                 }
                             }
@@ -215,7 +242,12 @@ def _download_sources(
                     }
                 }
             }
+
     """
+
+    if not territories:
+        territories = "france_entiere"
+
     kwargs = OrderedDict()
     items = [
         ("sources", sources),
@@ -225,28 +257,89 @@ def _download_sources(
         ("dataset_families", dataset_families),
     ]
     for key, val in items:
-        if isinstance(val, str) or isinstance(val, int):
+        if isinstance(val, (str, int)):
             kwargs[key] = [val]
         elif not val:
             kwargs[key] = [None]
-        elif isinstance(val, list) or isinstance(val, tuple) or isinstance(val, set):
+        elif isinstance(val, (list, tuple, set)):
             kwargs[key] = list(val)
 
     combinations = list(product(*kwargs.values()))
+    order = "source", "territory", "year", "provider", "dataset_family"
+    combinations = [dict(zip(order, x)) for x in combinations]
+
+    # Check wether (some) urls are reused in this batch
+    reused_urls = set()
+    datasets = [
+        RawDataset(
+            bucket=bucket,
+            path_within_bucket=path_within_bucket,
+            **x,
+        )
+        for y in years
+        for x in combinations
+        if x["year"] == y
+    ]
+
+    def try_get_path(dset):
+        try:
+            return dset.get_path_from_provider()
+        except ValueError:
+            # Do not bother to log this, there will be warning later on
+            # when Cartiflette tries to retrieve the datasets
+            pass
+
+    reused = {
+        (url, md5)
+        for (url, md5), count in Counter(
+            (try_get_path(dset), dset.md5)
+            for dset in datasets
+            if try_get_path(dset)
+        ).items()
+        if count > 1
+    }
+    reused_urls.update(reused)
+    reused_urls = list(reused_urls)
+    # reused_urls = [(url_1, md5_1), (url_2, md5_2)]
+
+    # -> proceed to immediate download of reused urls (and don't do anything
+    # about it), and resort to requests-cache to dispatch it to the different
+    # datasets later
+    if reused_urls:
+        with Scraper() as s:
+            threads = min(THREADS_DOWNLOAD, len(reused_urls))
+            if threads > 1:
+                with ThreadPool(
+                    threads,
+                ) as pool:
+                    iterator = pool.map(
+                        s.simple_download, *zip(*reused_urls), timeout=60 * 10
+                    ).result()
+                    index = 0
+                    while True:
+                        try:
+                            next(iterator)
+                        except StopIteration:
+                            break
+                        except Exception:
+                            logger.error(traceback.format_exc())
+                            logger.error("url was %s", reused_urls[index])
+                        finally:
+                            index += 1
+            else:
+                for url, md5 in reused_urls:
+                    try:
+                        s.simple_download(url, md5)
+                    except Exception:
+                        logger.error(traceback.format_exc())
+                        logger.error("url was %s", (url, md5))
 
     files = {}
-    with MasterScraper() as s:
+    with Scraper() as s:
 
-        def func(args):
-            source, territory, year, provider, dataset_family = args
-            datafile = Dataset(
-                dataset_family,
-                source,
-                year,
-                provider,
-                territory,
-                bucket,
-                path_within_bucket,
+        def func(kwargs):
+            datafile = RawDataset(
+                bucket=bucket, path_within_bucket=path_within_bucket, **kwargs
             )
             try:
                 result = s.download_unpack(datafile)
@@ -254,11 +347,11 @@ def _download_sources(
                 logger.warning(e)
 
                 this_result = {
-                    provider: {
-                        dataset_family: {
-                            source: {
-                                territory: {
-                                    year: {
+                    kwargs["provider"]: {
+                        kwargs["dataset_family"]: {
+                            kwargs["source"]: {
+                                kwargs["territory"]: {
+                                    kwargs["year"]: {
                                         "downloaded": False,
                                         "paths": None,
                                     }
@@ -283,24 +376,39 @@ def _download_sources(
                 result["paths"] = paths
 
                 this_result = {
-                    provider: {dataset_family: {source: {territory: {year: result}}}}
+                    kwargs["provider"]: {
+                        kwargs["dataset_family"]: {
+                            kwargs["source"]: {
+                                kwargs["territory"]: {kwargs["year"]: result}
+                            }
+                        }
+                    }
                 }
 
             return this_result
 
         if THREADS_DOWNLOAD > 1:
             with ThreadPool(THREADS_DOWNLOAD) as pool:
-                iterator = pool.map(func, combinations).result()
+                iterator = pool.map(
+                    func, combinations, timeout=60 * 10
+                ).result()
+                index = 0
                 while True:
                     try:
                         files = deep_dict_update(files, next(iterator))
                     except StopIteration:
                         break
-                    except Exception as e:
-                        logger.error(e)
+                    except Exception:
                         logger.error(traceback.format_exc())
+                        logger.error("config was %s", combinations[index])
+                    finally:
+                        index += 1
         else:
             for args in combinations:
-                files = deep_dict_update(files, func(args))
+                try:
+                    files = deep_dict_update(files, func(args))
+                except Exception:
+                    logger.error(traceback.format_exc())
+                    logger.error("config was %s", args)
 
     return files

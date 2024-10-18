@@ -1,14 +1,6 @@
-# from cartiflette.download.dev import (
-#     get_vectorfile_communes_arrondissement,
-#     #     get_BV,
-# )
+# -*- coding: utf-8 -*-
+from .scraper import Scraper
+from .download import _download_and_store_sources
 
 
-from cartiflette.download.pipeline import (
-    download_all,
-)
-
-
-__all__ = [
-    "download_all",
-]
+__all__ = ["Scraper", "_download_and_store_sources"]
