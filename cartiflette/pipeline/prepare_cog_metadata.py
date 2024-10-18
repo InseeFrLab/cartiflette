@@ -491,8 +491,11 @@ def prepare_cog_metadata(
         "CODE_ARM": "INSEE_ARM",
     }
 
+    # Prepare field used for bringing IDF closer in further pipeline steps
     return_dict = {}
-    ile_de_france = pd.DataFrame([{"REG": "11", "IDF": 1}])
+    ile_de_france = pd.DataFrame({"DEP": ["75", "92", "93", "94"]})
+    ile_de_france["IDF"] = 1
+
     for label, df in [
         ("IRIS", iris),
         ("COMMUNE", cities),
