@@ -132,7 +132,7 @@ spec:
           - name: PATH_WRITING_S3
             value: "test"
           - name: ENVIRONMENT
-            value: test
+            value: dev
 
     - name: download-all-sources
       outputs:
