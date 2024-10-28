@@ -51,7 +51,7 @@ args = parser.parse_args()
 
 def main(
     year,
-    config_generation: dict,
+    config_generation: list,
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
     fs: S3FileSystem = FS,
@@ -80,6 +80,17 @@ if __name__ == "__main__":
     main(
         year=args.year,
         config_generation=json.loads(args.configs),
+        # config_generation=[
+        #     {
+        #         "mesh_init": "IRIS",
+        #         "source_geodata": "CONTOUR-IRIS",
+        #         "simplification": "40",
+        #         "dissolve_by": "IRIS",
+        #         "territories": [
+        #             "FRANCE_ENTIERE_IDF_DROM_RAPPROCHES",
+        #         ],
+        #     }
+        # ],
         bucket=BUCKET,
         path_within_bucket=PATH_WITHIN_BUCKET,
         fs=FS,
