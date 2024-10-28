@@ -129,7 +129,6 @@ def mapshaperize_split_from_s3(
                     "-" * 50,
                     one_skipped["warning"],
                     f"aggregation: {one_skipped['aggreg']}",
-                    f"config: {one_skipped['config']}",
                 ]
             )
             logger.warning(msg)
@@ -140,7 +139,6 @@ def mapshaperize_split_from_s3(
                     "=" * 50,
                     f"error: {one_failed['error']}",
                     f"aggregation: {one_failed['aggreg']}",
-                    f"config: {one_failed['config']}",
                     "-" * 50,
                     f"traceback:\n{one_failed['traceback']}",
                 ]
@@ -200,9 +198,10 @@ def mapshaperize_split_from_s3_multithreading(
                     index += 1
     else:
         for d in configs:
+
             d["init_geometry_level"] = d.pop("mesh_init")
             d["source"] = d.pop("source_geodata")
-            d["territorial_splits"] = d.pop("config")
+            d["territorial_splits"] = d.pop("territories")
             try:
                 this_result = mapshaperize_split_from_s3(
                     year=year,
@@ -216,7 +215,7 @@ def mapshaperize_split_from_s3_multithreading(
                 logger.error("args were %s", d)
             else:
                 for key in "success", "skipped", "failed":
-                    results[key] += this_result[key]
+                    results[key] += len(this_result[key])
 
     skipped = results["skipped"]
     success = results["success"]
