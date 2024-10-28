@@ -21,10 +21,6 @@ logical_conditions = {
         "saint-pierre-et-miquelon": "bbox=-6298822.299318486, 5894013.594517256, -6239181.296921183, 5973004.907786214",
         "saint-barthelemy": "bbox=-7003557.376380256, 2018598.440800959, -6985037.106437805, 2033965.5078367123",
     },
-    "AIRE_ATTRACTION_VILLES": 2.4,
-    "DEPARTEMENT": 6,
-    "ARRONDISSEMENT_MUNICIPAL": 7,
-    "EPT": 7,
     "IRIS": 8,
 }
 
@@ -92,15 +88,13 @@ def mapshaper_bring_closer(
         pass
 
     logical_idf = logical_conditions["EMPRISES"]["ile de france"]
-    zoom_idf = logical_conditions.get(level_agreg, 1.5)
-    if zoom_idf < 1.5:
+    zoom_idf = logical_conditions.get(level_agreg, 5)
+    if zoom_idf < 5:
         shift_idf = "-650000,275000"
-    if zoom_idf < 2:
-        shift_idf = "-650000,400000"
-    elif zoom_idf < 3:
-        shift_idf = "-650000,500000"
+    elif zoom_idf < 6:
+        shift_idf = "-650000,320000"
     else:
-        shift_idf = "-650000,700000"
+        shift_idf = "-650000,450000"
 
     logical_metropole = logical_conditions["EMPRISES"]["metropole"]
 
