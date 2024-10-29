@@ -468,16 +468,19 @@ def prepare_cog_metadata(
         # Hack to set PARIS, GUYANE and MARTINIQUE with the same key as IGN's
         # dataset (if trully missing)
         for dep, label in {
-            "75": "Paris",  # missing for year <2024
+            # Paris missing for year <2024 / for year 2024, key is 99 in IGN
+            # datasets, NR in INSEE's
+            "75": "Paris",
             "973": "Guyane",
             "972": "Martinique",
         }.items():
             ix = cantons[cantons.DEP == dep].index
-            if cantons.loc[ix, "CAN"].isnull().all():
+            if dep == "75" or cantons.loc[ix, "CAN"].isnull().all():
                 cantons.loc[ix, "INSEE_CAN"] = "NR"
                 cantons.loc[ix, "CAN"] = (
                     cantons.loc[ix, "DEP"] + cantons.loc[ix, "INSEE_CAN"]
                 )
+            if cantons.loc[ix, "CAN"].isnull().all():
                 cantons.loc[ix, "LIBELLE_CANTON"] = label
 
         cantons["SOURCE_METADATA"] = "Cartiflette d'après INSEE"
