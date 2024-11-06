@@ -208,7 +208,7 @@ class S3Dataset:
         target = self.s3_dirpath
         if not target.endswith("/"):
             target += "/"
-        logger.info("sending %s -> %s", self.local_dir, target)
+        logger.debug("sending %s -> %s", self.local_dir, target)
         self.fs.put(self.local_dir + "/*", target, recursive=True)
 
     def _read(self, src: str) -> bytes:
