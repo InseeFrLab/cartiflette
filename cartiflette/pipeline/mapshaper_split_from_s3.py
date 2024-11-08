@@ -122,6 +122,9 @@ def mapshaperize_split_from_s3(
                             "aggreg": niveau_agreg,
                         }
                     )
+
+    warning_traceback = []
+    error_traceback = []
     if skipped:
         for one_skipped in skipped:
             msg = "\n".join(
@@ -132,6 +135,7 @@ def mapshaperize_split_from_s3(
                 ]
             )
             logger.warning(msg)
+            warning_traceback.append(msg)
     if failed:
         for one_failed in failed:
             msg = "\n".join(
@@ -144,11 +148,14 @@ def mapshaperize_split_from_s3(
                 ]
             )
             logger.error(msg)
+            error_traceback.append(msg)
 
     return {
         "success": success,
         "skipped": skipped,
         "failed": failed,
+        "warning_traceback": warning_traceback,
+        "error_traceback": error_traceback,
     }
 
 
@@ -160,7 +167,13 @@ def mapshaperize_split_from_s3_multithreading(
     path_within_bucket: str = PATH_WITHIN_BUCKET,
 ):
 
-    results = {"success": 0, "skipped": 0, "failed": 0}
+    results = {
+        "success": 0,
+        "skipped": 0,
+        "failed": 0,
+        "warning_traceback": [],
+        "error_traceback": [],
+    }
     if THREADS_DOWNLOAD > 1:
         with ThreadPool(min(len(configs), THREADS_DOWNLOAD)) as pool:
             args = [
@@ -194,6 +207,8 @@ def mapshaperize_split_from_s3_multithreading(
                 else:
                     for key in "success", "skipped", "failed":
                         results[key] += len(this_result[key])
+                    for key in "warning_traceback", "error_traceback":
+                        results[key] += this_result[key]
                 finally:
                     index += 1
     else:
@@ -216,10 +231,28 @@ def mapshaperize_split_from_s3_multithreading(
             else:
                 for key in "success", "skipped", "failed":
                     results[key] += len(this_result[key])
+                for key in "warning_traceback", "error_traceback":
+                    results[key] += this_result[key]
 
     skipped = results["skipped"]
     success = results["success"]
     failed = results["failed"]
+    warnings = results["warning_traceback"]
+    errors = results["error_traceback"]
+
+    if warnings or errors:
+        level = "warning"
+        if errors:
+            level = "error"
+        log_func = getattr(logger, level)
+        log_func("=" * 50)
+        log_func("Traceback recaps")
+        for msg in warnings:
+            logger.warning(msg)
+            logger.info("%s", "-" * 50)
+        for msg in errors:
+            logger.error(msg)
+            logger.info("%s", "-" * 50)
 
     logger.info("%s file(s) generation(s) were skipped", skipped)
     logger.info("%s file(s) generation(s) succeeded", success)
