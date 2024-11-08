@@ -132,3 +132,4 @@ dmypy.json
 *.sqlite*
 **/cartiflette-s3-cache/*
 *.json
+/cartiflette/pipeline/cartiflette-s3-cache
