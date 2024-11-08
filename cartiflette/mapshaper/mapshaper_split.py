@@ -15,6 +15,7 @@ def mapshaper_split(
     output_format: str = "geojson",
     crs: int = 4326,
     option_simplify: str = "",
+    quiet: bool = True,
 ) -> List[str]:
     """
     Splits a GeoJSON file based on a specified variable using Mapshaper.
@@ -36,6 +37,8 @@ def mapshaper_split(
     option_simplify : str, optional
         Additional options for simplifying geometries, for instance
         "-simplify 50%". The default is "".
+    quiet : bool, optional
+        If True, inhibits console messages. The default is True.
 
     Returns
     -------
@@ -52,12 +55,15 @@ def mapshaper_split(
     except FileExistsError:
         pass
 
+    quiet = "-quiet " if quiet else " "
+
     # Mapshaper command for the splitting process
     cmd = (
         f"mapshaper {input_file} name='{layer_name}' -proj EPSG:{crs} "
         f"{option_simplify} "
         f"-split {split_variable} "
         "-drop fields=IDF "  # remove IDF used for tagging IdF entities on every level
+        f"{quiet}"
         f"-o {temp_output_dir}/ "
         f'format={output_format} extension=".{output_format}" singles'
     )

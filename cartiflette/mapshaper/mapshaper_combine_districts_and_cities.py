@@ -11,6 +11,7 @@ def mapshaper_combine_districts_and_cities(
     output_dir: str,
     output_name: str = "output",
     output_format: str = "geojson",
+    quiet: bool = True,
 ) -> str:
     """
     Combine cities' dataset with communal districts', ensure layer renamming
@@ -26,6 +27,8 @@ def mapshaper_combine_districts_and_cities(
         Name of the written file, without extension. The default is "output".
     output_format : str, optional
         Format for output file. The default is "geojson".
+    quiet : bool, optional
+        If True, inhibits console messages. The default is True.
 
     Returns
     -------
@@ -40,6 +43,7 @@ def mapshaper_combine_districts_and_cities(
         pass
 
     # fix_geo = "fix-geometry" if output_format == "topojson" else ""
+    quiet = "-quiet " if quiet else " "
     output = f"{output_dir}/{output_name}.{output_format}"
 
     rename = "INSEE_ARM=INSEE_COG,NOM_ARM=NOM"
@@ -56,6 +60,7 @@ def mapshaper_combine_districts_and_cities(
         f"-drop fields={drop} "
         f"-o {output} "
         # f"{fix_geo} "
+        f"{quiet}"
         f"format={output_format} "
         f'extension=".{output_format}"'
     )

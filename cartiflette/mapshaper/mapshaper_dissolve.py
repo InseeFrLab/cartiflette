@@ -15,6 +15,7 @@ def mapshaper_dissolve(
     output_dir: str = "temp",
     output_name: str = "output",
     output_format: str = "geojson",
+    quiet: bool = True,
 ) -> str:
     """
     Dissolve geometries
@@ -44,6 +45,8 @@ def mapshaper_dissolve(
         The default is "concatenated"
     output_format : str, optional
         The format to write the outputfile. The default is "geojson".
+    quiet : bool, optional
+        If True, inhibits console messages. The default is True.
 
     Returns
     -------
@@ -57,6 +60,7 @@ def mapshaper_dissolve(
     except FileExistsError:
         pass
 
+    quiet = "-quiet " if quiet else " "
     output = f"{output_dir}/{output_name}.{output_format}"
 
     name = "_".join(by)
@@ -76,6 +80,7 @@ def mapshaper_dissolve(
     # fix_geo = "fix-geometry" if output_format == "topojson" else ""
 
     cmd += (
+        f"{quiet}"
         f" -o {output} force "
         # f"{fix_geo}"
     )

@@ -12,6 +12,7 @@ def mapshaper_concat(
     output_dir: str = "temp",
     output_name: str = "concatenated",
     output_format: str = "geojson",
+    quiet: bool = True,
 ) -> str:
     """
     Concat multiple files (all files should have the same projection).
@@ -28,9 +29,10 @@ def mapshaper_concat(
     output_name : str, optional
         The path to write the file to (without extension).
         The default is "concatenated"
-
     output_format : str, optional
         The format to write the outputfile. The default is "geojson".
+    quiet : bool, optional
+        If True, inhibits console messages. The default is True.
 
     Returns
     -------
@@ -44,6 +46,7 @@ def mapshaper_concat(
     except FileExistsError:
         pass
 
+    quiet = "-quiet " if quiet else " "
     output = f"{output_dir}/{output_name}.{output_format}"
 
     cmd = (
@@ -51,6 +54,7 @@ def mapshaper_concat(
         f" combine-files name='{output_name}' "
         f"-proj EPSG:4326 "
         f"-merge-layers "
+        f"{quiet}"
         f'-o {output} format={output_format} extension=".{output_format}" '
         "singles"
     )

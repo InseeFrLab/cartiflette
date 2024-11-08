@@ -12,6 +12,7 @@ def mapshaper_add_field(
     output_dir: str = "temp",
     output_name: str = "output",
     output_format: str = "geojson",
+    quiet: bool = True,
 ) -> str:
     """
     Add a field (= a column/attribute) to the dataset.
@@ -34,6 +35,8 @@ def mapshaper_add_field(
         The default is "concatenated"
     output_format : str, optional
         The format to write the outputfile. The default is "geojson".
+    quiet : bool, optional
+        If True, inhibits console messages. The default is True.
 
     Returns
     -------
@@ -48,10 +51,12 @@ def mapshaper_add_field(
         pass
 
     output = f"{output_dir}/{output_name}.{output_format}"
+    quiet = "-quiet " if quiet else " "
 
     cmd = (
         f"mapshaper {input_file} "
-        f'-each "{label}={value}" '
+        f'-each "{label}={value}"'
+        f"{quiet}"
         "-proj EPSG:4326 "
         f" -o {output}  "
         f'format={output_format} extension=".{output_format}" force'

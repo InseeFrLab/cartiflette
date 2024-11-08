@@ -11,6 +11,7 @@ def mapshaper_process_communal_districts(
     output_dir: str,
     output_name: str = "output",
     output_format: str = "geojson",
+    quiet: bool = True,
 ) -> str:
     """
     Preprocess communal districts files to ensure
@@ -25,6 +26,8 @@ def mapshaper_process_communal_districts(
         Name of the written file, without extension. The default is "output".
     output_format : str, optional
         Format for output file. The default is "geojson".
+    quiet : bool, optional
+        If True, inhibits console messages. The default is True.
 
     Returns
     -------
@@ -37,6 +40,7 @@ def mapshaper_process_communal_districts(
     except FileExistsError:
         pass
 
+    quiet = "-quiet " if quiet else " "
     output = f"{output_dir}/{output_name}.{output_format}"
 
     cmd = (
@@ -45,6 +49,7 @@ def mapshaper_process_communal_districts(
         "-proj EPSG:4326 "
         "-rename-fields INSEE_COG=INSEE_ARM "
         "-each 'STATUT=\"Arrondissement municipal\"' "
+        f"{quiet}"
         "-o force "
         f'{output} format={output_format} extension=".{output_format}"'
     )

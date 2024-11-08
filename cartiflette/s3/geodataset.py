@@ -21,7 +21,6 @@ import geopandas as gpd
 from pebble import ThreadPool
 from s3fs import S3FileSystem
 
-
 from .dataset import S3Dataset
 from cartiflette.mapshaper import (
     mapshaper_convert_reproject,
@@ -38,7 +37,12 @@ from cartiflette.mapshaper import (
     mapshaper_capture_cities_from_ultramarine_territories,
 )
 from cartiflette.utils import ConfigDict
-from cartiflette.config import FS, THREADS_DOWNLOAD, INTERMEDIATE_FORMAT
+from cartiflette.config import (
+    FS,
+    THREADS_DOWNLOAD,
+    INTERMEDIATE_FORMAT,
+    MAPSHAPER_QUIET,
+)
 from cartiflette.pipeline_constants import PIPELINE_CRS, PIPELINE_FORMATS
 from cartiflette.utils.dict_correspondance import (
     create_format_driver,
@@ -185,7 +189,12 @@ class S3GeoDataset(S3Dataset):
         os.unlink(f"{self.local_dir}/{self.main_filename}")
         self.main_filename = os.path.basename(new_file)
 
-    def reproject(self, epsg: int = 4326, format_output: str = "geojson"):
+    def reproject(
+        self,
+        epsg: int = 4326,
+        format_output: str = "geojson",
+        quiet: bool = MAPSHAPER_QUIET,
+    ):
         "project to a given EPSG using mapshaper"
         input_file = f"{self.local_dir}/{self.main_filename}"
 
@@ -196,6 +205,7 @@ class S3GeoDataset(S3Dataset):
             output_name=self.main_filename.rsplit(".", maxsplit=1)[0],
             output_format=format_output,
             filter_by=self.config["territory"],
+            quiet=quiet,
         )
         self._substitute_main_file(new_file)
         self.config["crs"] = epsg
@@ -204,7 +214,11 @@ class S3GeoDataset(S3Dataset):
         return new_file
 
     def add_field(
-        self, label: str, value: str, format_output: str = "geojson"
+        self,
+        label: str,
+        value: str,
+        format_output: str = "geojson",
+        quiet: bool = MAPSHAPER_QUIET,
     ):
         "add a static/dynamic field using mapshaper"
         input_geodata = f"{self.local_dir}/{self.main_filename}"
@@ -215,6 +229,7 @@ class S3GeoDataset(S3Dataset):
             output_dir=self.local_dir,
             output_name=self.main_filename.rsplit(".", maxsplit=1)[0],
             output_format=format_output,
+            quiet=quiet,
         )
         self._substitute_main_file(output)
 
@@ -226,6 +241,7 @@ class S3GeoDataset(S3Dataset):
         drop: list,
         rename: dict,
         format_output: str = "geojson",
+        quiet: bool = MAPSHAPER_QUIET,
     ):
         "enrich with metadata using mapshaper"
         input_metadata = (
@@ -242,10 +258,16 @@ class S3GeoDataset(S3Dataset):
             output_dir=self.local_dir,
             output_name=self.main_filename.rsplit(".", maxsplit=1)[0],
             output_format=format_output,
+            quiet=quiet,
         )
         self._substitute_main_file(output)
 
-    def simplify(self, format_output: str, simplification: int = 0):
+    def simplify(
+        self,
+        format_output: str,
+        simplification: int = 0,
+        quiet: bool = MAPSHAPER_QUIET,
+    ):
         "simplify the geometries"
         simplification = simplification if simplification else 0
         if simplification != 0:
@@ -262,6 +284,7 @@ class S3GeoDataset(S3Dataset):
             output_dir=self.local_dir,
             output_name=self.main_filename.rsplit(".", maxsplit=1)[0],
             output_format=format_output,
+            quiet=quiet,
         )
 
         # update path on S3
@@ -290,6 +313,7 @@ class S3GeoDataset(S3Dataset):
         copy_fields: List[str] = None,
         calc: List[str] = None,
         format_output: str = "geojson",
+        quiet: bool = MAPSHAPER_QUIET,
     ):
         """
         Dissolve geometries and rename local file using mapshaper.
@@ -313,6 +337,8 @@ class S3GeoDataset(S3Dataset):
             features. The default is None.
         format_output : str, optional
             Output format. The default is geojson
+        quiet : bool, optional
+            If True, inhibits console messages. The default is MAPSHAPER_QUIET.
 
         Returns
         -------
@@ -328,6 +354,7 @@ class S3GeoDataset(S3Dataset):
             output_dir=self.local_dir,
             output_name="_".join(by),
             output_format=format_output,
+            quiet=quiet,
         )
         self._substitute_main_file(out)
 
@@ -336,6 +363,7 @@ class S3GeoDataset(S3Dataset):
         level_agreg: str = "DEPARTEMENT",
         format_output: str = "geojson",
         bring_out_idf: bool = True,
+        quiet: bool = MAPSHAPER_QUIET,
     ):
         """
         Bring ultramarine territories closer to France. This method is executed
@@ -354,6 +382,8 @@ class S3GeoDataset(S3Dataset):
             files creation). The default is "geojson".
         bring_out_idf : bool, optional
             If True, will extract IdF and zoom on it. The default is True.
+        quiet : bool, optional
+            If True, inhibits console messages. The default is MAPSHAPER_QUIET.
 
         Returns
         -------
@@ -368,6 +398,7 @@ class S3GeoDataset(S3Dataset):
             output_name="idf_combined",
             output_format=format_output,
             level_agreg=level_agreg,
+            quiet=quiet,
         )
         self._substitute_main_file(out)
 
@@ -377,6 +408,7 @@ class S3GeoDataset(S3Dataset):
         crs: int = 4326,
         format_output: str = "geojson",
         simplification: int = 0,
+        quiet: bool = MAPSHAPER_QUIET,
         **kwargs,
     ) -> list[Self]:
         """
@@ -393,6 +425,8 @@ class S3GeoDataset(S3Dataset):
             Choosen format to write the output on. The default is "geojson".
         simplification : int, optional
             Degree of simplification. The default is 0.
+        quiet : bool, optional
+            If True, inhibits console messages. The default is MAPSHAPER_QUIET.
         kwargs :
             Optional values for ConfigDict to ensure the correct generation of
             the afferant geodatasets. For instance, `borders='DEPARTEMENT`
@@ -419,6 +453,7 @@ class S3GeoDataset(S3Dataset):
             output_format=format_output,
             crs=crs,
             option_simplify=option_simplify,
+            quiet=quiet,
         )
 
         geodatasets = []
@@ -705,10 +740,17 @@ class S3GeoDataset(S3Dataset):
 
         return new_datasets
 
-    def only_ultramarine_territories(self) -> Self:
+    def only_ultramarine_territories(
+        self, quiet: bool = MAPSHAPER_QUIET
+    ) -> Self:
         """
         Extracts only ultramarine territories from the given IRIS file and
         dissolve it to cities.
+
+        Parameters
+        ----------
+        quiet : bool, optional
+            If True, inhibits console messages. The default is MAPSHAPER_QUIET.
 
         Returns
         -------
@@ -721,6 +763,7 @@ class S3GeoDataset(S3Dataset):
             output_dir=f"{self.local_dir}/tom",
             output_name="TOM",
             output_format=INTERMEDIATE_FORMAT,
+            quiet=quiet,
         )
         new_config = deepcopy(self.config)
         new_config.update(
@@ -757,6 +800,7 @@ class S3GeoDataset(S3Dataset):
         self,
         communal_districts: Self,
         format_output: str = "geojson",
+        quiet: bool = MAPSHAPER_QUIET,
     ) -> Self:
         """
         Create a new composite S3GeoDataset from communal districts (Paris,
@@ -771,6 +815,8 @@ class S3GeoDataset(S3Dataset):
             statement).
         format_output : str, optional
             Desired output format. The default is "geojson".
+        quiet : bool, optional
+            If True, inhibits console messages. The default is MAPSHAPER_QUIET.
 
         Returns
         -------
@@ -787,6 +833,7 @@ class S3GeoDataset(S3Dataset):
             output_dir=f"{self.local_dir}/singles",
             output_name="COMMUNE",
             output_format=INTERMEDIATE_FORMAT,
+            quiet=quiet,
         )
 
         # note : communal_districts has it's self local_dir which should be
@@ -802,6 +849,7 @@ class S3GeoDataset(S3Dataset):
             output_dir=f"{self.local_dir}/districts",
             output_name="ARRONDISSEMENT_MUNICIPAL",
             output_format=INTERMEDIATE_FORMAT,
+            quiet=quiet,
         )
 
         # MERGE CITIES AND ARRONDISSEMENT
@@ -811,6 +859,7 @@ class S3GeoDataset(S3Dataset):
             output_dir=self.local_dir,
             output_name="ARRONDISSEMENT_MUNICIPAL",
             output_format=format_output,
+            quiet=quiet,
         )
 
         # move file to new tempdir to isolate this file for new S3GeoDataset
@@ -938,6 +987,7 @@ def concat_s3geodataset(
     vectorfile_format: str = "geojson",
     output_dir: str = "temp",
     fs: S3FileSystem = FS,
+    quiet: bool = MAPSHAPER_QUIET,
     **config_new_dset: ConfigDict,
 ) -> S3GeoDataset:
     """
@@ -960,6 +1010,8 @@ def concat_s3geodataset(
     fs : S3FileSystem, optional
         The S3FileSystem used ultimately to upload the new S3GeoDataset. The
         default is FS.
+    quiet : bool, optional
+        If True, inhibits console messages. The default is MAPSHAPER_QUIET.
     **config_new_dset : ConfigDict
         Configuration reprensenting the new S3GeoDataset (used for initiation).
         This will determine the path on the S3FileSystem during storage.
@@ -997,6 +1049,7 @@ def concat_s3geodataset(
         output_dir=f"{output_dir}/preprocessed_combined",
         output_name=output_name,
         output_format=vectorfile_format,
+        quiet=quiet,
     )
 
     logger.info("new S3GeoDataset created at %s", output_path)

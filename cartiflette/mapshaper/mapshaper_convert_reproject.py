@@ -10,6 +10,7 @@ def mapshaper_convert_reproject(
     output_name: str = "output",
     output_format: str = "geojson",
     filter_by: str = "",
+    quiet: bool = True,
 ) -> str:
     """
     Project a file to a given EPSG (into a given format).
@@ -32,6 +33,8 @@ def mapshaper_convert_reproject(
     filter_by: str, optional
         The criteria to filter the input file, based on AREA field. The default
         is "", which will not perform any filter.
+    quiet : bool, optional
+        If True, inhibits console messages. The default is True.
 
     Returns
     -------
@@ -45,6 +48,7 @@ def mapshaper_convert_reproject(
     except FileExistsError:
         pass
 
+    quiet = "-quiet " if quiet else " "
     output = f"{output_dir}/{output_name}.{output_format}"
 
     if filter_by != "":
@@ -54,6 +58,7 @@ def mapshaper_convert_reproject(
         f"mapshaper {input_file} name='{output_name}' "
         f"-proj EPSG:{epsg} "
         f"{filter_by}"
+        f"{quiet}"
         f"-o {output} force "
         f'format={output_format} extension=".{output_format}" singles'
     )

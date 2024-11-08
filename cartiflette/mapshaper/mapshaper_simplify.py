@@ -12,6 +12,7 @@ def mapshaper_simplify(
     output_dir: str = "temp",
     output_name: str = "output",
     output_format: str = "geojson",
+    quiet: bool = True,
 ) -> str:
     """
     SImplify geometries
@@ -31,6 +32,8 @@ def mapshaper_simplify(
         The default is "concatenated"
     output_format : str, optional
         The format to write the outputfile. The default is "geojson".
+    quiet : bool, optional
+        If True, inhibits console messages. The default is True.
 
     Returns
     -------
@@ -46,12 +49,14 @@ def mapshaper_simplify(
 
     # fix_geo = "fix-geometry" if output_format == "topojson" else ""
 
+    quiet = "-quiet " if quiet else " "
     output = f"{output_dir}/{output_name}.{output_format}"
 
     cmd = (
         f"mapshaper {input_file} "
         "-proj EPSG:4326 "
         f"{option_simplify} "
+        f"{quiet}"
         f" -o {output} force "
         # f"{fix_geo}"
     )

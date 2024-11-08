@@ -55,6 +55,7 @@ def mapshaper_bring_closer(
     output_name: str = "output",
     output_format: str = "geojson",
     level_agreg: str = "DEPARTEMENT",
+    quiet: bool = True,
 ):
     """
     Bring DROM closer and zoom over IDF.
@@ -74,6 +75,8 @@ def mapshaper_bring_closer(
         The format to write the outputfile. The default is "geojson".
     level_agreg : str, optional
         Desired aggregation configuration. The default is "DEPARTEMENT".
+    quiet : bool, optional
+        If True, inhibits console messages. The default is True.
 
     Returns
     -------
@@ -98,11 +101,14 @@ def mapshaper_bring_closer(
 
     logical_metropole = logical_conditions["EMPRISES"]["metropole"]
 
+    quiet = "-quiet " if quiet else " "
+
     try:
         france_metropolitaine = (
             f"mapshaper -i {input_file} "
             f"-proj EPSG:3857 "
             f'-filter "{logical_metropole}" '
+            f"{quiet}"
             f"-o {output_dir}/metropole.{output_format}"
         )
 
@@ -112,6 +118,7 @@ def mapshaper_bring_closer(
                 f"-proj EPSG:3857 "
                 f'-filter "{logical_idf}" '
                 f"-affine shift={shift_idf} scale={zoom_idf} "
+                f"{quiet}"
                 f"-o {output_dir}/idf_zoom.{output_format}"
             )
 
@@ -126,6 +133,7 @@ def mapshaper_bring_closer(
                 f"-proj EPSG:3857 "
                 f'-filter "{logical_conditions["EMPRISES"][region]}" '
                 f"-affine shift={shift_value} scale={scale[region]} "
+                f"{quiet}"
                 f"-o {output_dir}/{region}.{output_format}"
             )
             run(cmd)
@@ -151,6 +159,7 @@ def mapshaper_bring_closer(
             f"-merge-layers target=FRANCE,IDF,GDP,MTQ,GUY,REU,MAY force "
             f"-rename-layers FRANCE_TRANSFORMED "
             "-explode "
+            f"{quiet}"
             f"-o {output} "
             # f"{fix_geo}"
         )

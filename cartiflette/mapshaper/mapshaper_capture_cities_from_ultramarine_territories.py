@@ -11,6 +11,7 @@ def mapshaper_capture_cities_from_ultramarine_territories(
     output_dir: str = "temp",
     output_name: str = "output",
     output_format: str = "geojson",
+    quiet: bool = True,
 ) -> str:
     """
     Remove cities from departements, and keep only cities from ultramarine
@@ -26,6 +27,8 @@ def mapshaper_capture_cities_from_ultramarine_territories(
         Name of the written file, without extension. The default is "output".
     output_format : str, optional
         Format for output file. The default is "geojson".
+    quiet : bool, optional
+        If True, inhibits console messages. The default is True.
 
     Returns
     -------
@@ -39,12 +42,14 @@ def mapshaper_capture_cities_from_ultramarine_territories(
         pass
 
     output = f"{output_dir}/{output_name}.{output_format}"
+    quiet = "-quiet " if quiet else " "
 
     cmd = (
         f"mapshaper {input_city_file} name='COMMUNE' -proj EPSG:4326 "
         "-filter \"'saint-barthelemy,saint-pierre-et-miquelon,saint-martin'"
         '.indexOf(AREA) > -1" '
         "-drop fields=TYP_IRIS "
+        f"{quiet}"
         "-o force "
         f'{output} format={output_format} extension=".{output_format}" singles'
     )

@@ -17,6 +17,7 @@ def mapshaper_enrich(
     output_dir: str = "temp",
     output_name: str = "output",
     output_format: str = "geojson",
+    quiet: bool = True,
 ) -> str:
     """
     Enriches an initial geodata file with additional data using Mapshaper.
@@ -46,6 +47,8 @@ def mapshaper_enrich(
         The default is "concatenated"
     output_format : str, optional
         The format to write the outputfile. The default is "geojson".
+    quiet : bool, optional
+        If True, inhibits console messages. The default is True.
 
     Returns
     -------
@@ -59,6 +62,7 @@ def mapshaper_enrich(
     except FileExistsError:
         pass
 
+    quiet = "-quiet " if quiet else " "
     output = f"{output_dir}/{output_name}.{output_format}"
     dtype = ",".join(
         [f"{key}:{val}" for key, val in dtype.items()] if dtype else []
@@ -79,6 +83,7 @@ def mapshaper_enrich(
         f"-filter-fields {drop} invert "
         f"-rename-fields {rename} "
         "-each \"PAYS='France'\" "
+        f"{quiet}"
         f"-o {output} force"
     )
 
