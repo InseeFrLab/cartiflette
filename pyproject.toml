@@ -40,7 +40,7 @@ fastexcel = "^0.11.6"
 PyQt5 = {version = "^5.15", markers = "sys_platform == 'win32'"}
 PyQt5-Qt5 = {version = "5.15.2", markers = "sys_platform == 'win32'"}
 PyQtWebEngine-Qt5 = {version = "5.15.2", markers = "sys_platform == 'win32'"}
-spyder = "^6.0.1"
+spyder = "^6.0.2"
 pytest = "^8.1.1"
 
 [build-system]
