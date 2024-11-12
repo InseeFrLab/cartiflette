@@ -136,7 +136,7 @@ class S3GeoDataset(S3Dataset):
 
         init_level = logging.getLogger("pyogrio")
         if MAPSHAPER_QUIET:
-            logging.getLogger("pyogrio._io").setLevel(logging.CRITICAL + 1)
+            logging.getLogger("pyogrio._io").setLevel(logging.CRITICAL)
 
         try:
             path = os.path.join(self.local_dir, self.main_filename)
