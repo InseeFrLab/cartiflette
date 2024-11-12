@@ -80,7 +80,7 @@ def mapshaper_dissolve(
     # fix_geo = "fix-geometry" if output_format == "topojson" else ""
 
     cmd += (
-        f"{quiet}"
+        f" {quiet}"
         f" -o {output} force "
         # f"{fix_geo}"
     )
