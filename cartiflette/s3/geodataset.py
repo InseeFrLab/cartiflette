@@ -134,7 +134,7 @@ class S3GeoDataset(S3Dataset):
         mapshaper, needs geopandas)
         """
 
-        init_level = logging.getLogger("pyogrio")
+        init_level = logging.getLogger("pyogrio").level
         if MAPSHAPER_QUIET:
             logging.getLogger("pyogrio._io").setLevel(logging.CRITICAL)
 
