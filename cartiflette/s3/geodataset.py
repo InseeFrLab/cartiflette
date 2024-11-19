@@ -145,7 +145,7 @@ class S3GeoDataset(S3Dataset):
         gdf = self.to_frame()
         if epsg != 4326:
             gdf = gdf.to_crs(epsg)
-        gdf.to_file(path, driver="GPKG")
+        gdf.to_file(path, driver="GPKG", engine="fiona")
         self._substitute_main_file(path)
         self.config["vectorfile_format"] = "gpkg"
         self.config["crs"] = epsg
@@ -319,7 +319,7 @@ class S3GeoDataset(S3Dataset):
         gdf = gpd.read_file(output, engine="fiona")
         if not gdf["geometry"].is_valid.all():
             gdf["geometry"] = gdf["geometry"].buffer(0)
-            gdf.to_file(output, driver=driver)
+            gdf.to_file(output, driver=driver, engine="fiona")
 
     def dissolve(
         self,
@@ -929,7 +929,7 @@ def from_frame(
     if "." not in filename:
         filename = f"{filename}.{extension}"
     with tempfile.TemporaryDirectory() as tempdir:
-        gdf.to_file(f"{tempdir}/{filename}")
+        gdf.to_file(f"{tempdir}/{filename}", engine="fiona")
         dset = from_file(f"{tempdir}/{filename}", fs, **config)
 
     return dset

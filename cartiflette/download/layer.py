@@ -133,7 +133,7 @@ class Layer:
                 self.crs = 4326
 
                 # let's overwrite initial files
-                gdf.to_file(ref_gis_file, encoding="utf-8")
+                gdf.to_file(ref_gis_file, encoding="utf-8", engine="fiona")
 
             elif encoding and encoding != "utf-8":
                 logger.info(
@@ -142,7 +142,7 @@ class Layer:
                     encoding,
                 )
                 # let's overwrite initial files with utf8...
-                gdf.to_file(ref_gis_file, encoding="utf-8")
+                gdf.to_file(ref_gis_file, encoding="utf-8", engine="fiona")
 
         except (
             AttributeError,
@@ -160,7 +160,7 @@ class Layer:
             if not geometries_valid:
                 # try to fix geometries and overwrite file
                 gdf["geometry"] = gdf["geometry"].buffer(0)
-                gdf.to_file(ref_gis_file, encoding="utf-8")
+                gdf.to_file(ref_gis_file, encoding="utf-8", engine="fiona")
 
             bbox = box(*gdf.total_bounds)
             bbox = gpd.GeoSeries([bbox], crs=gdf.crs)
