@@ -17,6 +17,7 @@ except ImportError:
     # python < 3.11
     Self = "S3GeoDataset"
 
+import fiona
 import geopandas as gpd
 from pebble import ThreadPool
 from s3fs import S3FileSystem
@@ -169,9 +170,10 @@ class S3GeoDataset(S3Dataset):
 
     def to_frame(self, **kwargs) -> gpd.GeoDataFrame:
         "Read the geodataset from local file"
-        return gpd.read_file(
-            os.path.join(self.local_dir, self.main_filename), **kwargs
-        )
+        with fiona.Env(OGR_GEOJSON_MAX_OBJ_SIZE="0"):
+            return gpd.read_file(
+                os.path.join(self.local_dir, self.main_filename), **kwargs
+            )
 
     def _get_columns(self, **kwargs):
         "Get the columns of the dataset"
