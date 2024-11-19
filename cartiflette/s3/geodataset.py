@@ -135,25 +135,25 @@ class S3GeoDataset(S3Dataset):
         mapshaper, needs geopandas)
         """
 
-        init_level = logging.getLogger("pyogrio").level
-        if MAPSHAPER_QUIET:
-            logging.getLogger("pyogrio._io").setLevel(logging.CRITICAL)
+        # init_level = logging.getLogger("pyogrio").level
+        # if MAPSHAPER_QUIET:
+        #     logging.getLogger("pyogrio._io").setLevel(logging.CRITICAL)
 
-        try:
-            path = os.path.join(self.local_dir, self.main_filename)
-            path = path.rsplit(".", maxsplit=1)[0] + ".gpkg"
-            gdf = self.to_frame()
-            if epsg != 4326:
-                gdf = gdf.to_crs(epsg)
-            gdf.to_file(path, driver="GPKG")
-            self._substitute_main_file(path)
-            self.config["vectorfile_format"] = "gpkg"
-            self.config["crs"] = epsg
-            self.update_s3_path_evaluation()
-        except Exception:
-            raise
-        finally:
-            logging.getLogger("pyogrio").setLevel(init_level)
+        # try:
+        path = os.path.join(self.local_dir, self.main_filename)
+        path = path.rsplit(".", maxsplit=1)[0] + ".gpkg"
+        gdf = self.to_frame()
+        if epsg != 4326:
+            gdf = gdf.to_crs(epsg)
+        gdf.to_file(path, driver="GPKG")
+        self._substitute_main_file(path)
+        self.config["vectorfile_format"] = "gpkg"
+        self.config["crs"] = epsg
+        self.update_s3_path_evaluation()
+        # except Exception:
+        #     raise
+        # finally:
+        #     logging.getLogger("pyogrio").setLevel(init_level)
 
     # def to_shapefile(self):
     #     """
@@ -172,7 +172,9 @@ class S3GeoDataset(S3Dataset):
         "Read the geodataset from local file"
         with fiona.Env(OGR_GEOJSON_MAX_OBJ_SIZE="0"):
             return gpd.read_file(
-                os.path.join(self.local_dir, self.main_filename), **kwargs
+                os.path.join(self.local_dir, self.main_filename),
+                engine="fiona",
+                **kwargs,
             )
 
     def _get_columns(self, **kwargs):
@@ -314,7 +316,7 @@ class S3GeoDataset(S3Dataset):
         driver = gpd_driver[format_write]
 
         # Ensure geometries' validity
-        gdf = gpd.read_file(output)
+        gdf = gpd.read_file(output, engine="fiona")
         if not gdf["geometry"].is_valid.all():
             gdf["geometry"] = gdf["geometry"].buffer(0)
             gdf.to_file(output, driver=driver)

@@ -17,7 +17,7 @@ from s3fs import S3FileSystem
 from retrying import retry
 
 
-from cartiflette.config import FS, RETRYING
+from cartiflette.config import FS, RETRYING, MAPSHAPER_QUIET
 from cartiflette.utils import (
     create_path_bucket,
     ConfigDict,
@@ -177,7 +177,13 @@ class S3Dataset:
         if self.filename != "*":
             search += ".*"
 
+        init_level = logging.getLogger("botocore.credentials").level
+        if MAPSHAPER_QUIET:
+            logging.getLogger("botocore.credentials").setLevel(
+                logging.CRITICAL
+            )
         self.s3_files = self.fs.glob(search)
+        logging.getLogger("botocore.credentials").setLevel(init_level)
 
         if self.build_from_local:
             # This S3Dataset has been created from a local file
@@ -209,7 +215,14 @@ class S3Dataset:
         if not target.endswith("/"):
             target += "/"
         logger.debug("sending %s -> %s", self.local_dir, target)
+
+        init_level = logging.getLogger("botocore.credentials").level
+        if MAPSHAPER_QUIET:
+            logging.getLogger("botocore.credentials").setLevel(
+                logging.CRITICAL
+            )
         self.fs.put(self.local_dir + "/*", target, recursive=True)
+        logging.getLogger("botocore.credentials").setLevel(init_level)
 
     def _read(self, src: str) -> bytes:
         """
@@ -229,8 +242,14 @@ class S3Dataset:
         try:
             return cache[src]
         except KeyError:
+            init_level = logging.getLogger("botocore.credentials").level
+            if MAPSHAPER_QUIET:
+                logging.getLogger("botocore.credentials").setLevel(
+                    logging.CRITICAL
+                )
             with self.fs.open(src, "rb") as f:
                 content = f.read()
+            logging.getLogger("botocore.credentials").setLevel(init_level)
             cache[src] = content
         return content
 
