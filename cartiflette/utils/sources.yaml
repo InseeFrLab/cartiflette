@@ -62,7 +62,7 @@ IGN:
         date: "2020-11-20"
         version: "2-1"
         url_prefix: https://data.geopf.fr/telechargement/download/
-        structure: "{url_prefix}{prefix}/{prefix}_{version}__SHP_FRA_{date}/{prefix}_{version}__SHP_FRA_{date}.7z"
+        structure: "{url_prefix}{prefix}/{prefix}_{version}__SHP__FRA_{date}/{prefix}_{version}__SHP__FRA_{date}.7z"
       2019:
         # Nota : fichier 7Z unique pour tous les territoires
         prefix: ADMIN-EXPRESS-COG
