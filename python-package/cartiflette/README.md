@@ -25,9 +25,9 @@ Plus d'exemples sont disponibles dans la [documentation interactive](https://ins
 
 Exemple de récupération du fonds de carte des départements avec les DROM rapprochés de la France métropolitaine
 ``` python
-from cartiflette.client import carti_dataset
+from cartiflette.client import carti_download
 
-data = carti_dataset(
+data = carti_download(
     values = ["France"],
     crs = 4326,
     borders = "DEPARTEMENT",

@@ -125,7 +125,7 @@ class CartifletteSession(CachedSession):
         return concatenated_gdf
 
 
-def carti_dataset(
+def carti_download(
     values: typing.List[typing.Union[str, int, float]],
     *args,
     borders: str = "COMMUNE",

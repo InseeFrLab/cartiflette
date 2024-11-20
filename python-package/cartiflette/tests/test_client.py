@@ -8,11 +8,11 @@ Test cartiflette client
 
 import geopandas as gpd
 
-from cartiflette.client import carti_dataset
+from cartiflette.client import carti_download
 
 
-def test_carti_dataset():
-    dataset = carti_dataset(
+def test_carti_download():
+    dataset = carti_download(
         values=["France"],
         crs=4326,
         borders="DEPARTEMENT",
