@@ -1,4 +1,4 @@
-# Cartiflette [![](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) <img height="18" width="18" src="https://cdn.simpleicons.org/python/00ccff99" />
+# Cartiflette [![](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) ![](https://cdn.simpleicons.org/python/00ccff99?viewbox=auto&size=18)
 
 
 `cartiflette` est un projet pour faciliter l’association de sources
@@ -11,32 +11,34 @@ L'objectif de `cartiflette` est d'offrir des méthodes fiables,
 reproductibles et multi-langages pour récupérer des fonds de carte officiels de l'IGN
 enrichis de métadonnées utiles pour la cartographie et la _data science_. 
 
-La librairie python `cartiflette` <img height="18" width="18" src="https://cdn.simpleicons.org/python/00ccff99" /> permet la récupération des fonds de carte de l'IGN.
+La librairie python `cartiflette` ![](https://cdn.simpleicons.org/python/00ccff99?viewbox=auto&size=18) permet la récupération des fonds de carte de l'IGN.
 
-<details>
-  <summary>
-  Installer la librairie python <img height="18" width="18" src="https://cdn.simpleicons.org/python/00ccff99" />
-  </summary>
-
+## Installer la librairie python ![](https://cdn.simpleicons.org/python/00ccff99?viewbox=auto&size=18)
 ``` python
 pip install cartiflette
 ```
-
-</details>
 
 
 ## Exemples
 
 Plus d'exemples sont disponibles dans la [documentation interactive](https://inseefrlab.github.io/cartiflette-website/index.html).
 
-<details>
-  <summary>
-    Exemple de récupération du fonds de carte des départements avec les DROM rapprochés de la France métropolitaine
-  </summary>
+Exemple de récupération du fonds de carte des départements avec les DROM rapprochés de la France métropolitaine
+```
+from cartiflette.client import CartifletteSession
 
-![image](https://github.com/InseeFrLab/cartiflette/assets/33896139/18cf091f-ddab-420d-a078-4c678f21db23)
-
-</details>
+carti = CartifletteSession()
+data = carti.get_dataset(
+    values = ["France"],
+    crs = 4326,
+    borders = "DEPARTEMENT",
+    vectorfile_format="topojson",
+    simplification=50,
+    filter_by="FRANCE_ENTIERE_DROM_RAPPROCHES",
+    source="EXPRESS-COG-CARTO-TERRITOIRE",
+    year=2022
+)
+```
 
 ## Contexte
 
