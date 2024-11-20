@@ -15,7 +15,7 @@ La librairie python `cartiflette` <img height="18" width="18" src="https://cdn.s
 
 <details>
   <summary>
-  Installer la librairie python ![image](https://cdn.simpleicons.org/python/00ccff99)
+  Installer la librairie python <img height="18" width="18" src="https://cdn.simpleicons.org/python/00ccff99" />
   </summary>
 
 ``` python
