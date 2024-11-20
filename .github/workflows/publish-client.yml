@@ -43,7 +43,7 @@ jobs:
       #----------------------------------------------
       # add only geopandas for tests (not the full dev dependencies)
       #----------------------------------------------
-        - name: Add geopandas
+      - name: Add geopandas
         run: poetry run pip install geopandas
 
       #----------------------------------------------
