@@ -1,0 +1,134 @@
+name: test_and_publish
+
+on: 
+  push:
+    tags:
+      - 'client-*'
+
+jobs:
+# TODO
+# Faire des tests
+#   test:
+#     runs-on: ubuntu-latest
+#     steps:
+#       #----------------------------------------------
+#       #       check-out repo and set-up python
+#       #----------------------------------------------
+#       - name: Check out repository
+#         uses: actions/checkout@v3
+#       - name: Set up python
+#         id: setup-python
+#         uses: actions/setup-python@v4
+#         with:
+#           python-version: '3.9'
+#       #----------------------------------------------
+#       #  -----  install & configure poetry  -----
+#       #----------------------------------------------
+#       - name: Install Poetry
+#         uses: snok/install-poetry@v1
+#         with:
+#           virtualenvs-create: true
+#           virtualenvs-in-project: true
+#           installer-parallel: true
+
+#       #----------------------------------------------
+#       #       load cached venv if cache exists
+#       #----------------------------------------------
+#       - name: Load cached venv
+#         id: cached-poetry-dependencies
+#         uses: actions/cache@v3
+#         with:
+#           path: .venv
+#           key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+#       #----------------------------------------------
+
+#       # install dependencies if cache does not exist
+#       #----------------------------------------------
+#       - name: Install dependencies
+#         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+#         run: poetry install --no-interaction --without dev
+
+#       #----------------------------------------------
+#       # add only pytest for tests (not the full dev dependencies to avoid installing spyder)
+#       #----------------------------------------------
+#       - name: Add pytest
+#         run: poetry run pip install pytest
+
+#       #----------------------------------------------
+#       # add only pytest-cov for tests (not the full dev dependencies to avoid installing spyder)
+#       #----------------------------------------------
+#       - name: Add pytest-cov
+#         run: poetry run pip install pytest-cov
+
+#       #----------------------------------------------
+#       #              run test suite
+#       #----------------------------------------------
+#       - name: Run tests
+#         env:
+#           insee_key: ${{secrets.INSEE_KEY}}
+#           insee_secret: ${{secrets.INSEE_SECRET}}
+#         run: poetry run pytest --cov -W error
+        
+  publish:
+    runs-on: ubuntu-latest
+    # needs: test
+    steps:
+      #----------------------------------------------
+      #       check-out repo and set-up python
+      #----------------------------------------------
+      - name: Check out repository
+        uses: actions/checkout@v3
+      - name: Set up python
+        id: setup-python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      #----------------------------------------------
+      #  -----  install & configure poetry  -----
+      #----------------------------------------------
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        # with:
+        #   virtualenvs-create: true
+        #   virtualenvs-in-project: true
+        #   installer-parallel: true
+
+      #----------------------------------------------
+      #       load cached venv if cache exists
+      #----------------------------------------------
+    #   - name: Load cached venv
+    #     id: cached-poetry-dependencies
+    #     uses: actions/cache@v3
+    #     with:
+    #       path: .venv
+    #       key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+      #----------------------------------------------
+      # install dependencies if cache does not exist
+      #----------------------------------------------
+    #   - name: Install dependencies
+    #     if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+    #     run: poetry install --no-interaction --no-root --without dev --extras "full"
+        
+      #----------------------------------------------
+      # install your root project, if required
+      #----------------------------------------------
+    #   - name: Install project
+    #     run: poetry install --no-interaction --without dev
+      
+      #----------------------------------------------
+      # config pypi token
+      #----------------------------------------------
+    #   - name: Set pypi token
+    #     run: poetry config pypi-token.pypi ${{secrets.PYPI_TOKEN}}
+        
+      #----------------------------------------------
+      # build
+      #----------------------------------------------
+      - name: Build
+        run: poetry build
+      
+      #----------------------------------------------
+      #              run test suite
+      #----------------------------------------------
+      - name: Publish to Pypi
+        run: poetry publish --uersname ${{secrets.PYPI_USERNAME}} --password ${{secrets.PAT_PYPI}}
