@@ -29,16 +29,22 @@ jobs:
         uses: snok/install-poetry@v1
 
       #----------------------------------------------
-      # add only pytest for tests (not the full dev dependencies to avoid installing spyder)
+      # add only pytest for tests (not the full dev dependencies)
       #----------------------------------------------
       - name: Add pytest
         run: poetry run pip install pytest
 
       #----------------------------------------------
-      # add only pytest-cov for tests (not the full dev dependencies to avoid installing spyder)
+      # add only pytest-cov for tests (not the full dev dependencies)
       #----------------------------------------------
       - name: Add pytest-cov
         run: poetry run pip install pytest-cov
+
+      #----------------------------------------------
+      # add only geopandas for tests (not the full dev dependencies)
+      #----------------------------------------------
+        - name: Add geopandas
+        run: poetry run pip install geopandas
 
       #----------------------------------------------
       #              run test suite
