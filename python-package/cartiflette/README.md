@@ -24,11 +24,10 @@ pip install cartiflette
 Plus d'exemples sont disponibles dans la [documentation interactive](https://inseefrlab.github.io/cartiflette-website/index.html).
 
 Exemple de récupération du fonds de carte des départements avec les DROM rapprochés de la France métropolitaine
-```
-from cartiflette.client import CartifletteSession
+``` python
+from cartiflette.client import carti_dataset
 
-carti = CartifletteSession()
-data = carti.get_dataset(
+data = carti_dataset(
     values = ["France"],
     crs = 4326,
     borders = "DEPARTEMENT",
