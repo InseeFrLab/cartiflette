@@ -12,7 +12,7 @@ from cartiflette.client import carti_download
 
 
 def test_carti_download():
-    dataset = carti_download(
+    dataset_topojson = carti_download(
         values=["France"],
         crs=4326,
         borders="DEPARTEMENT",
@@ -22,4 +22,15 @@ def test_carti_download():
         source="EXPRESS-COG-CARTO-TERRITOIRE",
         year=2022,
     )
-    assert isinstance(dataset, gpd.GeoDataFrame)
+    dataset_geojson = carti_download(
+        values=["France"],
+        crs=4326,
+        borders="DEPARTEMENT",
+        vectorfile_format="geojson",
+        simplification=50,
+        filter_by="FRANCE_ENTIERE_DROM_RAPPROCHES",
+        source="EXPRESS-COG-CARTO-TERRITOIRE",
+        year=2022,
+    )
+    assert isinstance(dataset_topojson, gpd.GeoDataFrame)
+    assert isinstance(dataset_geojson, gpd.GeoDataFrame)

@@ -3,10 +3,13 @@ import os
 import typing
 import geopandas as gpd
 from datetime import date
+import logging
 
 from cartiflette.constants import DIR_CACHE, CACHE_NAME, BUCKET, PATH_WITHIN_BUCKET
 from cartiflette.config import _config
-from cartiflette.utils import download_cartiflette_single
+from cartiflette.utils import create_path_bucket, standardize_inputs
+
+logger = logging.getLogger(__name__)
 
 session = CachedSession()
 
@@ -25,6 +28,71 @@ class CartifletteSession(CachedSession):
             expire_after=expire_after,
             **kwargs,
         )
+
+        for protocol in ["http", "https"]:
+            try:
+                proxy = {protocol: os.environ[f"{protocol}_proxy"]}
+                self.proxies.update(proxy)
+            except KeyError:
+                continue
+
+    def download_cartiflette_single(
+        self,
+        *args,
+        bucket: str = BUCKET,
+        path_within_bucket: str = PATH_WITHIN_BUCKET,
+        provider: str = "IGN",
+        dataset_family: str = "ADMINEXPRESS",
+        source: str = "EXPRESS-COG-TERRITOIRE",
+        vectorfile_format: str = "geojson",
+        borders: str = "COMMUNE",
+        filter_by: str = "region",
+        territory: str = "metropole",
+        year: typing.Union[str, int, float] = None,
+        value: typing.Union[str, int, float] = "28",
+        crs: typing.Union[list, str, int, float] = 2154,
+        simplification: typing.Union[str, int, float] = None,
+        filename: str = "raw",
+        **kwargs,
+    ):
+        if not year:
+            year = str(date.today().year)
+
+        corresp_filter_by_columns, format_read, driver = standardize_inputs(
+            vectorfile_format
+        )
+
+        url = create_path_bucket(
+            {
+                "bucket": bucket,
+                "path_within_bucket": path_within_bucket,
+                "vectorfile_format": format_read,
+                "territory": territory,
+                "borders": borders,
+                "filter_by": filter_by,
+                "year": year,
+                "value": value,
+                "crs": crs,
+                "provider": provider,
+                "dataset_family": dataset_family,
+                "source": source,
+                "simplification": simplification,
+                "filename": filename,
+            }
+        )
+
+        url = f"https://minio.lab.sspcloud.fr/{url}"
+
+        try:
+            r = self.get(url)
+            gdf = gpd.read_file(r.content)
+        except Exception as e:
+            logger.error(
+                f"There was an error while reading the file from the URL: {url}"
+            )
+            logger.error(f"Error message: {str(e)}")
+        else:
+            return gdf
 
     def get_dataset(
         self,
@@ -98,7 +166,7 @@ class CartifletteSession(CachedSession):
 
         # Iterate over values
         for value in values:
-            gdf_single = download_cartiflette_single(
+            gdf_single = self.download_cartiflette_single(
                 value=value,
                 bucket=bucket,
                 path_within_bucket=path_within_bucket,
