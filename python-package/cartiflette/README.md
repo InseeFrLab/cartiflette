@@ -1,4 +1,4 @@
-# Cartiflette [![](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) ![image](https://cdn.simpleicons.org/python/00ccff99)
+# Cartiflette [![](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) <img height="18" width="18" src="https://cdn.simpleicons.org/python/00ccff99" />
 
 
 `cartiflette` est un projet pour faciliter l’association de sources
@@ -11,7 +11,7 @@ L'objectif de `cartiflette` est d'offrir des méthodes fiables,
 reproductibles et multi-langages pour récupérer des fonds de carte officiels de l'IGN
 enrichis de métadonnées utiles pour la cartographie et la _data science_. 
 
-La librairie python `cartiflette` ![image](https://cdn.simpleicons.org/python/00ccff99) permet la récupération des fonds de carte de l'IGN.
+La librairie python `cartiflette` <img height="18" width="18" src="https://cdn.simpleicons.org/python/00ccff99" /> permet la récupération des fonds de carte de l'IGN.
 
 <details>
   <summary>
