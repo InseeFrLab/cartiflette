@@ -118,8 +118,8 @@ jobs:
       #----------------------------------------------
       # config pypi token
       #----------------------------------------------
-    #   - name: Set pypi token
-    #     run: poetry config pypi-token.pypi ${{secrets.PYPI_TOKEN}}
+      - name: Set pypi token
+        run: poetry config pypi-token.pypi ${{secrets.PAT_PYPI}}
         
       #----------------------------------------------
       # build
@@ -131,4 +131,4 @@ jobs:
       #              run test suite
       #----------------------------------------------
       - name: Publish to Pypi
-        run: poetry publish --username ${{secrets.PYPI_USERNAME}} --password ${{secrets.PAT_PYPI}}
+        run: poetry publish
