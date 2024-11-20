@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cartiflette"
-version = "0.1.5"
+version = "0.1.6"
 description = "Tools to easily retrieve French borders for geographic data analytics"
 authors = ["Lino Galiana <lino.galiana@insee.fr>", "Thomas Grandjean <thomas.grandjean@developpement-durable.gouv.fr>", "Alica Burlot <alica.burlot@developpement-durable.gouv.fr>"]
 license = "OPEN LICENCE 2.0/LICENCE OUVERTE 2.0"

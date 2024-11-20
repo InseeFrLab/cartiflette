@@ -25,7 +25,7 @@ Plus d'exemples sont disponibles dans la [documentation interactive](https://ins
 
 Exemple de récupération du fonds de carte des départements avec les DROM rapprochés de la France métropolitaine
 ``` python
-from cartiflette.client import carti_download
+from cartiflette import carti_download
 
 data = carti_download(
     values = ["France"],
@@ -43,7 +43,7 @@ Si besoin de passer par un proxy, il faut déclarer http_proxy et https_proxy en
 ``` python
 import os
 
-from cartiflette.client import carti_download
+from cartiflette import carti_download
 
 os.environ["http_proxy"] = yourproxy
 os.environ["https_proxy"] = yourproxy

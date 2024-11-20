@@ -8,7 +8,7 @@ Test cartiflette client
 
 import geopandas as gpd
 
-from cartiflette.client import carti_download
+from cartiflette import carti_download
 
 
 def test_carti_download():
