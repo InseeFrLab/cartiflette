@@ -1,13 +1,25 @@
-from requests_cache import CachedSession
-import os
-import typing
-import geopandas as gpd
 from datetime import date
 import logging
+import os
+import typing
 
-from cartiflette.constants import DIR_CACHE, CACHE_NAME, BUCKET, PATH_WITHIN_BUCKET
+from requests_cache import CachedSession
+import geopandas as gpd
+import pandas as pd
+
+from cartiflette.constants import (
+    DIR_CACHE,
+    CACHE_NAME,
+    BUCKET,
+    PATH_WITHIN_BUCKET,
+    CATALOG,
+)
 from cartiflette.config import _config
-from cartiflette.utils import create_path_bucket, standardize_inputs
+from cartiflette.utils import (
+    create_path_bucket,
+    standardize_inputs,
+    flatten_dict,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +105,76 @@ class CartifletteSession(CachedSession):
             logger.error(f"Error message: {str(e)}")
         else:
             return gdf
+
+    def get_catalog(self, **kwargs) -> pd.DataFrame:
+        """
+        Retrieve and load cartiflette's current datasets' inventory (as a
+        dataframe).
+
+        Inventory columns are [
+             'source',
+             'year',
+             'administrative_level',
+             'crs',
+             'filter_by',
+             'value',
+             'vectorfile_format',
+             'territory',
+             'simplification'
+             ]
+
+        Each row corresponds to an available DataFrame.
+
+        Parameters
+        ----------
+        fs : S3FileSystem, optional
+            S3 File System. The default is FS.
+        bucket : str, optional
+            Used bucket (both for inventory querying and json storage). The default
+            is BUCKET.
+        path_within_bucket : str, optional
+            Path used within bucket. The default is PATH_WITHIN_BUCKET.
+
+        Returns
+        -------
+        df : pd.DataFrame
+            Inventory DataFrame
+
+        """
+
+        url = CATALOG
+
+        url = f"https://minio.lab.sspcloud.fr/{url}"
+
+        try:
+            r = self.get(url)
+            d = r.json()
+        except Exception as e:
+            logger.error(
+                f"There was an error while reading the file from the URL: {url}"
+            )
+            logger.error(f"Error message: {str(e)}")
+            return
+
+        d = flatten_dict(d)
+
+        index = pd.MultiIndex.from_tuples(d.keys())
+        df = pd.DataFrame(
+            list(d.values()), index=index, columns=["simplification"]
+        )
+        index.names = [
+            "source",
+            "year",
+            "administrative_level",
+            "crs",
+            "filter_by",
+            "value",
+            "vectorfile_format",
+            "territory",
+        ]
+
+        df = df.reset_index(drop=False)
+        return df
 
     def get_dataset(
         self,

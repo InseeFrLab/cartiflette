@@ -10,3 +10,8 @@ DIR_CACHE = platformdirs.user_cache_dir(APP_NAME, ensure_exists=True)
 CACHE_NAME = "cartiflette_http_cache.sqlite"
 BUCKET = "projet-cartiflette"
 PATH_WITHIN_BUCKET = "production"
+
+CATALOG = url = (
+    "https://minio.lab.sspcloud.fr/"
+    f"{BUCKET}/{PATH_WITHIN_BUCKET}/inventory.json"
+)
