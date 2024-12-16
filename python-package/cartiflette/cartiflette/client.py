@@ -1,7 +1,9 @@
 from datetime import date
+from functools import reduce, lru_cache
 import logging
 import os
 import typing
+from warnings import warn
 
 from requests_cache import CachedSession
 import geopandas as gpd
@@ -14,6 +16,9 @@ from cartiflette.constants import (
     PATH_WITHIN_BUCKET,
     CATALOG,
 )
+
+# TODO : mettre bucket et path_within_bucket en véritables constantes
+
 from cartiflette.config import _config
 from cartiflette.utils import (
     create_path_bucket,
@@ -33,6 +38,8 @@ class CartifletteSession(CachedSession):
     def __init__(
         self,
         expire_after: int = _config["DEFAULT_EXPIRE_AFTER"],
+        bucket: str = BUCKET,
+        path_within_bucket: str = PATH_WITHIN_BUCKET,
         **kwargs,
     ):
         super().__init__(
@@ -40,6 +47,9 @@ class CartifletteSession(CachedSession):
             expire_after=expire_after,
             **kwargs,
         )
+
+        self.bucket = bucket
+        self.path_within_bucket = path_within_bucket
 
         for protocol in ["http", "https"]:
             try:
@@ -50,11 +60,8 @@ class CartifletteSession(CachedSession):
 
     def download_cartiflette_single(
         self,
-        *args,
-        bucket: str = BUCKET,
-        path_within_bucket: str = PATH_WITHIN_BUCKET,
-        provider: str = "IGN",
-        dataset_family: str = "ADMINEXPRESS",
+        provider: str = "Cartiflette",
+        dataset_family: str = "production",
         source: str = "EXPRESS-COG-TERRITOIRE",
         vectorfile_format: str = "geojson",
         borders: str = "COMMUNE",
@@ -65,19 +72,83 @@ class CartifletteSession(CachedSession):
         crs: typing.Union[list, str, int, float] = 2154,
         simplification: typing.Union[str, int, float] = None,
         filename: str = "raw",
-        **kwargs,
-    ):
+    ) -> gpd.GeoDataFrame:
+        """
+        Download a single geodataset from Cartiflette
+
+        Parameters
+        ----------
+        provider : str, optional
+            Deprecated. The default is "Cartiflette".
+        dataset_family : str, optional
+            Deprecated. The default is "production".
+        source : str, optional
+            DESCRIPTION. The default is "EXPRESS-COG-TERRITOIRE".
+        vectorfile_format : str, optional
+            DESCRIPTION. The default is "geojson".
+        borders : str, optional
+            DESCRIPTION. The default is "COMMUNE".
+        filter_by : str, optional
+            DESCRIPTION. The default is "region".
+        territory : str, optional
+            DESCRIPTION. The default is "metropole".
+        year : typing.Union[str, int, float], optional
+            DESCRIPTION. The default is None.
+        value : typing.Union[str, int, float], optional
+            DESCRIPTION. The default is "28".
+        crs : typing.Union[list, str, int, float], optional
+            DESCRIPTION. The default is 2154.
+        simplification : typing.Union[str, int, float], optional
+            DESCRIPTION. The default is None.
+        filename : str, optional
+            DESCRIPTION. The default is "raw".
+         : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        TYPE
+            DESCRIPTION.
+
+        """
+
+        if provider:
+            warn(
+                "provider is deprecated and will be removed in a future "
+                "version. You can safely drop this argument.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
+        if provider:
+            warn(
+                "dataset_family is deprecated and will be removed in a future "
+                "version. You can safely drop this argument.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
+        if borders == "COMMUNE_ARRONDISSEMENT":
+            warn(
+                "'COMMUNE_ARRONDISSESMENT' is deprecated for borders and will "
+                "be removed in a future version. Please use 'ARM' instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
+        # TODO : vérifier borders vs. administrative_level
+
         if not year:
             year = str(date.today().year)
 
-        corresp_filter_by_columns, format_read, driver = standardize_inputs(
+        _corresp_filter_by_columns, format_read, _driver = standardize_inputs(
             vectorfile_format
         )
 
         url = create_path_bucket(
             {
-                "bucket": bucket,
-                "path_within_bucket": path_within_bucket,
+                "bucket": self.bucket,
+                "path_within_bucket": self.path_within_bucket,
                 "vectorfile_format": format_read,
                 "territory": territory,
                 "borders": borders,
@@ -85,8 +156,8 @@ class CartifletteSession(CachedSession):
                 "year": year,
                 "value": value,
                 "crs": crs,
-                "provider": provider,
-                "dataset_family": dataset_family,
+                "provider": "Cartiflette",
+                "dataset_family": "production",
                 "source": source,
                 "simplification": simplification,
                 "filename": filename,
@@ -100,15 +171,75 @@ class CartifletteSession(CachedSession):
             gdf = gpd.read_file(r.content)
         except Exception as e:
             logger.error(
-                f"There was an error while reading the file from the URL: {url}"
+                "There was an error while reading the file from the URL: %s",
+                url,
             )
-            logger.error(f"Error message: {str(e)}")
+            logger.error("Error message: %s", str(e))
+            return gpd.GeoDataFrame()
         else:
             return gdf
 
     def get_catalog(self, **kwargs) -> pd.DataFrame:
         """
-        Retrieve and load cartiflette's current datasets' inventory (as a
+        Retrieve and load cartiflette's current datasets' catalog (as a
+        dataframe), filtered on any of the following columns:
+        [
+            'source',
+            'year',
+            'administrative_level',
+            'crs',
+            'filter_by',
+            'value',
+            'vectorfile_format',
+            'territory',
+            'simplification'
+        ]
+
+        Each row corresponds to an available DataFrame.
+
+        Parameters
+        ----------
+        kwargs: dict
+            pairs of column/filter values
+
+        Returns
+        -------
+        df : pd.DataFrame
+            Filtered catalog as DataFrame
+
+        Example
+        -------
+        >>> kwargs = {"territory": "france", "source": "CONTOUR-IRIS"}
+        >>> with CartifletteSession() as carti_session:
+            return carti_session.get_catalog(**kwargs)
+
+                    source  year  ... territory simplification
+        0     CONTOUR-IRIS  2023  ...    france             40
+        1     CONTOUR-IRIS  2023  ...    france             40
+        2     CONTOUR-IRIS  2023  ...    france             40
+        3     CONTOUR-IRIS  2023  ...    france             40
+        4     CONTOUR-IRIS  2023  ...    france             40
+                   ...   ...  ...       ...            ...
+        5745  CONTOUR-IRIS  2023  ...    france             40
+        5746  CONTOUR-IRIS  2023  ...    france             40
+        5747  CONTOUR-IRIS  2023  ...    france             40
+        5748  CONTOUR-IRIS  2023  ...    france             40
+        5749  CONTOUR-IRIS  2023  ...    france             40
+
+        [5750 rows x 9 columns]
+
+        """
+        df = self._get_full_catalog()
+        if kwargs:
+            mask = reduce(
+                lambda x, y: x & y, [df[k] == v for k, v in kwargs.items()]
+            )
+            df = df[mask].copy()
+        return df
+
+    def _get_full_catalog(self) -> pd.DataFrame:
+        """
+        Retrieve and load cartiflette's current datasets' catalog (as a
         dataframe).
 
         Inventory columns are [
@@ -125,16 +256,6 @@ class CartifletteSession(CachedSession):
 
         Each row corresponds to an available DataFrame.
 
-        Parameters
-        ----------
-        fs : S3FileSystem, optional
-            S3 File System. The default is FS.
-        bucket : str, optional
-            Used bucket (both for inventory querying and json storage). The default
-            is BUCKET.
-        path_within_bucket : str, optional
-            Path used within bucket. The default is PATH_WITHIN_BUCKET.
-
         Returns
         -------
         df : pd.DataFrame
@@ -143,17 +264,15 @@ class CartifletteSession(CachedSession):
         """
 
         url = CATALOG
-
-        url = f"https://minio.lab.sspcloud.fr/{url}"
-
         try:
             r = self.get(url)
             d = r.json()
         except Exception as e:
             logger.error(
-                f"There was an error while reading the file from the URL: {url}"
+                "There was an error while reading the file from the URL: %s",
+                url,
             )
-            logger.error(f"Error message: {str(e)}")
+            logger.error("Error message: %s", str(e))
             return
 
         d = flatten_dict(d)
@@ -174,12 +293,12 @@ class CartifletteSession(CachedSession):
         ]
 
         df = df.reset_index(drop=False)
+
         return df
 
     def get_dataset(
         self,
         values: typing.List[typing.Union[str, int, float]],
-        *args,
         borders: str = "COMMUNE",
         filter_by: str = "region",
         territory: str = "metropole",
@@ -187,15 +306,13 @@ class CartifletteSession(CachedSession):
         year: typing.Union[str, int, float] = None,
         crs: typing.Union[list, str, int, float] = 2154,
         simplification: typing.Union[str, int, float] = None,
-        bucket: str = BUCKET,
-        path_within_bucket: str = PATH_WITHIN_BUCKET,
-        provider: str = "IGN",
-        dataset_family: str = "ADMINEXPRESS",
+        provider: str = "Cartiflette",
+        dataset_family: str = "production",
         source: str = "EXPRESS-COG-TERRITOIRE",
         filename: str = "raw",
         return_as_json: bool = False,
-        **kwargs,
     ) -> typing.Union[gpd.GeoDataFrame, str]:
+        # TODO : fix docstring
         """
         Downloads and aggregates official geographic datasets using the Cartiflette API
         for a set of specified values.
@@ -225,8 +342,9 @@ class CartifletteSession(CachedSession):
             Other parameters required for accessing the Cartiflette API.
 
         - return_as_json (bool, optional):
-            If True, the function returns a JSON string representation of the aggregated GeoDataFrame.
-            If False, it returns a GeoDataFrame. Default is False.
+            If True, the function returns a JSON string representation of the
+            aggregated GeoDataFrame. If False, it returns a GeoDataFrame. Default
+            is False.
 
         Returns:
         - Union[gpd.GeoDataFrame, str]:
@@ -250,8 +368,6 @@ class CartifletteSession(CachedSession):
         for value in values:
             gdf_single = self.download_cartiflette_single(
                 value=value,
-                bucket=bucket,
-                path_within_bucket=path_within_bucket,
                 provider=provider,
                 dataset_family=dataset_family,
                 source=source,
@@ -335,7 +451,9 @@ def carti_download(
             if return_as_json is True.
     """
 
-    with CartifletteSession() as carti_session:
+    with CartifletteSession(
+        bucket=bucket, path_within_bucket=path_within_bucket
+    ) as carti_session:
         return carti_session.get_dataset(
             values=values,
             *args,
@@ -346,8 +464,6 @@ def carti_download(
             year=year,
             crs=crs,
             simplification=simplification,
-            bucket=bucket,
-            path_within_bucket=path_within_bucket,
             provider=provider,
             dataset_family=dataset_family,
             source=source,
@@ -355,3 +471,51 @@ def carti_download(
             return_as_json=return_as_json,
             **kwargs,
         )
+
+
+@lru_cache(maxsize=128)
+def get_catalog(
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
+    **kwargs,
+) -> pd.DataFrame:
+    """
+    Retrieve Cartiflette's catalog. If kwargs are specified, will filter that
+    catalog according to the pairs of column/values given.
+
+    This function is cached.
+
+    Parameters
+    ----------
+    kwargs :
+        Pairs of keys/values from the catalog, optional.
+
+    Returns
+    -------
+    pd.DataFrame
+        Catalog of available datasets.
+
+    Example
+    -------
+    >>> get_catalog(territory="france", source="CONTOUR-IRIS")
+
+                source  year  ... territory simplification
+    0     CONTOUR-IRIS  2023  ...    france             40
+    1     CONTOUR-IRIS  2023  ...    france             40
+    2     CONTOUR-IRIS  2023  ...    france             40
+    3     CONTOUR-IRIS  2023  ...    france             40
+    4     CONTOUR-IRIS  2023  ...    france             40
+               ...   ...  ...       ...            ...
+    5745  CONTOUR-IRIS  2023  ...    france             40
+    5746  CONTOUR-IRIS  2023  ...    france             40
+    5747  CONTOUR-IRIS  2023  ...    france             40
+    5748  CONTOUR-IRIS  2023  ...    france             40
+    5749  CONTOUR-IRIS  2023  ...    france             40
+
+    [5750 rows x 9 columns]
+
+    """
+    with CartifletteSession(
+        bucket=bucket, path_within_bucket=path_within_bucket
+    ) as carti_session:
+        return carti_session.get_catalog(**kwargs)
