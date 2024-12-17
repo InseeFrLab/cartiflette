@@ -17,8 +17,6 @@ from cartiflette.constants import (
     CATALOG,
 )
 
-# TODO : mettre bucket et path_within_bucket en véritables constantes
-
 from cartiflette.config import _config
 from cartiflette.utils import (
     create_path_bucket,
@@ -36,20 +34,13 @@ class CartifletteSession(CachedSession):
     CACHE_NAME = os.path.join(DIR_CACHE, CACHE_NAME)
 
     def __init__(
-        self,
-        expire_after: int = _config["DEFAULT_EXPIRE_AFTER"],
-        bucket: str = BUCKET,
-        path_within_bucket: str = PATH_WITHIN_BUCKET,
-        **kwargs,
+        self, expire_after: int = _config["DEFAULT_EXPIRE_AFTER"], **kwargs
     ):
         super().__init__(
             cache_name=self.CACHE_NAME,
             expire_after=expire_after,
             **kwargs,
         )
-
-        self.bucket = bucket
-        self.path_within_bucket = path_within_bucket
 
         for protocol in ["http", "https"]:
             try:
@@ -131,12 +122,11 @@ class CartifletteSession(CachedSession):
         if borders == "COMMUNE_ARRONDISSEMENT":
             warn(
                 "'COMMUNE_ARRONDISSESMENT' is deprecated for borders and will "
-                "be removed in a future version. Please use 'ARM' instead.",
+                "be removed in a future version. Please use "
+                "'ARRONDISSEMENT_MUNICIPAL' instead.",
                 DeprecationWarning,
                 stacklevel=2,
             )
-
-        # TODO : vérifier borders vs. administrative_level
 
         if not year:
             year = str(date.today().year)
@@ -147,8 +137,8 @@ class CartifletteSession(CachedSession):
 
         url = create_path_bucket(
             {
-                "bucket": self.bucket,
-                "path_within_bucket": self.path_within_bucket,
+                "bucket": BUCKET,
+                "path_within_bucket": PATH_WITHIN_BUCKET,
                 "vectorfile_format": format_read,
                 "territory": territory,
                 "borders": borders,
@@ -338,7 +328,7 @@ class CartifletteSession(CachedSession):
             The coordinate reference system (default is 2154).
         - simplification (Union[str, int, float], optional):
             The simplification parameter (default is None).
-        - bucket, path_within_bucket, provider, dataset_family, source:
+        - provider, dataset_family, source:
             Other parameters required for accessing the Cartiflette API.
 
         - return_as_json (bool, optional):
@@ -401,8 +391,6 @@ def carti_download(
     year: typing.Union[str, int, float] = None,
     crs: typing.Union[list, str, int, float] = 2154,
     simplification: typing.Union[str, int, float] = None,
-    bucket: str = BUCKET,
-    path_within_bucket: str = PATH_WITHIN_BUCKET,
     provider: str = "IGN",
     dataset_family: str = "ADMINEXPRESS",
     source: str = "EXPRESS-COG-TERRITOIRE",
@@ -436,7 +424,7 @@ def carti_download(
         The coordinate reference system (default is 2154).
     - simplification (Union[str, int, float], optional):
         The simplification parameter (default is None).
-    - bucket, path_within_bucket, provider, dataset_family, source:
+    - provider, dataset_family, source:
         Other parameters required for accessing the Cartiflette API.
 
     - return_as_json (bool, optional):
@@ -451,9 +439,7 @@ def carti_download(
             if return_as_json is True.
     """
 
-    with CartifletteSession(
-        bucket=bucket, path_within_bucket=path_within_bucket
-    ) as carti_session:
+    with CartifletteSession() as carti_session:
         return carti_session.get_dataset(
             values=values,
             *args,
@@ -474,11 +460,7 @@ def carti_download(
 
 
 @lru_cache(maxsize=128)
-def get_catalog(
-    bucket: str = BUCKET,
-    path_within_bucket: str = PATH_WITHIN_BUCKET,
-    **kwargs,
-) -> pd.DataFrame:
+def get_catalog(**kwargs) -> pd.DataFrame:
     """
     Retrieve Cartiflette's catalog. If kwargs are specified, will filter that
     catalog according to the pairs of column/values given.
@@ -515,7 +497,5 @@ def get_catalog(
     [5750 rows x 9 columns]
 
     """
-    with CartifletteSession(
-        bucket=bucket, path_within_bucket=path_within_bucket
-    ) as carti_session:
+    with CartifletteSession() as carti_session:
         return carti_session.get_catalog(**kwargs)
