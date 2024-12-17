@@ -1,3 +1,7 @@
+"""
+# TODO
+"""
+
 from datetime import date
 from functools import reduce, lru_cache
 import logging
@@ -30,6 +34,15 @@ session = CachedSession()
 
 
 class CartifletteSession(CachedSession):
+    """
+    Inner class used to perform low level Cartiflette queries.
+
+    Basically performs http(s) requests on Cartiflette's storage system with a
+    client cache.
+
+    To use behind corporate proxy, please set up http_proxy and https_proxy as
+    environment variable beforehand.
+    """
 
     CACHE_NAME = os.path.join(DIR_CACHE, CACHE_NAME)
 
@@ -110,14 +123,18 @@ class CartifletteSession(CachedSession):
                 DeprecationWarning,
                 stacklevel=2,
             )
+        else:
+            provider = "Cartiflette"
 
-        if provider:
+        if dataset_family:
             warn(
                 "dataset_family is deprecated and will be removed in a future "
                 "version. You can safely drop this argument.",
                 DeprecationWarning,
                 stacklevel=2,
             )
+        else:
+            dataset_family = "production"
 
         if borders == "COMMUNE_ARRONDISSEMENT":
             warn(
@@ -127,6 +144,7 @@ class CartifletteSession(CachedSession):
                 DeprecationWarning,
                 stacklevel=2,
             )
+            borders = "ARRONDISSEMENT_MUNICIPAL"
 
         if not year:
             year = str(date.today().year)
@@ -166,8 +184,7 @@ class CartifletteSession(CachedSession):
             )
             logger.error("Error message: %s", str(e))
             return gpd.GeoDataFrame()
-        else:
-            return gdf
+        return gdf
 
     def get_catalog(self, **kwargs) -> pd.DataFrame:
         """
@@ -176,7 +193,7 @@ class CartifletteSession(CachedSession):
         [
             'source',
             'year',
-            'administrative_level',
+            'borders',
             'crs',
             'filter_by',
             'value',
@@ -227,7 +244,7 @@ class CartifletteSession(CachedSession):
             df = df[mask].copy()
         return df
 
-    def _get_full_catalog(self) -> pd.DataFrame:
+    def get_full_catalog(self) -> pd.DataFrame:
         """
         Retrieve and load cartiflette's current datasets' catalog (as a
         dataframe).
@@ -235,7 +252,7 @@ class CartifletteSession(CachedSession):
         Inventory columns are [
              'source',
              'year',
-             'administrative_level',
+             'borders',
              'crs',
              'filter_by',
              'value',
@@ -257,13 +274,12 @@ class CartifletteSession(CachedSession):
         try:
             r = self.get(url)
             d = r.json()
-        except Exception as e:
+        except Exception:
             logger.error(
                 "There was an error while reading the file from the URL: %s",
                 url,
             )
-            logger.error("Error message: %s", str(e))
-            return
+            raise
 
         d = flatten_dict(d)
 
@@ -274,7 +290,7 @@ class CartifletteSession(CachedSession):
         index.names = [
             "source",
             "year",
-            "administrative_level",
+            "borders",
             "crs",
             "filter_by",
             "value",
@@ -383,7 +399,6 @@ class CartifletteSession(CachedSession):
 
 def carti_download(
     values: typing.List[typing.Union[str, int, float]],
-    *args,
     borders: str = "COMMUNE",
     filter_by: str = "region",
     territory: str = "metropole",
@@ -396,7 +411,6 @@ def carti_download(
     source: str = "EXPRESS-COG-TERRITOIRE",
     filename: str = "raw",
     return_as_json: bool = False,
-    **kwargs,
 ) -> typing.Union[gpd.GeoDataFrame, str]:
     """
     Calls CartifletteSession.get_dataset
@@ -426,7 +440,6 @@ def carti_download(
         The simplification parameter (default is None).
     - provider, dataset_family, source:
         Other parameters required for accessing the Cartiflette API.
-
     - return_as_json (bool, optional):
         If True, the function returns a JSON string representation of the aggregated GeoDataFrame.
         If False, it returns a GeoDataFrame. Default is False.
@@ -442,7 +455,6 @@ def carti_download(
     with CartifletteSession() as carti_session:
         return carti_session.get_dataset(
             values=values,
-            *args,
             borders=borders,
             filter_by=filter_by,
             territory=territory,
@@ -455,11 +467,46 @@ def carti_download(
             source=source,
             filename=filename,
             return_as_json=return_as_json,
-            **kwargs,
         )
 
 
 @lru_cache(maxsize=128)
+def _get_full_catalog() -> pd.DataFrame:
+    """
+    Retrieve Cartiflette's complete catalog.
+
+    This is an inner function, used for caching purposes only. Please use
+    get_catalog() instead.
+
+    Returns
+    -------
+    pd.DataFrame
+        Catalog of available datasets.
+
+    Example
+    -------
+    >>> get_catalog(territory="france", source="CONTOUR-IRIS")
+
+                source  year  ... territory simplification
+    0     CONTOUR-IRIS  2023  ...    france             40
+    1     CONTOUR-IRIS  2023  ...    france             40
+    2     CONTOUR-IRIS  2023  ...    france             40
+    3     CONTOUR-IRIS  2023  ...    france             40
+    4     CONTOUR-IRIS  2023  ...    france             40
+               ...   ...  ...       ...            ...
+    5745  CONTOUR-IRIS  2023  ...    france             40
+    5746  CONTOUR-IRIS  2023  ...    france             40
+    5747  CONTOUR-IRIS  2023  ...    france             40
+    5748  CONTOUR-IRIS  2023  ...    france             40
+    5749  CONTOUR-IRIS  2023  ...    france             40
+
+    [5750 rows x 9 columns]
+
+    """
+    with CartifletteSession() as carti_session:
+        return carti_session.get_full_catalog()
+
+
 def get_catalog(**kwargs) -> pd.DataFrame:
     """
     Retrieve Cartiflette's catalog. If kwargs are specified, will filter that
@@ -497,5 +544,11 @@ def get_catalog(**kwargs) -> pd.DataFrame:
     [5750 rows x 9 columns]
 
     """
-    with CartifletteSession() as carti_session:
-        return carti_session.get_catalog(**kwargs)
+
+    df = _get_full_catalog()
+    if kwargs:
+        mask = reduce(
+            lambda x, y: x & y, [df[k] == v for k, v in kwargs.items()]
+        )
+        df = df[mask].copy()
+    return df
