@@ -123,7 +123,7 @@ def make_s3_inventory(
         ".*?/"
         "source=(?P<source>.*?)/"
         "year=(?P<year>[0-9]{4})/"
-        "administrative_level=(?P<administrative_level>.*?)/"
+        "administrative_level=(?P<borders>.*?)/"
         "crs=(?P<crs>[0-9]{4})/"
         "(?P<filter_by>.*?)=(?P<value>.*?)/"
         "vectorfile_format=(?P<vectorfile_format>.*?)/"
@@ -149,7 +149,7 @@ def make_s3_inventory(
     cols = [
         "source",
         "year",
-        "administrative_level",
+        "borders",
         "crs",
         "filter_by",
         "value",
@@ -177,7 +177,7 @@ def parse_inventory(
     Inventory columns are [
          'source',
          'year',
-         'administrative_level',
+         'borders',
          'crs',
          'filter_by',
          'value',
@@ -218,7 +218,7 @@ def parse_inventory(
     index.names = [
         "source",
         "year",
-        "administrative_level",
+        "borders",
         "crs",
         "filter_by",
         "value",
