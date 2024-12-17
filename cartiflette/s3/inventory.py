@@ -11,6 +11,7 @@ import pandas as pd
 from s3fs import S3FileSystem
 
 from cartiflette.config import FS, BUCKET, PATH_WITHIN_BUCKET
+from cartiflette.pipeline_constants import COG_TERRITOIRE, IRIS
 
 logger = logging.getLogger(__name__)
 
@@ -135,6 +136,15 @@ def make_s3_inventory(
         x.groupdict() for path in paths for x in compiled.finditer(path)
     ]
     datasets = pd.DataFrame(datasets)
+
+    # Do not track datasets ran on low resolution files for testing purposes
+    high_resolution = False
+    ix = datasets[
+        datasets.source.isin(
+            {IRIS[high_resolution], COG_TERRITOIRE[high_resolution]}
+        )
+    ].index
+    datasets = datasets.drop(ix)
 
     cols = [
         "source",
