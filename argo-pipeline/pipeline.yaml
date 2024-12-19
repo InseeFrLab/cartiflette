@@ -87,6 +87,11 @@ spec:
               - name: year
                 value: "{{item}}"
             withParam: "{{tasks.operationnal-selection-of-vintages-to-generate.outputs.parameters.years}}"
+            
+          # TASK 6 : GENERATE CATALOG
+          - name: make-catalog
+            template: make-catalog
+            dependencies: [generate-downstream-datasets]
 
   # --------------------------
   # TEMPLATES DEFINITION
@@ -132,8 +137,8 @@ spec:
           - name: PATH_WRITING_S3
             value: "test"
           - name: ENVIRONMENT
-            # set value to "dev" to simplify pipeline execution (2 years, only topojson, etc.)
-            value: preprod
+            # set value to "dev" to simplify pipeline execution (2 years, only topojson, etc.), use "preprod" or "prod" else
+            value: test
 
     - name: download-all-sources
       outputs:
@@ -295,6 +300,21 @@ spec:
           --year '{{inputs.parameters.year}}' \
           --configs '{{inputs.parameters.config_generation}}'"
         ]
+        volumeMounts:
+          - name: volume-workflow-tmp
+            mountPath: /mnt
+        env: *env_parameters
+        
+    - name: make-catalog
+      outputs:
+        parameters:
+        - name: result
+          valueFrom:
+            path: "catalog/result.json"
+      container:
+        image: inseefrlab/cartiflette:latest
+        command: ["sh", "-c"]
+        args: ["python /mnt/bin/src/catalog.py"]
         volumeMounts:
           - name: volume-workflow-tmp
             mountPath: /mnt
