@@ -18,6 +18,10 @@ platformdirs = "^4.3.6"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"
 matplotlib = "^3.9.2"
+PyQt5 = {version = "^5.15", markers = "sys_platform == 'win32'"}
+PyQt5-Qt5 = {version = "5.15.2", markers = "sys_platform == 'win32'"}
+PyQtWebEngine-Qt5 = {version = "5.15.2", markers = "sys_platform == 'win32'"}
+spyder = "^6.0.3"
 
 [build-system]
 requires = ["poetry-core"]

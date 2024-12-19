@@ -1,134 +1,186 @@
-import subprocess
+import logging
 import os
+
+from cartiflette.mapshaper.utils import run
+
+logger = logging.getLogger(__name__)
+
+# TODO : TOM (St-Martin, St-Barthelemy, St-Pierre-et-Miquelon)
 
 logical_conditions = {
     "EMPRISES": {
+        # left, bottom, right, top (epsg=3857)
+        "ile de france": "IDF==1",
         "metropole": "bbox=-572324.2901945524,5061666.243842439,1064224.7522608414,6638201.7541528195",
         "guadeloupe": "bbox=-6880639.760944527,1785277.734007631,-6790707.017202182,1864381.5053494961",
-        "martinique": 'bbox=-6815985.711078632,1618842.9696702233,-6769303.6899859235,1675227.3853840816',
+        "martinique": "bbox=-6815985.711078632,1618842.9696702233,-6769303.6899859235,1675227.3853840816",
         "guyane": "bbox=-6078313.094526156,235057.05702474713,-5746208.123095576,641016.7211362486",
-        "reunion": 'bbox=6146675.557436854,-2438398.996947137,6215705.133130206,-2376601.891080389',
-        "mayotte": 'bbox=5011418.778972076,-1460351.1566339568,5042772.003914668,-1418243.6428180535'
+        "reunion": "bbox=6146675.557436854,-2438398.996947137,6215705.133130206,-2376601.891080389",
+        "mayotte": "bbox=5011418.778972076,-1460351.1566339568,5042772.003914668,-1418243.6428180535",
+        "saint-martin": "bbox=-7034906.766337046, 2038329.0872462029, -7009537.630813715, 2056865.7060235194",
+        "saint-pierre-et-miquelon": "bbox=-6298822.299318486, 5894013.594517256, -6239181.296921183, 5973004.907786214",
+        "saint-barthelemy": "bbox=-7003557.376380256, 2018598.440800959, -6985037.106437805, 2033965.5078367123",
     },
-    "DEPARTEMENT": {
-        "ile de france": "['75', '92', '93', '94'].includes(INSEE_DEP)",
-        "zoom idf": 4,
-    },
-    "REGION": {
-        "ile de france": "INSEE_REG == 11",
-        "zoom idf": 1.5
-    },
-    "BASSIN_VIE": {
-        "ile de france": "BV2012 == 75056",
-        "zoom idf": 1.5
-    },
-    "UNITE_URBAINE": {
-        "ile de france": "UU2020 == '00851'",
-        "zoom idf": 1.5
-    },
-    "ZONE_EMPLOI": {
-        "ile de france": 'ZE2020 == 1109',
-        "zoom idf": 1.5
-    },
-    "AIRE_ATTRACTION_VILLES": {
-        "ile de france": "AAV2020 == '001'",
-        "zoom idf": 1.5
-    }
-
+    "IRIS": 8,
 }
 
 shift = {
-    'guadeloupe': '6355000,3330000',
-    'martinique': '6480000,3505000',
-    'guyane': '5760000,4720000',
-    'reunion': '-6170000,7560000',
-    'mayotte': '-4885000,6590000',
+    # X, Y shift
+    "guadeloupe": "6355000,3330000",
+    "martinique": "6480000,3505000",
+    "guyane": "5760000,4720000",
+    "reunion": "-6170000,7560000",
+    "mayotte": "-4885000,6590000",
+    "saint-martin": "5690000,-900000",
+    "saint-pierre-et-miquelon": "2880000,-2910000",
+    "saint-barthelemy": "5670000,-730000",
 }
 
 scale = {
-    'guadeloupe': '1.5',
-    'martinique': '1.5',
-    'guyane': '0.35',
-    'reunion': '1.5',
-    'mayotte': '1.5'
+    "guadeloupe": "1.5",
+    "martinique": "1.5",
+    "guyane": "0.35",
+    "reunion": "1.5",
+    "mayotte": "1.5",
+    "saint-martin": "2.5",
+    "saint-pierre-et-miquelon": "2",
+    "saint-barthelemy": "2.5",
 }
 
 
 def mapshaper_bring_closer(
-    france_vector_path="temp.geojson",
-    level_agreg="DEPARTEMENT"
-    ):
+    input_file: str,
+    bring_out_idf: str = True,
+    output_dir: str = "temp",
+    output_name: str = "output",
+    output_format: str = "geojson",
+    level_agreg: str = "DEPARTEMENT",
+    quiet: bool = True,
+):
+    """
+    Bring DROM closer and zoom over IDF.
 
-    output_path = "temp/preprocessed_transformed/idf_combined.geojson"
-    output_dir = os.path.dirname(output_path)
+    Parameters
+    ----------
+    input_file : str
+        Path to the input file.
+    bring_out_idf : bool, optional
+        If True, will extract IdF and zoom on it. The default is True.
+    output_dir : str
+        Directory to store the output file. The default is "temp"
+    output_name : str, optional
+        The path to write the file to (without extension).
+        The default is "concatenated"
+    output_format : str, optional
+        The format to write the outputfile. The default is "geojson".
+    level_agreg : str, optional
+        Desired aggregation configuration. The default is "DEPARTEMENT".
+    quiet : bool, optional
+        If True, inhibits console messages. The default is True.
 
-    logical_idf = logical_conditions[level_agreg]["ile de france"]
-    zoom_idf = logical_conditions[level_agreg]["zoom idf"]
+    Returns
+    -------
+    str
+        Local path to the output file
+
+    """
+
+    try:
+        os.makedirs(output_dir)
+    except FileExistsError:
+        pass
+
+    logical_idf = logical_conditions["EMPRISES"]["ile de france"]
+    zoom_idf = logical_conditions.get(level_agreg, 5)
+    if zoom_idf < 5:
+        shift_idf = "-650000,275000"
+    elif zoom_idf < 6:
+        shift_idf = "-650000,320000"
+    else:
+        shift_idf = "-650000,450000"
+
     logical_metropole = logical_conditions["EMPRISES"]["metropole"]
 
-    idf_zoom = (
-        f"mapshaper -i {france_vector_path} "
-        f"-proj EPSG:3857 "
-        f'-filter "{logical_idf}" '
-        f"-affine shift=-650000,275000 scale={zoom_idf} "
-        f"-o {output_dir}/idf_zoom.geojson"
-    )
+    quiet = "-quiet " if quiet else " "
 
-    france_metropolitaine = (
-        f"mapshaper -i {france_vector_path} "
-        f"-proj EPSG:3857 "
-        f'-filter "{logical_metropole}" '
-        f"-o {output_dir}/metropole.geojson"
-    )
-
-    subprocess.run(
-        idf_zoom,
-        shell=True,
-        check=True,
-    )
-
-    subprocess.run(
-        france_metropolitaine,
-        shell=True,
-        check=True,
-    )
-
-    for region, shift_value in shift.items():
-        print(f"Processing {region}")
-        cmd = (
-            f"mapshaper -i {france_vector_path} "
+    try:
+        france_metropolitaine = (
+            f"mapshaper -i {input_file} "
             f"-proj EPSG:3857 "
-            f'-filter "{logical_conditions["EMPRISES"][region]}" '
-            f'-affine shift={shift_value} scale={scale[region]} '
-            f"-o {output_dir}/{region}.geojson"
-        )
-        subprocess.run(
-            cmd,
-            shell=True,
-            check=True,
+            f'-filter "{logical_metropole}" '
+            f"{quiet}"
+            f"-o {output_dir}/metropole.{output_format}"
         )
 
-    cmd_combined = (
-        f"mapshaper "
-        f"{output_dir}/metropole.geojson "
-        f"{output_dir}/idf_zoom.geojson "
-        f"{output_dir}/guadeloupe.geojson "
-        f"{output_dir}/martinique.geojson "
-        f"{output_dir}/guyane.geojson "
-        f"{output_dir}/reunion.geojson "
-        f"{output_dir}/mayotte.geojson "
-        f"snap combine-files "
-        f'-proj wgs84 init="EPSG:3857" target=* '
-        f"-rename-layers FRANCE,IDF,GDP,MTQ,GUY,REU,MAY "
-        f"-merge-layers target=FRANCE,IDF,GDP,MTQ,GUY,REU,MAY force "
-        f"-rename-layers FRANCE_TRANSFORMED "
-        f"-o {output_dir}/idf_combined.geojson "
-    )
+        if bring_out_idf:
+            idf_zoom = (
+                f"mapshaper -i {input_file} "
+                f"-proj EPSG:3857 "
+                f'-filter "{logical_idf}" '
+                f"-affine shift={shift_idf} scale={zoom_idf} "
+                f"{quiet}"
+                f"-o {output_dir}/idf_zoom.{output_format}"
+            )
 
-    subprocess.run(
-        cmd_combined,
-        shell=True,
-        check=True,
-    )
+            run(idf_zoom)
 
-    return f"{output_dir}/idf_combined.geojson"
+        run(france_metropolitaine)
+
+        for region, shift_value in shift.items():
+            logger.info("Processing %s", region)
+            cmd = (
+                f"mapshaper -i {input_file} "
+                f"-proj EPSG:3857 "
+                f'-filter "{logical_conditions["EMPRISES"][region]}" '
+                f"-affine shift={shift_value} scale={scale[region]} "
+                f"{quiet}"
+                f"-o {output_dir}/{region}.{output_format}"
+            )
+            run(cmd)
+
+        # fix_geo = "fix-geometry" if output_format == "topojson" else ""
+
+        output = f"{output_dir}/{output_name}.{output_format}"
+        bring_out_idf = (
+            f"{output_dir}/idf_zoom.{output_format} " if bring_out_idf else ""
+        )
+        cmd_combined = (
+            f"mapshaper "
+            f"{output_dir}/metropole.{output_format} "
+            + bring_out_idf
+            + f"{output_dir}/guadeloupe.{output_format} "
+            f"{output_dir}/martinique.{output_format} "
+            f"{output_dir}/guyane.{output_format} "
+            f"{output_dir}/reunion.{output_format} "
+            f"{output_dir}/mayotte.{output_format} "
+            f"snap combine-files "
+            f'-proj wgs84 init="EPSG:3857" target=* '
+            f"-rename-layers FRANCE,IDF,GDP,MTQ,GUY,REU,MAY "
+            f"-merge-layers target=FRANCE,IDF,GDP,MTQ,GUY,REU,MAY force "
+            f"-rename-layers FRANCE_TRANSFORMED "
+            "-explode "
+            f"{quiet}"
+            f"-o {output} "
+            # f"{fix_geo}"
+        )
+
+        run(cmd_combined)
+    except Exception:
+        raise
+
+    finally:
+        for tempfile in [
+            "metropole",
+            "idf_zoom",
+            "guadeloupe",
+            "martinique",
+            "guyane",
+            "reunion",
+            "mayotte",
+        ]:
+            try:
+                os.unlink(f"{output_dir}/{tempfile}.{output_format}")
+            except FileNotFoundError:
+                pass
+
+    return output

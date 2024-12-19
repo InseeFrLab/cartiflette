@@ -1,109 +1,331 @@
-import itertools
+import logging
+
 import pandas as pd
+from pebble import ThreadPool
+from s3fs import S3FileSystem
+
+from cartiflette.config import (
+    FS,
+    BUCKET,
+    PATH_WITHIN_BUCKET,
+    THREADS_DOWNLOAD,
+    INTERMEDIATE_FORMAT,
+)
+from cartiflette.pipeline_constants import (
+    AVAILABLE_DISSOLUTIONS_FROM_RAW_MESH,
+    AVAILABLE_TERRITORIAL_SPLITS_FOR_BORDERS,
+    PIPELINE_DOWNLOAD_ARGS,
+    PIPELINE_SIMPLIFICATION_LEVELS,
+)
+from cartiflette.s3 import S3GeoDataset
+
+logger = logging.getLogger(__name__)
 
 
-def restructure_nested_dict_borders(dict_with_list: dict):
+def flatten_dict_to_list(dict_with_list: dict) -> list:
     """
-    Restructures a nested dictionary by flattening its values and their corresponding keys.
+        Restructures a nested dictionary by flattening its values and their
+        corresponding keys.
 
-    Parameters:
-    -----------
-    dict_with_list : dict
-        A dictionary with list values to be restructured.
+        Parameters:
+        -----------
+        dict_with_list : dict
+            A dictionary with list values to be restructured.
 
-    Returns:
-    --------
-    list
-        A list of lists containing key-value pairs obtained by flattening the input dictionary.
+        Returns:
+        --------
+        flattened_list : list
+            A list of lists containing key-value pairs obtained by flattening
+            the input dictionary.
+    ValueError
+        Example:
+        --------
+        Example usage:
+            sample_dict = {'a': [1, 2, 3], 'b': [4, 5]}
+            result = flatten_dict(sample_dict)
+            print(result)
 
-    Example:
-    --------
-    Example usage:
-        sample_dict = {'a': [1, 2, 3], 'b': [4, 5]}
-        result = restructure_nested_dict_borders(sample_dict)
-        print(result)
-
-    This will output:
-        [['a', 1], ['a', 2], ['a', 3], ['b', 4], ['b', 5]]
+        This will output:
+            [['a', 1], ['a', 2], ['a', 3], ['b', ValueError4], ['b', 5]]
     """
-    croisement_filter_by_borders_flat = [
+    flattened_list = [
         [key, inner_value]
         for key, values in dict_with_list.items()
         for inner_value in values
     ]
 
-    return croisement_filter_by_borders_flat
+    return flattened_list
 
 
 def crossproduct_parameters_production(
-    croisement_filter_by_borders: dict,
-    list_format: list,
-    years: list,
-    crs_list: list,
-    sources: list,
-    simplifications: list,
-) -> pd.DataFrame:
+    year: int,
+    simplifications: list = None,
+    fs: S3FileSystem = FS,
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
+) -> list:
     """
-    Generates a DataFrame by performing a cross-product of the given parameters.
+    Generates a dict of arguments commanding the generation of output
+    geodatasets. Only the best available process to generate a given dataset
+    are kep (for instance among available IRIS and COMMUNE candidates).
+
+    Note that the length of the return represents the number of downstream
+    pods.
 
     Parameters:
     -----------
-    croisement_filter_by_borders : dict
-        A dictionary with nested lists for cross-product generation.
-    list_format : list
-        A list of formats for cross-product generation.
-    years : list
-        A list of years for cross-product generation.
-    crs_list : list
-        A list of CRS (Coordinate Reference Systems) for cross-product generation.
-    sources : list
-        A list of sources for cross-product generation.
-    simplifications : list
-        A list of simplifications for cross-product generation.
+    year : int
+        Desired vintage. For ex. 2023
+    simplifications : list, optional
+        A list of simplification for cross-product generation. The default is
+        None and will result to PIPELINE_SIMPLIFICATION_LEVELS.
+    fs : S3FileSystem, optional
+        S3FileSystem used for storage. The default is FS.
+    bucket : str, optional
+        The bucket used for storage on fs. The default is BUCKET.
+    path_within_bucket : str, optional
+        The path within the bucket used for storage on fs. The default is
+        PATH_WITHIN_BUCKET.
 
     Returns:
     --------
-    pd.DataFrame
-        A pandas DataFrame containing the cross-product of the input parameters.
+    combinations : list
+        A list of dicts used for commanding the generation of a downstream
+        dataset.
+
+        Each dict has 5 keys:
+            * mesh_init: str (for instance 'DEPARTEMENT')
+            * source_geodata: str (for instance 'EXPRESS-COG-CARTO-TERRITOIRE')
+            * simplification: str (for instance '2021')
+            * dissolve_by: str (for instance 'ARRONDISSEMENT')
+            * config: List[str] of territorial splits
 
     Example:
     --------
     Example usage:
-        sample_dict = {'a': [1, 2, 3], 'b': [4, 5]}
-        formats = ['geojson', 'gpkg']
-        years = [2022, 2022]
-        crs_list = [4326, 2154]
-        sources = ['source1', 'source2']
-        simplifications = [0, 40]
-        result = crossproduct_parameters_production(
-            sample_dict, formats, years, crs_list, sources, simplifications
-        )
-        print(result)
+        >>> year = 2023
+        >>> simplifications = [0, 40]
+        >>> result = crossproduct_parameters_production(year, simplifications)
+        >>> print(result)
+        >>> [{
+                'mesh_init': 'ARRONDISSEMENT_MUNICIPAL',
+                'source_geodata': 'EXPRESS-COG-CARTO-TERRITOIRE',
+                'simplification': 40,
+                'dissolve_by': 'ARRONDISSEMENT_MUNICIPAL',
+                'territories': ['ZONE_EMPLOI', ..., 'AIRE_ATTRACTION_VILLES']
+            }, ..., {
+                'mesh_init': 'IRIS',
+                'source_geodata': 'CONTOUR-IRIS',
+                'simplification': 40,
+                'dissolve_by': 'IRIS',
+                'territories': ['ZONE_EMPLOI', ..., 'AIRE_ATTRACTION_VILLES']
+            }
+        ]
 
-    This will output:
-        A pandas DataFrame with the cross-product of the provided parameters.
     """
-    croisement_filter_by_borders_flat = restructure_nested_dict_borders(
-        croisement_filter_by_borders
+
+    if not simplifications:
+        simplifications = PIPELINE_SIMPLIFICATION_LEVELS
+
+    # prepare a list of (potential) sources from cartiflette's config
+    # (the result will depend of the resolution in the config)
+    sources = {
+        "ARRONDISSEMENT_MUNICIPAL": PIPELINE_DOWNLOAD_ARGS["ADMIN-EXPRESS"],
+        "COMMUNE": PIPELINE_DOWNLOAD_ARGS["ADMIN-EXPRESS"],
+        "IRIS": PIPELINE_DOWNLOAD_ARGS["IRIS"],
+        "CANTON": PIPELINE_DOWNLOAD_ARGS["ADMIN-EXPRESS"],
+    }
+    sources = pd.DataFrame(sources).T
+    sources.columns = [
+        "geodata_provider",
+        "geodata_dataset_family",
+        "geodata_source",
+        "geodata_territorial_components",
+    ]
+    sources.index.name = "mesh_init"
+    sources = sources.reset_index(drop=False)
+    sources["geodata_territorial_components"] = (
+        sources.geodata_territorial_components.apply(", ".join)
     )
 
-    combinations = list(
-        itertools.product(
-            list_format,
+    sources = sources.drop(
+        ["geodata_provider", "geodata_dataset_family"], axis=1
+    )
+
+    # prepare a list of tuples (
+    #       administrative_level = polygon level = borders,
+    #       territory used for splitting the file's boundaries = territory
+    # ),
+    croisement_filter_by_borders_flat = pd.DataFrame(
+        flatten_dict_to_list(AVAILABLE_TERRITORIAL_SPLITS_FOR_BORDERS),
+        columns=["borders", "territory"],
+    )
+
+    # prepare a list of tuples (
+    #       raw source's polygon level,
+    #       mesh created after dissolve
+    # ),
+    geometries_dissolutions = pd.DataFrame(
+        flatten_dict_to_list(AVAILABLE_DISSOLUTIONS_FROM_RAW_MESH),
+        columns=["mesh_init", "dissolve_by"],
+    )
+
+    combinations = sources.merge(
+        geometries_dissolutions.merge(
             croisement_filter_by_borders_flat,
-            years,
-            crs_list,
-            sources,
-            simplifications,
+            left_on="dissolve_by",
+            right_on="borders",
         )
     )
-
-    tempdf = pd.DataFrame(
-        combinations,
-        columns=["format_output", "nested", "year", "crs", "source", "simplification"],
+    combinations = (
+        combinations
+        # .join(
+        #     pd.Series(list_format, name="format_output"), how="cross"
+        # )
+        # .join(pd.Series(crs_list, name="epsg"), how="cross")
+        .join(pd.Series(simplifications, name="simplification"), how="cross")
     )
-    tempdf["level_polygons"] = tempdf["nested"].apply(lambda tup: tup[0])
-    tempdf["filter_by"] = tempdf["nested"].apply(lambda tup: tup[1])
-    tempdf.drop("nested", axis="columns", inplace=True)
 
-    return tempdf
+    combinations = combinations.drop(
+        ["geodata_territorial_components", "borders"], axis=1
+    )
+
+    def geodataset_exists(borders, geodata_source, simplification):
+        "check if preprocessed geodata file is found on S3"
+        config = {
+            "bucket": bucket,
+            "path_within_bucket": path_within_bucket,
+            "provider": "Cartiflette",
+            "dataset_family": "geodata",
+            "source": geodata_source,
+            "year": year,
+            "borders": borders,
+            "crs": 4326,
+            "filter_by": "preprocessed",
+            "value": "before_cog",
+            "vectorfile_format": INTERMEDIATE_FORMAT,
+            "territory": "france",
+            "simplification": simplification,
+            "fs": fs,
+        }
+        try:
+            S3GeoDataset(**config, build_from_local=False)
+            return True
+        except ValueError:
+            # raw file does not exist
+            return False
+
+    def metadataset_exists(borders):
+        "check if preprocessed metadata file is found on S3"
+        config = {
+            "bucket": bucket,
+            "path_within_bucket": path_within_bucket,
+            "provider": "Cartiflette",
+            "dataset_family": "metadata",
+            "source": "*",
+            "year": year,
+            "borders": borders,
+            "crs": None,
+            "filter_by": "preprocessed",
+            "value": "tagc",
+            "vectorfile_format": "csv",
+            "territory": "france",
+            "simplification": 0,
+            "fs": fs,
+        }
+        try:
+            S3GeoDataset(**config, build_from_local=False)
+            return True
+        except ValueError:
+            # raw file does not exist
+            return False
+
+    # remove combinations having no available upstream source
+    geodata_unique = combinations[
+        ["mesh_init", "geodata_source", "simplification"]
+    ].drop_duplicates()
+    metadata_unique = combinations[["mesh_init"]].drop_duplicates()
+
+    if THREADS_DOWNLOAD == 1:
+
+        geodata_unique["upstream_geodata_exists"] = geodata_unique.apply(
+            lambda tup: geodataset_exists(*tup), axis=1
+        )
+
+        metadata_unique["upstream_metadata_exists"] = metadata_unique.apply(
+            lambda tup: metadataset_exists(*tup), axis=1
+        )
+
+    else:
+        with ThreadPool(min(THREADS_DOWNLOAD, len(combinations))) as pool:
+            geodata_unique["upstream_geodata_exists"] = list(
+                pool.map(
+                    geodataset_exists, *zip(*geodata_unique.values.tolist())
+                ).result()
+            )
+
+            metadata_unique["upstream_metadata_exists"] = list(
+                pool.map(
+                    metadataset_exists, *zip(*metadata_unique.values.tolist())
+                ).result()
+            )
+
+    combinations = combinations.merge(geodata_unique).merge(metadata_unique)
+    combinations["upstream_exists"] = (
+        combinations["upstream_geodata_exists"]
+        & combinations["upstream_metadata_exists"]
+    )
+
+    ix = combinations[~combinations.upstream_exists].index
+    combinations = combinations.drop(ix).drop(
+        [
+            "upstream_exists",
+            "upstream_geodata_exists",
+            "upstream_metadata_exists",
+        ],
+        axis=1,
+    )
+
+    logger.debug(
+        "found %s combinations of downstream geodatasets", len(combinations)
+    )
+
+    if len(combinations) == 0:
+        raise ValueError(f"no combination available for {year=}")
+
+    # get best combination available among COMMUNE/IRIS/CANTON
+    # -> for each geodataset to generate, keep COMMUNE if available, IRIS
+    # otherwise (and CANTON for border=CANTON generation)
+    dups = [
+        "dissolve_by",
+        "territory",
+        # "format_output",
+        # "epsg",
+        "simplification",
+        "mesh_init",
+    ]
+    combinations = combinations.sort_values(dups, ascending=False)
+    combinations = combinations.drop_duplicates(dups[:-1], keep="last")
+
+    keys = ["mesh_init", "geodata_source", "simplification", "dissolve_by"]
+    combinations = (
+        combinations.set_index(keys)
+        .groupby(keys)["territory"]
+        .agg(list)
+        .to_dict()
+    )
+    logger.info("%s batch datasets will be created", len(combinations))
+    logger.info("combinations are %s", combinations)
+
+    combinations = [
+        {
+            "mesh_init": key[0],
+            "source_geodata": key[1],
+            "simplification": key[2],
+            "dissolve_by": key[3],
+            "territories": val,
+        }
+        for key, val in combinations.items()
+    ]
+
+    return combinations

@@ -1,67 +1,126 @@
-import json
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+4.2th step of pipeline
+
+Prepare arguments for next step
+"""
+
 import argparse
+import json
+import logging
+import os
+from typing import List
+
+from s3fs import S3FileSystem
+
 from cartiflette.pipeline import crossproduct_parameters_production
+from cartiflette.config import (
+    BUCKET,
+    PATH_WITHIN_BUCKET,
+    FS,
+)
+from cartiflette.pipeline_constants import (
+    PIPELINE_SIMPLIFICATION_LEVELS,
+    # PIPELINE_FORMATS,
+    # PIPELINE_CRS,
+)
+
+logger = logging.getLogger(__name__)
+
+logging.basicConfig(level=logging.INFO)
+
+logger.info("=" * 50)
+logger.info("\n" + __doc__)
+logger.info("=" * 50)
+
 
 parser = argparse.ArgumentParser(description="Crossproduct Script")
+
 parser.add_argument(
-    "--restrictfield", type=str, default=None, help="Field to restrict level-polygons"
+    "-y",
+    "--year",
+    default="2023",
+    help="Filter downstream vintage to process",
+)
+
+# parser.add_argument(
+#     "-f",
+#     "--formats",
+#     default=",".join(PIPELINE_FORMATS),
+#     help="Desired output formats, as a comma separated values list",
+# )
+
+# parser.add_argument(
+#     "-c",
+#     "--crs",
+#     default=",".join([str(x) for x in PIPELINE_CRS]),
+#     help="Desired projections as EPSG codes, as a comma separated values list",
+# )
+
+parser.add_argument(
+    "-s",
+    "--simplifications",
+    default=",".join([str(x) for x in PIPELINE_SIMPLIFICATION_LEVELS]),
+    help="Desired simplifications levels, as a comma separated values list",
 )
 
 
-# parameters
-formats = ["topojson", "geojson"]
-years = [2022]
-crs_list = [4326]
-sources = ["EXPRESS-COG-CARTO-TERRITOIRE"]
-
-croisement_decoupage_level = {
-    # structure -> niveau geo: [niveau decoupage macro],
-    "COMMUNE": [
-        "BASSIN_VIE",
-        "ZONE_EMPLOI",
-        "UNITE_URBAINE",
-        "AIRE_ATTRACTION_VILLES",  # zonages d'études
-        "DEPARTEMENT",
-        "REGION",  # zonages administratifs
-        "TERRITOIRE",
-        "FRANCE_ENTIERE",
-        "FRANCE_ENTIERE_DROM_RAPPROCHES",
-    ],
-    "DEPARTEMENT": [
-        "REGION",
-        "TERRITOIRE",
-        "FRANCE_ENTIERE",
-        "FRANCE_ENTIERE_DROM_RAPPROCHES",
-    ],
-    "REGION": ["TERRITOIRE", "FRANCE_ENTIERE", "FRANCE_ENTIERE_DROM_RAPPROCHES"],
-    "BASSIN_VIE": ["TERRITOIRE", "FRANCE_ENTIERE", "FRANCE_ENTIERE_DROM_RAPPROCHES"],
-    "ZONE_EMPLOI": ["TERRITOIRE", "FRANCE_ENTIERE", "FRANCE_ENTIERE_DROM_RAPPROCHES"],
-    "UNITE_URBAINE": ["TERRITOIRE", "FRANCE_ENTIERE", "FRANCE_ENTIERE_DROM_RAPPROCHES"],
-    "AIRE_ATTRACTION_VILLES": ["TERRITOIRE", "FRANCE_ENTIERE", "FRANCE_ENTIERE_DROM_RAPPROCHES"],
-}
-
 args = parser.parse_args()
 
+year = args.year
+# formats = args.formats.split(",")
+# crs = args.crs.split(",")
+simplifications = args.simplifications.split(",")
 
-def main():
-    tempdf = crossproduct_parameters_production(
-        croisement_filter_by_borders=croisement_decoupage_level,
-        list_format=formats,
-        years=years,
-        crs_list=crs_list,
-        sources=sources,
-        simplifications=[0, 50],
+
+# TODO : convert bucket & path_within_bucket to parsable arguments
+
+
+def main(
+    year: int = None,
+    simplifications: List[str] = None,
+    formats: List[str] = None,
+    crs: List[int] = None,
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
+    fs: S3FileSystem = FS,
+):
+
+    simplifications = (
+        simplifications if simplifications else PIPELINE_SIMPLIFICATION_LEVELS
     )
-    tempdf.columns = tempdf.columns.str.replace("_", "-")
 
-    # Apply filtering if restrictfield is provided
-    if args.restrictfield:
-        tempdf = tempdf.loc[tempdf["level-polygons"] == args.restrictfield]
+    logger.info("Crossproduct with year=%s", year)
+    logger.info("Crossproduct with simplifications=%s", simplifications)
+    logger.info("Crossproduct with formats=%s", formats)
+    logger.info("Crossproduct with crs=%s", crs)
 
-    output = tempdf.to_json(orient="records")
-    parsed = json.loads(output)
-    print(json.dumps(parsed))
+    configs = crossproduct_parameters_production(
+        # list_format=formats,
+        year=year,
+        # crs_list=crs,
+        simplifications=simplifications,
+        fs=fs,
+        bucket=bucket,
+        path_within_bucket=path_within_bucket,
+    )
+
+    try:
+        os.makedirs("configs_datasets_to_generate")
+    except FileExistsError:
+        pass
+
+    with open(f"configs_datasets_to_generate/{year}.json", "w") as out:
+        json.dump(configs, out)
+    return configs
 
 
 if __name__ == "__main__":
-    main()
+    configs = main(
+        year=year,
+        simplifications=simplifications,
+        bucket=BUCKET,
+        path_within_bucket=PATH_WITHIN_BUCKET,
+        fs=FS,
+    )

@@ -152,3 +152,31 @@ def create_path_bucket(config: ConfigDict) -> str:
         write_path += f"/raw.{vectorfile_format}"
 
     return write_path
+
+
+def flatten_dict(d: dict, parent_key: tuple = ()) -> dict:
+    """
+    Convenience function, flattens a nested dictionary and convert it back to
+    dataframe.
+
+    Parameters
+    ----------
+    d : dict
+        Nested dictionary
+    parent_key : tuple, optional
+        Optional key, used for recursive purposes. The default is ().
+
+    Returns
+    -------
+    dict
+        flattened dictionnary
+
+    """
+    items = []
+    for k, v in d.items():
+        new_key = parent_key + (k,)
+        if isinstance(v, dict):
+            items.extend(flatten_dict(v, new_key).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)

@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "cartiflette"
-version = "0.0.2"
+version = "0.0.3"
 description = "Tools to easily retrieve French borders for geographic data analytics"
-authors = ["Lino Galiana <lino.galiana@insee.fr>", "Thomas Grandjean <thomas.grandjean@developpement-durable.gouv.fr>"]
+authors = ["Lino Galiana <lino.galiana@insee.fr>", "Thomas Grandjean <thomas.grandjean@developpement-durable.gouv.fr>", "Alica Burlot <alica.burlot@developpement-durable.gouv.fr>"]
 license = "OPEN LICENCE 2.0/LICENCE OUVERTE 2.0"
 readme = "README.md"
 
@@ -40,7 +40,7 @@ fastexcel = "^0.11.6"
 PyQt5 = {version = "^5.15", markers = "sys_platform == 'win32'"}
 PyQt5-Qt5 = {version = "5.15.2", markers = "sys_platform == 'win32'"}
 PyQtWebEngine-Qt5 = {version = "5.15.2", markers = "sys_platform == 'win32'"}
-spyder = "^6.0.0"
+spyder = "^6.0.2"
 pytest = "^8.1.1"
 
 [build-system]

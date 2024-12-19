@@ -1,27 +1,36 @@
 # -*- coding: utf-8 -*-
 
-import magic
 from glob import glob
 import logging
-import numpy as np
 import os
 import re
+from retrying import retry
+import tempfile
+from typing import TypedDict
+
+import magic
 import requests
 import requests_cache
-import tempfile
-from tqdm import tqdm
-from typing import TypedDict
 from unidecode import unidecode
 
 from cartiflette.utils import hash_file
-from cartiflette.download.dataset import Dataset
-from cartiflette.download.layer import Layer
-from cartiflette.config import LEAVE_TQDM
+from .dataset import RawDataset
+from .layer import Layer
+from cartiflette.config import RETRYING
+
+if not RETRYING:
+    # patch retrying
+    def retry(*args, **kwargs):
+        def decorator(func):
+            return func
+
+        return decorator
+
 
 logger = logging.getLogger(__name__)
 
 
-class MasterScraper(requests_cache.CachedSession):
+class Scraper(requests_cache.CachedSession):
     """
     Scraper class which could be used to perform either http/https get
     downloads.
@@ -76,7 +85,35 @@ class MasterScraper(requests_cache.CachedSession):
             except KeyError:
                 continue
 
-    def download_unpack(self, datafile: Dataset, **kwargs) -> DownloadReturn:
+    def simple_download(self, url: str, hash_: str = None, **kwargs):
+        """
+        Trigger a simple download to temporary file (immediatly cleaned)
+
+        Use this only to cache http response (for instance, when you know that
+        a request will be queried multiple times)
+
+        Parameters
+        ----------
+        url : str
+            url to download
+        hash_ : str, optional
+            previous hash signature of the file at latest download. The default
+            is None.
+        **kwargs :
+            Optional arguments to pass to requests.Session object.
+
+        Returns
+        -------
+        None.
+
+        """
+        done, _, temp = download_to_tempfile_http(url, hash_, self, **kwargs)
+        if done:
+            os.unlink(temp)
+
+    def download_unpack(
+        self, datafile: RawDataset, **kwargs
+    ) -> DownloadReturn:
         """
         Performs a download (through http, https) to a tempfile
         which will be cleaned automatically ; unzip targeted files to a 2nd
@@ -96,8 +133,8 @@ class MasterScraper(requests_cache.CachedSession):
 
         Parameters
         ----------
-        datafile : Dataset
-            Dataset object to download.
+        datafile : RawDataset
+            RawDataset object to download.
         **kwargs :
             Optional arguments to pass to requests.Session object.
 
@@ -117,17 +154,17 @@ class MasterScraper(requests_cache.CachedSession):
                 'hash': '5435fca3e488ca0372505b9bcacfde30',
                 'layers': {
                     'CONTOURS-IRIS_2-1_SHP_RGR92UTM40S_REU-2022_CONTOURS-IRIS':
-                        < Layer CONTOURS - IRIS_2 - 1_SHP_RGR92UTM40S_REU - 2022_CONTOURS - IRIS from < Dataset IGN CONTOUR - IRIS ROOT None 2022 >> ,
+                        < Layer CONTOURS - IRIS_2 - 1_SHP_RGR92UTM40S_REU - 2022_CONTOURS - IRIS from < RawDataset IGN CONTOUR - IRIS ROOT None 2022 >> ,
                     'CONTOURS-IRIS_2-1_SHP_RGAF09UTM20_GLP-2022_CONTOURS-IRIS':
-                        < Layer CONTOURS - IRIS_2 - 1_SHP_RGAF09UTM20_GLP - 2022_CONTOURS - IRIS from < Dataset IGN CONTOUR - IRIS ROOT None 2022 >> ,
+                        < Layer CONTOURS - IRIS_2 - 1_SHP_RGAF09UTM20_GLP - 2022_CONTOURS - IRIS from < RawDataset IGN CONTOUR - IRIS ROOT None 2022 >> ,
                     'CONTOURS-IRIS_2-1_SHP_RGAF09UTM20_MTQ-2022_CONTOURS-IRIS':
-                        < Layer CONTOURS - IRIS_2 - 1_SHP_RGAF09UTM20_MTQ - 2022_CONTOURS - IRIS from < Dataset IGN CONTOUR - IRIS ROOT None 2022 >> ,
+                        < Layer CONTOURS - IRIS_2 - 1_SHP_RGAF09UTM20_MTQ - 2022_CONTOURS - IRIS from < RawDataset IGN CONTOUR - IRIS ROOT None 2022 >> ,
                     'CONTOURS-IRIS_2-1_SHP_LAMB93_FXX-2022_CONTOURS-IRIS':
-                        < Layer CONTOURS - IRIS_2 - 1_SHP_LAMB93_FXX - 2022_CONTOURS - IRIS from < Dataset IGN CONTOUR - IRIS ROOT None 2022 >> ,
+                        < Layer CONTOURS - IRIS_2 - 1_SHP_LAMB93_FXX - 2022_CONTOURS - IRIS from < RawDataset IGN CONTOUR - IRIS ROOT None 2022 >> ,
                     'CONTOURS-IRIS_2-1_SHP_UTM22RGFG95_GUF-2022_CONTOURS-IRIS':
-                        < Layer CONTOURS - IRIS_2 - 1_SHP_UTM22RGFG95_GUF - 2022_CONTOURS - IRIS from < Dataset IGN CONTOUR - IRIS ROOT None 2022 >> ,
+                        < Layer CONTOURS - IRIS_2 - 1_SHP_UTM22RGFG95_GUF - 2022_CONTOURS - IRIS from < RawDataset IGN CONTOUR - IRIS ROOT None 2022 >> ,
                     'CONTOURS-IRIS_2-1_SHP_RGM04UTM38S_MYT-2022_CONTOURS-IRIS':
-                        < Layer CONTOURS - IRIS_2 - 1_SHP_RGM04UTM38S_MYT - 2022_CONTOURS - IRIS from < Dataset IGN CONTOUR - IRIS ROOT None 2022 >>
+                        < Layer CONTOURS - IRIS_2 - 1_SHP_RGM04UTM38S_MYT - 2022_CONTOURS - IRIS from < RawDataset IGN CONTOUR - IRIS ROOT None 2022 >>
                 },
                 'root_cleanup': 'C:\\Users\\tintin.milou\\AppData\\Local\\Temp\\tmpnbvoes9g'
             }
@@ -135,7 +172,7 @@ class MasterScraper(requests_cache.CachedSession):
 
         """
 
-        hash_ = None
+        hash_ = datafile.md5
         url = datafile.get_path_from_provider()
 
         # Download to temporary file
@@ -164,13 +201,13 @@ class MasterScraper(requests_cache.CachedSession):
 
             datafile.set_temp_file_path(temp_archive_file_raw)
 
+            simple_copy = ["Microsoft Excel 2007+", "Unicode text", "CSV text"]
+
             if "7-zip" in filetype:
                 root_folder, files_locations = datafile.unpack(protocol="7z")
             elif "Zip archive" in filetype:
-                root_folder, files_locations = datafile.unpack(
-                    protocol="zip"
-                )
-            elif "Unicode text" in filetype or "CSV text" in filetype:
+                root_folder, files_locations = datafile.unpack(protocol="zip")
+            elif any(x for x in simple_copy if x in filetype):
                 # copy in temp directory without processing
                 root_folder = tempfile.mkdtemp()
                 with open(temp_archive_file_raw, "rb") as f:
@@ -178,13 +215,17 @@ class MasterScraper(requests_cache.CachedSession):
                     filename = "_".join(
                         x for x in re.split(r"\W+", filename) if x
                     )
-                    path = os.path.join(root_folder, filename + ".csv")
+                    if filetype == "Microsoft Excel 2007+":
+                        ext = ".xlsx"
+                    else:
+                        ext = ".csv"
+
+                    path = os.path.join(root_folder, filename + ext)
                     with open(path, "wb") as out:
                         out.write(f.read())
 
-                logger.debug(f"Storing CSV to {root_folder}")
+                logger.debug("Storing file to %s", root_folder)
                 files_locations = ((path,),)
-
             else:
                 raise NotImplementedError(f"{filetype} encountered")
         except Exception as e:
@@ -211,7 +252,7 @@ class MasterScraper(requests_cache.CachedSession):
             for basename, cluster in basenames.items()
         }
 
-        layers = dict()
+        layers = {}
         for cluster_name, cluster_filtered in paths.items():
             cluster_pattern = {
                 os.path.splitext(x)[0] for x in cluster_filtered
@@ -253,6 +294,7 @@ def validate_file(file_path, hash_):
     return hash_file(file_path) == hash_
 
 
+@retry(stop_max_attempt_number=3, wait_fixed=2000)
 def download_to_tempfile_http(
     url: str,
     hash_: str = None,
@@ -312,55 +354,64 @@ def download_to_tempfile_http(
     head = r.headers
 
     if not r.ok:
-        raise IOError(f"download failed with {r.status_code} code")
+        raise IOError(f"download failed with {r.status_code} code at {url=}")
 
     try:
         expected_md5 = head["content-md5"]
 
-        logger.debug(f"File MD5 is {expected_md5}")
+        logger.debug("File MD5 is %s", expected_md5)
     except KeyError:
         expected_md5 = None
-        logger.debug(f"md5 not found in header at url {url}")
+        logger.debug("md5 not found in header at url %s", url)
     else:
         if hash_ and expected_md5 == hash_:
             # unchanged file -> exit
-            logger.info(f"md5 matched at {url} - download prevented")
+            logger.info("md5 matched at %s - download prevented", url)
             return False, None, None
-    finally:
+
+    with tempfile.NamedTemporaryFile("wb", delete=False) as temp_file:
+        file_path = temp_file.name
+        logger.debug("Downloading to %s", file_path)
+        logger.info("starting download at %s", url)
+        r = session.get(url, stream=True, **kwargs)
+        if not r.ok:
+            raise IOError(f"download failed with {r.status_code} code")
+
         try:
-            # No MD5 in header -> check requested file's size
+            # Nota : check Content-length after full request (not only head
+            # request), some sites are adapting the header to the kind of
+            # http request performed
+            head = r.headers
             expected_file_size = int(head["Content-length"])
-            logger.debug(f"File size is {expected_file_size}")
+            logger.debug("File size is %s", expected_file_size)
         except KeyError:
             expected_file_size = None
             msg = f"Content-Length not found in header at url {url}"
             logger.debug(msg)
 
-    with tempfile.NamedTemporaryFile("wb", delete=False) as temp_file:
-        file_path = temp_file.name
-        logger.debug(f"Downloading to {file_path}")
+        # =====================================================================
+        # This is not working (yet) with requests-cache:
+        # =====================================================================
+        # if expected_file_size:
+        #     total = int(np.ceil(expected_file_size / block_size))
+        # else:
+        #     total = None
+        # with tqdm(
+        #     desc="Downloading: ",
+        #     total=total,
+        #     unit="iB",
+        #     unit_scale=True,
+        #     unit_divisor=1024,
+        #     leave=LEAVE_TQDM,
+        # ) as pbar:
+        #     for chunk in r.iter_content(chunk_size=block_size):
+        #         if chunk:  # filter out keep-alive new chunks
+        #             size = temp_file.write(chunk)
+        #             pbar.update(size)
 
-        logger.debug(f"starting download at {url}")
-        r = session.get(url, stream=True, **kwargs)
-        if not r.ok:
-            raise IOError(f"download failed with {r.status_code} code")
-
-        if expected_file_size:
-            total = int(np.ceil(expected_file_size / block_size))
-        else:
-            total = None
-        with tqdm(
-            desc="Downloading: ",
-            total=total,
-            unit="iB",
-            unit_scale=True,
-            unit_divisor=1024,
-            leave=LEAVE_TQDM,
-        ) as pbar:
-            for chunk in r.iter_content(chunk_size=block_size):
-                if chunk:  # filter out keep-alive new chunks
-                    size = temp_file.write(chunk)
-                    pbar.update(size)
+        for chunk in r.iter_content(chunk_size=block_size):
+            if chunk:
+                temp_file.write(chunk)
 
     # Check that the downloaded file has the expected characteristics
     if expected_md5:
@@ -370,15 +421,24 @@ def download_to_tempfile_http(
     elif expected_file_size:
         # check that the downloaded file is the expected size
         if not expected_file_size == os.path.getsize(file_path):
+            print(expected_file_size, os.path.getsize(file_path))
             os.unlink(file_path)
             raise IOError("download failed (corrupted file)")
 
     # if there's a hash value, check if there are any changes
     if hash_ and validate_file(file_path, hash_):
         # unchanged file -> exit (after deleting the downloaded file)
-        logger.debug(f"md5 matched at {url} after download")
+        logger.info("md5 matched at %s after download", url)
         os.unlink(file_path)
         return False, None, None
+
+    logger.info(
+        "NO md5 match at %s after download : hash_=%s and new hash=%s "
+        "-> keeping new file",
+        url,
+        hash_,
+        hash_file(file_path),
+    )
 
     filetype = magic.from_file(file_path)
 
