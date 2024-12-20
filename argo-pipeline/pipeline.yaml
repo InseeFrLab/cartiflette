@@ -138,7 +138,7 @@ spec:
             value: "test"
           - name: ENVIRONMENT
             # set value to "dev" to simplify pipeline execution (2 years, only topojson, etc.), use "preprod" or "prod" else
-            value: test
+            value: dev
 
     - name: download-all-sources
       outputs:
