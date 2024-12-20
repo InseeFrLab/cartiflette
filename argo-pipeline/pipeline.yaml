@@ -305,7 +305,7 @@ spec:
             mountPath: /mnt
         env: *env_parameters
         
-    - name: make-catalogs
+    - name: make-catalog
       container:
         image: inseefrlab/cartiflette:latest
         command: ["sh", "-c"]
