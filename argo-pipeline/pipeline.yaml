@@ -305,12 +305,7 @@ spec:
             mountPath: /mnt
         env: *env_parameters
         
-    - name: make-catalog
-      outputs:
-        parameters:
-        - name: result
-          valueFrom:
-            path: "catalog/result.json"
+    - name: make-catalogs
       container:
         image: inseefrlab/cartiflette:latest
         command: ["sh", "-c"]

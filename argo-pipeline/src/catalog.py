@@ -33,17 +33,9 @@ def main(
     fs: S3FileSystem = FS,
 ):
 
-    success = True
-    try:
-        make_s3_inventory(
-            fs=fs, bucket=bucket, path_within_bucket=path_within_bucket
-        )
-    except Exception:
-        success = False
-
-    out_path = "catalog/result.json"
-    with open(out_path, "w", encoding="utf8") as out:
-        json.dump(success, out)
+    make_s3_inventory(
+        fs=fs, bucket=bucket, path_within_bucket=path_within_bucket
+    )
 
     logger.info("Success!")
 
