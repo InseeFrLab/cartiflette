@@ -57,8 +57,8 @@ years_metadata = {int(x) for x in json.loads(args.years_metadata)}
 
 years = sorted(list(years_geodatasets | years_metadata))
 
-if os.environ.get("ENVIRONMENT", None) == "dev":
-    logging.warning("dev environment -> restrict generation to 2023, 2024 ")
+if os.environ.get("ENVIRONMENT", None) == "test":
+    logging.warning("test environment -> restrict generation to 2023, 2024 ")
     years = [2023, 2024]
 
 logger.info(

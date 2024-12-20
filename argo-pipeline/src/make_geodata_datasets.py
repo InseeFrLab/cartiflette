@@ -38,10 +38,6 @@ parser = argparse.ArgumentParser(
     description="Preprocess geodatasets from raw sources"
 )
 parser.add_argument(
-    "-p", "--path", help="Path within bucket", default=PATH_WITHIN_BUCKET
-)
-
-parser.add_argument(
     "-y", "--year", help="Vintage to perform computation on", default="2023"
 )
 
@@ -54,7 +50,6 @@ parser.add_argument(
 
 # Parse arguments
 args = parser.parse_args()
-path_within_bucket = args.path
 year = args.year
 simplifications = args.simplify
 
@@ -63,10 +58,10 @@ fs = FS
 
 
 def main(
-    path_within_bucket,
     simplifications: List[int],
     bucket=BUCKET,
     year: int = None,
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
 ):
 
     created = create_one_year_geodataset_batch(
@@ -90,4 +85,4 @@ def main(
 
 
 if __name__ == "__main__":
-    data = main(path_within_bucket, simplifications=simplifications, year=year)
+    data = main(simplifications=simplifications, year=year)

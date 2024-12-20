@@ -29,9 +29,6 @@ logger.info("=" * 50)
 parser = argparse.ArgumentParser(
     description="Preprocess metadata from raw sources"
 )
-parser.add_argument(
-    "-p", "--path", help="Path within bucket", default=PATH_WITHIN_BUCKET
-)
 
 parser.add_argument(
     "-y", "--years", help="Vintage to perform computation on", default="[]"
@@ -41,7 +38,6 @@ parser.add_argument(
 args = parser.parse_args()
 
 bucket = BUCKET
-path_within_bucket = args.path
 years = args.years
 
 years = json.loads(years)
@@ -50,8 +46,8 @@ fs = FS
 
 
 def main(
-    path_within_bucket,
-    bucket=BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
+    bucket: str = BUCKET,
     years: int = None,
 ):
 
@@ -125,4 +121,4 @@ def main(
 
 
 if __name__ == "__main__":
-    data = main(path_within_bucket, years=years)
+    data = main(years=years)

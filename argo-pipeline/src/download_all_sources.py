@@ -41,9 +41,6 @@ logger.info("=" * 50)
 parser = argparse.ArgumentParser(
     description="Run Cartiflette pipeline download script."
 )
-parser.add_argument(
-    "-p", "--path", help="Path within bucket", default=PATH_WITHIN_BUCKET
-)
 
 default_years = ",".join(str(x) for x in range(2020, date.today().year + 1))
 parser.add_argument(
@@ -63,12 +60,13 @@ parser.add_argument(
 args = parser.parse_args()
 
 bucket = BUCKET
-path_within_bucket = args.path
 years = args.years
 skip = args.skip
 
-if os.environ.get("ENVIRONMENT", None) == "dev":
-    logging.warning("dev environment -> restrict download to 2023 & 2024 only")
+if os.environ.get("ENVIRONMENT", None) == "test":
+    logging.warning(
+        "test environment -> restrict download to 2023 & 2024 only"
+    )
     years = "2023,2024"
 
 if years:
@@ -80,7 +78,7 @@ fs = FS
 try:
     if not skip:
         results = download_all(
-            bucket, path_within_bucket, fs=fs, upload=True, years=years
+            bucket, PATH_WITHIN_BUCKET, fs=fs, upload=True, years=years
         )
     else:
         results = dict()

@@ -110,7 +110,7 @@ spec:
         command: [sh, -c]
         args: ["mkdir -p /mnt/bin/src ;
                 mv /mnt/bin/argo-pipeline/src/* /mnt/bin/src ;
-                echo $PATH_WRITING_S3;
+                echo $ENVIRONMENT;
                 "]
         volumeMounts:
           - name: volume-workflow-tmp
@@ -134,11 +134,10 @@ spec:
             value: minio.lab.sspcloud.fr
           - name: MC_HOST_s3
             value: https://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$AWS_S3_ENDPOINT
-          - name: PATH_WRITING_S3
-            value: "test"
           - name: ENVIRONMENT
-            # set value to "dev" to simplify pipeline execution (2 years, only topojson, etc.), use "preprod" or "prod" else
-            value: dev
+            # set value to "test" to simplify pipeline execution (2 years, only topojson, etc.), use "preprod" or "prod" else
+            # -> this will also configure the path_within_bucket constant
+            value: test
 
     - name: download-all-sources
       outputs:
@@ -150,7 +149,7 @@ spec:
         image: inseefrlab/cartiflette:latest
         command: [sh, -c]
         args: ["
-          python /mnt/bin/src/download_all_sources.py --path $PATH_WRITING_S3;
+          python /mnt/bin/src/download_all_sources.py;
           "]
         volumeMounts:
           - name: volume-workflow-tmp
@@ -196,7 +195,7 @@ spec:
           - name: volume-workflow-tmp
             mountPath: /mnt
         args: ["
-                python /mnt/bin/src/make_geodata_datasets.py --path $PATH_WRITING_S3 --year '{{inputs.parameters.year}}';
+                python /mnt/bin/src/make_geodata_datasets.py --year '{{inputs.parameters.year}}';
                 "]
         env: *env_parameters
 
@@ -216,7 +215,7 @@ spec:
           - name: volume-workflow-tmp
             mountPath: /mnt
         args: ["
-                python /mnt/bin/src/make_metadata_datasets.py --path $PATH_WRITING_S3 --years '{{inputs.parameters.years}}';
+                python /mnt/bin/src/make_metadata_datasets.py --years '{{inputs.parameters.years}}';
                 "]
         env: *env_parameters
 

@@ -79,7 +79,7 @@ PIPELINE_DOWNLOAD_ARGS = {
     "POPULATION-COM": ["Insee", "POPULATION", "POPULATION-IRIS-COM"],
 }
 
-if os.environ.get("ENVIRONMENT", "dev") != "dev":
+if os.environ.get("ENVIRONMENT", "test") != "test":
     PIPELINE_CRS = [2154, 4326, 3857]
     PIPELINE_SIMPLIFICATION_LEVELS = [100, 40]
     PIPELINE_FORMATS = ["geojson", "topojson", "gpkg"]

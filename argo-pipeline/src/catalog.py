@@ -5,7 +5,6 @@
 Create cartiflette's catalog
 """
 
-import json
 import logging
 
 from s3fs import S3FileSystem
