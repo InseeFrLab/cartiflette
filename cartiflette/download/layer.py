@@ -1,24 +1,32 @@
 # -*- coding: utf-8 -*-
+
+import logging
+import os
+
 from charset_normalizer import from_bytes, is_binary
 import fiona
 import geopandas as gpd
-import logging
-import os
+import pyogrio
 from shapely.geometry import box
 
-from cartiflette.download.dataset import Dataset
+from .dataset import RawDataset
 from cartiflette.constants import REFERENCES
 
 logger = logging.getLogger(__name__)
 
 
 class Layer:
-    def __init__(self, dataset: Dataset, cluster_name: str, files: dict):
+    """
+    Layer present in a dataset.
+    """
+
+    def __init__(self, dataset: RawDataset, cluster_name: str, files: dict):
         """
-        Layer present in a dataset. A layer is defined by a distinctive
-        combination of path and basename (without extension). To that effect,
-        each auxialary file associated to a shapefile shall be present in the
-        same layer.
+        Layer present in a dataset.
+
+        A layer is defined by a distinctive combination of path and basename
+        (without extension). To that effect, each auxiliary file associated to
+        a shapefile shall be present in the same layer.
 
         Nota : distinction between selected and unselected files in `files`
         argument helps to evaluate territory using a shapefile even if the
@@ -26,8 +34,8 @@ class Layer:
 
         Parameters
         ----------
-        dataset : Dataset
-            Dataset containing layers
+        dataset : RawDataset
+            RawDataset containing layers
         cluster_name : str
             Unique name for a layer (computed by the scraper after data
             unpacking) and corresponding to the minimum recursive distinct path
@@ -63,14 +71,18 @@ class Layer:
         return self.__str__()
 
     def _get_format(self):
-        if any(x.lower().split(".")[-1] == "shp" for x in self.files_to_upload):
+        if any(
+            x.lower().split(".")[-1] == "shp" for x in self.files_to_upload
+        ):
             self.format = "shp"
         else:
             # assume there is only one file
             self.format = list(self.files_to_upload)[0].split(".")[-1]
 
     def _get_encoding(self):
-        ref_cpg_file = [x for x in self.files if x.lower().split(".")[-1] == "cpg"]
+        ref_cpg_file = [
+            x for x in self.files if x.lower().split(".")[-1] == "cpg"
+        ]
         try:
             ref_cpg_file = ref_cpg_file[0]
         except IndexError:
@@ -81,7 +93,9 @@ class Layer:
         return encoding.lower()
 
     def _get_gis_file(self):
-        ref_gis_file = [x for x in self.files if x.lower().split(".")[-1] == "shp"]
+        ref_gis_file = [
+            x for x in self.files if x.lower().split(".")[-1] == "shp"
+        ]
         try:
             ref_gis_file = ref_gis_file[0]
         except IndexError:
@@ -96,13 +110,22 @@ class Layer:
         ref_gis_file = self._get_gis_file()
         try:
             # Note : read all rows to evaluate bbox / territory
+
+            # Disable fiona logger
+            fiona_logger = logging.getLogger("fiona")
+            init = fiona_logger.level
+            fiona_logger.setLevel(logging.CRITICAL)
             gdf = gpd.read_file(ref_gis_file, **kwargs)
+
+            fiona_logger.setLevel(init)
+
             self.crs = gdf.crs.to_epsg()
 
             if not self.crs:
-                logger.warning(
-                    f"{self} - projection without known EPSG, "
-                    "layer will be reprojected to 4326"
+                logger.info(
+                    "%s - projection without known EPSG, "
+                    "layer will be reprojected to 4326",
+                    self,
                 )
 
                 # Let's reproject...
@@ -110,20 +133,35 @@ class Layer:
                 self.crs = 4326
 
                 # let's overwrite initial files
-                gdf.to_file(ref_gis_file, encoding="utf-8")
+                gdf.to_file(ref_gis_file, encoding="utf-8", engine="fiona")
 
             elif encoding and encoding != "utf-8":
-                logger.warning(
-                    f"{self} - encoding={encoding}, " "layer will be re-encoded to UTF8"
+                logger.info(
+                    "%s - encoding=%s, layer will be re-encoded to UTF8",
+                    self,
+                    encoding,
                 )
                 # let's overwrite initial files with utf8...
-                gdf.to_file(ref_gis_file, encoding="utf-8")
+                gdf.to_file(ref_gis_file, encoding="utf-8", engine="fiona")
 
-        except (AttributeError, fiona.errors.DriverError):
+        except (
+            AttributeError,
+            fiona.errors.DriverError,
+            pyogrio.errors.DataSourceError,
+            pyogrio.errors.CRSError,
+        ):
             # Non-native-GIS dataset
             self.crs = None
+            fiona_logger.setLevel(init)
 
         if self.crs:
+            # check if geometries are valid:
+            geometries_valid = gdf["geometry"].is_valid.all()
+            if not geometries_valid:
+                # try to fix geometries and overwrite file
+                gdf["geometry"] = gdf["geometry"].buffer(0)
+                gdf.to_file(ref_gis_file, encoding="utf-8", engine="fiona")
+
             bbox = box(*gdf.total_bounds)
             bbox = gpd.GeoSeries([bbox], crs=gdf.crs)
 
@@ -139,17 +177,19 @@ class Layer:
             elif len(intersects) > 1 and "metropole" in intersects:
                 self.territory = "france_entiere"
             else:
-                logger.warning(
-                    f"{self} : spatial join used for territory recognition "
-                    "failed, dataset's raw description will be used instead"
+                logger.info(
+                    "%s : spatial join used for territory recognition "
+                    "failed, dataset's raw description will be used instead",
+                    self,
                 )
                 self.territory = self.dataset.territory
 
         elif not self.crs:
             # TODO : chercher un champ de clefs INSEE ?
             logger.info(
-                f"{self} : coverage analysis of non-gis files is not yet "
-                "implemented, dataset's raw description will be used instead"
+                "%s : coverage analysis of non-gis files is not yet "
+                "implemented, dataset's raw description will be used instead",
+                self,
             )
             self.territory = self.dataset.territory
 
@@ -175,9 +215,11 @@ class Layer:
                         pass
                     else:
                         if encoding != "utf_8":
-                            logger.warning(
-                                f"{self} - encoding={encoding}, "
-                                "layer will be re-encoded to UTF8"
+                            logger.info(
+                                "%s - encoding=%s, "
+                                "layer will be re-encoded to UTF8",
+                                self,
+                                encoding,
                             )
                             with open(file, "w", encoding="utf8"):
                                 data.decode(encoding)

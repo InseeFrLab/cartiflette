@@ -24,257 +24,102 @@ spec:
   # ---------------------------
 
       dag:
+        failFast: false
         tasks:
-          # STEP 0: RETRIEVE IGN FILE AND DUPLICATE IN MINIO
-          - name: duplicate-ign
-            template: duplicate-ign
-          - name: test-volume
-            template: test-volume
-            dependencies: [ duplicate-ign ]
-          # STEP 1.1. SPLIT BY DEPARTEMENT
-          - name: prepare-split-departement
-            template: prepare-split
-            dependencies: [ duplicate-ign ]
-            arguments:
-              parameters:
-              - name: restrict_field
-                value: "DEPARTEMENT"
-          - name: split-departement
-            template: split-dataset
-            dependencies: [ prepare-split-departement ]
-            arguments:
-              parameters:
-              - name: split_type
-                value: "DEPARTEMENT"
-              - name: format_output
-                value: "{{item.format-output}}"
-              - name: year
-                value: "{{item.year}}"
-              - name: crs
-                value: "{{item.crs}}"
-              - name: source
-                value: "{{item.source}}"
-              - name: simplification
-                value: "{{item.simplification}}"
-              - name: level_polygons
-                value: "{{item.level-polygons}}"
-              - name: filter_by
-                value: "{{item.filter-by}}"
-            withParam: "{{tasks.prepare-split-departement.outputs.result}}"
-          # STEP 1.2. SPLIT BY COMMUNE
-          - name: prepare-split-commune
-            template: prepare-split
-            dependencies: [ duplicate-ign ]
-            arguments:
-              parameters:
-              - name: restrict_field
-                value: "COMMUNE"
-          - name: split-commune
-            template: split-dataset
-            dependencies: [ prepare-split-commune ]
-            arguments:
-              parameters:
-              - name: split_type
-                value: "COMMUNE"
-              - name: format_output
-                value: "{{item.format-output}}"
-              - name: year
-                value: "{{item.year}}"
-              - name: crs
-                value: "{{item.crs}}"
-              - name: source
-                value: "{{item.source}}"
-              - name: simplification
-                value: "{{item.simplification}}"
-              - name: level_polygons
-                value: "{{item.level-polygons}}"
-              - name: filter_by
-                value: "{{item.filter-by}}"
-            withParam: "{{tasks.prepare-split-commune.outputs.result}}"
-          # STEP 1.3. SPLIT BY REGION
-          - name: prepare-split-region
-            template: prepare-split
-            dependencies: [ duplicate-ign ]
-            arguments:
-              parameters:
-              - name: restrict_field
-                value: "REGION"
-          - name: split-region
-            template: split-dataset
-            dependencies: [ prepare-split-region ]
-            arguments:
-              parameters:
-              - name: split_type
-                value: "REGION"
-              - name: format_output
-                value: "{{item.format-output}}"
-              - name: year
-                value: "{{item.year}}"
-              - name: crs
-                value: "{{item.crs}}"
-              - name: source
-                value: "{{item.source}}"
-              - name: simplification
-                value: "{{item.simplification}}"
-              - name: level_polygons
-                value: "{{item.level-polygons}}"
-              - name: filter_by
-                value: "{{item.filter-by}}"
-            withParam: "{{tasks.prepare-split-region.outputs.result}}"
-          # STEP 1.4. SPLIT BY BASSIN VIE
-          - name: prepare-split-bassin-vie
-            template: prepare-split
-            dependencies: [ duplicate-ign ]
-            arguments:
-              parameters:
-              - name: restrict_field
-                value: "BASSIN_VIE"
-          - name: split-bassin-vie
-            template: split-dataset
-            dependencies: [ prepare-split-bassin-vie ]
-            arguments:
-              parameters:
-              - name: split_type
-                value: "BASSIN_VIE"
-              - name: format_output
-                value: "{{item.format-output}}"
-              - name: year
-                value: "{{item.year}}"
-              - name: crs
-                value: "{{item.crs}}"
-              - name: source
-                value: "{{item.source}}"
-              - name: simplification
-                value: "{{item.simplification}}"
-              - name: level_polygons
-                value: "{{item.level-polygons}}"
-              - name: filter_by
-                value: "{{item.filter-by}}"
-            withParam: "{{tasks.prepare-split-bassin-vie.outputs.result}}"
-          # STEP 1.5. SPLIT BY ZONE_EMPLOI
-          - name: prepare-split-zone-emploi
-            template: prepare-split
-            dependencies: [ duplicate-ign ]
-            arguments:
-              parameters:
-              - name: restrict_field
-                value: "ZONE_EMPLOI"
-          - name: split-zone-emploi
-            template: split-dataset
-            dependencies: [ prepare-split-zone-emploi ]
-            arguments:
-              parameters:
-              - name: split_type
-                value: "ZONE_EMPLOI"
-              - name: format_output
-                value: "{{item.format-output}}"
-              - name: year
-                value: "{{item.year}}"
-              - name: crs
-                value: "{{item.crs}}"
-              - name: source
-                value: "{{item.source}}"
-              - name: simplification
-                value: "{{item.simplification}}"
-              - name: level_polygons
-                value: "{{item.level-polygons}}"
-              - name: filter_by
-                value: "{{item.filter-by}}"
-            withParam: "{{tasks.prepare-split-zone-emploi.outputs.result}}"
-          # STEP 1.6. SPLIT BY UNITE_URBAINE
-          - name: prepare-split-unite-urbaine
-            template: prepare-split
-            dependencies: [ duplicate-ign ]
-            arguments:
-              parameters:
-              - name: restrict_field
-                value: "UNITE_URBAINE"
-          - name: split-unite-urbaine
-            template: split-dataset
-            dependencies: [ prepare-split-unite-urbaine ]
-            arguments:
-              parameters:
-              - name: split_type
-                value: "UNITE_URBAINE"
-              - name: format_output
-                value: "{{item.format-output}}"
-              - name: year
-                value: "{{item.year}}"
-              - name: crs
-                value: "{{item.crs}}"
-              - name: source
-                value: "{{item.source}}"
-              - name: simplification
-                value: "{{item.simplification}}"
-              - name: level_polygons
-                value: "{{item.level-polygons}}"
-              - name: filter_by
-                value: "{{item.filter-by}}"
-            withParam: "{{tasks.prepare-split-unite-urbaine.outputs.result}}"
-          # STEP 1.6. SPLIT BY AIRE_ATTRACTION_VILLES
-          - name: prepare-split-aire-attraction
-            template: prepare-split
-            dependencies: [ duplicate-ign ]
-            arguments:
-              parameters:
-              - name: restrict_field
-                value: "AIRE_ATTRACTION_VILLES"
-          - name: split-aire-attraction
-            template: split-dataset
-            dependencies: [ prepare-split-aire-attraction ]
-            arguments:
-              parameters:
-              - name: split_type
-                value: "AIRE_ATTRACTION_VILLES"
-              - name: format_output
-                value: "{{item.format-output}}"
-              - name: year
-                value: "{{item.year}}"
-              - name: crs
-                value: "{{item.crs}}"
-              - name: source
-                value: "{{item.source}}"
-              - name: simplification
-                value: "{{item.simplification}}"
-              - name: level_polygons
-                value: "{{item.level-polygons}}"
-              - name: filter_by
-                value: "{{item.filter-by}}"
-            withParam: "{{tasks.prepare-split-aire-attraction.outputs.result}}"
 
+          # TASK 0 : MOUNT VOLUMES AND CHECK PERMISSIONS
+          - name: init-and-test-volume
+            template: init-and-test-volume
+
+          # TASK 1 : RETRIEVE ALL (NEW) FILES FROM SOURCES AND UPLOAD TO MINIO
+          - name: download-all-sources
+            template: download-all-sources
+            dependencies: [ init-and-test-volume ]
+
+          # TASK 2 : CHECK WICH VINTAGE SHOULD BE RE-PROCESSED FROM (NEW) RAW SOURCES
+          - name: select-downstream-vintage-to-process
+            template: select-downstream-vintage-to-process
+            dependencies: [ download-all-sources ]
+            arguments:
+              parameters:
+              - name: download_results
+                value: "{{tasks.download-all-sources.outputs.parameters.download_all_results}}"
+
+          # TASK 3.1 : CREATE BASE GEODATASETS ON MINIO FROM RAW TERRITORIAL FILES
+          - name: make-geodatasets
+            template: make-geodatasets
+            dependencies: [ select-downstream-vintage-to-process ]
+            arguments:
+              parameters:
+              - name: year
+                value: "{{item}}"
+            withParam: "{{tasks.select-downstream-vintage-to-process.outputs.parameters.geodatasets_vintage_to_update}}"
+
+          # TASK 3.2 : CREATE METADATA FILES ON MINIO FROM RAW INSEE FILES
+          - name: make-metadata
+            template: make-metadata
+            dependencies: [ select-downstream-vintage-to-process ]
+            arguments:
+              parameters:
+              - name: years
+                value: "{{tasks.select-downstream-vintage-to-process.outputs.parameters.metadata_vintage_to_update}}"
+
+          # TASK 4: SELECT DOWNSTREAM YEARS TO GENERATE
+          # (FAN-OUT STEP TO ENSURE SCALIBILITY AND RESULTS' MAX LENGTH IN NEXT STEP)
+          - name: operationnal-selection-of-vintages-to-generate
+            template: operationnal-selection-of-vintages-to-generate
+            dependencies: [ make-geodatasets, make-metadata ]
+            arguments:
+              parameters:
+              - name: years_geodatasets
+                value: "{{tasks.make-geodatasets.outputs.parameters.updated_geodata}}"
+              - name: years_metadata
+                value: "{{tasks.make-metadata.outputs.parameters.updated_metadata}}"
+
+          # TASK 5 : TASK WITH 2 NESTED STEPS FOR
+          # step 5.1 selecting geodatasets to generate
+          # step 5.2 creating selected geodatasets
+          - name: generate-downstream-datasets
+            template: generate-downstream-datasets
+            dependencies: [ operationnal-selection-of-vintages-to-generate ]
+            arguments:
+              parameters:
+              - name: year
+                value: "{{item}}"
+            withParam: "{{tasks.operationnal-selection-of-vintages-to-generate.outputs.parameters.years}}"
+            continueOn:
+              failed: true
+            
+          # TASK 6 : GENERATE CATALOG
+          - name: make-catalog
+            template: make-catalog
+            dependencies: [generate-downstream-datasets]
 
   # --------------------------
   # TEMPLATES DEFINITION
   # ---------------------------
 
-  # First step: retrieving and duplicating IGN tiles ------------------
-    - name: duplicate-ign
+    - name: init-and-test-volume
       inputs:
         artifacts:
           - name: code
             path: /mnt/bin
             git:
               repo: https://github.com/inseefrlab/cartiflette
-              revision: "main"
+              revision: "feat/refacto_pipeline_first_steps"
       container:
-        image: inseefrlab/cartiflette
+        image: inseefrlab/cartiflette:latest
         command: [sh, -c]
-        args: ["
-                mkdir -p $LOCAL_DATA_PATH ;
-                mkdir -p /mnt/bin/src ;
+        args: ["mkdir -p /mnt/bin/src ;
                 mv /mnt/bin/argo-pipeline/src/* /mnt/bin/src ;
-                python /mnt/bin/src/duplicate_in_bucket.py --path $PATH_WRITING_S3 --localpath $LOCAL_DATA_PATH ;
+                echo $ENVIRONMENT;
                 "]
         volumeMounts:
           - name: volume-workflow-tmp
             mountPath: /mnt
         env: &env_parameters
-          - name: PATH_WRITING_S3
-            value: "production"
           - name: PYTHONPATH
             value: "${PYTHONPATH}:/mnt/bin"
-          - name: LOCAL_DATA_PATH
-            value: "/mnt/data"
           - name: AWS_ACCESS_KEY_ID
             valueFrom:
               secretKeyRef:
@@ -291,62 +136,182 @@ spec:
             value: minio.lab.sspcloud.fr
           - name: MC_HOST_s3
             value: https://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$AWS_S3_ENDPOINT
+          - name: ENVIRONMENT
+            # set value to "test" to simplify pipeline execution (2 years, only topojson, etc.), use "preprod" or "prod" else
+            # -> this will also configure the path_within_bucket constant
+            value: test
 
-    - name: test-volume
+    - name: download-all-sources
+      outputs:
+        parameters:
+        - name: download_all_results
+          valueFrom:
+            path: download_all_results.json
       container:
-        image: inseefrlab/cartiflette
+        image: inseefrlab/cartiflette:latest
         command: [sh, -c]
-        args: ["echo $PATH_WRITING_S3 ;
-                head -n 1 ${LOCAL_DATA_PATH}/tagc.csv"]
-        env: *env_parameters
+        args: ["
+          python /mnt/bin/src/download_all_sources.py;
+          "]
         volumeMounts:
           - name: volume-workflow-tmp
             mountPath: /mnt
+        env: *env_parameters
 
-  # Step 2: creating template task for splitting ------------------
-
-    - name: prepare-split
+    - name: select-downstream-vintage-to-process
       inputs:
         parameters:
-          - name: restrict_field
+          - name: download_results
+      outputs:
+        parameters:
+        - name: geodatasets_vintage_to_update
+          valueFrom:
+            path: geodatasets_years.json
+        - name: metadata_vintage_to_update
+          valueFrom:
+            path: metadata_years.json
       container:
-        image: inseefrlab/cartiflette
+        image: inseefrlab/cartiflette:latest
         command: [sh, -c]
         volumeMounts:
           - name: volume-workflow-tmp
             mountPath: /mnt
         args: ["
-          python /mnt/bin/src/crossproduct.py --restrictfield '{{inputs.parameters.restrict_field}}'
+          python /mnt/bin/src/select_downstream_vintage_to_process.py --download_results '{{inputs.parameters.download_results}}'
+          "]
+        env: *env_parameters
+
+    - name: make-geodatasets
+      inputs:
+        parameters:
+          - name: year
+      outputs:
+        parameters:
+        - name: updated_geodata
+          valueFrom:
+            path: "geodataset_years/{{inputs.parameters.year}}.json"
+      container:
+        image: inseefrlab/cartiflette:latest
+        command: [sh, -c]
+        volumeMounts:
+          - name: volume-workflow-tmp
+            mountPath: /mnt
+        args: ["
+                python /mnt/bin/src/make_geodata_datasets.py --year '{{inputs.parameters.year}}';
+                "]
+        env: *env_parameters
+
+    - name: make-metadata
+      inputs:
+        parameters:
+          - name: years
+      outputs:
+        parameters:
+        - name: updated_metadata
+          valueFrom:
+            path: metadata_years.json
+      container:
+        image: inseefrlab/cartiflette:latest
+        command: [sh, -c]
+        volumeMounts:
+          - name: volume-workflow-tmp
+            mountPath: /mnt
+        args: ["
+                python /mnt/bin/src/make_metadata_datasets.py --years '{{inputs.parameters.years}}';
+                "]
+        env: *env_parameters
+
+
+    - name: operationnal-selection-of-vintages-to-generate
+      inputs:
+        parameters:
+          - name: years_geodatasets
+          - name: years_metadata
+      outputs:
+        parameters:
+        - name: years
+          valueFrom:
+            path: vintages_operationnal_generation.json
+      container:
+        image: inseefrlab/cartiflette:latest
+        command: [sh, -c]
+        volumeMounts:
+          - name: volume-workflow-tmp
+            mountPath: /mnt
+        env: *env_parameters
+        args: ["
+          python /mnt/bin/src/filter_vintages_operationnal.py --years-geodatasets '{{inputs.parameters.years_geodatasets}}' --years-metadata '{{inputs.parameters.years_metadata}}';
           "]
 
-    - name: split-dataset
+    - name : generate-downstream-datasets
       inputs:
         parameters:
-        - name: split_type
-        - name: format_output
-        - name: year
-        - name: crs
-        - name: source
-        - name: simplification
-        - name: level_polygons
-        - name: filter_by
+          - name: year
+      steps:
+        - - name: select-configs-for-generation
+            template: select-configs-for-generation
+            arguments:
+              parameters:
+              - name: year
+                value: "{{inputs.parameters.year}}"
+        - - name: generate-datasets
+            template: generate-datasets
+            arguments:
+              parameters:
+              - name: year
+                value: "{{inputs.parameters.year}}"
+              - name: config_generation
+                value: "{{steps.select-configs-for-generation.outputs.parameters.configs}}"
+
+    - name: select-configs-for-generation
+      inputs:
+        parameters:
+          - name: year
+      outputs:
+        parameters:
+        - name: configs
+          valueFrom:
+            path: "configs_datasets_to_generate/{{ inputs.parameters.year }}.json"
       container:
-        image: inseefrlab/cartiflette
+        image: inseefrlab/cartiflette:latest
+        command: [sh, -c]
+        volumeMounts:
+          - name: volume-workflow-tmp
+            mountPath: /mnt
+        env: *env_parameters
+        args: ["
+          python /mnt/bin/src/crossproduct.py --year '{{inputs.parameters.year}}';
+          "]
+
+    - name: generate-datasets
+      inputs:
+        parameters:
+        - name: year
+        - name: config_generation
+      outputs:
+        parameters:
+        - name: result
+          valueFrom:
+            path: "generation/{{ inputs.parameters.year }}/result.json"
+      container:
+        image: inseefrlab/cartiflette:latest
         command: ["sh", "-c"]
         args: ["
-          mkdir -p temp/ && cp /mnt/data/tagc.csv temp/tagc.csv ;
-          python /mnt/bin/src/split_merge_tiles.py \
-          --path $PATH_WRITING_S3 \
-          --format_output {{inputs.parameters.format_output}} \
-          --year {{inputs.parameters.year}} \
-          --crs {{inputs.parameters.crs}} \
-          --source {{inputs.parameters.source}} \
-          --simplification {{inputs.parameters.simplification}} \
-          --level_polygons {{inputs.parameters.level_polygons}} \
-          --filter_by {{inputs.parameters.filter_by}}"
+          python /mnt/bin/src/split_merge_tiles_multithreading.py \
+          --year '{{inputs.parameters.year}}' \
+          --configs '{{inputs.parameters.config_generation}}'"
         ]
         volumeMounts:
           - name: volume-workflow-tmp
             mountPath: /mnt
         env: *env_parameters
-
+        
+    - name: make-catalog
+      container:
+        image: inseefrlab/cartiflette:latest
+        command: ["sh", "-c"]
+        args: ["python /mnt/bin/src/catalog.py"]
+        volumeMounts:
+          - name: volume-workflow-tmp
+            mountPath: /mnt
+        env: *env_parameters

@@ -1,200 +1,292 @@
-import os
-import shutil
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
-from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS
-from cartiflette.utils import create_path_bucket
-from cartiflette.mapshaper import mapshaperize_split, mapshaperize_split_merge
-from .prepare_mapshaper import prepare_local_directory_mapshaper
+import logging
+import traceback
+from typing import List
+
+from pebble import ThreadPool
+from s3fs import S3FileSystem
 
 
-def mapshaperize_split_from_s3(config, fs=FS):
-    format_output = config.get("format_output", "topojson")
-    filter_by = config.get("filter_by", "DEPARTEMENT")
-    territory = config.get("territory", "metropole")
-    level_polygons = config.get("level_polygons", "COMMUNE")
-    territory = config.get("territory", "metropole")
+from cartiflette.config import (
+    BUCKET,
+    PATH_WITHIN_BUCKET,
+    FS,
+    INTERMEDIATE_FORMAT,
+    THREADS_DOWNLOAD,
+)
+from cartiflette.s3 import S3GeoDataset, S3Dataset
 
-    provider = config.get("provider", "IGN")
-    source = config.get("source", "EXPRESS-COG-CARTO-TERRITOIRE")
-    year = config.get("year", 2022)
-    dataset_family = config.get("dataset_family", "ADMINEXPRESS")
-    territory = config.get("territory", "metropole")
-    crs = config.get("crs", 4326)
-    simplification = config.get("simplification", 0)
 
-    bucket = config.get("bucket", BUCKET)
-    path_within_bucket = config.get("path_within_bucket", PATH_WITHIN_BUCKET)
-    local_dir = config.get("local_dir", "temp")
+logger = logging.getLogger(__name__)
 
-    path_raw_s3_combined = create_path_bucket(
-        {
-            "bucket": bucket,
-            "path_within_bucket": path_within_bucket,
-            "year": year,
-            "borders": "france",
-            "crs": 4326,
-            "filter_by": "preprocessed",
-            "value": "before_cog",
-            "vectorfile_format": "geojson",
-            "provider": "IGN",
-            "dataset_family": "ADMINEXPRESS",
-            "source": "EXPRESS-COG-CARTO-TERRITOIRE",
-            "territory": "france",
-            "filename": "raw.geojson",
-            "simplification": 0,
-        }
+
+def mapshaperize_split_from_s3(
+    year: int,
+    init_geometry_level: str,
+    source: str,
+    simplification: int,
+    dissolve_by: str,
+    territorial_splits: list,
+    fs: S3FileSystem = FS,
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
+):
+    logger.info(
+        "processing %s from '%s' geometries and dissolve on '%s'",
+        year,
+        init_geometry_level,
+        dissolve_by,
     )
 
-    fs.download(path_raw_s3_combined, "temp/preprocessed_combined/COMMUNE.geojson")
-
-    output_path = mapshaperize_split(
-        local_dir=local_dir,
-        config_file_city={
-            "location": "temp/preprocessed_combined",
-            "filename": "COMMUNE",
-            "extension": "geojson",
-        },
-        format_output=format_output,
-        niveau_agreg=filter_by,
-        niveau_polygons=level_polygons,
-        provider=provider,
+    kwargs = {
+        "fs": fs,
+        "bucket": bucket,
+        "path_within_bucket": path_within_bucket,
+        "year": year,
+        "borders": init_geometry_level,
+        "filter_by": "preprocessed",
+        "provider": "Cartiflette",
+        "territory": "france",
+    }
+    with S3Dataset(
+        dataset_family="metadata",
+        source="*",
+        crs=None,
+        value="tagc",
+        vectorfile_format="csv",
+        **kwargs,
+    ) as metadata, S3GeoDataset(
+        dataset_family="geodata",
         source=source,
-        crs=crs,
+        crs=4326,
+        value="before_cog",
+        vectorfile_format=INTERMEDIATE_FORMAT,
         simplification=simplification,
-    )
+        **kwargs,
+    ) as gis_file:
 
-    for values in os.listdir(output_path):
-        path_s3 = create_path_bucket(
-            {
-                "bucket": bucket,
-                "path_within_bucket": path_within_bucket,
-                "year": year,
-                "borders": level_polygons,
-                "crs": crs,
-                "filter_by": filter_by,
-                "value": values.replace(f".{format_output}", ""),
-                "vectorfile_format": format_output,
-                "provider": provider,
-                "dataset_family": dataset_family,
-                "source": source,
-                "territory": territory,
-                "simplification": simplification,
-            }
-        )
-        fs.put(f"{output_path}/{values}", path_s3)
+        failed = []
+        success = []
+        skipped = []
+        for niveau_agreg in territorial_splits:
 
-    shutil.rmtree(output_path)
+            # Check that both niveau_agreg and dissolve_by correspond to
+            # definitive fields from either metadata/geodata
+            available = set(gis_file._get_columns()) | set(
+                metadata._get_columns()
+            )
+
+            warnings = []
+            for field in niveau_agreg, dissolve_by:
+                if field in [
+                    "FRANCE_ENTIERE",
+                    "FRANCE_ENTIERE_DROM_RAPPROCHES",
+                    "FRANCE_ENTIERE_IDF_DROM_RAPPROCHES",
+                ]:
+                    continue
+                try:
+                    metadata.find_column_name(field, available)
+                except (ValueError, IndexError) as exc:
+                    warnings.append(str(exc))
+            if warnings:
+                skipped.append(
+                    {
+                        "warning": " - ".join(warnings),
+                        "aggreg": niveau_agreg,
+                    }
+                )
+                continue
+
+            with gis_file.copy() as gis_copy:
+                try:
+                    gis_copy.create_downstream_geodatasets(
+                        metadata,
+                        niveau_agreg=niveau_agreg,
+                        init_geometry_level=init_geometry_level,
+                        dissolve_by=dissolve_by,
+                        simplification=simplification,
+                    )
+                except Exception as exc:
+                    failed.append(
+                        {
+                            "error": exc,
+                            "aggreg": niveau_agreg,
+                            "traceback": traceback.format_exc(),
+                        }
+                    )
+                else:
+                    success.append(
+                        {
+                            "aggreg": niveau_agreg,
+                        }
+                    )
+
+    warning_traceback = []
+    error_traceback = []
+    if skipped:
+        for one_skipped in skipped:
+            msg = "\n".join(
+                [
+                    "-" * 50,
+                    one_skipped["warning"],
+                    f"aggregation: {one_skipped['aggreg']}",
+                ]
+            )
+            logger.warning(msg)
+            warning_traceback.append(msg)
+    if failed:
+        for one_failed in failed:
+            msg = "\n".join(
+                [
+                    "=" * 50,
+                    f"error: {one_failed['error']}",
+                    f"aggregation: {one_failed['aggreg']}",
+                    "-" * 50,
+                    f"traceback:\n{one_failed['traceback']}",
+                ]
+            )
+            logger.error(msg)
+            error_traceback.append(msg)
+
+    return {
+        "success": success,
+        "skipped": skipped,
+        "failed": failed,
+        "warning_traceback": warning_traceback,
+        "error_traceback": error_traceback,
+    }
 
 
-def mapshaperize_merge_split_from_s3(config, fs=FS):
-    format_output = config.get("format_output", "topojson")
-    filter_by = config.get("filter_by", "DEPARTEMENT")
-    territory = config.get("territory", "metropole")
+def mapshaperize_split_from_s3_multithreading(
+    year: int,
+    configs: List[dict],
+    fs: S3FileSystem = FS,
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
+):
 
-    provider = config.get("provider", "IGN")
-    source = config.get("source", "EXPRESS-COG-CARTO-TERRITOIRE")
-    year = config.get("year", 2022)
-    dataset_family = config.get("dataset_family", "ADMINEXPRESS")
-    territory = config.get("territory", "metropole")
-    crs = config.get("crs", 4326)
-    simplification = config.get("simplification", 0)
+    results = {
+        "success": 0,
+        "skipped": 0,
+        "failed": 0,
+        "warning_traceback": [],
+        "error_traceback": [],
+    }
+    if THREADS_DOWNLOAD > 1:
+        with ThreadPool(min(len(configs), THREADS_DOWNLOAD)) as pool:
+            args = [
+                (
+                    year,
+                    d["mesh_init"],
+                    d["source_geodata"],
+                    d["simplification"],
+                    d["dissolve_by"],
+                    d["territories"],
+                    fs,
+                    bucket,
+                    path_within_bucket,
+                )
+                for d in configs
+            ]
+            iterator = pool.map(
+                mapshaperize_split_from_s3, *zip(*args), timeout=60 * 10
+            ).result()
 
-    bucket = config.get("bucket", BUCKET)
-    path_within_bucket = config.get("path_within_bucket", PATH_WITHIN_BUCKET)
-    local_dir = config.get("local_dir", "temp")
+            failed = False
+            index = 0
+            while True:
+                try:
+                    this_result = next(iterator)
+                except StopIteration:
+                    break
+                except Exception:
+                    logger.error(traceback.format_exc())
+                    logger.error("args were %s", args[index])
+                else:
+                    for key in "success", "skipped", "failed":
+                        results[key] += len(this_result[key])
+                    for key in "warning_traceback", "error_traceback":
+                        results[key] += this_result[key]
+                finally:
+                    index += 1
+    else:
+        for d in configs:
 
-    path_raw_s3_combined = create_path_bucket(
-        {
-            "bucket": bucket,
-            "path_within_bucket": path_within_bucket,
-            "year": year,
-            "borders": "france",
-            "crs": 4326,
-            "filter_by": "preprocessed",
-            "value": "before_cog",
-            "vectorfile_format": "geojson",
-            "provider": "IGN",
-            "dataset_family": "ADMINEXPRESS",
-            "source": "EXPRESS-COG-CARTO-TERRITOIRE",
-            "territory": "france",
-            "filename": "raw.geojson",
-            "simplification": 0,
-        }
-    )
+            d["init_geometry_level"] = d.pop("mesh_init")
+            d["source"] = d.pop("source_geodata")
+            d["territorial_splits"] = d.pop("territories")
+            try:
+                this_result = mapshaperize_split_from_s3(
+                    year=year,
+                    fs=fs,
+                    bucket=bucket,
+                    path_within_bucket=path_within_bucket,
+                    **d,
+                )
+            except Exception:
+                logger.error(traceback.format_exc())
+                logger.error("args were %s", d)
+            else:
+                for key in "success", "skipped", "failed":
+                    results[key] += len(this_result[key])
+                for key in "warning_traceback", "error_traceback":
+                    results[key] += this_result[key]
 
-    fs.download(path_raw_s3_combined, "temp/preprocessed_combined/COMMUNE.geojson")
+    skipped = results["skipped"]
+    success = results["success"]
+    failed = results["failed"]
+    warnings = results["warning_traceback"]
+    errors = results["error_traceback"]
 
-    path_raw_s3_arrondissement = create_path_bucket(
-        {
-            "bucket": bucket,
-            "path_within_bucket": path_within_bucket,
-            "year": year,
-            "borders": None,
-            "crs": 2154,
-            "filter_by": "origin",
-            "value": "raw",
-            "vectorfile_format": "shp",
-            "provider": "IGN",
-            "dataset_family": "ADMINEXPRESS",
-            "source": "EXPRESS-COG-CARTO-TERRITOIRE",
-            "territory": "metropole",
-            "filename": "ARRONDISSEMENT_MUNICIPAL.shp",
-            "simplification": 0,
-        }
-    )
+    if warnings or errors:
+        level = "warning"
+        if errors:
+            level = "error"
+        log_func = getattr(logger, level)
+        log_func("=" * 50)
+        log_func("Traceback recaps")
+        for msg in warnings:
+            logger.warning(msg)
+            logger.info("%s", "-" * 50)
+        for msg in errors:
+            logger.error(msg)
+            logger.info("%s", "-" * 50)
 
-    path_raw_s3_arrondissement = path_raw_s3_arrondissement.rsplit("/", maxsplit=1)[0]
+    logger.info("%s file(s) generation(s) were skipped", skipped)
+    logger.info("%s file(s) generation(s) succeeded", success)
+    logger.error("%s file(s) generation(s) failed", failed)
 
-    # retrieve arrondissement
-    prepare_local_directory_mapshaper(
-        path_raw_s3_arrondissement,
-        borders="ARRONDISSEMENT_MUNICIPAL",
-        territory="metropole",
-        niveau_agreg=filter_by,
-        format_output="topojson",
-        simplification=simplification,
-        local_dir="temp",
-        fs=FS,
-    )
+    if failed:
+        raise ValueError("some datasets' generation failed")
 
-    output_path = mapshaperize_split_merge(
-        local_dir=local_dir,
-        config_file_city={
-            "location": "temp/preprocessed_combined",
-            "filename": "COMMUNE",
-            "extension": "geojson",
-        },
-        config_file_arrondissement={
-            "location": "temp/metropole",
-            "filename": "ARRONDISSEMENT_MUNICIPAL",
-            "extension": "shp",
-        },
-        format_output=format_output,
-        niveau_agreg=filter_by,
-        provider=provider,
-        source=source,
-        crs=crs,
-        simplification=simplification,
-    )
+    return {
+        "success": success,
+        "skipped": skipped,
+        "failed": failed,
+    }
 
-    for values in os.listdir(output_path):
-        path_s3 = create_path_bucket(
-            {
-                "bucket": bucket,
-                "path_within_bucket": path_within_bucket,
-                "year": year,
-                "borders": "COMMUNE_ARRONDISSEMENT",
-                "crs": crs,
-                "filter_by": filter_by,
-                "value": values.replace(f".{format_output}", ""),
-                "vectorfile_format": format_output,
-                "provider": provider,
-                "dataset_family": dataset_family,
-                "source": source,
-                "territory": territory,
-                "simplification": simplification,
-            }
-        )
-        fs.put(f"{output_path}/{values}", path_s3)
 
-    shutil.rmtree(output_path)
+# if __name__ == "__main__":
+#     import logging
+#     from cartiflette.pipeline_constants import COG_TERRITOIRE
+#     from cartiflette.config import DATASETS_HIGH_RESOLUTION
+
+#     logging.basicConfig(level=logging.INFO)
+
+#     mapshaperize_split_from_s3(
+#         year=2023,
+#         init_geometry_level="ARRONDISSEMENT_MUNICIPAL",
+#         source=COG_TERRITOIRE[DATASETS_HIGH_RESOLUTION],
+#         simplification=40,
+#         dissolve_by="DEPARTEMENT",
+#         config_generation={
+#             "FRANCE_ENTIERE_DROM_RAPPROCHES": [
+#                 {"format_output": "gpkg", "epsg": "4326"},
+#                 {"format_output": "geojson", "epsg": "4326"},
+#                 {"format_output": "gpkg", "epsg": "2154"},
+#                 {"format_output": "geojson", "epsg": "2154"},
+#             ]
+#         },
+#     )

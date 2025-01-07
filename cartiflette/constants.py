@@ -28,46 +28,17 @@ REFERENCES = [
         "geometry": box(44.7437, -13.2733, 45.507, -12.379),
     },
     {
-        "location": "saint_pierre_et_miquelon",
+        "location": "saint-pierre-et-miquelon",
         "geometry": box(-56.6975, 46.5488, -55.9066, 47.3416),
+    },
+    {
+        "location": "saint-barthelemy",
+        "geometry": box(-62.951118, 17.870818, -62.789027, 17.974103),
+    },
+    {
+        "location": "saint-martin",
+        "geometry": box(-63.153327, 18.046591, -62.970338, 18.125203),
     },
 ]
 
 REFERENCES = gpd.GeoDataFrame(REFERENCES, crs=4326)
-
-DOWNLOAD_PIPELINE_ARGS = {
-    "ADMIN-EXPRESS": [
-        "IGN",
-        "ADMINEXPRESS",
-        "EXPRESS-COG-TERRITOIRE",
-        [
-            "guadeloupe",
-            "martinique",
-            "guyane",
-            "reunion",
-            "mayotte",
-            "metropole",
-        ],
-    ],
-    "BDTOPO": ["IGN", "BDTOPO", "ROOT", "france_entiere"],
-    "IRIS": ["IGN", "CONTOUR-IRIS", "ROOT", None],
-    "COG": [
-        "Insee",
-        "COG",
-        [
-            "COMMUNE",
-            "CANTON",
-            "ARRONDISSEMENT",
-            "DEPARTEMENT",
-            "REGION",
-            "COLLECTIVITE",
-            "PAYS",
-        ],
-        "france_entiere",
-    ],
-    "BV 2022": ["Insee", "BV", "FondsDeCarte_BV_2022", "france_entiere"],
-}
-
-# EXPRESS-COG ?
-# EXPRESS-COG-CARTO-TERRITOIRE ?
-# EXPRESS-COG-CARTO ?

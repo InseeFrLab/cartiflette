@@ -3,12 +3,20 @@
 from datetime import date
 import json
 import logging
+import traceback
+from typing import List
+
 from pebble import ThreadPool
 import s3fs
 
-from cartiflette.config import BUCKET, PATH_WITHIN_BUCKET, FS, THREADS_DOWNLOAD
-from cartiflette.constants import DOWNLOAD_PIPELINE_ARGS
-from cartiflette.download.download import _download_sources
+from cartiflette.config import (
+    BUCKET,
+    PATH_WITHIN_BUCKET,
+    FS,
+    THREADS_DOWNLOAD,
+)
+from cartiflette.pipeline_constants import PIPELINE_DOWNLOAD_ARGS
+from cartiflette.download import _download_and_store_sources
 from cartiflette.utils import deep_dict_update
 
 logger = logging.getLogger(__name__)
@@ -19,11 +27,12 @@ def download_all(
     path_within_bucket: str = PATH_WITHIN_BUCKET,
     fs: s3fs.S3FileSystem = FS,
     upload: bool = True,
+    years: List[int] = None,
 ) -> dict:
     """
     Performs a full pipeline to download data and store them on MinIO. The
     target files are described in cartiflette/constants.py under the
-    constant DOWNLOAD_PIPELINE_ARGS. Those files' characteristics must also be
+    constant PIPELINE_DOWNLOAD_ARGS. Those files' characteristics must also be
     described in the cartiflette/utils/sources.yaml file.
 
     Note: to perform an easy debugging task, please overwrite
@@ -42,6 +51,9 @@ def download_all(
         Whether to store data on MinIO or not. This argument should only be
         used for debugging purposes. The default is True, to upload data on
         MinIO.
+    years : List[int], optional
+        Years to perform download on. If not set, will result to
+        range(2015, date.today().year + 1). The default is None.
 
     Returns
     -------
@@ -100,8 +112,15 @@ def download_all(
 
     """
 
+    if not years:
+        years = list(range(2015, date.today().year + 1))[-1::-1]
+
+    logger.info(f"performing download on {years=}")
+
     if not upload:
-        logger.warning("no upload to s3 will be done, set upload=True to upload")
+        logger.warning(
+            "no upload to s3 will be done, set upload=True to upload"
+        )
 
     # Initialize MD5 json if absent
     json_md5 = f"{bucket}/{path_within_bucket}/md5.json"
@@ -117,7 +136,6 @@ def download_all(
         "fs": fs,
         "upload": upload,
     }
-    years = list(range(2015, date.today().year + 1))[-1::-1]
 
     results = {}
 
@@ -125,11 +143,32 @@ def download_all(
 
     def func(args):
         key, args = args
-        results = _download_sources(*args, years=years, **kwargs)
+        try:
+            providers, dataset_families, sources, territories = args
+        except ValueError:
+            # No territories set in constant (will ultimately be stored at
+            # "france_entiere" on the S3 FileSystem)
+            providers, dataset_families, sources = args
+            territories = None
+        logger.info(
+            "looking for %s %s %s %s",
+            providers,
+            dataset_families,
+            sources,
+            territories,
+        )
+        results = _download_and_store_sources(
+            providers=providers,
+            dataset_families=dataset_families,
+            sources=sources,
+            years=years,
+            territories=territories,
+            **kwargs,
+        )
         logger.info(f"{key} done")
         return results
 
-    datasets_args = DOWNLOAD_PIPELINE_ARGS
+    datasets_args = PIPELINE_DOWNLOAD_ARGS
 
     if THREADS_DOWNLOAD > 1:
         with ThreadPool(THREADS_DOWNLOAD) as pool:
@@ -139,97 +178,17 @@ def download_all(
                     results = deep_dict_update(results, next(iterator))
                 except StopIteration:
                     break
-                except Exception as e:
-                    logger.error(e)
+                except Exception:
+                    logger.error(traceback.format_exc())
     else:
         for args in datasets_args.items():
             results = deep_dict_update(results, func(args))
     return results
 
 
-# def download_all_option2():
-#     # Dérouler le yaml comme dans le test
-
-#     yaml = import_yaml_config()
-
-#     with MasterScraper() as scraper:
-#         for provider, provider_yaml in yaml.items():
-#             if not isinstance(provider_yaml, dict):
-#                 continue
-
-#             for dataset_family, dataset_family_yaml in provider_yaml.items():
-#                 if not isinstance(dataset_family_yaml, dict):
-#                     continue
-
-#                 for source, source_yaml in dataset_family_yaml.items():
-#                     str_yaml = f"{dataset_family}/{source}"
-
-#                     if not isinstance(source_yaml, dict):
-#                         logger.error(
-#                             f"yaml {str_yaml} contains '{source_yaml}'"
-#                         )
-#                         continue
-#                     elif "FTP" in set(source_yaml.keys()):
-#                         logger.info("yaml {str_yaml} not checked (FTP)")
-#                         continue
-
-#                     years = set(source_yaml.keys()) - {"field", "FTP"}
-#                     try:
-#                         territories = set(source_yaml["field"].keys())
-#                     except KeyError:
-#                         territories = {""}
-
-#                     for year in years:
-#                         for territory in territories:
-#                             str_yaml = (
-#                                 f"{dataset_family}/{source}/{year}/"
-#                                 f"{provider}/{territory}"
-#                             )
-
-#                             if territory == "":
-#                                 territory = None
-#                             try:
-#                                 ds = Dataset(
-#                                     dataset_family,
-#                                     source,
-#                                     int(year),
-#                                     provider,
-#                                     territory,
-#                                 )
-#                             except Exception:
-#                                 logger.error(
-#                                     f"error on yaml {str_yaml} : "
-#                                     "dataset not constructed"
-#                                 )
-#                                 continue
-#                             try:
-#                                 url = ds.get_path_from_provider()
-#                             except Exception:
-#                                 logger.error(
-#                                     f"error on yaml {str_yaml} : "
-#                                     "url no reconstructed"
-#                                 )
-#                                 continue
-
-#                             try:
-#                                 r = scraper.get(url, stream=True)
-#                             except Exception:
-#                                 logger.error(
-#                                     f"error on yaml {str_yaml} : "
-#                                     f"https get request failed on {url}"
-#                                 )
-#                                 continue
-#                             if not r.ok:
-#                                 logger.error(
-#                                     f"error on yaml {str_yaml} : "
-#                                     "https get request "
-#                                     f"got code {r.status_code} on {url}"
-#                                 )
-
 if __name__ == "__main__":
     logging.basicConfig(
-        level=logging.INFO,
+        level=logging.WARNING,
         format="%(levelname)s :%(filename)s:%(lineno)d (%(funcName)s) - %(message)s",
     )
-
     results = download_all(upload=True)
