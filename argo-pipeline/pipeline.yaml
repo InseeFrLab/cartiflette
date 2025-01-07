@@ -87,6 +87,8 @@ spec:
               - name: year
                 value: "{{item}}"
             withParam: "{{tasks.operationnal-selection-of-vintages-to-generate.outputs.parameters.years}}"
+            continueOn:
+              failed: true
             
           # TASK 6 : GENERATE CATALOG
           - name: make-catalog
