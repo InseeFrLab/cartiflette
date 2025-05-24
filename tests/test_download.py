@@ -11,7 +11,6 @@ from cartiflette.download.scraper import (
     validate_file,
     download_to_tempfile_http,
 )
-from cartiflette.download.download import _download_sources
 from cartiflette.download import download_all
 from cartiflette.utils import import_yaml_config
 from tests.conftest import (
@@ -20,13 +19,6 @@ from tests.conftest import (
     HASH_DUMMY,
 )
 
-from tests.mockups import (
-    mock_httpscraper_download_success,
-    mock_httpscraper_download_success_corrupt_hash,
-    mock_httpscraper_download_success_corrupt_length,
-    mock_Dataset_without_s3,
-    total_mock_s3,
-)
 
 logger = logging.getLogger(__name__)
 

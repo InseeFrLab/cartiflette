@@ -1,8 +1,6 @@
-import pandas as pd
-import pytest
 
 
-from cartiflette.pipeline import restructure_nested_dict_borders, crossproduct_parameters_production
+from cartiflette.pipeline import restructure_nested_dict_borders
 
 def test_restructure_nested_dict_borders():
     sample_dict = {'a': [1, 2, 3], 'b': [4, 5]}

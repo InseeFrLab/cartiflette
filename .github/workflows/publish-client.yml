@@ -1,94 +1,31 @@
 name: test_and_publish
 
-on: 
+on:
   push:
     tags:
       - 'client-*'
 
+
 jobs:
-  test:
+  run:
+    name: "Build and publish release"
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./python-package/cartiflette
+
     steps:
-      #----------------------------------------------
-      #       check-out repo and set-up python
-      #----------------------------------------------
-      - name: Check out repository
-        uses: actions/checkout@v3
-      - name: Set up python
-        id: setup-python
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
         with:
-          python-version: '3.9'
-      #----------------------------------------------
-      #  -----  install & configure poetry  -----
-      #----------------------------------------------
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
+          enable-cache: true
+          cache-dependency-glob: uv.lock
 
-      #----------------------------------------------
-      # install dependencies if cache does not exist
-      #----------------------------------------------
-      - name: Install dependencies
-        run: poetry install --no-interaction --without dev
+      - name: Set up Python
+        run: uv python install 3.12  # Or whatever version I want to use.
 
-      #----------------------------------------------
-      # add only pytest for tests (not the full dev dependencies)
-      #----------------------------------------------
-      - name: Add pytest
-        run: poetry run pip install pytest
-
-      #----------------------------------------------
-      # add only pytest-cov for tests (not the full dev dependencies)
-      #----------------------------------------------
-      - name: Add pytest-cov
-        run: poetry run pip install pytest-cov
-
-      #----------------------------------------------
-      #              run test suite
-      #----------------------------------------------
-      - name: Run tests
-        run: poetry run pytest --cov -W error
-        
-  publish:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./python-package/cartiflette
-    needs: test
-    steps:
-      #----------------------------------------------
-      #       check-out repo and set-up python
-      #----------------------------------------------
-      - name: Check out repository
-        uses: actions/checkout@v3
-      - name: Set up python
-        id: setup-python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-      #----------------------------------------------
-      #  -----  install & configure poetry  -----
-      #----------------------------------------------
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-      
-      #----------------------------------------------
-      # config pypi token
-      #----------------------------------------------
-      - name: Set pypi token
-        run: poetry config pypi-token.pypi ${{secrets.PAT_PYPI}}
-        
-      #----------------------------------------------
-      # build
-      #----------------------------------------------
       - name: Build
-        run: poetry build
-      
-      #----------------------------------------------
-      #              run test suite
-      #----------------------------------------------
-      - name: Publish to Pypi
-        run: poetry publish
+        run: uv build
+
+      - name: Publish
+        run: uv publish --token ${{ secrets.PAT_PYPI }}
+

@@ -2,7 +2,6 @@
 import pytest
 import requests
 from requests_cache import CachedSession
-import s3fs
 import logging
 
 from tests.conftest import (

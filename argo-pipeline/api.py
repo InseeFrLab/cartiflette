@@ -1,7 +1,6 @@
 """A simple API to expose cartiflette files"""
 import typing
 from fastapi import FastAPI, Response
-from fastapi.responses import FileResponse
 
 from cartiflette.api import download_from_cartiflette_inner
 from cartiflette.config import PATH_WITHIN_BUCKET

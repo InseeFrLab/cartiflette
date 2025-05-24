@@ -14,21 +14,15 @@ ENV \
   PYTHONHASHSEED=random \
   PIP_NO_CACHE_DIR=off \
   PIP_DISABLE_PIP_VERSION_CHECK=on \
-  PIP_DEFAULT_TIMEOUT=100 \
-  # Poetry's configuration:
-  POETRY_NO_INTERACTION=1 \
-  POETRY_VIRTUALENVS_CREATE=false \
-  POETRY_CACHE_DIR='/var/cache/pypoetry' \
-  POETRY_HOME='/usr/local'
+  PIP_DEFAULT_TIMEOUT=100
 
 # Create structure
 COPY pyproject.toml .
-COPY poetry.lock .
+COPY uv.lock .
 COPY README.md .
 COPY cartiflette ./cartiflette
 COPY docker/test.py .
 
-RUN curl https://install.python-poetry.org/ | python - 
-RUN poetry install --only main --no-interaction
+RUN pip install uv && uv pip install -r pyproject.toml --system
 
 CMD ["python", "test.py"]
