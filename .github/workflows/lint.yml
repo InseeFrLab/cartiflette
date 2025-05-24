@@ -16,11 +16,10 @@ jobs:
         python-version: "3.10"
     - name: Add libmagic for python-magic on linux
       run: sudo apt-get install libmagic1
-    - name: Install Poetry
-      uses: snok/install-poetry@v1
     - name: Install dependencies
       run: |
-        poetry install --without dev
+        pip install uv
+        uv pip install -r pyproject.toml --system
     - name: Lint with flake8
       run: |
         cd cartiflette
