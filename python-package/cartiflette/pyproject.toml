@@ -15,6 +15,7 @@ dependencies = [
     "requests-cache>=1.2.1",
     "geopandas>=1.0.1",
     "platformdirs>=4.3.6",
+    "tqdm>=4.67.1",
 ]
 
 [dependency-groups]

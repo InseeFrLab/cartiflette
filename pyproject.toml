@@ -36,6 +36,7 @@ dependencies = [
     "pandas>=2.2.2",
     "polars>=1.8.1",
     "fastexcel>=0.11.6",
+    "tqdm>=4.67.1",
 ]
 
 [dependency-groups]
