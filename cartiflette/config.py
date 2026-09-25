@@ -1,24 +1,36 @@
-# -*- coding: utf-8 -*-
+"""
+Configuration of the production pipeline.
+
+Reading and writing targets are deliberately distinct: the pipeline never
+writes where the clients read from (``projet-cartiflette/production``)
+unless this is explicitly (and knowingly) configured.
+"""
+
 import os
-from dotenv import load_dotenv
-import s3fs
 
-load_dotenv()
-
-BUCKET = "projet-cartiflette"
-PATH_WITHIN_BUCKET = "production"
 ENDPOINT_URL = "https://minio.lab.sspcloud.fr"
 
-kwargs = {}
-for key in ["token", "secret", "key"]:
-    try:
-        kwargs[key] = os.environ[key]
-    except KeyError:
-        continue
-FS = s3fs.S3FileSystem(client_kwargs={"endpoint_url": ENDPOINT_URL}, **kwargs)
+# Where the published files live (read by the clients)
+PRODUCTION_BUCKET = "projet-cartiflette"
+PRODUCTION_PATH = "production"
 
-THREADS_DOWNLOAD = 5
-# Nota : each thread may also span the same number of children threads;
-# set to 1 for debugging purposes (will deactivate multithreading)
+# Where the pipeline writes by default: a test location.
+WRITE_BUCKET = os.environ.get("CARTIFLETTE_WRITE_BUCKET", PRODUCTION_BUCKET)
+WRITE_PATH = os.environ.get("CARTIFLETTE_WRITE_PATH", "test")
 
-LEAVE_TQDM = False
+# Writing to the production prefix requires this variable to be set to
+# exactly this value; anything else raises before any upload.
+ALLOW_PRODUCTION_WRITE = (
+    os.environ.get("CARTIFLETTE_ALLOW_PRODUCTION_WRITE") == "i-know-what-i-am-doing"
+)
+
+# Label used in the S3 paths and in the SOURCE field of the outputs. The
+# IGN product is now ADMIN-EXPRESS-COG-CARTO "France entière", but the label is
+# kept so that the paths read by the existing clients are unchanged.
+PROVIDER = "IGN"
+DATASET_FAMILY = "ADMINEXPRESS"
+SOURCE = "EXPRESS-COG-CARTO-TERRITOIRE"
+# Historical value of the `territory` path segment for every split file.
+TERRITORY = "metropole"
+
+OUTPUT_FORMATS = ("geojson", "parquet")

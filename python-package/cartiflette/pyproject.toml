@@ -1,6 +1,6 @@
 [project]
 name = "cartiflette"
-version = "0.1.9"
+version = "0.2.0"
 description = "Tools to easily retrieve French borders for geographic data analytics"
 authors = [
     { name = "Lino Galiana", email = "lino.galiana@insee.fr" },
@@ -15,7 +15,7 @@ dependencies = [
     "requests-cache>=1.2.1",
     "geopandas>=1.0.1",
     "platformdirs>=4.3.6",
-    "tqdm>=4.67.1",
+    "pyarrow>=17.0.0",
 ]
 
 [dependency-groups]
@@ -27,3 +27,6 @@ dev = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+markers = ["network: reads published files over HTTP (read-only)"]

@@ -31,11 +31,23 @@ data = carti_download(
     values = ["France"],
     crs = 4326,
     borders = "DEPARTEMENT",
-    vectorfile_format="topojson",
+    vectorfile_format="geojson",
     simplification=50,
     filter_by="FRANCE_ENTIERE_DROM_RAPPROCHES",
     source="EXPRESS-COG-CARTO-TERRITOIRE",
     year=2022
+)
+```
+
+À partir du millésime 2025, les fonds de carte sont disponibles aux formats `geojson` et `parquet` (GeoParquet). Les millésimes antérieurs restent disponibles en `geojson` :
+
+``` python
+data = carti_download(
+    values = ["11"],
+    borders = "COMMUNE",
+    filter_by = "REGION",
+    vectorfile_format = "parquet",
+    year = 2025
 )
 ```
 
@@ -52,7 +64,7 @@ data = carti_download(
     values = ["France"],
     crs = 4326,
     borders = "DEPARTEMENT",
-    vectorfile_format="topojson",
+    vectorfile_format="geojson",
     simplification=50,
     filter_by="FRANCE_ENTIERE_DROM_RAPPROCHES",
     source="EXPRESS-COG-CARTO-TERRITOIRE",

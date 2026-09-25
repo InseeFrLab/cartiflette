@@ -1,154 +1,60 @@
-import typing
-import logging
+from __future__ import annotations
 
 from cartiflette.constants import BUCKET, PATH_WITHIN_BUCKET
 
-logger = logging.getLogger(__name__)
+# User-facing format names -> format of the files stored by cartiflette
+FORMATS = {
+    "geojson": "geojson",
+    "parquet": "parquet",
+    "geoparquet": "parquet",
+}
 
 
-def dict_corresp_filter_by() -> dict:
-    """Transforms explicit administrative borders into relevant column
+def standardize_format(vectorfile_format: str) -> str:
+    try:
+        return FORMATS[vectorfile_format.lower()]
+    except KeyError:
+        raise ValueError(
+            f"Unsupported format {vectorfile_format!r}: cartiflette files are "
+            "available as 'geojson' or 'parquet'"
+        ) from None
 
-    Returns:
-        dict: Relevant column as well as initial
-            user prompted administrative level
+
+def create_path_bucket(
+    *,
+    provider: str,
+    dataset_family: str,
+    source: str,
+    year: int | str,
+    borders: str,
+    crs: int | str,
+    filter_by: str,
+    value: str,
+    vectorfile_format: str,
+    territory: str,
+    simplification: int | float | None = 0,
+    filename: str = "raw",
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
+) -> str:
     """
-    corresp_decoupage_columns = {
-        "region": "INSEE_REG",
-        "departement": "INSEE_DEP",
-        "commune": "INSEE_COM",
-        "commune_arrondissement": "INSEE_COM",
-        "region_arrondissement": "INSEE_REG",
-        "departement_arrondissement": "INSEE_DEP",
-        "france_entiere": "territoire",
-    }
-    return corresp_decoupage_columns
+    Path of a cartiflette file within the S3 storage.
 
-
-def create_format_standardized() -> dict:
-    """Transforms user-prompted format into geopandas format
-
-    Returns:
-        dict: Geopandas format as well as user-prompted
-         format
+    This must stay identical to cartiflette/paths.py in the pipeline: it is
+    the only contract between the pipeline and the clients.
     """
-    format_standardized = {
-        "geojson": "geojson",
-        "geopackage": "GPKG",
-        "gpkg": "GPKG",
-        "shp": "shp",
-        "shapefile": "shp",
-        "geoparquet": "parquet",
-        "parquet": "parquet",
-        "topojson": "topojson",
-    }
-    return format_standardized
-
-
-def create_format_driver() -> dict:
-    """Transforms user-prompted format into Geopandas driver
-
-    Returns:
-        dict: Geopandas driver as well as user-prompted
-         format
-    """
-    gpd_driver = {
-        "geojson": "GeoJSON",
-        "GPKG": "GPKG",
-        "shp": None,
-        "parquet": None,
-        "topojson": None,
-    }
-    return gpd_driver
-
-
-def standardize_inputs(vectorfile_format):
-    corresp_filter_by_columns = dict_corresp_filter_by()
-    format_standardized = create_format_standardized()
-    gpd_driver = create_format_driver()
-    format_write = format_standardized[vectorfile_format.lower()]
-    driver = gpd_driver[format_write]
-
-    return corresp_filter_by_columns, format_write, driver
-
-
-class ConfigDict(typing.TypedDict):
-    bucket: typing.Optional[str]
-    path_within_bucket: typing.Optional[str]
-    provider: str
-    source: str
-    vectorfile_format: str
-    borders: str
-    filter_by: str
-    year: str
-    crs: typing.Optional[int]
-    value: str
-    filename: typing.Optional[str]
-
-
-def create_path_bucket(config: ConfigDict) -> str:
-    """
-    This function creates a file path for a vector file within a specified
-    bucket.
-
-    Parameters
-    ----------
-    config : ConfigDict
-        A dictionary containing vector file parameters.
-
-    Returns
-    -------
-    str
-       The complete file path for the vector file that will be used to read
-       or write when interacting with S3 storage.
-
-    """
-
-    bucket = config.get("bucket", BUCKET)
-    path_within_bucket = config.get("path_within_bucket", PATH_WITHIN_BUCKET)
-
-    provider = config.get("provider")
-    source = config.get("source")
-
-    vectorfile_format = config.get("vectorfile_format")
-    borders = config.get("borders")
-    dataset_family = config.get("dataset_family")
-    territory = config.get("territory")
-    filter_by = config.get("filter_by")
-    year = config.get("year")
-    value = config.get("value")
-    crs = config.get("crs", 2154)
-    simplification = config.get("simplification", 0)
-    filename = config.get("filename")
-
-    if simplification is None:
-        simplification = 0
-
-    simplification = int(simplification)
-
-    # Un hack pour modifier la valeur si jamais le pattern du filename n'est pas raw.{vectorfile_format}
-    if filename == "value":
-        filename = value
-
-    write_path = (
+    simplification = int(simplification or 0)
+    return (
         f"{bucket}/{path_within_bucket}"
-        f"/{provider=}"
-        f"/{dataset_family=}"
-        f"/{source=}"
-        f"/{year=}"
+        f"/provider={provider}"
+        f"/dataset_family={dataset_family}"
+        f"/source={source}"
+        f"/year={year}"
         f"/administrative_level={borders}"
-        f"/{crs=}"
+        f"/crs={crs}"
         f"/{filter_by}={value}"
-        f"/{vectorfile_format=}"
-        f"/{territory=}"
-        f"/{simplification=}"
-    ).replace("'", "")
-
-    if filename:
-        write_path += f"/{filename}.{vectorfile_format}"
-    elif vectorfile_format == "shp":
-        write_path += "/"
-    else:
-        write_path += f"/raw.{vectorfile_format}"
-
-    return write_path
+        f"/vectorfile_format={vectorfile_format}"
+        f"/territory={territory}"
+        f"/simplification={simplification}"
+        f"/{filename}.{vectorfile_format}"
+    )

@@ -2,11 +2,9 @@ FROM inseefrlab/onyxia-jupyter-python:py3.10.13
 
 USER root
 
-# Install mapshaper
+# mapshaper (Node.js)
 COPY docker/install-mapshaper.sh .
 RUN ./install-mapshaper.sh
-
-# Install project Python dependencies
 
 ENV \
   PYTHONFAULTHANDLER=1 \
@@ -16,13 +14,10 @@ ENV \
   PIP_DISABLE_PIP_VERSION_CHECK=on \
   PIP_DEFAULT_TIMEOUT=100
 
-# Create structure
-COPY pyproject.toml .
-COPY uv.lock .
-COPY README.md .
+COPY pyproject.toml uv.lock README.md ./
 COPY cartiflette ./cartiflette
-COPY docker/test.py .
 
 RUN pip install uv && uv pip install -r pyproject.toml --system
 
-CMD ["python", "test.py"]
+# DuckDB extensions, so that the pipeline does not download them at runtime
+RUN python -c "import duckdb; duckdb.sql('INSTALL spatial; INSTALL excel;')"

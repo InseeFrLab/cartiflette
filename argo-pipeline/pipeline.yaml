@@ -6,6 +6,19 @@ metadata:
 spec:
   entrypoint: main
   serviceAccountName: workflow
+  parallelism: 20
+  arguments:
+    parameters:
+      # Millésime ADMIN EXPRESS COG CARTO / TAGC à produire
+      - name: year
+        value: "2025"
+      # Chemin d'écriture dans le bucket. Le code refuse d'écrire sous
+      # "production" sauf si CARTIFLETTE_ALLOW_PRODUCTION_WRITE est positionné.
+      - name: path
+        value: "test"
+      # Branche ou tag Git dont le code est utilisé
+      - name: revision
+        value: "main"
   volumeClaimTemplates:
     - metadata:
         name: volume-workflow-tmp
@@ -15,264 +28,56 @@ spec:
           requests:
             storage: 10Gi
 
-
   templates:
     - name: main
-
-  # --------------------------
-  # DAG COMPONENTS
-  # ---------------------------
-
       dag:
         tasks:
-          # STEP 0: RETRIEVE IGN FILE AND DUPLICATE IN MINIO
-          - name: duplicate-ign
-            template: duplicate-ign
-          - name: test-volume
-            template: test-volume
-            dependencies: [ duplicate-ign ]
-          # STEP 1.1. SPLIT BY DEPARTEMENT
-          - name: prepare-split-departement
-            template: prepare-split
-            dependencies: [ duplicate-ign ]
+          # STEP 1: RETRIEVE IGN AND INSEE SOURCES, PREPARE INPUTS
+          - name: prepare
+            template: prepare
+          # STEP 2: LIST THE SPLIT JOBS
+          - name: list-jobs
+            template: list-jobs
+            dependencies: [ prepare ]
+          # STEP 3: ONE JOB PER (LEVEL, FILTER_BY, SIMPLIFICATION, CRS)
+          - name: split
+            template: split
+            dependencies: [ list-jobs ]
             arguments:
               parameters:
-              - name: restrict_field
-                value: "DEPARTEMENT"
-          - name: split-departement
-            template: split-dataset
-            dependencies: [ prepare-split-departement ]
-            arguments:
-              parameters:
-              - name: split_type
-                value: "DEPARTEMENT"
-              - name: format_output
-                value: "{{item.format-output}}"
-              - name: year
-                value: "{{item.year}}"
-              - name: crs
-                value: "{{item.crs}}"
-              - name: source
-                value: "{{item.source}}"
-              - name: simplification
-                value: "{{item.simplification}}"
               - name: level_polygons
                 value: "{{item.level-polygons}}"
               - name: filter_by
                 value: "{{item.filter-by}}"
-            withParam: "{{tasks.prepare-split-departement.outputs.result}}"
-          # STEP 1.2. SPLIT BY COMMUNE
-          - name: prepare-split-commune
-            template: prepare-split
-            dependencies: [ duplicate-ign ]
-            arguments:
-              parameters:
-              - name: restrict_field
-                value: "COMMUNE"
-          - name: split-commune
-            template: split-dataset
-            dependencies: [ prepare-split-commune ]
-            arguments:
-              parameters:
-              - name: split_type
-                value: "COMMUNE"
-              - name: format_output
-                value: "{{item.format-output}}"
-              - name: year
-                value: "{{item.year}}"
-              - name: crs
-                value: "{{item.crs}}"
-              - name: source
-                value: "{{item.source}}"
               - name: simplification
                 value: "{{item.simplification}}"
-              - name: level_polygons
-                value: "{{item.level-polygons}}"
-              - name: filter_by
-                value: "{{item.filter-by}}"
-            withParam: "{{tasks.prepare-split-commune.outputs.result}}"
-          # STEP 1.3. SPLIT BY REGION
-          - name: prepare-split-region
-            template: prepare-split
-            dependencies: [ duplicate-ign ]
-            arguments:
-              parameters:
-              - name: restrict_field
-                value: "REGION"
-          - name: split-region
-            template: split-dataset
-            dependencies: [ prepare-split-region ]
-            arguments:
-              parameters:
-              - name: split_type
-                value: "REGION"
-              - name: format_output
-                value: "{{item.format-output}}"
-              - name: year
-                value: "{{item.year}}"
               - name: crs
                 value: "{{item.crs}}"
-              - name: source
-                value: "{{item.source}}"
-              - name: simplification
-                value: "{{item.simplification}}"
-              - name: level_polygons
-                value: "{{item.level-polygons}}"
-              - name: filter_by
-                value: "{{item.filter-by}}"
-            withParam: "{{tasks.prepare-split-region.outputs.result}}"
-          # STEP 1.4. SPLIT BY BASSIN VIE
-          - name: prepare-split-bassin-vie
-            template: prepare-split
-            dependencies: [ duplicate-ign ]
-            arguments:
-              parameters:
-              - name: restrict_field
-                value: "BASSIN_VIE"
-          - name: split-bassin-vie
-            template: split-dataset
-            dependencies: [ prepare-split-bassin-vie ]
-            arguments:
-              parameters:
-              - name: split_type
-                value: "BASSIN_VIE"
-              - name: format_output
-                value: "{{item.format-output}}"
-              - name: year
-                value: "{{item.year}}"
-              - name: crs
-                value: "{{item.crs}}"
-              - name: source
-                value: "{{item.source}}"
-              - name: simplification
-                value: "{{item.simplification}}"
-              - name: level_polygons
-                value: "{{item.level-polygons}}"
-              - name: filter_by
-                value: "{{item.filter-by}}"
-            withParam: "{{tasks.prepare-split-bassin-vie.outputs.result}}"
-          # STEP 1.5. SPLIT BY ZONE_EMPLOI
-          - name: prepare-split-zone-emploi
-            template: prepare-split
-            dependencies: [ duplicate-ign ]
-            arguments:
-              parameters:
-              - name: restrict_field
-                value: "ZONE_EMPLOI"
-          - name: split-zone-emploi
-            template: split-dataset
-            dependencies: [ prepare-split-zone-emploi ]
-            arguments:
-              parameters:
-              - name: split_type
-                value: "ZONE_EMPLOI"
-              - name: format_output
-                value: "{{item.format-output}}"
-              - name: year
-                value: "{{item.year}}"
-              - name: crs
-                value: "{{item.crs}}"
-              - name: source
-                value: "{{item.source}}"
-              - name: simplification
-                value: "{{item.simplification}}"
-              - name: level_polygons
-                value: "{{item.level-polygons}}"
-              - name: filter_by
-                value: "{{item.filter-by}}"
-            withParam: "{{tasks.prepare-split-zone-emploi.outputs.result}}"
-          # STEP 1.6. SPLIT BY UNITE_URBAINE
-          - name: prepare-split-unite-urbaine
-            template: prepare-split
-            dependencies: [ duplicate-ign ]
-            arguments:
-              parameters:
-              - name: restrict_field
-                value: "UNITE_URBAINE"
-          - name: split-unite-urbaine
-            template: split-dataset
-            dependencies: [ prepare-split-unite-urbaine ]
-            arguments:
-              parameters:
-              - name: split_type
-                value: "UNITE_URBAINE"
-              - name: format_output
-                value: "{{item.format-output}}"
-              - name: year
-                value: "{{item.year}}"
-              - name: crs
-                value: "{{item.crs}}"
-              - name: source
-                value: "{{item.source}}"
-              - name: simplification
-                value: "{{item.simplification}}"
-              - name: level_polygons
-                value: "{{item.level-polygons}}"
-              - name: filter_by
-                value: "{{item.filter-by}}"
-            withParam: "{{tasks.prepare-split-unite-urbaine.outputs.result}}"
-          # STEP 1.6. SPLIT BY AIRE_ATTRACTION_VILLES
-          - name: prepare-split-aire-attraction
-            template: prepare-split
-            dependencies: [ duplicate-ign ]
-            arguments:
-              parameters:
-              - name: restrict_field
-                value: "AIRE_ATTRACTION_VILLES"
-          - name: split-aire-attraction
-            template: split-dataset
-            dependencies: [ prepare-split-aire-attraction ]
-            arguments:
-              parameters:
-              - name: split_type
-                value: "AIRE_ATTRACTION_VILLES"
-              - name: format_output
-                value: "{{item.format-output}}"
-              - name: year
-                value: "{{item.year}}"
-              - name: crs
-                value: "{{item.crs}}"
-              - name: source
-                value: "{{item.source}}"
-              - name: simplification
-                value: "{{item.simplification}}"
-              - name: level_polygons
-                value: "{{item.level-polygons}}"
-              - name: filter_by
-                value: "{{item.filter-by}}"
-            withParam: "{{tasks.prepare-split-aire-attraction.outputs.result}}"
+            withParam: "{{tasks.list-jobs.outputs.result}}"
 
-
-  # --------------------------
-  # TEMPLATES DEFINITION
-  # ---------------------------
-
-  # First step: retrieving and duplicating IGN tiles ------------------
-    - name: duplicate-ign
+    - name: prepare
       inputs:
         artifacts:
           - name: code
             path: /mnt/bin
             git:
               repo: https://github.com/inseefrlab/cartiflette
-              revision: "main"
+              revision: "{{workflow.parameters.revision}}"
       container:
-        image: inseefrlab/cartiflette
+        image: inseefrlab/cartiflette:v0.2.0
         command: [sh, -c]
         args: ["
                 mkdir -p $LOCAL_DATA_PATH ;
-                mkdir -p /mnt/bin/src ;
-                mv /mnt/bin/argo-pipeline/src/* /mnt/bin/src ;
-                python /mnt/bin/src/duplicate_in_bucket.py --path $PATH_WRITING_S3 --localpath $LOCAL_DATA_PATH ;
+                python /mnt/bin/argo-pipeline/src/prepare.py --year {{workflow.parameters.year}} --localpath $LOCAL_DATA_PATH ;
                 "]
         volumeMounts:
           - name: volume-workflow-tmp
             mountPath: /mnt
         env: &env_parameters
-          - name: PATH_WRITING_S3
-            value: "production"
+          - name: CARTIFLETTE_WRITE_PATH
+            value: "{{workflow.parameters.path}}"
           - name: PYTHONPATH
-            value: "${PYTHONPATH}:/mnt/bin"
+            value: "/mnt/bin"
           - name: LOCAL_DATA_PATH
             value: "/mnt/data"
           - name: AWS_ACCESS_KEY_ID
@@ -287,66 +92,37 @@ spec:
                 key: secretKey
           - name: AWS_DEFAULT_REGION
             value: us-east-1
-          - name: AWS_S3_ENDPOINT
-            value: minio.lab.sspcloud.fr
-          - name: MC_HOST_s3
-            value: https://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$AWS_S3_ENDPOINT
 
-    - name: test-volume
+    - name: list-jobs
       container:
-        image: inseefrlab/cartiflette
+        image: inseefrlab/cartiflette:v0.2.0
         command: [sh, -c]
-        args: ["echo $PATH_WRITING_S3 ;
-                head -n 1 ${LOCAL_DATA_PATH}/tagc.csv"]
+        args: ["python /mnt/bin/argo-pipeline/src/crossproduct.py"]
         env: *env_parameters
         volumeMounts:
           - name: volume-workflow-tmp
             mountPath: /mnt
 
-  # Step 2: creating template task for splitting ------------------
-
-    - name: prepare-split
+    - name: split
       inputs:
         parameters:
-          - name: restrict_field
-      container:
-        image: inseefrlab/cartiflette
-        command: [sh, -c]
-        volumeMounts:
-          - name: volume-workflow-tmp
-            mountPath: /mnt
-        args: ["
-          python /mnt/bin/src/crossproduct.py --restrictfield '{{inputs.parameters.restrict_field}}'
-          "]
-
-    - name: split-dataset
-      inputs:
-        parameters:
-        - name: split_type
-        - name: format_output
-        - name: year
-        - name: crs
-        - name: source
-        - name: simplification
         - name: level_polygons
         - name: filter_by
+        - name: simplification
+        - name: crs
       container:
-        image: inseefrlab/cartiflette
-        command: ["sh", "-c"]
+        image: inseefrlab/cartiflette:v0.2.0
+        command: [sh, -c]
         args: ["
-          mkdir -p temp/ && cp /mnt/data/tagc.csv temp/tagc.csv ;
-          python /mnt/bin/src/split_merge_tiles.py \
-          --path $PATH_WRITING_S3 \
-          --format_output {{inputs.parameters.format_output}} \
-          --year {{inputs.parameters.year}} \
-          --crs {{inputs.parameters.crs}} \
-          --source {{inputs.parameters.source}} \
-          --simplification {{inputs.parameters.simplification}} \
+          python /mnt/bin/argo-pipeline/src/split.py \
+          --year {{workflow.parameters.year}} \
+          --inputs $LOCAL_DATA_PATH \
           --level_polygons {{inputs.parameters.level_polygons}} \
-          --filter_by {{inputs.parameters.filter_by}}"
+          --filter_by {{inputs.parameters.filter_by}} \
+          --simplification {{inputs.parameters.simplification}} \
+          --crs {{inputs.parameters.crs}}"
         ]
+        env: *env_parameters
         volumeMounts:
           - name: volume-workflow-tmp
             mountPath: /mnt
-        env: *env_parameters
-

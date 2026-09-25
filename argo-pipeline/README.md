@@ -5,42 +5,38 @@ et s'appuie sur l'infrastructure du `SSPCloud`
 pour fonctionner.
 
 Pour le lancer, dans un service ayant des droits admin
-de Kubernetes:
+de Kubernetes :
 
 ```shell
-argo submit argo-pipeline/pipeline.yaml
+argo submit argo-pipeline/pipeline.yaml \
+  -p year=2025 \
+  -p path=test \
+  -p revision=main
 ```
 
 ## Structure du _pipeline_
 
-![](cartiflette-pipeline.png)
+1. `prepare` ([src/prepare.py](src/prepare.py)) : récupère sur la Géoplateforme de l'IGN
+   l'édition France entière (WGS84) d'ADMIN EXPRESS COG CARTO de l'année (GeoParquet
+   si disponible, GPKG sinon) et la table d'appartenance géographique (TAGC) de l'Insee.
+   Produit `COMMUNE.geojson` et `COMMUNE_ARRONDISSEMENT.geojson` enrichis des zonages
+   supra-communaux, sur le volume partagé entre les _pods_.
+2. `list-jobs` ([src/crossproduct.py](src/crossproduct.py)) : liste les combinaisons
+   (niveau des polygones, niveau de découpage, simplification, projection).
+3. `split` ([src/split.py](src/split.py)) : pour chaque combinaison, `mapshaper`
+   agrège les communes, rapproche éventuellement les DROM, simplifie et découpe
+   en un fichier par valeur. Chaque fichier est écrit sur S3 en GeoJSON et en
+   GeoParquet (conversion par DuckDB).
 
-Une première étape consiste à récupérer la source depuis `MinIO` si le md5 de la source disponible sur le site
-de l'IGN a évolué. 
+Seules les éditions 4-0 d'ADMIN EXPRESS (2025 et après) sont prises en charge.
+Les millésimes antérieurs déjà publiés ne sont pas régénérés.
 
-Ensuite, on éclate les données selon de nombreuses dimensions.
-Ces déstructurations sont menées de manière parallèle.
-Pour mettre en forme le DAG de manière plus lisible, une étape
-_passe plat_ a lieu par le biais de `prepare-split-`.
+## Écriture sur S3
 
+Le chemin d'écriture est le paramètre `path` du _workflow_ (`test` par défaut).
+Le code refuse d'écrire sous `projet-cartiflette/production`, lu par les clients,
+sauf si la variable d'environnement `CARTIFLETTE_ALLOW_PRODUCTION_WRITE` vaut
+`i-know-what-i-am-doing`.
 
-## Remarques
-
-
-### Volumes et héritages entre les pods
-
-Tout ce qui persiste et est nécessaire entre
-les _pods_ est stocké dans un volume monté.
-Cela comprend:
-
-- Le code de `cartiflette` dans la branche cible. Ceci n'a
-d'intérêt que si la version embarquée dans l'image `Docker`
-n'est pas à jour (par exemple avant de _merger_ une PR)[^1]. 
-- Les scripts pour lancer les différentes étapes du _pipeline_. Ceux-ci sont dans
-le dossier `argo-pipeline/src`. 
-- Les données temporaires nécessaires en local. A l'heure actuelle ([PR #81](https://github.com/InseeFrLab/cartiflette/pull/81/files)), `temp/tagc.csv`
-
-[^1]: Il a fallu référencer le repo `Git` 
-par https://github.com/inseefrlab/cartogether
-et non pas par https://github.com/InseeFrLab/cartiflette.git
-sinon il ne le trouvait pas 
+L'image `Docker` utilisée est `inseefrlab/cartiflette:v<version>`, construite à partir de
+la version déclarée dans `pyproject.toml`.
