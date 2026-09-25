@@ -22,7 +22,7 @@ def create_path_bucket(
     value: str,
     vectorfile_format: str,
     territory: str,
-    simplification: int | float | None = 0,
+    simplification: float | None = 0,
     filename: str = "raw",
 ) -> str:
     simplification = int(simplification or 0)

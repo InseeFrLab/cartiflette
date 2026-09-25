@@ -48,7 +48,11 @@ def test_production_write_refused(path):
 
 @pytest.mark.parametrize(
     "bucket, path",
-    [("projet-cartiflette", "test"), ("projet-cartiflette", "production-test"), ("other", "production")],
+    [
+        ("projet-cartiflette", "test"),
+        ("projet-cartiflette", "production-test"),
+        ("other", "production"),
+    ],
 )
 def test_other_write_allowed(bucket, path):
     check_write_target(bucket, path)

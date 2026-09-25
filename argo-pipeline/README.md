@@ -10,7 +10,7 @@ de Kubernetes :
 ```shell
 argo submit argo-pipeline/pipeline.yaml \
   -p year=2025 \
-  -p path=test \
+  -p path=test/v0.2.0 \
   -p revision=main
 ```
 
@@ -33,7 +33,7 @@ Les millésimes antérieurs déjà publiés ne sont pas régénérés.
 
 ## Écriture sur S3
 
-Le chemin d'écriture est le paramètre `path` du _workflow_ (`test` par défaut).
+Le chemin d'écriture est le paramètre `path` du _workflow_ (`test/v<version>` par défaut, un dossier neuf par version pour ne pas écraser les tests précédents).
 Le code refuse d'écrire sous `projet-cartiflette/production`, lu par les clients,
 sauf si la variable d'environnement `CARTIFLETTE_ALLOW_PRODUCTION_WRITE` vaut
 `i-know-what-i-am-doing`.

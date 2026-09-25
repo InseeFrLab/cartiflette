@@ -36,9 +36,8 @@ def download_file(url: str, dest: str, session: requests.Session) -> str:
         r.raise_for_status()
         expected = r.headers.get("Content-Length")
         with open(dest, "wb") as f:
-            for chunk in r.iter_content(chunk_size=1024 * 1024):
-                f.write(chunk)
+            f.writelines(r.iter_content(chunk_size=1024 * 1024))
     if expected is not None and int(expected) != os.path.getsize(dest):
         os.remove(dest)
-        raise IOError(f"Incomplete download of {url}")
+        raise OSError(f"Incomplete download of {url}")
     return dest

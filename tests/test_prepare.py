@@ -35,7 +35,9 @@ REGION = """(SELECT * FROM (VALUES ('84', 'Auvergne-Rhône-Alpes'), ('11', 'Île
 def con():
     con = prepare.connect()
     con.execute(f"CREATE TABLE communes AS {prepare.communes_query(COMMUNE)}")
-    con.execute(f"CREATE TABLE metadata AS {prepare.metadata_query(TAGC, DEPARTEMENT, REGION)}")
+    con.execute(
+        f"CREATE TABLE metadata AS {prepare.metadata_query(TAGC, DEPARTEMENT, REGION)}"
+    )
     con.execute(
         "CREATE TABLE communes_arrondissement AS "
         + prepare.communes_arrondissement_query("communes", ARRONDISSEMENT)
@@ -47,7 +49,11 @@ def con():
 def test_communes(con):
     rows = con.execute("SELECT INSEE_COM, AREA FROM communes ORDER BY 1").fetchall()
     # Saint-Pierre-et-Miquelon is not covered
-    assert rows == [("01001", "metropole"), ("75056", "metropole"), ("97105", "guadeloupe")]
+    assert rows == [
+        ("01001", "metropole"),
+        ("75056", "metropole"),
+        ("97105", "guadeloupe"),
+    ]
 
 
 def test_communes_arrondissement(con):

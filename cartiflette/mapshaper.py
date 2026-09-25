@@ -84,10 +84,13 @@ def dissolve(
     copy_fields = list(dict.fromkeys(copy_fields))
     run(
         input_path,
-        "-dissolve", fields[level],
+        "-dissolve",
+        fields[level],
         "calc=POPULATION=sum(POPULATION)",
         f"copy-fields={','.join(copy_fields)}",
-        "-o", output_path, "force",
+        "-o",
+        output_path,
+        "force",
     )
     return output_path
 
@@ -110,12 +113,21 @@ def bring_drom_closer(
 
     parts = {
         "metropole": ["-filter", f"bbox={EXTENTS['metropole']}"],
-        "idf": ["-filter", idf_filter, "-affine", f"shift={IDF_SHIFT}", f"scale={idf_scale}"],
+        "idf": [
+            "-filter",
+            idf_filter,
+            "-affine",
+            f"shift={IDF_SHIFT}",
+            f"scale={idf_scale}",
+        ],
     }
     for territory, (shift, scale) in DROM_AFFINE.items():
         parts[territory] = [
-            "-filter", f"bbox={EXTENTS[territory]}",
-            "-affine", f"shift={shift}", f"scale={scale}",
+            "-filter",
+            f"bbox={EXTENTS[territory]}",
+            "-affine",
+            f"shift={shift}",
+            f"scale={scale}",
         ]
 
     part_paths = []
@@ -125,10 +137,20 @@ def bring_drom_closer(
         part_paths.append(part_path)
 
     run(
-        "-i", *part_paths, "snap", "combine-files",
-        "-proj", "wgs84", "init=EPSG:3857", "target=*",
-        "-merge-layers", "target=*", "force",
-        "-o", output_path, "force",
+        "-i",
+        *part_paths,
+        "snap",
+        "combine-files",
+        "-proj",
+        "wgs84",
+        "init=EPSG:3857",
+        "target=*",
+        "-merge-layers",
+        "target=*",
+        "force",
+        "-o",
+        output_path,
+        "force",
     )
     for part_path in part_paths:
         os.remove(part_path)
@@ -150,12 +172,20 @@ def split(
     os.makedirs(output_dir, exist_ok=True)
     simplify = ["-simplify", f"{simplification}%"] if simplification else []
     run(
-        input_path, "name=",
-        "-proj", f"EPSG:{crs}",
+        input_path,
+        "name=",
+        "-proj",
+        f"EPSG:{crs}",
         *simplify,
-        "-each", f"SOURCE='{source_label}'",
-        "-split", split_field,
-        "-o", output_dir + os.sep, "format=geojson", "extension=.geojson", "singles",
+        "-each",
+        f"SOURCE='{source_label}'",
+        "-split",
+        split_field,
+        "-o",
+        output_dir + os.sep,
+        "format=geojson",
+        "extension=.geojson",
+        "singles",
     )
     return sorted(
         os.path.join(output_dir, f)

@@ -3,8 +3,7 @@ from __future__ import annotations
 import io
 import logging
 import os
-import typing
-from datetime import date
+from datetime import datetime, timezone
 
 import geopandas as gpd
 import pandas as pd
@@ -18,7 +17,11 @@ from cartiflette.constants import (
     ENDPOINT_URL,
     PATH_WITHIN_BUCKET,
 )
-from cartiflette.utils import create_path_bucket, standardize_format
+from cartiflette.utils import (
+    create_path_bucket,
+    standardize_format,
+    value_candidates,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -42,30 +45,35 @@ def read_file(content: bytes, vectorfile_format: str) -> gpd.GeoDataFrame:
 
 def download_single(
     session: CachedSession,
-    value: typing.Union[str, int, float],
+    value: str | float,
     vectorfile_format: str = "geojson",
     **path_kwargs,
 ) -> gpd.GeoDataFrame:
-    """Download the file of a single value. Raises if it cannot be read."""
-    path = create_path_bucket(
-        value=value, vectorfile_format=vectorfile_format, **path_kwargs
-    )
-    url = f"{ENDPOINT_URL}/{path}"
-    r = session.get(url)
-    if not r.ok:
-        raise IOError(f"Could not download {url} (HTTP {r.status_code})")
-    return read_file(r.content, vectorfile_format)
+    """
+    Download the file of a single value. Several spellings of the value may
+    be tried (see `value_candidates`). Raises if no file can be downloaded.
+    """
+    urls = []
+    for candidate in value_candidates(path_kwargs["filter_by"], value):
+        path = create_path_bucket(
+            value=candidate, vectorfile_format=vectorfile_format, **path_kwargs
+        )
+        urls.append(f"{ENDPOINT_URL}/{path}")
+        r = session.get(urls[-1])
+        if r.ok:
+            return read_file(r.content, vectorfile_format)
+    raise OSError(f"Could not download {' nor '.join(urls)} (HTTP {r.status_code})")
 
 
 def carti_download(
-    values: typing.Union[typing.List[typing.Union[str, int, float]], str, int],
+    values: list[str | int | float] | str | int,
     borders: str = "COMMUNE",
     filter_by: str = "REGION",
     territory: str = "metropole",
     vectorfile_format: str = "geojson",
-    year: typing.Union[str, int, None] = None,
-    crs: typing.Union[str, int] = 4326,
-    simplification: typing.Union[str, int, float, None] = None,
+    year: str | int | None = None,
+    crs: str | int = 4326,
+    simplification: str | float | None = None,
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
     provider: str = "IGN",
@@ -73,7 +81,7 @@ def carti_download(
     source: str = "EXPRESS-COG-CARTO-TERRITOIRE",
     filename: str = "raw",
     return_as_json: bool = False,
-) -> typing.Union[gpd.GeoDataFrame, str]:
+) -> gpd.GeoDataFrame | str:
     """
     Download official French borders produced by cartiflette, for one or
     several values of `filter_by`, and concatenate them.
@@ -82,7 +90,8 @@ def carti_download(
     ----------
     values : list or str or int
         Values of `filter_by` to retrieve (e.g. ["11", "84"] for REGION,
-        "France" for FRANCE_ENTIERE).
+        "France" for FRANCE_ENTIERE). Region codes below 10 can be given as
+        1, "1" or "01".
     borders : str
         Level of the polygons: COMMUNE, COMMUNE_ARRONDISSEMENT, DEPARTEMENT,
         REGION, BASSIN_VIE, ZONE_EMPLOI, UNITE_URBAINE, AIRE_ATTRACTION_VILLES.
@@ -106,24 +115,24 @@ def carti_download(
     """
     vectorfile_format = standardize_format(vectorfile_format)
     if not year:
-        year = date.today().year
+        year = datetime.now(timezone.utc).year
     if isinstance(values, (str, int, float)):
         values = [values]
 
-    path_kwargs = dict(
-        bucket=bucket,
-        path_within_bucket=path_within_bucket,
-        provider=provider,
-        dataset_family=dataset_family,
-        source=source,
-        year=year,
-        borders=borders,
-        crs=crs,
-        filter_by=filter_by,
-        territory=territory,
-        simplification=simplification,
-        filename=filename,
-    )
+    path_kwargs = {
+        "bucket": bucket,
+        "path_within_bucket": path_within_bucket,
+        "provider": provider,
+        "dataset_family": dataset_family,
+        "source": source,
+        "year": year,
+        "borders": borders,
+        "crs": crs,
+        "filter_by": filter_by,
+        "territory": territory,
+        "simplification": simplification,
+        "filename": filename,
+    }
     with get_session() as session:
         gdf = pd.concat(
             [

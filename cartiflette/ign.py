@@ -48,7 +48,9 @@ def _atom_entries(url: str, session: requests.Session) -> list[ET.Element]:
         feed = ET.fromstring(r.content)
         entries += feed.findall("atom:entry", _ATOM)
         page_count = int(
-            feed.get("{https://data.geopf.fr/annexes/ressources/xsd/gpf_dl.xsd}pagecount", 1)
+            feed.get(
+                "{https://data.geopf.fr/annexes/ressources/xsd/gpf_dl.xsd}pagecount", 1
+            )
         )
         if page >= page_count:
             return entries

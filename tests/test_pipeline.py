@@ -17,15 +17,25 @@ def test_combinations():
         "simplification": 50,
         "crs": 4326,
     } in jobs
-    assert {j["level_polygons"] for j in pipeline.combinations(["REGION"])} == {"REGION"}
+    assert {j["level_polygons"] for j in pipeline.combinations(["REGION"])} == {
+        "REGION"
+    }
 
 
 def test_split_and_upload_refuses_production_before_processing():
     with mock.patch.object(pipeline, "process") as process:
         with pytest.raises(PermissionError):
             pipeline.split_and_upload(
-                2025, "inputs", "work", "REGION", "TERRITOIRE", 0, 4326,
-                fs=mock.Mock(), bucket="projet-cartiflette", path_within_bucket="production",
+                2025,
+                "inputs",
+                "work",
+                "REGION",
+                "TERRITOIRE",
+                0,
+                4326,
+                fs=mock.Mock(),
+                bucket="projet-cartiflette",
+                path_within_bucket="production",
             )
         process.assert_not_called()
 
@@ -52,10 +62,14 @@ COMMUNES = """(SELECT * FROM (VALUES
 )
 def test_process(tmp_path, level, filter_by, expected_files):
     con = prepare.connect()
-    prepare.write_geojson(con, f"SELECT * FROM {COMMUNES}", str(tmp_path / "COMMUNE.geojson"))
+    prepare.write_geojson(
+        con, f"SELECT * FROM {COMMUNES}", str(tmp_path / "COMMUNE.geojson")
+    )
     (tmp_path / "fields.json").write_text(json.dumps({"BASSIN_VIE": "BV2022"}))
 
-    files = pipeline.process(str(tmp_path), str(tmp_path / "work"), level, filter_by, 0, 4326)
+    files = pipeline.process(
+        str(tmp_path), str(tmp_path / "work"), level, filter_by, 0, 4326
+    )
     assert [f.rsplit("/", 1)[-1] for f in files] == expected_files
 
     parquet = pipeline.geojson_to_parquet(files[0], str(tmp_path / "out.parquet"))

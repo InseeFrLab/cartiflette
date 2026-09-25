@@ -28,14 +28,14 @@ Exemple de récupération du fonds de carte des départements avec les DROM rapp
 from cartiflette import carti_download
 
 data = carti_download(
-    values = ["France"],
-    crs = 4326,
-    borders = "DEPARTEMENT",
+    values=["France"],
+    crs=4326,
+    borders="DEPARTEMENT",
     vectorfile_format="geojson",
     simplification=50,
     filter_by="FRANCE_ENTIERE_DROM_RAPPROCHES",
     source="EXPRESS-COG-CARTO-TERRITOIRE",
-    year=2022
+    year=2022,
 )
 ```
 
@@ -43,11 +43,11 @@ data = carti_download(
 
 ``` python
 data = carti_download(
-    values = ["11"],
-    borders = "COMMUNE",
-    filter_by = "REGION",
-    vectorfile_format = "parquet",
-    year = 2025
+    values=["11"],
+    borders="COMMUNE",
+    filter_by="REGION",
+    vectorfile_format="parquet",
+    year=2025,
 )
 ```
 
@@ -61,14 +61,14 @@ os.environ["http_proxy"] = yourproxy
 os.environ["https_proxy"] = yourproxy
 
 data = carti_download(
-    values = ["France"],
-    crs = 4326,
-    borders = "DEPARTEMENT",
+    values=["France"],
+    crs=4326,
+    borders="DEPARTEMENT",
     vectorfile_format="geojson",
     simplification=50,
     filter_by="FRANCE_ENTIERE_DROM_RAPPROCHES",
     source="EXPRESS-COG-CARTO-TERRITOIRE",
-    year=2022
+    year=2022,
 )
 ```
 

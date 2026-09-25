@@ -8,15 +8,18 @@ unless this is explicitly (and knowingly) configured.
 
 import os
 
+from cartiflette import __version__
+
 ENDPOINT_URL = "https://minio.lab.sspcloud.fr"
 
 # Where the published files live (read by the clients)
 PRODUCTION_BUCKET = "projet-cartiflette"
 PRODUCTION_PATH = "production"
 
-# Where the pipeline writes by default: a test location.
+# Where the pipeline writes by default: a test location, namespaced by the
+# pipeline version so that it never overwrites files of earlier tests.
 WRITE_BUCKET = os.environ.get("CARTIFLETTE_WRITE_BUCKET", PRODUCTION_BUCKET)
-WRITE_PATH = os.environ.get("CARTIFLETTE_WRITE_PATH", "test")
+WRITE_PATH = os.environ.get("CARTIFLETTE_WRITE_PATH", f"test/v{__version__}")
 
 # Writing to the production prefix requires this variable to be set to
 # exactly this value; anything else raises before any upload.

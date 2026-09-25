@@ -20,6 +20,20 @@ def standardize_format(vectorfile_format: str) -> str:
         ) from None
 
 
+def value_candidates(filter_by: str, value: str | int) -> list[str]:
+    """
+    Values to try, in order, in the path of a file.
+
+    Region codes below 10 (DROM) are accepted as 1, "1" or "01": files from
+    2025 onwards use the official code ("01"), older files the unpadded one
+    ("1").
+    """
+    value = str(value)
+    if filter_by.upper() == "REGION" and value.isdigit() and int(value) < 10:
+        return [f"{int(value):02d}", str(int(value))]
+    return [value]
+
+
 def create_path_bucket(
     *,
     provider: str,
@@ -32,7 +46,7 @@ def create_path_bucket(
     value: str,
     vectorfile_format: str,
     territory: str,
-    simplification: int | float | None = 0,
+    simplification: float | None = 0,
     filename: str = "raw",
     bucket: str = BUCKET,
     path_within_bucket: str = PATH_WITHIN_BUCKET,

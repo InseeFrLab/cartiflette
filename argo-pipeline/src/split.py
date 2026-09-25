@@ -15,7 +15,9 @@ parser.add_argument("--level_polygons", type=str, required=True)
 parser.add_argument("--filter_by", type=str, required=True)
 parser.add_argument("--simplification", type=float, required=True)
 parser.add_argument("--crs", type=int, required=True)
-parser.add_argument("--path", type=str, default=config.WRITE_PATH, help="Path in bucket")
+parser.add_argument(
+    "--path", type=str, default=config.WRITE_PATH, help="Path in bucket"
+)
 parser.add_argument("--bucket", type=str, default=config.WRITE_BUCKET)
 
 if __name__ == "__main__":
@@ -25,7 +27,8 @@ if __name__ == "__main__":
         year=args.year,
         inputs_dir=args.inputs,
         work_dir=os.path.join(
-            "work", f"{args.level_polygons}_{args.filter_by}_{args.simplification}_{args.crs}"
+            "work",
+            f"{args.level_polygons}_{args.filter_by}_{args.simplification}_{args.crs}",
         ),
         level_polygons=args.level_polygons,
         filter_by=args.filter_by,

@@ -115,7 +115,9 @@ def process(
 
     os.makedirs(work_dir, exist_ok=True)
     base_level = (
-        "COMMUNE_ARRONDISSEMENT" if level_polygons == "COMMUNE_ARRONDISSEMENT" else "COMMUNE"
+        "COMMUNE_ARRONDISSEMENT"
+        if level_polygons == "COMMUNE_ARRONDISSEMENT"
+        else "COMMUNE"
     )
     current = os.path.join(inputs_dir, f"{base_level}.geojson")
 
@@ -170,7 +172,9 @@ def split_and_upload(
         value = os.path.basename(geojson).removesuffix(".geojson")
         local = {
             "geojson": geojson,
-            "parquet": geojson_to_parquet(geojson, geojson.replace(".geojson", ".parquet")),
+            "parquet": geojson_to_parquet(
+                geojson, geojson.replace(".geojson", ".parquet")
+            ),
         }
         for vectorfile_format in config.OUTPUT_FORMATS:
             remote = create_path_bucket(

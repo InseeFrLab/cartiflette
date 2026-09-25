@@ -11,7 +11,7 @@ The only contract between the two is the S3 path layout. It is built by `cartifl
 
 - `projet-cartiflette/production` is read live by the Python, R and JS clients. Never write there.
 - All writes go through `cartiflette/s3.py::upload`. It raises unless `CARTIFLETTE_ALLOW_PRODUCTION_WRITE=i-know-what-i-am-doing` is set. Don't bypass it: no direct `fs.put*` and no `mc` commands.
-- The default write target is `projet-cartiflette/test`, overridable with `CARTIFLETTE_WRITE_BUCKET` and `CARTIFLETTE_WRITE_PATH`.
+- The default write target is `projet-cartiflette/test/v<version>` (a fresh prefix per version: `test/` already holds files from earlier tests, never write at its root), overridable with `CARTIFLETTE_WRITE_BUCKET` and `CARTIFLETTE_WRITE_PATH`.
 - Reading published files over public HTTPS is fine.
 - Ask before running anything that writes to S3, even to the test location.
 
