@@ -5,42 +5,65 @@ et s'appuie sur l'infrastructure du `SSPCloud`
 pour fonctionner.
 
 Pour le lancer, dans un service ayant des droits admin
-de Kubernetes:
+de Kubernetes :
 
-```shell
-argo submit argo-pipeline/pipeline.yaml
+```bash
+argo submit argo-pipeline/pipeline.yaml \
+  -p years='["2022", "2023", "2024", "2025", "2026"]' \
+  -p path=test/v0.2.0 \
+  -p revision=main
 ```
+
+> [!IMPORTANT]
+> **Seules les années de `years` sont produites.** Sans `-p years=...`, le workflow
+> ne produit que **2025**. Toujours passer la liste explicitement, au format JSON
+> (`'["2026"]'`, `'["2022", "2023", "2024", "2025", "2026"]'`…).
+
+| Paramètre | Défaut | Sens |
+|---|---|---|
+| `years` | `["2025"]` | millésimes à produire (liste JSON), traités en parallèle |
+| `path` | `test/v0.2.0` | préfixe d'écriture dans le bucket |
+| `allow_production_write` | `false` | `true` pour autoriser `path=production` |
+| `revision` | `main` | branche, tag ou commit dont le code Python est utilisé |
+| `image` | `inseefrlab/cartiflette:v0.2.0` | image Docker (mapshaper, DuckDB, dépendances) |
 
 ## Structure du _pipeline_
 
-![](cartiflette-pipeline.png)
+0. `check-target` ([src/check_target.py](src/check_target.py)) : clone le code sur le
+   volume partagé et vérifie la cible d'écriture. Échoue avant tout téléchargement si
+   `path` est la production sans `allow_production_write=true`.
 
-Une première étape consiste à récupérer la source depuis `MinIO` si le md5 de la source disponible sur le site
-de l'IGN a évolué. 
+Puis, pour chaque millésime de `years` (sous-DAG `year`, données dans `/mnt/data/<année>`) :
 
-Ensuite, on éclate les données selon de nombreuses dimensions.
-Ces déstructurations sont menées de manière parallèle.
-Pour mettre en forme le DAG de manière plus lisible, une étape
-_passe plat_ a lieu par le biais de `prepare-split-`.
+1. `prepare` ([src/prepare.py](src/prepare.py)) : récupère sur la Géoplateforme de l'IGN
+   l'édition France entière (WGS84) d'ADMIN EXPRESS COG CARTO de l'année (GeoParquet
+   si disponible, puis GPKG, puis shapefile pour les éditions 3-x de 2021 à 2024) et la table d'appartenance géographique (TAGC) de l'Insee.
+   Produit `COMMUNE.geojson` et `COMMUNE_ARRONDISSEMENT.geojson` enrichis des zonages
+   supra-communaux, sur le volume partagé entre les _pods_.
+2. `list-jobs` et `list-parquet-jobs` ([src/crossproduct.py](src/crossproduct.py)) : listent
+   les combinaisons à produire, 74 pour le GeoJSON et 32 pour le GeoParquet par millésime.
+3. `split` ([src/split.py](src/split.py)) : GeoJSON. Pour chaque combinaison (niveau des
+   polygones, niveau de découpage, simplification, projection), `mapshaper` agrège les
+   communes, rapproche éventuellement les DROM, simplifie et découpe en un fichier par valeur.
+4. `consolidate` ([src/consolidate.py](src/consolidate.py)) : GeoParquet. Pour chaque
+   combinaison (niveau des polygones, disposition, simplification, projection), un seul
+   fichier contenant tous les polygones du niveau, trié et découpé en petits groupes de
+   lignes, que les clients filtrent à la lecture. La disposition (`layout`) vaut `FRANCE_ENTIERE` ou
+   `FRANCE_ENTIERE_DROM_RAPPROCHES` (DROM rapprochés et zoom sur l'Île-de-France).
 
+Les éditions 3-x (2021 à 2024, shapefile) et 4-0 (2025 et après) sont prises en charge.
+`prepare`, `split` et `consolidate` sont relancés jusqu'à 2 fois en cas d'échec
+(téléchargements, S3) ; un job relancé réécrit les mêmes fichiers.
 
-## Remarques
+## Écriture sur S3
 
+Le chemin d'écriture est le paramètre `path` du _workflow_ (`test/v<version>` par défaut, un dossier neuf par version pour ne pas écraser les tests précédents).
+Le code refuse d'écrire sous `projet-cartiflette/production`, lu par les clients,
+sauf si la variable d'environnement `CARTIFLETTE_ALLOW_PRODUCTION_WRITE` vaut
+`true`. Le _workflow_ la renseigne avec le paramètre
+`allow_production_write` (`false` par défaut), à ne passer qu'en ligne de commande pour
+une publication décidée, jamais à modifier dans le YAML versionné
+(`tests/test_argo.py` le vérifie).
 
-### Volumes et héritages entre les pods
-
-Tout ce qui persiste et est nécessaire entre
-les _pods_ est stocké dans un volume monté.
-Cela comprend:
-
-- Le code de `cartiflette` dans la branche cible. Ceci n'a
-d'intérêt que si la version embarquée dans l'image `Docker`
-n'est pas à jour (par exemple avant de _merger_ une PR)[^1]. 
-- Les scripts pour lancer les différentes étapes du _pipeline_. Ceux-ci sont dans
-le dossier `argo-pipeline/src`. 
-- Les données temporaires nécessaires en local. A l'heure actuelle ([PR #81](https://github.com/InseeFrLab/cartiflette/pull/81/files)), `temp/tagc.csv`
-
-[^1]: Il a fallu référencer le repo `Git` 
-par https://github.com/inseefrlab/cartogether
-et non pas par https://github.com/InseeFrLab/cartiflette.git
-sinon il ne le trouvait pas 
+L'image `Docker` utilisée est `inseefrlab/cartiflette:v<version>`, construite à partir de
+la version déclarée dans `pyproject.toml`.

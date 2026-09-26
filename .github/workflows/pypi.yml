@@ -26,8 +26,19 @@ jobs:
           enable-cache: true
           cache-dependency-glob: uv.lock
 
+      - name: Check that the tag matches the client version
+        run: |
+          version=$(grep -m1 '^version' pyproject.toml | cut -d'"' -f2)
+          if [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match the client version v${version} (python-package/cartiflette/pyproject.toml)"
+            exit 1
+          fi
+
       - name: Install the project
         run: uv sync --all-groups
+
+      - name: Test the client
+        run: uv run pytest tests
 
       - name: Build wheel
         run: uv build

@@ -1,21 +1,19 @@
 [project]
 name = "cartiflette"
-version = "0.1.9"
+version = "0.2.0"
 description = "Tools to easily retrieve French borders for geographic data analytics"
 authors = [
     { name = "Lino Galiana", email = "lino.galiana@insee.fr" },
     { name = "Thomas Grandjean", email = "thomas.grandjean@developpement-durable.gouv.fr" },
     { name = "Alica Burlot", email = "alica.burlot@developpement-durable.gouv.fr" },
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 readme = "README.md"
 license = "MIT"
 dependencies = [
-    "requests>=2.32.3",
-    "requests-cache>=1.2.1",
+    "duckdb>=1.5",
     "geopandas>=1.0.1",
-    "platformdirs>=4.3.6",
-    "tqdm>=4.67.1",
+    "pyarrow>=17.0.0",
 ]
 
 [dependency-groups]
@@ -23,7 +21,18 @@ dev = [
     "pytest>=8.3.3,<9",
     "matplotlib>=3.9.2,<4",
 ]
+docs = [
+    "griffe<2",
+    "quartodoc>=0.11.1",
+]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+markers = [
+    "network: reads published files over HTTP (read-only)",
+    "integration: website use cases on published files (read-only), run with -m integration",
+]
+addopts = "-m 'not integration'"

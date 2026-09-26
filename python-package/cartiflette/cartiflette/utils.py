@@ -1,154 +1,227 @@
-import typing
-import logging
+from __future__ import annotations
 
 from cartiflette.constants import BUCKET, PATH_WITHIN_BUCKET
 
-logger = logging.getLogger(__name__)
+# User-facing format names -> format of the files stored by cartiflette
+FORMATS = {
+    "geojson": "geojson",
+    "parquet": "parquet",
+    "geoparquet": "parquet",
+}
 
 
-def dict_corresp_filter_by() -> dict:
-    """Transforms explicit administrative borders into relevant column
-
-    Returns:
-        dict: Relevant column as well as initial
-            user prompted administrative level
+def standardize_format(vectorfile_format: str) -> str:
     """
-    corresp_decoupage_columns = {
-        "region": "INSEE_REG",
-        "departement": "INSEE_DEP",
-        "commune": "INSEE_COM",
-        "commune_arrondissement": "INSEE_COM",
-        "region_arrondissement": "INSEE_REG",
-        "departement_arrondissement": "INSEE_DEP",
-        "france_entiere": "territoire",
-    }
-    return corresp_decoupage_columns
-
-
-def create_format_standardized() -> dict:
-    """Transforms user-prompted format into geopandas format
-
-    Returns:
-        dict: Geopandas format as well as user-prompted
-         format
-    """
-    format_standardized = {
-        "geojson": "geojson",
-        "geopackage": "GPKG",
-        "gpkg": "GPKG",
-        "shp": "shp",
-        "shapefile": "shp",
-        "geoparquet": "parquet",
-        "parquet": "parquet",
-        "topojson": "topojson",
-    }
-    return format_standardized
-
-
-def create_format_driver() -> dict:
-    """Transforms user-prompted format into Geopandas driver
-
-    Returns:
-        dict: Geopandas driver as well as user-prompted
-         format
-    """
-    gpd_driver = {
-        "geojson": "GeoJSON",
-        "GPKG": "GPKG",
-        "shp": None,
-        "parquet": None,
-        "topojson": None,
-    }
-    return gpd_driver
-
-
-def standardize_inputs(vectorfile_format):
-    corresp_filter_by_columns = dict_corresp_filter_by()
-    format_standardized = create_format_standardized()
-    gpd_driver = create_format_driver()
-    format_write = format_standardized[vectorfile_format.lower()]
-    driver = gpd_driver[format_write]
-
-    return corresp_filter_by_columns, format_write, driver
-
-
-class ConfigDict(typing.TypedDict):
-    bucket: typing.Optional[str]
-    path_within_bucket: typing.Optional[str]
-    provider: str
-    source: str
-    vectorfile_format: str
-    borders: str
-    filter_by: str
-    year: str
-    crs: typing.Optional[int]
-    value: str
-    filename: typing.Optional[str]
-
-
-def create_path_bucket(config: ConfigDict) -> str:
-    """
-    This function creates a file path for a vector file within a specified
-    bucket.
+    Format of the stored files matching a user-facing format name.
 
     Parameters
     ----------
-    config : ConfigDict
-        A dictionary containing vector file parameters.
+    vectorfile_format : str
+        "geojson", "parquet" or "geoparquet" (case insensitive).
 
     Returns
     -------
     str
-       The complete file path for the vector file that will be used to read
-       or write when interacting with S3 storage.
+        "geojson" or "parquet".
 
+    Raises
+    ------
+    ValueError
+        If the format is not available.
+
+    Examples
+    --------
+    >>> standardize_format("GeoParquet")
+    'parquet'
     """
+    try:
+        return FORMATS[vectorfile_format.lower()]
+    except KeyError:
+        raise ValueError(
+            f"Unsupported format {vectorfile_format!r}: cartiflette files are "
+            "available as 'geojson' or 'parquet'"
+        ) from None
 
-    bucket = config.get("bucket", BUCKET)
-    path_within_bucket = config.get("path_within_bucket", PATH_WITHIN_BUCKET)
 
-    provider = config.get("provider")
-    source = config.get("source")
+def value_candidates(filter_by: str, value: str | int) -> list[str]:
+    """
+    Values to try, in order, in the path of a file.
 
-    vectorfile_format = config.get("vectorfile_format")
-    borders = config.get("borders")
-    dataset_family = config.get("dataset_family")
-    territory = config.get("territory")
-    filter_by = config.get("filter_by")
-    year = config.get("year")
-    value = config.get("value")
-    crs = config.get("crs", 2154)
-    simplification = config.get("simplification", 0)
-    filename = config.get("filename")
+    Region codes below 10 (DROM) are accepted as 1, "1" or "01": files from
+    2025 onwards use the official code ("01"), older files the unpadded one
+    ("1").
 
-    if simplification is None:
-        simplification = 0
+    Parameters
+    ----------
+    filter_by : str
+        Level used to select the polygons (e.g. "REGION").
+    value : str or int
+        Requested value.
 
-    simplification = int(simplification)
+    Returns
+    -------
+    list of str
+        Spellings to try, the preferred one first.
 
-    # Un hack pour modifier la valeur si jamais le pattern du filename n'est pas raw.{vectorfile_format}
-    if filename == "value":
-        filename = value
+    Examples
+    --------
+    >>> value_candidates("REGION", 1)
+    ['01', '1']
+    >>> value_candidates("DEPARTEMENT", "75")
+    ['75']
+    """
+    value = str(value)
+    if filter_by.upper() == "REGION" and value.isdigit() and int(value) < 10:
+        return [f"{int(value):02d}", str(int(value))]
+    return [value]
 
-    write_path = (
+
+def create_path_bucket(
+    *,
+    provider: str,
+    dataset_family: str,
+    source: str,
+    year: int | str,
+    borders: str,
+    crs: int | str,
+    filter_by: str,
+    value: str,
+    vectorfile_format: str,
+    territory: str,
+    simplification: float | None = 0,
+    filename: str = "raw",
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
+) -> str:
+    """
+    Path of a cartiflette file within the S3 storage.
+
+    This must stay identical to cartiflette/paths.py in the pipeline: it is
+    the only contract between the pipeline and the clients.
+
+    Parameters
+    ----------
+    provider : str
+        Provider of the data, "IGN".
+    dataset_family : str
+        Dataset family, "ADMINEXPRESS".
+    source : str
+        Source label, "EXPRESS-COG-CARTO-TERRITOIRE".
+    year : int or str
+        Vintage.
+    borders : str
+        Level of the polygons (e.g. "DEPARTEMENT").
+    crs : int or str
+        EPSG code.
+    filter_by : str
+        Level used to split the files (e.g. "REGION").
+    value : str
+        Value of `filter_by` (e.g. "11").
+    vectorfile_format : str
+        "geojson" or "parquet".
+    territory : str
+        "metropole" for every published file.
+    simplification : float, optional
+        Simplification level, 0 or 50.
+    filename : str
+        Name of the file without extension, "raw".
+    bucket : str
+        Bucket of the files.
+    path_within_bucket : str
+        Prefix within the bucket, "production" for the published files.
+
+    Returns
+    -------
+    str
+        Path "bucket/path_within_bucket/provider=.../raw.{format}", to append
+        to the S3 endpoint URL.
+
+    Examples
+    --------
+    >>> create_path_bucket(
+    ...     provider="IGN", dataset_family="ADMINEXPRESS",
+    ...     source="EXPRESS-COG-CARTO-TERRITOIRE", year=2025,
+    ...     borders="DEPARTEMENT", crs=4326, filter_by="REGION", value="11",
+    ...     vectorfile_format="parquet", territory="metropole",
+    ...     simplification=50,
+    ... )  # doctest: +ELLIPSIS
+    'projet-cartiflette/production/provider=IGN/.../simplification=50/raw.parquet'
+    """
+    simplification = int(simplification or 0)
+    return (
         f"{bucket}/{path_within_bucket}"
-        f"/{provider=}"
-        f"/{dataset_family=}"
-        f"/{source=}"
-        f"/{year=}"
+        f"/provider={provider}"
+        f"/dataset_family={dataset_family}"
+        f"/source={source}"
+        f"/year={year}"
         f"/administrative_level={borders}"
-        f"/{crs=}"
+        f"/crs={crs}"
         f"/{filter_by}={value}"
-        f"/{vectorfile_format=}"
-        f"/{territory=}"
-        f"/{simplification=}"
-    ).replace("'", "")
+        f"/vectorfile_format={vectorfile_format}"
+        f"/territory={territory}"
+        f"/simplification={simplification}"
+        f"/{filename}.{vectorfile_format}"
+    )
 
-    if filename:
-        write_path += f"/{filename}.{vectorfile_format}"
-    elif vectorfile_format == "shp":
-        write_path += "/"
-    else:
-        write_path += f"/raw.{vectorfile_format}"
 
-    return write_path
+def create_path_consolidated(
+    *,
+    provider: str,
+    dataset_family: str,
+    source: str,
+    year: int | str,
+    borders: str,
+    crs: int | str,
+    layout: str,
+    simplification: float | None = 0,
+    filename: str = "raw",
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
+) -> str:
+    """
+    Path of a consolidated GeoParquet file within the S3 storage.
+
+    A consolidated file holds all the polygons of a level, to be filtered
+    when read. This must stay identical to cartiflette/paths.py in the
+    pipeline.
+
+    Parameters
+    ----------
+    provider, dataset_family, source, year, borders, crs, simplification,
+    filename, bucket, path_within_bucket :
+        See `create_path_bucket`.
+    layout : str
+        "FRANCE_ENTIERE" (true positions) or "FRANCE_ENTIERE_DROM_RAPPROCHES"
+        (DROM moved next to metropolitan France, Ile-de-France zoomed in).
+        The path segment is not named "geometry": tools reading the path as
+        hive partitions would shadow the geometry column.
+
+    Returns
+    -------
+    str
+        Path "bucket/path_within_bucket/provider=.../raw.parquet".
+
+    Examples
+    --------
+    >>> create_path_consolidated(
+    ...     provider="IGN", dataset_family="ADMINEXPRESS",
+    ...     source="EXPRESS-COG-CARTO-TERRITOIRE", year=2025,
+    ...     borders="COMMUNE", crs=4326, layout="FRANCE_ENTIERE",
+    ...     simplification=50,
+    ... )  # doctest: +ELLIPSIS
+    'projet-cartiflette/production/.../layout=FRANCE_ENTIERE/vectorfile_format=parquet/simplification=50/raw.parquet'
+    """
+    simplification = int(simplification or 0)
+    return (
+        f"{bucket}/{path_within_bucket}"
+        f"/provider={provider}"
+        f"/dataset_family={dataset_family}"
+        f"/source={source}"
+        f"/year={year}"
+        f"/administrative_level={borders}"
+        f"/crs={crs}"
+        f"/layout={layout}"
+        f"/vectorfile_format=parquet"
+        f"/simplification={simplification}"
+        f"/{filename}.parquet"
+    )

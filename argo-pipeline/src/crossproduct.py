@@ -1,67 +1,30 @@
-import json
-import argparse
-from cartiflette.pipeline import crossproduct_parameters_production
+"""Step 2: print the jobs to run as JSON (consumed by Argo `withParam`)."""
 
-parser = argparse.ArgumentParser(description="Crossproduct Script")
+import argparse
+import json
+
+from cartiflette.pipeline import combinations, consolidated_combinations
+
+parser = argparse.ArgumentParser(description="List the jobs")
 parser.add_argument(
-    "--restrictfield", type=str, default=None, help="Field to restrict level-polygons"
+    "--kind",
+    choices=["geojson", "parquet"],
+    default="geojson",
+    help="geojson: one file per value; parquet: one consolidated file per level",
+)
+parser.add_argument(
+    "--restrictfield",
+    type=str,
+    default=None,
+    help="Only keep the jobs for this level of polygons",
 )
 
-
-# parameters
-formats = ["topojson", "geojson"]
-years = [2022]
-crs_list = [4326]
-sources = ["EXPRESS-COG-CARTO-TERRITOIRE"]
-
-croisement_decoupage_level = {
-    # structure -> niveau geo: [niveau decoupage macro],
-    "COMMUNE": [
-        "BASSIN_VIE",
-        "ZONE_EMPLOI",
-        "UNITE_URBAINE",
-        "AIRE_ATTRACTION_VILLES",  # zonages d'études
-        "DEPARTEMENT",
-        "REGION",  # zonages administratifs
-        "TERRITOIRE",
-        "FRANCE_ENTIERE",
-        "FRANCE_ENTIERE_DROM_RAPPROCHES",
-    ],
-    "DEPARTEMENT": [
-        "REGION",
-        "TERRITOIRE",
-        "FRANCE_ENTIERE",
-        "FRANCE_ENTIERE_DROM_RAPPROCHES",
-    ],
-    "REGION": ["TERRITOIRE", "FRANCE_ENTIERE", "FRANCE_ENTIERE_DROM_RAPPROCHES"],
-    "BASSIN_VIE": ["TERRITOIRE", "FRANCE_ENTIERE", "FRANCE_ENTIERE_DROM_RAPPROCHES"],
-    "ZONE_EMPLOI": ["TERRITOIRE", "FRANCE_ENTIERE", "FRANCE_ENTIERE_DROM_RAPPROCHES"],
-    "UNITE_URBAINE": ["TERRITOIRE", "FRANCE_ENTIERE", "FRANCE_ENTIERE_DROM_RAPPROCHES"],
-    "AIRE_ATTRACTION_VILLES": ["TERRITOIRE", "FRANCE_ENTIERE", "FRANCE_ENTIERE_DROM_RAPPROCHES"],
-}
-
-args = parser.parse_args()
-
-
-def main():
-    tempdf = crossproduct_parameters_production(
-        croisement_filter_by_borders=croisement_decoupage_level,
-        list_format=formats,
-        years=years,
-        crs_list=crs_list,
-        sources=sources,
-        simplifications=[0, 50],
-    )
-    tempdf.columns = tempdf.columns.str.replace("_", "-")
-
-    # Apply filtering if restrictfield is provided
-    if args.restrictfield:
-        tempdf = tempdf.loc[tempdf["level-polygons"] == args.restrictfield]
-
-    output = tempdf.to_json(orient="records")
-    parsed = json.loads(output)
-    print(json.dumps(parsed))
-
-
 if __name__ == "__main__":
-    main()
+    args = parser.parse_args()
+    levels = [args.restrictfield] if args.restrictfield else None
+    list_jobs = combinations if args.kind == "geojson" else consolidated_combinations
+    jobs = [
+        {key.replace("_", "-"): value for key, value in job.items()}
+        for job in list_jobs(levels)
+    ]
+    print(json.dumps(jobs))

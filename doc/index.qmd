@@ -1,0 +1,57 @@
+---
+title: "Documentation pour la maintenance de cartiflette"
+author: "Lino Galiana"
+---
+
+<br>
+
+Cette documentation vise à simplifier l'entrée et la maintenance du projet `cartiflette` pour des humains, ou des IA. 
+
+Elle couvre l'organisation du dépôt, le lancement du _pipeline_ et la façon de vérifier chaque brique quand on le fait évoluer.
+
+| Chapitre | Contenu |
+|---|---|
+| [01. Les parties du projet](01-architecture.qmd) | _Pipeline_ de préparation des données, architecture du projet, rôle de chaque module |
+| [02. Lancer le pipeline](02-lancer-le-pipeline.qmd) | Différentes manières de lancer le _pipeline_, pour des tests (en local) ou via l'outil `Argo Workflows` pour la production |
+| [03. Vérifier et faire évoluer](03-verifier-et-faire-evoluer.qmd) | Evocation des tests, de la vérification du _pipeline_ brique par brique, de la procédure à suivre pour un nouveau millésime ou de nouveaux découpages ou formats |
+| [Client Python](client-python.qmd) et sa [référence de l'API](reference/index.qmd) | Explication des points d'entrée de la librairie disponible pour les utilisateurs et de la démarche pour pousser le paquet sur  PyPI |
+
+::: {.callout-caution collapse="true"}
+## Utilisation de l'IA
+
+Il est tout à fait possible de contribuer à `cartiflette` avec l'appui d'une IA. Des directives pour Claude Code sont dans le fichier `claude.md` à la racine du projet sur `Github`.
+
+Une partie du code source de `cartiflette` a été généré par IA. De même pour cette documentation: elle a néanmoins 
+:::
+
+## Architecture générale
+
+Le projet `cartiflette` est principalement structuré en deux parties:
+
+1. La (dé)construction de sources *open data* pour en faire des fichiers plus directement utilisables
+2. Des librairies directement utilisables par les utilisateurs (clients `Python`, `R` ou `Javascript`) pour aller picorer ces fichiers prêts à l'emploi.
+
+![Vue d'ensemble du projet](diagrams/architecture.svg)
+
+Plus de détails dans [la page dédiée à l'architecture](01-architecture.qmd) du projet.
+
+## Les cinq règles à retenir
+
+Ces 5 règles sont principalement à destination d'agents IA mais il ne fait pas de mal d'en avoir conscience aussi en tant qu'humain:
+
+::: {.callout-important}
+1. **Ne jamais écrire dans `projet-cartiflette/production`** sans l'avoir décidé explicitement : les clients Python, R et JS lisent ce dossier en direct.
+2. **Toute écriture S3 passe par `cartiflette/s3.py::upload`**. Pas de `fs.put*` direct, pas de `mc`.
+3. **Les chemins S3 sont le seul contrat** entre le pipeline et les clients :
+   `cartiflette/paths.py` et `python-package/cartiflette/cartiflette/utils.py::create_path_bucket`
+   doivent rester identiques.
+4. **mapshaper reste en 0.6.59** et **DuckDB en 1.5.5** en attendant quelques *nug fixes*.
+5. **Travailler sur une branche**. `main` est la révision qu'Argo clone par défaut.
+:::
+
+## Autres documents du dépôt
+
+- [CLAUDE.md](https://github.com/InseeFrLab/cartiflette/blob/main/CLAUDE.md) : règles de travail résumées (sécurité S3, style de code, pièges DuckDB) ;
+- [CONTRIBUTING.md](https://github.com/InseeFrLab/cartiflette/blob/main/CONTRIBUTING.md) : structure du code et tests, en bref ;
+- [argo-pipeline/README.md](https://github.com/InseeFrLab/cartiflette/blob/main/argo-pipeline/README.md) : notes sur le _workflow_ Argo ;
+- [python-package/cartiflette/README.md](https://github.com/InseeFrLab/cartiflette/blob/main/python-package/cartiflette/README.md) : usage du client Python.

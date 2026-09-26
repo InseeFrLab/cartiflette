@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 560" width="1240" height="560" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+<defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1e1e1e"/></marker><marker id="head-rev" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1e1e1e"/></marker></defs>
+<rect width="1240" height="560" fill="#ffffff"/>
+<rect x="20" y="380" width="180" height="130" rx="10" fill="#b2f2bb" stroke="#1e1e1e" stroke-width="2"/>
+<text x="110.0" y="423.3" font-size="14" text-anchor="middle" fill="#1e1e1e"><tspan x="110.0" dy="0.0">1. Tests unitaires</tspan><tspan x="110.0" dy="17.5">uv run pytest tests</tspan><tspan x="110.0" dy="17.5"></tspan><tspan x="110.0" dy="17.5">hors ligne, sans S3</tspan></text>
+<text x="110.0" y="533.0" font-size="13" text-anchor="middle" fill="#495057"><tspan x="110.0" dy="0.0">aucun risque</tspan></text>
+<rect x="225" y="315" width="180" height="130" rx="10" fill="#b2f2bb" stroke="#1e1e1e" stroke-width="2"/>
+<text x="315.0" y="358.3" font-size="14" text-anchor="middle" fill="#1e1e1e"><tspan x="315.0" dy="0.0">2. Tests mapshaper</tspan><tspan x="315.0" dy="17.5">(même commande, avec</tspan><tspan x="315.0" dy="17.5">mapshaper 0.6.59</tspan><tspan x="315.0" dy="17.5">dans le PATH)</tspan></text>
+<text x="315.0" y="468.0" font-size="13" text-anchor="middle" fill="#495057"><tspan x="315.0" dy="0.0">aucun risque</tspan></text>
+<path d="M 110.0 374.0 L 110.0 345.0 L 219.0 345.0" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#head)"/>
+<rect x="430" y="250" width="180" height="130" rx="10" fill="#a5d8ff" stroke="#1e1e1e" stroke-width="2"/>
+<text x="520.0" y="284.6" font-size="14" text-anchor="middle" fill="#1e1e1e"><tspan x="520.0" dy="0.0">3. prepare_year</tspan><tspan x="520.0" dy="17.5">+ process en local</tspan><tspan x="520.0" dy="17.5"></tspan><tspan x="520.0" dy="17.5">lit IGN / Insee,</tspan><tspan x="520.0" dy="17.5">écrit sur disque</tspan></text>
+<text x="520.0" y="403.0" font-size="13" text-anchor="middle" fill="#495057"><tspan x="520.0" dy="0.0">réseau (lecture)</tspan></text>
+<path d="M 315.0 309.0 L 315.0 280.0 L 424.0 280.0" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#head)"/>
+<rect x="635" y="185" width="180" height="130" rx="10" fill="#ffec99" stroke="#1e1e1e" stroke-width="2"/>
+<text x="725.0" y="228.3" font-size="14" text-anchor="middle" fill="#1e1e1e"><tspan x="725.0" dy="0.0">4. Pipeline complet</tspan><tspan x="725.0" dy="17.5">vers test/v&lt;version&gt;</tspan><tspan x="725.0" dy="17.5"></tspan><tspan x="725.0" dy="17.5">Argo ou split.py</tspan></text>
+<text x="725.0" y="338.0" font-size="13" text-anchor="middle" fill="#495057"><tspan x="725.0" dy="0.0">écrit sur S3 (test)</tspan><tspan x="725.0" dy="16.2">→ demander</tspan></text>
+<path d="M 520.0 244.0 L 520.0 215.0 L 629.0 215.0" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#head)"/>
+<rect x="840" y="120" width="180" height="130" rx="10" fill="#ffec99" stroke="#1e1e1e" stroke-width="2"/>
+<text x="930.0" y="163.3" font-size="14" text-anchor="middle" fill="#1e1e1e"><tspan x="930.0" dy="0.0">5. Relire la sortie</tspan><tspan x="930.0" dy="17.5">carti_download(</tspan><tspan x="930.0" dy="17.5">path_within_bucket=</tspan><tspan x="930.0" dy="17.5">&quot;test/v…&quot;)</tspan></text>
+<text x="930.0" y="273.0" font-size="13" text-anchor="middle" fill="#495057"><tspan x="930.0" dy="0.0">lecture seule</tspan></text>
+<path d="M 725.0 179.0 L 725.0 150.0 L 834.0 150.0" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#head)"/>
+<rect x="1045" y="55" width="180" height="130" rx="10" fill="#ffc9c9" stroke="#1e1e1e" stroke-width="2"/>
+<text x="1135.0" y="98.3" font-size="14" text-anchor="middle" fill="#1e1e1e"><tspan x="1135.0" dy="0.0">6. Production</tspan><tspan x="1135.0" dy="17.5"></tspan><tspan x="1135.0" dy="17.5">CARTIFLETTE_ALLOW_</tspan><tspan x="1135.0" dy="17.5">PRODUCTION_WRITE</tspan></text>
+<text x="1135.0" y="208.0" font-size="13" text-anchor="middle" fill="#495057"><tspan x="1135.0" dy="0.0">impacte tous</tspan><tspan x="1135.0" dy="16.2">les utilisateurs</tspan></text>
+<path d="M 930.0 114.0 L 930.0 85.0 L 1039.0 85.0" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#head)"/>
+<text x="20.0" y="36.0" font-size="16" text-anchor="start" fill="#1e1e1e"><tspan x="20.0" dy="0.0">Monter d&#x27;une marche uniquement quand la précédente est verte.</tspan></text>
+</svg>

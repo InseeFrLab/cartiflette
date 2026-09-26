@@ -1,0 +1,121 @@
+project:
+  type: website
+  output-dir: _site
+  # Excalidraw sources are linked from the pages: publish them with the site
+  resources:
+    - diagrams/*.excalidraw
+
+lang: fr
+
+website:
+  title: "cartiflette"
+  description: "Documentation de reprise du projet cartiflette"
+  favicon: images/logo.png
+  back-to-top-navigation: true
+  bread-crumbs: true
+  reader-mode: true
+  repo-url: https://github.com/InseeFrLab/cartiflette
+  repo-subdir: doc
+  repo-actions: [edit, issue]
+  page-navigation: true
+  navbar:
+    logo: images/logo.png
+    title: "cartiflette"
+    left:
+      - text: "Reprise du projet"
+        href: index.qmd
+      - text: "Client Python"
+        href: client-python.qmd
+      - text: "API"
+        href: reference/index.qmd
+    tools:
+      - icon: github
+        href: https://github.com/InseeFrLab/cartiflette
+        aria-label: GitHub
+  search:
+    location: navbar
+    type: overlay
+  sidebar:
+    style: floating
+    collapse-level: 1
+    contents:
+      - index.qmd
+      - 01-architecture.qmd
+      - 02-lancer-le-pipeline.qmd
+      - 03-verifier-et-faire-evoluer.qmd
+      - section: "Client Python"
+        contents:
+          - client-python.qmd
+          - text: "Référence de l'API"
+            href: reference/index.qmd
+
+# API reference of the PyPI client, generated from its docstrings.
+# Build with the client environment (see client-python.qmd).
+quartodoc:
+  package: cartiflette
+  source_dir: ../python-package/cartiflette
+  dir: reference
+  title: "Référence de l'API"
+  parser: numpy
+  render_interlinks: false
+  sections:
+    - title: Téléchargement
+      desc: Point d'entrée du client, exporté par `cartiflette`.
+      contents:
+        - carti_download
+    - title: Chemins et formats
+      desc: >
+        Construction des chemins S3 (contrat partagé avec le pipeline,
+        `cartiflette/paths.py`) et normalisation des paramètres.
+      contents:
+        - utils.create_path_bucket
+        - utils.create_path_consolidated
+        - utils.standardize_format
+        - utils.value_candidates
+    - title: Fonctions internes
+      desc: >
+        Choix du format, lecture avec DuckDB (liste de liens GeoJSON, GeoParquet
+        filtré en SQL) et conversion finale en GeoDataFrame.
+      contents:
+        - client.choose_format
+        - client.connect
+        - client.consolidated_url
+        - client.parquet_available
+        - client.geojson_urls
+        - client.read_geojson
+        - client.read_parquet
+        - client.to_geopandas
+
+format:
+  html:
+    theme:
+      light: [cosmo, brand]
+      dark: [darkly, brand]
+    # Warm "gratin" palette, taken from the logo
+    brand:
+      color:
+        palette:
+          gratin: "#B4540A"
+          creme: "#FFF8EC"
+        primary: gratin
+      typography:
+        link:
+          decoration: none
+    toc: true
+    toc-depth: 3
+    toc-title: "Sur cette page"
+    number-sections: false
+    code-copy: true
+    code-overflow: wrap
+    code-block-bg: true
+    code-block-border-left: "#B4540A"
+    highlight-style:
+      light: github
+      dark: github-dark
+    anchor-sections: true
+    callout-appearance: simple
+    smooth-scroll: true
+    link-external-icon: true
+    link-external-newwindow: true
+    fig-align: center
+    lightbox: auto

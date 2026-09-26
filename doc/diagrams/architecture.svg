@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 640" width="1240" height="640" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+<defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1e1e1e"/></marker><marker id="head-rev" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1e1e1e"/></marker></defs>
+<rect width="1240" height="640" fill="#ffffff"/>
+<rect x="20" y="20" width="260" height="420" rx="14" fill="#e9ecef" fill-opacity="0.45" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="32.0" y="44.0" font-size="16" text-anchor="start" fill="#1e1e1e" font-weight="600"><tspan x="32.0" dy="0.0">Sources externes</tspan></text>
+<rect x="40" y="80" width="220" height="110" rx="10" fill="#a5d8ff" stroke="#1e1e1e" stroke-width="2"/>
+<text x="150.0" y="110.2" font-size="16" text-anchor="middle" fill="#1e1e1e"><tspan x="150.0" dy="0.0">IGN — Géoplateforme</tspan><tspan x="150.0" dy="20.0">ADMIN EXPRESS</tspan><tspan x="150.0" dy="20.0">COG CARTO 4-0</tspan><tspan x="150.0" dy="20.0">(GeoParquet / GPKG)</tspan></text>
+<rect x="40" y="250" width="220" height="110" rx="10" fill="#a5d8ff" stroke="#1e1e1e" stroke-width="2"/>
+<text x="150.0" y="280.2" font-size="16" text-anchor="middle" fill="#1e1e1e"><tspan x="150.0" dy="0.0">Insee</tspan><tspan x="150.0" dy="20.0">Table d&#x27;appartenance</tspan><tspan x="150.0" dy="20.0">géographique (TAGC)</tspan><tspan x="150.0" dy="20.0">xlsx zippé</tspan></text>
+<rect x="310" y="20" width="380" height="420" rx="14" fill="#ffec99" fill-opacity="0.45" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="322.0" y="44.0" font-size="16" text-anchor="start" fill="#1e1e1e" font-weight="600"><tspan x="322.0" dy="0.0">Pipeline de production</tspan><tspan x="322.0" dy="20.0">cartiflette/ + argo-pipeline/</tspan></text>
+<rect x="330" y="80" width="340" height="70" rx="10" fill="#ffffff" stroke="#1e1e1e" stroke-width="2"/>
+<text x="500.0" y="110.2" font-size="16" text-anchor="middle" fill="#1e1e1e"><tspan x="500.0" dy="0.0">Argo Workflow (SSPCloud)</tspan><tspan x="500.0" dy="20.0">argo-pipeline/pipeline.yaml</tspan></text>
+<rect x="330" y="200" width="340" height="100" rx="10" fill="#ffec99" stroke="#1e1e1e" stroke-width="2"/>
+<text x="500.0" y="235.2" font-size="16" text-anchor="middle" fill="#1e1e1e"><tspan x="500.0" dy="0.0">Modules Python  cartiflette/</tspan><tspan x="500.0" dy="20.0">ign · insee · prepare · mapshaper</tspan><tspan x="500.0" dy="20.0">pipeline · paths · s3 · config</tspan></text>
+<rect x="330" y="350" width="340" height="70" rx="10" fill="#ffffff" stroke="#1e1e1e" stroke-width="2"/>
+<text x="500.0" y="380.8" font-size="14" text-anchor="middle" fill="#1e1e1e"><tspan x="500.0" dy="0.0">Image inseefrlab/cartiflette:v&lt;version&gt;</tspan><tspan x="500.0" dy="17.5">mapshaper 0.6.59 · DuckDB 1.5.5</tspan></text>
+<path d="M 500.0 156.0 L 500.0 194.0" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#head)"/>
+<rect x="460.7" y="164.2" width="78.6" height="21.5" fill="#ffffff" fill-opacity="0.9"/>
+<text x="500.0" y="179.6" font-size="14" text-anchor="middle" fill="#1e1e1e"><tspan x="500.0" dy="0.0">orchestre</tspan></text>
+<path d="M 500.0 344.0 L 500.0 306.0" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#head)"/>
+<rect x="445.0" y="305.5" width="109.9" height="39.0" fill="#ffffff" fill-opacity="0.9"/>
+<text x="500.0" y="320.8" font-size="14" text-anchor="middle" fill="#1e1e1e"><tspan x="500.0" dy="0.0">environnement</tspan><tspan x="500.0" dy="17.5">d&#x27;exécution</tspan></text>
+<rect x="720" y="20" width="240" height="420" rx="14" fill="#96f2d7" fill-opacity="0.45" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="732.0" y="44.0" font-size="16" text-anchor="start" fill="#1e1e1e" font-weight="600"><tspan x="732.0" dy="0.0">S3 — MinIO SSPCloud</tspan><tspan x="732.0" dy="20.0">bucket projet-cartiflette</tspan></text>
+<rect x="740" y="100" width="200" height="100" rx="10" fill="#ffc9c9" stroke="#1e1e1e" stroke-width="2"/>
+<text x="840.0" y="121.7" font-size="13" text-anchor="middle" fill="#1e1e1e"><tspan x="840.0" dy="0.0">production/</tspan><tspan x="840.0" dy="16.2"></tspan><tspan x="840.0" dy="16.2">lu en direct par les clients</tspan><tspan x="840.0" dy="16.2">écriture seulement si</tspan><tspan x="840.0" dy="16.2">ALLOW_PRODUCTION_WRITE</tspan></text>
+<rect x="740" y="290" width="200" height="100" rx="10" fill="#b2f2bb" stroke="#1e1e1e" stroke-width="2"/>
+<text x="840.0" y="315.2" font-size="16" text-anchor="middle" fill="#1e1e1e"><tspan x="840.0" dy="0.0">test/v&lt;version&gt;/</tspan><tspan x="840.0" dy="20.0"></tspan><tspan x="840.0" dy="20.0">cible par défaut</tspan><tspan x="840.0" dy="20.0">de s3.upload()</tspan></text>
+<rect x="990" y="20" width="230" height="420" rx="14" fill="#d0bfff" fill-opacity="0.45" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="1002.0" y="44.0" font-size="16" text-anchor="start" fill="#1e1e1e" font-weight="600"><tspan x="1002.0" dy="0.0">Clients (lecture HTTPS)</tspan></text>
+<rect x="1005" y="80" width="200" height="90" rx="10" fill="#d0bfff" stroke="#1e1e1e" stroke-width="2"/>
+<text x="1105.0" y="110.2" font-size="16" text-anchor="middle" fill="#1e1e1e"><tspan x="1105.0" dy="0.0">Client Python</tspan><tspan x="1105.0" dy="20.0">(PyPI « cartiflette »)</tspan><tspan x="1105.0" dy="20.0">python-package/</tspan></text>
+<rect x="1005" y="200" width="200" height="70" rx="10" fill="#ffffff" stroke="#1e1e1e" stroke-width="2"/>
+<text x="1105.0" y="230.2" font-size="16" text-anchor="middle" fill="#1e1e1e"><tspan x="1105.0" dy="0.0">Client R</tspan><tspan x="1105.0" dy="20.0">(hors de ce dépôt)</tspan></text>
+<rect x="1005" y="300" width="200" height="70" rx="10" fill="#ffffff" stroke="#1e1e1e" stroke-width="2"/>
+<text x="1105.0" y="330.2" font-size="16" text-anchor="middle" fill="#1e1e1e"><tspan x="1105.0" dy="0.0">Client JS / Observable</tspan><tspan x="1105.0" dy="20.0">(hors de ce dépôt)</tspan></text>
+<path d="M 265.7 173.0 L 342.1 198.1" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#head)"/>
+<path d="M 265.9 286.8 L 324.1 277.6" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#head)"/>
+<path d="M 675.8 296.5 L 734.2 312.0" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#head)"/>
+<path d="M 675.8 198.3 L 734.2 181.1" fill="none" stroke="#1e1e1e" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#head)"/>
+<path d="M 946.0 140.0 L 999.0 135.0" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#head)"/>
+<path d="M 945.7 183.9 L 999.3 201.1" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#head)"/>
+<path d="M 916.5 203.4 L 1049.9 296.6" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#head)"/>
+<rect x="310" y="480" width="910" height="70" rx="10" fill="#ffd8a8" stroke="#1e1e1e" stroke-width="2"/>
+<text x="765.0" y="510.2" font-size="16" text-anchor="middle" fill="#1e1e1e"><tspan x="765.0" dy="0.0">Contrat unique entre pipeline et clients : la structure des chemins S3</tspan><tspan x="765.0" dy="20.0">cartiflette/paths.py  ≡  python-package/cartiflette/cartiflette/utils.py::create_path_bucket</tspan></text>
+<text x="310.0" y="578.0" font-size="13" text-anchor="start" fill="#495057"><tspan x="310.0" dy="0.0">projet-cartiflette/production/provider=IGN/dataset_family=ADMINEXPRESS/source=EXPRESS-COG-CARTO-TERRITOIRE/year=2026/</tspan><tspan x="310.0" dy="16.2">administrative_level=DEPARTEMENT/crs=4326/REGION=11/vectorfile_format=parquet/territory=metropole/simplification=50/raw.parquet</tspan></text>
+</svg>

@@ -1,0 +1,294 @@
+---
+title: "Lancer le pipeline"
+---
+
+<br>
+
+Il y a trois façons de lancer le pipeline, de la moins risquée à la plus risquée :
+
+| Mode | Écrit sur S3 ? | Usage |
+|---|---|---|
+| [A. Local, sans S3](#mode-local) | non | mettre au point, vérifier une brique ou un millésime |
+| [B. Argo vers `test/v<version>`](#mode-argo-test) | oui, en test | produire un jeu complet et le relire avec les clients |
+| [C. Argo vers `production`](#mode-production) | oui, **en production** | publier, après validation de B |
+
+::: {.callout-warning}
+Tout lancement qui écrit sur S3, **même en test**, se décide explicitement.
+Le garde-fou du code est décrit ci-dessous.
+:::
+
+![Contrôle des écritures S3](diagrams/ecriture-s3.svg)
+
+[Source Excalidraw : diagrams/ecriture-s3.excalidraw](diagrams/ecriture-s3.excalidraw){.small}
+
+## Prérequis {#prerequis}
+
+```python
+uv sync
+
+# mapshaper 0.6.59 (Node), si absent du PATH : installation locale hors du dépôt
+mkdir -p ~/mapshaper && (cd ~/mapshaper && npm install mapshaper@0.6.59)
+export PATH="$HOME/mapshaper/node_modules/.bin:$PATH"
+mapshaper -v   # doit afficher 0.6.59
+```
+
+Pour écrire sur S3 (modes B et C), `s3fs` utilise les variables `AWS_*` de
+l'environnement. Dans un service Onyxia du SSPCloud, elles sont déjà définies.
+Sur Argo, elles viennent du secret Kubernetes `sa-cartiflette`.
+
+## A. En local, sans écrire sur S3 {#mode-local}
+
+C'est le mode à utiliser d'abord. Il lit les sources publiques de l'IGN et de
+l'Insee et n'écrit que sur le disque.
+
+```bash
+# hors du dépôt
+DATA=/tmp/cartiflette/2026        
+YEAR=2026
+
+# Étape 1 : télécharge et prépare (quelques minutes, plusieurs centaines de Mo)
+uv run python argo-pipeline/src/prepare.py --year $YEAR --localpath $DATA
+ls $DATA   # COMMUNE.geojson  COMMUNE_ARRONDISSEMENT.geojson  fields.json  raw/
+
+# Étape 2 : liste des jobs (tous, ou limités à un niveau de polygones)
+uv run python argo-pipeline/src/crossproduct.py --restrictfield REGION              # GeoJSON
+uv run python argo-pipeline/src/crossproduct.py --kind parquet --restrictfield REGION  # GeoParquet
+```
+
+Pour l'étape 3 sans envoi sur S3, appeler directement `pipeline.process`, la
+partie de `split_and_upload` qui ne fait que les traitements :
+
+```bash
+uv run python -c "
+from cartiflette.pipeline import process
+files = process('$DATA', '/tmp/cartiflette/work', 'REGION', 'FRANCE_ENTIERE_DROM_RAPPROCHES', 50, 4326)
+print(files)
+"
+mapshaper /tmp/cartiflette/work/split/France.geojson -info
+```
+
+De même pour le GeoParquet, avec `pipeline.process_consolidated` :
+
+```bash
+uv run python -c "
+from cartiflette.pipeline import process_consolidated
+print(process_consolidated('$DATA', '/tmp/cartiflette/work_parquet', 'REGION', 'FRANCE_ENTIERE', 50, 4326))
+"
+```
+
+On peut ensuite ouvrir le GeoJSON dans QGIS ou sur <https://mapshaper.org> pour
+vérifier le rendu. Le chapitre [03](03-verifier-et-faire-evoluer.qmd) détaille
+les contrôles à faire.
+
+### Variante : local avec envoi vers l'espace de test
+
+`argo-pipeline/src/split.py` exécute un job complet, envoi compris. Sans
+`--bucket` ni `--path`, il écrit dans `projet-cartiflette/test/v<version>`
+(voir `cartiflette/config.py`). Il crée un dossier de travail `work/` dans le
+répertoire courant : le lancer depuis un dossier temporaire.
+
+```bash
+# ⚠ écrit sur S3 (espace de test)
+REPO=$(pwd)
+cd /tmp/cartiflette && uv run --project $REPO python $REPO/argo-pipeline/src/split.py \
+  --year 2026 --inputs $DATA \
+  --level_polygons REGION --filter_by TERRITOIRE --simplification 50 --crs 4326 \
+  --path test/v0.2.0
+
+# GeoParquet consolidé : même principe avec consolidate.py
+cd /tmp/cartiflette && uv run --project $REPO python $REPO/argo-pipeline/src/consolidate.py \
+  --year 2026 --inputs $DATA \
+  --level_polygons REGION --layout FRANCE_ENTIERE --simplification 50 --crs 4326 \
+  --path test/v0.2.0
+```
+
+## B. Sur Argo, vers l'espace de test {#mode-argo-test}
+
+![DAG Argo](diagrams/argo-dag.svg)
+
+[Source Excalidraw : diagrams/argo-dag.excalidraw](diagrams/argo-dag.excalidraw){.small}
+
+### Ce que fait le workflow
+
+`argo-pipeline/pipeline.yaml` définit un DAG dans le namespace
+`projet-cartiflette` (le schéma ci-dessus montre un millésime, branche GeoJSON) :
+
+0. `check-target` clone le dépôt GitHub à la révision `revision` dans `/mnt/bin`
+   (volume partagé `volume-workflow-tmp`, 20 Gi) et vérifie la cible d'écriture :
+   `path=production` sans `allow_production_write=true` échoue ici, avant tout
+   téléchargement ;
+
+puis, pour chaque millésime de `years`, en parallèle (sous-DAG `year`) :
+
+1. `prepare` écrit les entrées dans `/mnt/data/<année>` (environ 1 Gi par année) ;
+2. `list-jobs` et `list-parquet-jobs` impriment les listes JSON des 74 jobs GeoJSON
+   et des 32 jobs GeoParquet ;
+3. `split` (GeoJSON) et `consolidate` (GeoParquet) créent un pod par job
+   (`withParam`), au plus 20 en parallèle pour l'ensemble du workflow. Chaque pod lit
+   `/mnt/data/<année>` et écrit sur S3 sous `{path}`.
+
+`prepare`, `split` et `consolidate` sont relancés jusqu'à 2 fois (attente de 1 puis
+2 minutes) : un job relancé réécrit les mêmes chemins.
+
+Paramètres du workflow :
+
+| Paramètre | Défaut | Sens |
+|---|---|---|
+| `years` | `["2025"]` | millésimes ADMIN EXPRESS et TAGC à produire, liste JSON (2021 et après) |
+| `path` | `test/v0.2.0` | préfixe d'écriture dans le bucket (transmis en `CARTIFLETTE_WRITE_PATH`) |
+| `allow_production_write` | `false` | transmis en `CARTIFLETTE_ALLOW_PRODUCTION_WRITE` ; voir [C](#mode-production) |
+| `revision` | `main` | branche, tag ou commit dont le **code Python** est utilisé |
+| `image` | `inseefrlab/cartiflette:v0.2.0` | image Docker : mapshaper, DuckDB et dépendances Python |
+
+`revision` ne change que le code de `cartiflette/` et `argo-pipeline/src/` ; les
+dépendances viennent de `image`.
+
+### Lancer
+
+::: {.callout-important}
+## Quelles années sont produites ?
+
+**Uniquement celles de `years`.** Sans `-p years=...`, le workflow ne produit
+que **2025** (valeur par défaut du YAML). Toujours passer la liste explicitement,
+au format JSON :
+
+- jeu complet : `-p years='["2022", "2023", "2024", "2025", "2026"]'` ;
+- un seul millésime : `-p years='["2026"]'`.
+
+Les années de la liste tournent en parallèle, au plus 20 pods à la fois pour
+l'ensemble. Millésimes pris en charge : 2021 et après (éditions IGN 3-x à partir
+de 2021, 4-0 à partir de 2025).
+:::
+
+Il faut un service du SSPCloud avec les droits Kubernetes du projet
+`projet-cartiflette` (rôle admin) et la CLI `argo`, en version compatible avec
+le serveur Argo du SSPCloud.
+
+```bash
+# ⚠ écrit sur S3 (espace de test). Une branche de travail, un préfixe neuf.
+argo submit argo-pipeline/pipeline.yaml \
+  -p years='["2022", "2023", "2024", "2025", "2026"]' \
+  -p path=test/v0.2.0 \
+  -p revision=ma-branche \
+  --watch
+```
+
+Suivi et reprise :
+
+```bash
+argo list                          # workflows du namespace
+argo get @latest                   # état de chaque étape
+argo logs @latest -f               # logs de tous les pods
+argo logs @latest --grep ERROR     # filtrer
+argo retry @latest                 # relancer les étapes en échec
+argo delete @latest                # nettoyer
+```
+
+### Tester une branche sur Argo : ce qui est pris en compte
+
+| Modification sur la branche | Prise en compte avec `-p revision=ma-branche` ? |
+|---|---|
+| code Python de `cartiflette/` ou `argo-pipeline/src/` | oui |
+| `argo-pipeline/pipeline.yaml` | oui, puisque c'est le fichier local qui est soumis |
+| dépendances (`pyproject.toml`, `uv.lock`), `Dockerfile`, version de mapshaper | **non** : l'image n'est publiée que depuis `main` et les tags `v*` (sur une PR, elle est seulement construite, pour vérification) |
+
+Pour tester une nouvelle dépendance sur Argo, il faut une image. Soit on
+fusionne dans `main` (ce qui écrase l'image de la version en cours), soit on
+monte la version (voir [plus bas](#versions)).
+
+## C. En production {#mode-production}
+
+À faire seulement après un passage complet en B, relu avec les clients (voir
+[03](03-verifier-et-faire-evoluer.qmd#relire-test)).
+
+1. **Décider explicitement** la publication, et l'annoncer à l'équipe : les
+   fichiers d'un millésime déjà publié sont **écrasés**, et les clients les lisent en direct.
+2. Prérequis : la branche est fusionnée dans `main` et l'image
+   `inseefrlab/cartiflette:v<version>` est construite (workflow GitHub `docker.yml`,
+   sur `main` ou un tag `v*`).
+3. Soumettre depuis `main` (ou un tag), jamais depuis une branche non fusionnée,
+   en autorisant l'écriture **en ligne de commande**. Le YAML versionné garde
+   `allow_production_write: "false"` (vérifié par `tests/test_argo.py`).
+
+```bash
+# ⚠⚠ écrit dans projet-cartiflette/production, lu par tous les clients
+argo submit argo-pipeline/pipeline.yaml \
+  -p years='["2026"]' \
+  -p path=production \
+  -p allow_production_write=true \
+  -p revision=main \
+  --watch
+```
+
+Sans `allow_production_write=true`, l'étape `check-target` échoue avec
+`PermissionError` et rien n'est téléchargé ni écrit.
+
+4. Relire quelques fichiers avec le client publié (`carti_download(...)` sans
+   `path_within_bucket`), et lancer les tests d'intégration sur la production :
+   `CARTIFLETTE_TEST_PATH=production CARTIFLETTE_TEST_YEARS=... uv run pytest -m integration`
+   dans `python-package/cartiflette`.
+
+### Première publication de la 0.2.0
+
+Ordre conseillé, un millésime ou un groupe à la fois :
+
+1. **2023, 2024, 2025, 2026** : nouveaux en production (2023 et 2024 n'y ont qu'un
+   fichier intermédiaire que les clients ne lisent pas), rien n'est écrasé.
+2. **2022** : écrase les GeoJSON publiés par l'ancien pipeline, lus en direct par les
+   clients Python, R et JS. Changements visibles : `BV2012` devient `BV2022`, les
+   aires d'attraction et unités urbaines sont découpées par territoire (DROM
+   correctement placés), les codes de région sont écrits `REGION=01`. Les anciens
+   fichiers dont le chemin ne correspond plus (`REGION=1`, codes `BV2012`) restent en
+   place : les supprimer est une décision distincte, à prendre après la mise à jour
+   des clients R et JS.
+3. Publier le client Python 0.2.0 sur PyPI. Il lit le GeoParquet dès qu'il existe,
+   y compris pour 2022 à 2024 ; les versions antérieures continuent de lire le GeoJSON.
+
+::: {.callout-caution}
+Ne jamais « copier » un résultat de test vers la production avec `mc` ou
+`fs.put*` : toute écriture passe par `s3.upload`.
+:::
+
+## Versions, images et publication {#versions}
+
+![Versions et publication](diagrams/versions-release.svg)
+
+[Source Excalidraw : diagrams/versions-release.excalidraw](diagrams/versions-release.excalidraw){.small}
+
+La version du pipeline apparaît à **plusieurs endroits** qu'il faut modifier ensemble :
+
+| Fichier | Valeur |
+|---|---|
+| `pyproject.toml` | `version = "0.2.0"` : sert à taguer l'image Docker |
+| `cartiflette/__init__.py` | `__version__ = "0.2.0"` : sert au préfixe de test par défaut `test/v0.2.0` |
+| `argo-pipeline/pipeline.yaml` | paramètres `image` (`inseefrlab/cartiflette:v0.2.0`) et `path` (`test/v0.2.0`) ; `tests/test_argo.py` vérifie qu'ils suivent la version |
+| `argo-pipeline/README.md` | exemple de commande |
+
+Le client Python a **sa propre version** (`python-package/cartiflette/pyproject.toml`).
+Pousser un tag `v*` publie le client sur PyPI et reconstruit aussi l'image
+Docker, avec la version lue dans le `pyproject.toml` racine. Avant de publier,
+`pypi.yml` vérifie que le tag vaut `v` suivi de la version du client, puis lance
+ses tests : une incohérence ou un test en échec arrête la publication.
+
+Taguer **après** la mise en production des nouveaux millésimes : sans `year`, le
+client lit l'année en cours.
+
+::: {.callout-warning}
+Si on pousse sur `main` sans monter la version, l'image existante
+`inseefrlab/cartiflette:v<version>` est **écrasée**.
+:::
+
+## Dépannage
+
+| Symptôme | Cause probable | Où regarder |
+|---|---|---|
+| `429 Too Many Requests` en boucle, `prepare` très lent | limite de 1 requête/s de la Géoplateforme | `http.get_session` (relances, `Retry-After`) |
+| `Incomplete download of …` | téléchargement interrompu | relancer ; `http.download_file` |
+| `No France entière WGS84 edition of … for YYYY` | l'IGN n'a pas encore publié l'édition, ou son nom a changé | `ign.select_edition`, catalogue Atom |
+| erreur 404 sur la TAGC | fichier Insee pas encore publié, ou identifiant de page (`7671844`) changé | `insee.TAGC_URL` |
+| `No BVYYYY field for BASSIN_VIE` | colonnes de la TAGC renommées | `prepare.ZONING_PREFIXES` |
+| segfault, _Unsupported geometry type in WKB_ | `ST_Read` exécuté avec plusieurs threads | [pièges DuckDB](01-architecture.qmd#pieges-duckdb) |
+| `PermissionError: Refusing to write to projet-cartiflette/production…` | garde-fou normal | voulu : utiliser un préfixe de test |
+| `KeyError` dans `bring_drom_closer` | nouveau niveau sans entrée dans `IDF_ZOOM` | [03, nouveau niveau](03-verifier-et-faire-evoluer.qmd#nouveau-niveau) |
+| pods `split` bloqués en `ContainerCreating` | le volume est en `ReadWriteOnce` et les pods ont été placés sur des nœuds différents | `volumeClaimTemplates` dans `pipeline.yaml` |
+| `mapshaper: command not found` en local | mapshaper absent du PATH | [prérequis](#prerequis) |

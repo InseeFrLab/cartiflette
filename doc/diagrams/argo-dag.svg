@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1260 560" width="1260" height="560" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+<defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1e1e1e"/></marker><marker id="head-rev" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1e1e1e"/></marker></defs>
+<rect width="1260" height="560" fill="#ffffff"/>
+<rect x="20" y="190" width="230" height="100" rx="10" fill="#e9ecef" stroke="#1e1e1e" stroke-width="2"/>
+<text x="135.0" y="215.2" font-size="16" text-anchor="middle" fill="#1e1e1e"><tspan x="135.0" dy="0.0">argo submit</tspan><tspan x="135.0" dy="20.0">pipeline.yaml</tspan><tspan x="135.0" dy="20.0">-p year  -p path</tspan><tspan x="135.0" dy="20.0">-p revision</tspan></text>
+<rect x="300" y="190" width="180" height="100" rx="10" fill="#a5d8ff" stroke="#1e1e1e" stroke-width="2"/>
+<text x="390.0" y="225.2" font-size="16" text-anchor="middle" fill="#1e1e1e"><tspan x="390.0" dy="0.0">prepare</tspan><tspan x="390.0" dy="20.0"></tspan><tspan x="390.0" dy="20.0">src/prepare.py</tspan></text>
+<rect x="530" y="190" width="180" height="100" rx="10" fill="#a5d8ff" stroke="#1e1e1e" stroke-width="2"/>
+<text x="620.0" y="218.3" font-size="14" text-anchor="middle" fill="#1e1e1e"><tspan x="620.0" dy="0.0">list-jobs</tspan><tspan x="620.0" dy="17.5"></tspan><tspan x="620.0" dy="17.5">src/crossproduct.py</tspan><tspan x="620.0" dy="17.5">→ JSON 74 + 32 jobs</tspan></text>
+<rect x="760" y="40" width="250" height="410" rx="14" fill="#ffec99" fill-opacity="0.45" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="772.0" y="64.0" font-size="16" text-anchor="start" fill="#1e1e1e" font-weight="600"><tspan x="772.0" dy="0.0">split  (withParam, parallelism 20)</tspan></text>
+<rect x="772" y="90" width="226" height="70" rx="10" fill="#ffffff" stroke="#1e1e1e" stroke-width="2"/>
+<text x="885.0" y="121.1" font-size="13" text-anchor="middle" fill="#1e1e1e"><tspan x="885.0" dy="0.0">split.py</tspan><tspan x="885.0" dy="16.2">COMMUNE × DEPARTEMENT × 0</tspan></text>
+<rect x="772" y="190" width="226" height="70" rx="10" fill="#ffffff" stroke="#1e1e1e" stroke-width="2"/>
+<text x="885.0" y="221.1" font-size="13" text-anchor="middle" fill="#1e1e1e"><tspan x="885.0" dy="0.0">split.py</tspan><tspan x="885.0" dy="16.2">REGION × TERRITOIRE × 50</tspan></text>
+<rect x="772" y="290" width="226" height="70" rx="10" fill="#ffffff" stroke="#1e1e1e" stroke-width="2"/>
+<text x="885.0" y="321.1" font-size="13" text-anchor="middle" fill="#1e1e1e"><tspan x="885.0" dy="0.0">split.py</tspan><tspan x="885.0" dy="16.2">… (74 au total)</tspan></text>
+<rect x="1060" y="170" width="180" height="110" rx="10" fill="#b2f2bb" stroke="#1e1e1e" stroke-width="2"/>
+<text x="1150.0" y="203.3" font-size="14" text-anchor="middle" fill="#1e1e1e"><tspan x="1150.0" dy="0.0">S3</tspan><tspan x="1150.0" dy="17.5">projet-cartiflette/</tspan><tspan x="1150.0" dy="17.5">{path}</tspan><tspan x="1150.0" dy="17.5">(défaut test/v0.2.0)</tspan></text>
+<rect x="300" y="470" width="710" height="70" rx="10" fill="#d0bfff" stroke="#1e1e1e" stroke-width="2"/>
+<text x="655.0" y="500.8" font-size="14" text-anchor="middle" fill="#1e1e1e"><tspan x="655.0" dy="0.0">Volume partagé volume-workflow-tmp (10 Gi, monté sur /mnt)</tspan><tspan x="655.0" dy="17.5">/mnt/bin = code cloné depuis GitHub à la révision  ·  /mnt/data = entrées préparées</tspan></text>
+<rect x="300" y="40" width="180" height="80" rx="10" fill="#ffffff" stroke="#1e1e1e" stroke-width="2"/>
+<text x="390.0" y="67.0" font-size="14" text-anchor="middle" fill="#1e1e1e"><tspan x="390.0" dy="0.0">GitHub</tspan><tspan x="390.0" dy="17.5">inseefrlab/cartiflette</tspan><tspan x="390.0" dy="17.5">@ revision</tspan></text>
+<rect x="1060" y="320" width="180" height="80" rx="10" fill="#ffffff" stroke="#1e1e1e" stroke-width="2"/>
+<text x="1150.0" y="348.0" font-size="13" text-anchor="middle" fill="#1e1e1e"><tspan x="1150.0" dy="0.0">secret k8s</tspan><tspan x="1150.0" dy="16.2">sa-cartiflette</tspan><tspan x="1150.0" dy="16.2">→ AWS_* (écriture S3)</tspan></text>
+<path d="M 256.0 240.0 L 294.0 240.0" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#head)"/>
+<path d="M 486.0 240.0 L 524.0 240.0" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#head)"/>
+<path d="M 716.0 234.6 L 766.0 231.7" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#head)"/>
+<rect x="709.6" y="213.7" width="62.9" height="39.0" fill="#ffffff" fill-opacity="0.9"/>
+<text x="741.0" y="229.0" font-size="14" text-anchor="middle" fill="#1e1e1e"><tspan x="741.0" dy="0.0">1 pod</tspan><tspan x="741.0" dy="17.5">par job</tspan></text>
+<path d="M 715.5 198.6 L 798.8 162.4" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#head)"/>
+<path d="M 715.7 270.7 L 770.2 288.2" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#head)"/>
+<path d="M 390.0 126.0 L 390.0 184.0" fill="none" stroke="#1e1e1e" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#head)"/>
+<rect x="335.0" y="144.2" width="109.9" height="21.5" fill="#ffffff" fill-opacity="0.9"/>
+<text x="390.0" y="159.6" font-size="14" text-anchor="middle" fill="#1e1e1e"><tspan x="390.0" dy="0.0">clone le code</tspan></text>
+<path d="M 444.2 294.2 L 615.8 465.8" fill="none" stroke="#1e1e1e" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#head)"/>
+<rect x="506.4" y="369.2" width="47.2" height="21.5" fill="#ffffff" fill-opacity="0.9"/>
+<text x="530.0" y="384.6" font-size="14" text-anchor="middle" fill="#1e1e1e"><tspan x="530.0" dy="0.0">écrit</tspan></text>
+<path d="M 885.0 366.0 L 885.0 464.0" fill="none" stroke="#1e1e1e" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#head)"/>
+<rect x="869.2" y="404.2" width="31.5" height="21.5" fill="#ffffff" fill-opacity="0.9"/>
+<text x="885.0" y="419.6" font-size="14" text-anchor="middle" fill="#1e1e1e"><tspan x="885.0" dy="0.0">lit</tspan></text>
+<path d="M 1002.1 129.4 L 1055.9 186.7" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#head)"/>
+<path d="M 1004.0 225.0 L 1054.0 225.0" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#head)"/>
+<path d="M 1002.1 320.6 L 1055.9 263.3" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#head)"/>
+<path d="M 1150.0 314.0 L 1150.0 286.0" fill="none" stroke="#1e1e1e" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#head)"/>
+<text x="20.0" y="344.0" font-size="14" text-anchor="start" fill="#495057"><tspan x="20.0" dy="0.0">Image de chaque pod :</tspan><tspan x="20.0" dy="17.5">inseefrlab/cartiflette:v0.2.0</tspan><tspan x="20.0" dy="17.5">(en dur dans pipeline.yaml)</tspan></text>
+</svg>
