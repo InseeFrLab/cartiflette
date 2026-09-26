@@ -1,0 +1,5 @@
+# Only pyproject.toml, uv.lock and docker/ are needed to build the image
+*
+!pyproject.toml
+!uv.lock
+!docker/

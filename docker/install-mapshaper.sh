@@ -2,8 +2,10 @@
 set -e
 
 apt-get update -y
-apt-get install -y npm nodejs
+apt-get install -y --no-install-recommends nodejs npm
+rm -rf /var/lib/apt/lists/*
 
-# Same version as the one previously built from the pinned commit ec6e7a4
+# Pinned: same version as in the CI (.github/workflows/check.yml)
 npm install -g mapshaper@0.6.59
+npm cache clean --force
 mapshaper -v

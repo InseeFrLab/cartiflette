@@ -218,7 +218,7 @@ Ces contournements sont déjà en place. Ils ne doivent pas être « simplifiés
 
 | Élément | Fichier | Rôle |
 |---|---|---|
-| Image Docker | `Dockerfile`, `docker/install-mapshaper.sh` | base Onyxia Python 3.10, mapshaper 0.6.59, dépendances du pipeline, extensions DuckDB préinstallées |
+| Image Docker | `Dockerfile`, `docker/install-mapshaper.sh` | base `python:3.12-slim`, mapshaper 0.6.59, dépendances du pipeline aux versions de `uv.lock`, extensions DuckDB préinstallées ; pas de code (Argo clone la révision demandée) |
 | Workflow Argo | `argo-pipeline/pipeline.yaml` | DAG `prepare → list-jobs → split` (voir [02](02-lancer-le-pipeline.qmd)) |
 | CI tests | `.github/workflows/check.yml` | `pytest` pipeline (avec mapshaper) et client, à chaque push |
 | CI lint | `.github/workflows/lint.yml` | flake8 et pylint sur `cartiflette/` |

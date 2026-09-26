@@ -175,7 +175,7 @@ argo delete @latest                # nettoyer
 |---|---|
 | code Python de `cartiflette/` ou `argo-pipeline/src/` | oui |
 | `argo-pipeline/pipeline.yaml` | oui, puisque c'est le fichier local qui est soumis |
-| dépendances (`pyproject.toml`, `uv.lock`), `Dockerfile`, version de mapshaper | **non** : l'image n'est reconstruite que sur `main` et sur les tags `v*` |
+| dépendances (`pyproject.toml`, `uv.lock`), `Dockerfile`, version de mapshaper | **non** : l'image n'est publiée que depuis `main` et les tags `v*` (sur une PR, elle est seulement construite, pour vérification) |
 
 Pour tester une nouvelle dépendance sur Argo, il faut une image. Soit on
 fusionne dans `main` (ce qui écrase l'image de la version en cours), soit on
