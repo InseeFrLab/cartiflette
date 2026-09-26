@@ -1,0 +1,35 @@
+project:
+  type: website
+  output-dir: _site
+  # Excalidraw sources are linked from the pages: publish them with the site
+  resources:
+    - diagrams/*.excalidraw
+
+lang: fr
+
+website:
+  title: "cartiflette — reprise"
+  repo-url: https://github.com/InseeFrLab/cartiflette
+  repo-subdir: doc
+  repo-actions: [edit, issue]
+  page-navigation: true
+  sidebar:
+    style: docked
+    search: true
+    contents:
+      - index.qmd
+      - 01-architecture.qmd
+      - 02-lancer-le-pipeline.qmd
+      - 03-verifier-et-faire-evoluer.qmd
+
+format:
+  html:
+    theme:
+      light: cosmo
+      dark: darkly
+    toc: true
+    toc-depth: 3
+    number-sections: false
+    code-copy: true
+    code-overflow: wrap
+    anchor-sections: true

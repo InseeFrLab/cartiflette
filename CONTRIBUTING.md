@@ -12,6 +12,9 @@ Le seul contrat entre les deux est le chemin des fichiers sur S3, construit par
 `cartiflette/paths.py` d'un côté et `python-package/cartiflette/cartiflette/utils.py` de l'autre.
 Ces deux fonctions doivent rester identiques.
 
+Pour reprendre le projet (architecture, lancement du _pipeline_, vérifications), voir la
+site de documentation Quarto dans [doc/](doc/index.qmd) (`cd doc && quarto preview`).
+
 ## Structure du _pipeline_
 
 Le code est écrit sous forme de fonctions, chaque module correspondant à une étape :

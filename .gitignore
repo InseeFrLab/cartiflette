@@ -1,4 +1,6 @@
 .vscode
+_site/
+/_site/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -133,3 +135,7 @@ dmypy.json
 *.sqlite
 *.sqlite*
 /argo-pipeline/src/cartiflette-s3-cache
+
+# Quarto documentation site
+doc/_site/
+doc/.quarto/
