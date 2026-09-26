@@ -109,6 +109,11 @@ def test_choose_format(fmt, year, expected):
     assert client.choose_format(fmt, year) == expected
 
 
+def test_choose_format_parquet_exists():
+    assert client.choose_format("auto", 2022, parquet_exists=True) == "parquet"
+    assert client.choose_format("auto", 2025, parquet_exists=False) == "geojson"
+
+
 def test_choose_format_prefers_geoparquet():
     with pytest.warns(UserWarning, match="GeoParquet is used instead"):
         assert client.choose_format("geojson", 2025) == "parquet"
@@ -164,17 +169,19 @@ def _write_geojson(storage, region, year=2022, region_in_path=None):
     DEPARTEMENTS[DEPARTEMENTS["INSEE_REG"] == region].to_file(path, driver="GeoJSON")
 
 
-@pytest.fixture
-def consolidated(storage):
+def _write_consolidated(storage, year):
     """Consolidated GeoParquet of departements, one row group per row."""
     path = storage / create_path_consolidated(
         layout="FRANCE_ENTIERE",
         **{
-            k: v
-            for k, v in PATH_KWARGS.items()
-            if k not in ("value", "filter_by", "territory")
+            **{
+                k: v
+                for k, v in PATH_KWARGS.items()
+                if k not in ("value", "filter_by", "territory")
+            },
+            "year": year,
         },
-    ).replace("year=2022", "year=2025")
+    )
     path.parent.mkdir(parents=True)
     DEPARTEMENTS.to_parquet(path, write_covering_bbox=True, row_group_size=1)
     table = pq.read_table(path)
@@ -184,6 +191,11 @@ def consolidated(storage):
     )
     pq.write_table(table, path, row_group_size=1)
     return path
+
+
+@pytest.fixture
+def consolidated(storage):
+    return _write_consolidated(storage, 2025)
 
 
 def _download(**kwargs):
@@ -282,6 +294,48 @@ def test_parquet_unknown_filter():
 def test_parquet_missing_value():
     with pytest.raises(ValueError, match="No REGION 99"):
         _download(values=["11", "99"], year=2025)
+
+
+@pytest.fixture
+def readers(monkeypatch):
+    """Names of the reading functions called."""
+    calls = []
+    for name in ("read_parquet", "read_geojson"):
+        function = getattr(client, name)
+        monkeypatch.setattr(
+            client,
+            name,
+            lambda *a, _f=function, _n=name, **k: calls.append(_n) or _f(*a, **k),
+        )
+    return calls
+
+
+def test_parquet_produced_for_an_earlier_year(storage, readers):
+    # GeoParquet produced afterwards for 2022: read instead of the GeoJSON
+    _write_geojson(storage, "11")
+    _write_consolidated(storage, 2022)
+    with pytest.warns(UserWarning, match="GeoParquet is used instead"):
+        gdf = _download(values="11", year=2022, vectorfile_format="geojson")
+    assert sorted(gdf["INSEE_DEP"]) == ["75", "92"]
+    _download(values="11", year=2022)
+    assert readers == ["read_parquet", "read_parquet"]
+
+
+def test_geojson_when_no_parquet_for_an_earlier_year(storage, readers):
+    _write_geojson(storage, "11")
+    assert sorted(_download(values="11", year=2022)["INSEE_DEP"]) == ["75", "92"]
+    assert readers == ["read_geojson"]
+
+
+@pytest.mark.parametrize(
+    "year, file_exists, expected",
+    [(2025, False, True), (2022, True, True), (2022, False, False)],
+)
+def test_parquet_available(storage, year, file_exists, expected):
+    if file_exists:
+        _write_consolidated(storage, year)
+    kwargs = {k: v for k, v in PATH_KWARGS.items() if k not in ("value", "territory")}
+    assert client.parquet_available(**{**kwargs, "year": year}) is expected
 
 
 @pytest.mark.usefixtures("consolidated")

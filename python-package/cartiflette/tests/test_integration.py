@@ -9,7 +9,8 @@ Deselected by default, run them with:
 
 The new vintages are read from CARTIFLETTE_TEST_PATH (default "test/v0.2.0",
 the test location of the pipeline) for the years in CARTIFLETTE_TEST_YEARS
-(default "2025,2026"). The 2022 files are read from production, to check that
+(default "2025,2026"; add 2022, 2023, 2024 once produced from the IGN
+editions 3-x). The 2022 files are read from production, to check that
 the files published by the former pipeline are still readable.
 """
 
@@ -183,12 +184,15 @@ FRANCE_LEVELS = {
 @pytest.mark.parametrize("drom_rapproches", [False, True])
 @pytest.mark.parametrize("simplification", [0, 50])
 def test_homepage_france(year, path, level, drom_rapproches, simplification):
-    if year == LEGACY_YEAR and level == "AIRE_ATTRACTION_VILLES" and drom_rapproches:
+    if (
+        (year, path) == (LEGACY_YEAR, "production")
+        and level == "AIRE_ATTRACTION_VILLES"
+        and drom_rapproches
+    ):
         pytest.xfail(
             "Files of the former pipeline: AAV2020 '000' (communes outside any "
             "attraction area) is one feature spanning all the territories, so the "
-            "DROM are misplaced. Fixed since 0.2.0 (dissolve by territory), 2022 "
-            "is not regenerated."
+            "DROM are misplaced. Fixed since 0.2.0 (dissolve by territory)."
         )
     filter_by = (
         "FRANCE_ENTIERE_DROM_RAPPROCHES" if drom_rapproches else "FRANCE_ENTIERE"

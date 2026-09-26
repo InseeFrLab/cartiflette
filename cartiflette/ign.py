@@ -9,8 +9,10 @@ The download service exposes Atom feeds:
 Editions are named like
     ADMIN-EXPRESS-COG-CARTO_4-0__GEOPARQUET_WGS84G_FRA_2026-01-01
     ADMIN-EXPRESS-COG-CARTO_4-0__GPKG_WGS84G_FRA_2025-01-01
+    ADMIN-EXPRESS-COG-CARTO_3-1__SHP_WGS84G_FRA_2022-04-15
 We use the "France entière" (FRA) editions in WGS84, which contain the DROM,
-in GeoParquet when available and GPKG otherwise.
+in GeoParquet when available, then GPKG, then shapefile (editions 3-x, up to
+2024). The layers are always returned with the field names of the edition 4-0.
 """
 
 from __future__ import annotations
@@ -30,7 +32,41 @@ logger = logging.getLogger(__name__)
 
 BASE_URL = "https://data.geopf.fr/chunk/telechargement"
 RESOURCE = "ADMIN-EXPRESS-COG-CARTO"
-FORMAT_PREFERENCE = ("GEOPARQUET", "GPKG")
+FORMAT_PREFERENCE = ("GEOPARQUET", "GPKG", "SHP")
+
+# Editions 3-x (shapefile): one file per layer, with the former field names,
+# renamed into the ones of the edition 4-0
+SHAPEFILE_LAYERS = {
+    "commune": (
+        "COMMUNE",
+        {
+            "ID": "cleabs",
+            "NOM": "nom_officiel",
+            "INSEE_COM": "code_insee",
+            "STATUT": "statut",
+            "POPULATION": "population",
+            "INSEE_DEP": "code_insee_du_departement",
+        },
+    ),
+    "arrondissement_municipal": (
+        "ARRONDISSEMENT_MUNICIPAL",
+        {
+            "ID": "cleabs",
+            "NOM": "nom_officiel",
+            "INSEE_ARM": "code_insee",
+            "INSEE_COM": "code_insee_de_la_commune_de_rattach",
+            "POPULATION": "population",
+        },
+    ),
+    "departement": (
+        "DEPARTEMENT",
+        {"ID": "cleabs", "NOM": "nom_officiel", "INSEE_DEP": "code_insee"},
+    ),
+    "region": (
+        "REGION",
+        {"ID": "cleabs", "NOM": "nom_officiel", "INSEE_REG": "code_insee"},
+    ),
+}
 
 _ATOM = {"atom": "http://www.w3.org/2005/Atom"}
 _EDITION = re.compile(
@@ -106,21 +142,57 @@ def _extract_gpkg(archive: str, dest_dir: str) -> str:
     return os.path.join(dest_dir, targets[0])
 
 
-def gpkg_to_parquet(gpkg: str, layer: str, dest: str) -> str:
-    """
-    Convert a GPKG layer to GeoParquet.
+def _extract_shapefiles(archive: str, dest_dir: str, names: list[str]) -> dict:
+    """Extract the shapefiles `names` (e.g. "COMMUNE"); return their .shp paths."""
+    with py7zr.SevenZipFile(archive, mode="r") as z:
+        members = {
+            n: os.path.basename(n).rsplit(".", 1)[0]
+            for n in z.getnames()
+            if os.path.basename(n).rsplit(".", 1)[0] in names
+        }
+        z.extract(path=dest_dir, targets=list(members))
+    shp = {
+        base: os.path.join(dest_dir, member)
+        for member, base in members.items()
+        if member.lower().endswith(".shp")
+    }
+    missing = set(names) - set(shp)
+    if missing:
+        raise ValueError(f"Shapefiles {missing} not found in {archive}")
+    return shp
 
-    ST_Read (GDAL) is run single-threaded: with DuckDB 1.5.5, reading a GPKG
-    with several threads randomly corrupts memory.
+
+def _st_read_to_parquet(select: str, dest: str) -> str:
+    """
+    Write `select` (a query on ST_Read) to parquet.
+
+    ST_Read (GDAL) is run single-threaded: with DuckDB 1.5.5, reading with
+    several threads randomly corrupts memory.
     """
     with duckdb.connect() as con:
         con.execute("SET enable_progress_bar = false; SET threads = 1;")
         con.execute("INSTALL spatial; LOAD spatial;")
-        con.execute(
-            f"COPY (SELECT * FROM ST_Read('{gpkg}', layer='{layer}')) "
-            f"TO '{dest}' (FORMAT parquet)"
-        )
+        con.execute(f"COPY ({select}) TO '{dest}' (FORMAT parquet)")
     return dest
+
+
+def gpkg_to_parquet(gpkg: str, layer: str, dest: str) -> str:
+    """Convert a GPKG layer to GeoParquet."""
+    return _st_read_to_parquet(
+        f"SELECT * FROM ST_Read('{gpkg}', layer='{layer}')", dest
+    )
+
+
+def shapefile_to_parquet(shp: str, fields: dict[str, str], dest: str) -> str:
+    """
+    Convert a shapefile of an edition 3-x to GeoParquet, keeping `fields`
+    renamed ({former name: name in the edition 4-0}) and the geometry as
+    `geometrie`, as in the edition 4-0.
+    """
+    columns = ", ".join(f'"{old}" AS {new}' for old, new in fields.items())
+    return _st_read_to_parquet(
+        f"SELECT {columns}, geom AS geometrie FROM ST_Read('{shp}')", dest
+    )
 
 
 def fetch_layers(year: int, layers: list[str], dest_dir: str) -> dict[str, str]:
@@ -161,6 +233,25 @@ def fetch_layers(year: int, layers: list[str], dest_dir: str) -> dict[str, str]:
         archive = download_file(
             archives[0], os.path.join(dest_dir, os.path.basename(archives[0])), session
         )
+
+    if edition_format == "SHP":
+        unknown = set(layers) - set(SHAPEFILE_LAYERS)
+        if unknown:
+            raise ValueError(f"Layers {unknown} not handled for {edition}")
+        shp = _extract_shapefiles(
+            archive, dest_dir, [SHAPEFILE_LAYERS[layer][0] for layer in layers]
+        )
+        os.remove(archive)
+        return {
+            layer: "read_parquet('{}')".format(
+                shapefile_to_parquet(
+                    shp[SHAPEFILE_LAYERS[layer][0]],
+                    SHAPEFILE_LAYERS[layer][1],
+                    os.path.join(dest_dir, f"{layer}.parquet"),
+                )
+            )
+            for layer in layers
+        }
 
     gpkg = _extract_gpkg(archive, dest_dir)
     os.remove(archive)

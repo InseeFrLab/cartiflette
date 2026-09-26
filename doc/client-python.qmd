@@ -71,12 +71,15 @@ Les deux formats ne s'utilisent pas de la même façon :
   Une erreur est levée si une valeur n'existe pas ou si le niveau ne peut pas être
   filtré ainsi (ex. des régions par département).
 
-**Le GeoParquet est lu dès qu'il existe** (à partir de 2025,
-[`choose_format`](reference/client.choose_format.qmd)), même si `vectorfile_format="geojson"`
+**Le GeoParquet est lu dès qu'il existe** (à partir de 2025, et pour les années
+antérieures où il a été produit : [`parquet_available`](reference/client.parquet_available.qmd)
+le vérifie par une requête HEAD, puis [`choose_format`](reference/client.choose_format.qmd)
+décide), même si `vectorfile_format="geojson"`
 est demandé : un avertissement l'indique. Il est aussi rapide que le GeoJSON pour une
 petite requête et bien plus rapide pour une grosse. Pour lire quand même le GeoJSON,
 passer `force=True` (un avertissement rappelle que le GeoParquet est plus rapide).
-Avant 2025, seul le GeoJSON existe et il est lu sans avertissement.
+Sans GeoParquet (ex. 2022 en production aujourd'hui), le GeoJSON est lu sans
+avertissement.
 Mesures depuis le SSPCloud, millésime 2025, simplification 50 :
 
 | Requête | GeoParquet | GeoJSON |
@@ -104,8 +107,9 @@ d'un territoire (`"metropole"`, `"guadeloupe"`…) ou `"France"`.
 
 - À partir de 2025 : `geojson` et `parquet` (alias accepté : `geoparquet`) ;
   le client lit le `parquet`, sauf `vectorfile_format="geojson"` avec `force=True`.
-- Avant 2025 : `geojson` seulement (`auto` choisit `geojson`). Ces fichiers ont été
-  produits par l'ancien pipeline et ne sont plus régénérés.
+- Avant 2025 : `geojson` seulement en production pour 2022 (ancien pipeline) ; le
+  client bascule seul sur le `parquet` si celui-ci est publié (2022 à 2024 peuvent
+  être produits depuis les éditions IGN 3-x).
 - Codes de région : `1`, `"1"` et `"01"` sont acceptés. Le client essaie `REGION=01`
   (fichiers depuis 2025) puis `REGION=1` (fichiers plus anciens), voir
   [`value_candidates`](reference/utils.value_candidates.qmd).

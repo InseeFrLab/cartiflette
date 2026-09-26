@@ -17,8 +17,17 @@ TAGC_URL = (
     "https://www.insee.fr/fr/statistiques/fichier/7671844/"
     "table-appartenance-geo-communes-{year}.zip"
 )
+# Up to 2023, the year is written on two digits in the file name ("-22.zip")
+TAGC_LAST_SHORT_YEAR = 2023
 # The header of the TAGC spreadsheet is on its 6th row
 TAGC_HEADER_CELL = "A6"
+
+
+def tagc_url(year: int) -> str:
+    year = int(year)
+    return TAGC_URL.format(
+        year=f"{year % 100:02d}" if year <= TAGC_LAST_SHORT_YEAR else year
+    )
 
 
 def fetch_tagc(year: int, dest_dir: str) -> str:
@@ -26,7 +35,7 @@ def fetch_tagc(year: int, dest_dir: str) -> str:
     os.makedirs(dest_dir, exist_ok=True)
     with get_session() as session:
         archive = download_file(
-            TAGC_URL.format(year=year),
+            tagc_url(year),
             os.path.join(dest_dir, f"tagc_{year}.zip"),
             session,
         )

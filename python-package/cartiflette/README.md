@@ -39,7 +39,7 @@ data = carti_download(
 )
 ```
 
-À partir du millésime 2025, les fonds de carte sont disponibles aux formats `geojson` et `parquet` (GeoParquet). Le client lit le GeoParquet dès qu'il existe, même si `vectorfile_format="geojson"` est demandé (un avertissement l'indique ; `force=True` permet de lire quand même le GeoJSON). Chaque niveau y est stocké dans un seul fichier que DuckDB lit partiellement : seules les parties correspondant aux valeurs demandées sont téléchargées. Les millésimes antérieurs restent disponibles en `geojson`.
+À partir du millésime 2025, les fonds de carte sont disponibles aux formats `geojson` et `parquet` (GeoParquet). Le client lit le GeoParquet dès qu'il existe, même si `vectorfile_format="geojson"` est demandé (un avertissement l'indique ; `force=True` permet de lire quand même le GeoJSON). Chaque niveau y est stocké dans un seul fichier que DuckDB lit partiellement : seules les parties correspondant aux valeurs demandées sont téléchargées. Les millésimes antérieurs restent disponibles en `geojson` ; si leur GeoParquet est publié, le client le détecte et le lit.
 
 Toute la lecture est faite avec DuckDB. Avec `engine="duckdb"`, le résultat reste une relation DuckDB, pour continuer en SQL sans passer par geopandas :
 

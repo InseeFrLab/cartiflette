@@ -99,8 +99,10 @@ MinIO du SSPCloud (`https://minio.lab.sspcloud.fr`), bucket `projet-cartiflette`
 | `test/v<version>/` | le pipeline, par défaut | vous, pour vérifier |
 | `test/` (racine) | personne : contient d'anciens essais, ne pas écrire à sa racine | — |
 
-Les millésimes publiés avant 2025 (éditions ADMIN EXPRESS 3-x) restent en
-production mais ne sont **pas** régénérables avec le code actuel.
+Avant 2025, seul le millésime 2022 est publié en production (GeoJSON, ancien
+pipeline) ; 2021, 2023 et 2024 n'y ont qu'un fichier intermédiaire
+(`preprocessed=before_cog`) que les clients ne lisent pas. Le code actuel sait
+produire 2022 à 2024 à partir des éditions 3-x (shapefile), voir l'étape 1.
 
 ## Le pipeline de production, module par module
 
@@ -136,7 +138,14 @@ Cela permet de rendre le  développement du projet plus simple mais reste robust
 - **Source IGN** : ADMIN EXPRESS COG CARTO édition 4-0, « France entière » (zone `FRA`),
   WGS84. Catalogue Atom : `https://data.geopf.fr/chunk/telechargement/resource/ADMIN-EXPRESS-COG-CARTO`.
   GeoParquet à partir de 2026, GPKG (archive `.7z`) seulement pour 2025.
-  `select_edition` préfère le GeoParquet et, à format égal, la date la plus récente.
+  `select_edition` préfère le GeoParquet, puis le GPKG, puis le shapefile et, à
+  format égal, la date la plus récente.
+- **Éditions 3-x (2021 à 2024)** : shapefile seulement (`3-1__SHP_WGS84G_FRA_2022-04-15`,
+  `3-2__SHP_WGS84G_FRA_2023-05-03`, `3-2__SHP_WGS84G_FRA_2024-02-22`), une archive `.7z`
+  avec un fichier par couche (`COMMUNE.shp`…). `ign.shapefile_to_parquet` renomme leurs
+  champs en noms de l'édition 4-0 (`ign.SHAPEFILE_LAYERS` : `INSEE_COM` → `code_insee`,
+  `INSEE_ARM` → `code_insee`…), si bien que la suite du pipeline ne distingue pas les
+  éditions. Saint-Pierre-et-Miquelon n'y figure pas.
 - **Limite de débit** : la Géoplateforme accepte 1 requête par seconde. `http.get_session`
   relance automatiquement sur les erreurs 429.
 - **Noms de champs** : l'édition 4-0 a renommé tous les champs (`code_insee`, `population`…).

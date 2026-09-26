@@ -78,7 +78,7 @@ print(*ign.list_files(edition, s), sep='\n')
 ```
 
 On attend `ADMIN-EXPRESS-COG-CARTO_4-0__GEOPARQUET_WGS84G_FRA_$YEAR-01-01`
-(ou `GPKG` pour 2025), et en GeoParquet un fichier par couche (`commune.parquet`,
+(ou `GPKG` pour 2025, `3-x__SHP_WGS84G_FRA_…` pour 2021 à 2024), et en GeoParquet un fichier par couche (`commune.parquet`,
 `arrondissement_municipal.parquet`, `departement.parquet`, `region.parquet`…).
 
 ### TAGC Insee : le fichier est-il publié ?

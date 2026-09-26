@@ -64,14 +64,20 @@ def connect(con: duckdb.DuckDBPyConnection | None = None) -> duckdb.DuckDBPyConn
     return con
 
 
-def choose_format(vectorfile_format: str, year: int | str, force: bool = False) -> str:
+def choose_format(
+    vectorfile_format: str,
+    year: int | str,
+    force: bool = False,
+    parquet_exists: bool | None = None,
+) -> str:
     """
     Format of the files to read.
 
-    GeoParquet is used whenever it exists (from 2025 onwards): only the needed
-    parts of the file are downloaded, which is as fast as GeoJSON for a small
-    request and much faster for a large one. GeoJSON is only read for earlier
-    years, or when explicitly requested with ``force=True``.
+    GeoParquet is used whenever it exists (from 2025 onwards, and for the
+    earlier years it has been produced for): only the needed parts of the
+    file are downloaded, which is as fast as GeoJSON for a small request and
+    much faster for a large one. GeoJSON is only read when there is no
+    GeoParquet, or when explicitly requested with ``force=True``.
 
     Parameters
     ----------
@@ -81,6 +87,9 @@ def choose_format(vectorfile_format: str, year: int | str, force: bool = False) 
         Vintage.
     force : bool
         Read GeoJSON when requested even if GeoParquet exists.
+    parquet_exists : bool, optional
+        Whether GeoParquet exists (see `parquet_available`). By default,
+        deduced from the year only: from 2025 onwards.
 
     Returns
     -------
@@ -100,7 +109,8 @@ def choose_format(vectorfile_format: str, year: int | str, force: bool = False) 
     >>> choose_format("auto", 2022)
     'geojson'
     """
-    parquet_exists = int(year) >= PARQUET_FIRST_YEAR
+    if parquet_exists is None:
+        parquet_exists = int(year) >= PARQUET_FIRST_YEAR
     if vectorfile_format.lower() == "auto":
         return "parquet" if parquet_exists else "geojson"
     vectorfile_format = standardize_format(vectorfile_format)
@@ -134,6 +144,54 @@ def _exists(url: str) -> bool:
             return True
     except urllib.error.HTTPError:
         return False
+
+
+def consolidated_url(filter_by: str, **path_kwargs) -> str:
+    """
+    Link of the consolidated GeoParquet holding the polygons for `filter_by`.
+
+    Parameters
+    ----------
+    filter_by : str
+        Level used to select the polygons: FRANCE_ENTIERE_DROM_RAPPROCHES
+        reads the file with the DROM brought closer, any other level the
+        file with the true positions.
+    **path_kwargs
+        Other arguments of `create_path_consolidated`, except `layout`.
+
+    Returns
+    -------
+    str
+    """
+    layout = (
+        DROM_RAPPROCHES if filter_by.upper() == DROM_RAPPROCHES else "FRANCE_ENTIERE"
+    )
+    return f"{ENDPOINT_URL}/" + create_path_consolidated(layout=layout, **path_kwargs)
+
+
+def parquet_available(filter_by: str, **path_kwargs) -> bool:
+    """
+    Whether a consolidated GeoParquet exists for these parameters.
+
+    It is published for every year from 2025 onwards, so no request is made
+    for them. Earlier years were first published in GeoJSON only, and
+    GeoParquet may have been produced afterwards: its existence is checked
+    with a HEAD request.
+
+    Parameters
+    ----------
+    filter_by : str
+        Level used to select the polygons.
+    **path_kwargs
+        Arguments of `create_path_consolidated`, except `layout`.
+
+    Returns
+    -------
+    bool
+    """
+    if int(path_kwargs["year"]) >= PARQUET_FIRST_YEAR:
+        return True
+    return _exists(consolidated_url(filter_by, **path_kwargs))
 
 
 def geojson_urls(
@@ -256,14 +314,13 @@ def read_parquet(
     ------
     OSError
         If there is no GeoParquet file for these parameters (e.g. a year
-        before 2025).
+        before 2025 only published in GeoJSON).
     ValueError
         If the file cannot be filtered by `filter_by`, or if some values are
         not found.
     """
     filter_by = filter_by.upper()
-    layout = DROM_RAPPROCHES if filter_by == DROM_RAPPROCHES else "FRANCE_ENTIERE"
-    url = f"{ENDPOINT_URL}/" + create_path_consolidated(layout=layout, **path_kwargs)
+    url = consolidated_url(filter_by, **path_kwargs)
     try:
         metadata = con.execute(
             "SELECT decode(value) FROM parquet_kv_metadata($url) "
@@ -273,8 +330,8 @@ def read_parquet(
     except (duckdb.IOException, duckdb.HTTPException) as e:
         raise OSError(
             f"No GeoParquet file at {url}. GeoParquet files are available "
-            f"from {PARQUET_FIRST_YEAR} onwards, use vectorfile_format='geojson' "
-            "for earlier years."
+            f"from {PARQUET_FIRST_YEAR} onwards (and for some earlier years), "
+            "use vectorfile_format='geojson' otherwise."
         ) from e
     filter_columns = json.loads(metadata[0])
     if filter_by not in filter_columns:
@@ -358,8 +415,8 @@ def carti_download(
 
     - GeoJSON: one file per value of `filter_by`; the list of links is built
       and DuckDB reads the files together.
-    - GeoParquet (from 2025 onwards): one file per level; DuckDB filters it
-      and only downloads the needed parts.
+    - GeoParquet (from 2025 onwards, and some earlier years): one file per
+      level; DuckDB filters it and only downloads the needed parts.
 
     Parameters
     ----------
@@ -378,8 +435,8 @@ def carti_download(
         "metropole".
     vectorfile_format : str
         "auto" (default), "geojson" or "parquet". GeoParquet is read whenever
-        it exists (from 2025 onwards), even if "geojson" is requested, unless
-        `force` is True; see `choose_format`.
+        it exists, even if "geojson" is requested, unless `force` is True;
+        see `choose_format` and `parquet_available`.
     year : str or int
         Vintage of the borders. Defaults to the current year.
     crs : str or int
@@ -452,7 +509,6 @@ def carti_download(
         raise ValueError(f"engine must be one of {ENGINES}, not {engine!r}")
     if not year:
         year = datetime.now(timezone.utc).year
-    vectorfile_format = choose_format(vectorfile_format, year, force)
     if isinstance(values, (str, int, float)):
         values = [values]
 
@@ -468,6 +524,12 @@ def carti_download(
         "simplification": simplification,
         "filename": filename,
     }
+    vectorfile_format = choose_format(
+        vectorfile_format,
+        year,
+        force,
+        parquet_exists=parquet_available(filter_by, **path_kwargs),
+    )
     con = connect(con)
     if vectorfile_format == "parquet":
         relation = read_parquet(con, values, filter_by, **path_kwargs)
