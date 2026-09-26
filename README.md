@@ -13,6 +13,7 @@
 [![DuckDB](https://img.shields.io/badge/DuckDB-1.5-FFF000?style=flat-square&logo=duckdb&logoColor=black)](https://duckdb.org/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json&style=flat-square)](https://github.com/astral-sh/ruff)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json&style=flat-square)](https://github.com/astral-sh/uv)
+<br />
 [![Tests](https://img.shields.io/github/actions/workflow/status/InseeFrLab/cartiflette/check.yml?style=flat-square&label=tests&logo=github)](https://github.com/InseeFrLab/cartiflette/actions/workflows/check.yml)
 [![Lint](https://img.shields.io/github/actions/workflow/status/InseeFrLab/cartiflette/lint.yml?style=flat-square&label=lint&logo=github)](https://github.com/InseeFrLab/cartiflette/actions/workflows/lint.yml)
 [![Docker](https://img.shields.io/docker/v/inseefrlab/cartiflette?style=flat-square&sort=semver&color=B4540A&label=docker&logo=docker&logoColor=white)](https://hub.docker.com/r/inseefrlab/cartiflette)
@@ -41,21 +42,13 @@ fond de carte qu'à faire la carte.
 
 `cartiflette` s'en occupe :
 
-- 🗺️ **Des contours officiels et à jour** : ADMIN EXPRESS COG CARTO de l'IGN, au
-  millésime du Code officiel géographique, enrichi de la table d'appartenance
-  géographique de l'Insee.
-- 🧩 **Tous les niveaux usuels** : communes, arrondissements municipaux, départements,
-  régions, et les zonages d'étude de l'Insee (bassins de vie, zones d'emploi,
-  unités urbaines, aires d'attraction des villes).
-- 🏝️ **Les DROM rapprochés de la métropole**, avec un zoom sur l'Île-de-France,
-  prêts pour une carte de France entière.
-- 🏷️ **Des métadonnées utiles** : codes et libellés Insee, population, codes des
-  zonages supra-communaux, pour joindre directement vos données.
-- ⚡ **Rapide** : chaque niveau est publié en GeoParquet, dont seule la partie utile
-  est téléchargée (environ 2 Mo pour les communes d'un département, sur 35 Mo pour
-  la France entière).
-- 🔁 **Reproductible** : les fichiers sont produits par un pipeline ouvert et
-  publiés à des adresses stables, lisibles depuis Python, R ou JavaScript.
+- 🗺️ **Des contours officiels enrichis** : ADMIN EXPRESS COG CARTO de l'IGN, au
+millésime du Code officiel géographique, enrichi de la table d'appartenance géographique de l'Insee pour avoir plus de métadonnées géographiques officielles.
+- 🧩 **Couvre des besoins standards** de *data scientists*, statisticiens ou géomaticiens : récupérer des communes, arrondissements municipaux, départements, régions, zonages d'étude de l'Insee (bassins de vie, zones d'emploi, unités urbaines, aires d'attraction des villes).
+- 🏝️ **Les DROM rapprochés de la métropole**, avec un zoom sur l'Île-de-France, prêts pour une carte de France entière.
+- 🏷️ **Des métadonnées utiles** : codes et libellés Insee, population, codes des zonages supra-communaux, pour joindre directement vos données.
+- ⚡ **Rapide** : le stockage en GeoParquet accélère énormément les récupérations de données (seulement 2 Mo de données pour les communes d'un département, sur 35 Mo pour la France entière...).
+- 🔁 **Reproductible** : les fichiers s'appuient sur des données ouvertes, aucune modification manuelle n'est faite, tout est auditable et reproductible, consommable par votre langage de prédilection (Python, R ou JavaScript...).
 
 ## Démarrage rapide
 
