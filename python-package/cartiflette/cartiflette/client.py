@@ -1,27 +1,20 @@
 from __future__ import annotations
 
-import io
 import json
-import logging
 import os
+import urllib.error
+import urllib.request
+import warnings
 from datetime import datetime, timezone
 from urllib.parse import urlparse
 
+import duckdb
 import geopandas as gpd
-import pandas as pd
-import pyarrow as pa
-import pyarrow.compute as pc
-import pyarrow.fs as pafs
-import pyarrow.parquet as pq
-import pyproj
-from requests_cache import CachedSession
 
-from cartiflette.config import _config
 from cartiflette.constants import (
     BUCKET,
-    CACHE_NAME,
-    DIR_CACHE,
     ENDPOINT_URL,
+    PARQUET_FIRST_YEAR,
     PATH_WITHIN_BUCKET,
 )
 from cartiflette.utils import (
@@ -31,174 +24,259 @@ from cartiflette.utils import (
     value_candidates,
 )
 
-logger = logging.getLogger(__name__)
-
 DROM_RAPPROCHES = "FRANCE_ENTIERE_DROM_RAPPROCHES"
-# Key of the parquet metadata mapping each level usable in `filter_by` to
+ENGINES = ("geopandas", "duckdb")
+# Key of the GeoParquet metadata mapping each level usable in `filter_by` to
 # its column in a consolidated file (e.g. BASSIN_VIE -> BV2022)
-FILTER_COLUMNS_KEY = b"cartiflette:filter_columns"
+FILTER_COLUMNS_KEY = "cartiflette:filter_columns"
 
 
-def get_session(expire_after=None) -> CachedSession:
+_CONNECTION: duckdb.DuckDBPyConnection | None = None
+
+
+def connect(con: duckdb.DuckDBPyConnection | None = None) -> duckdb.DuckDBPyConnection:
     """
-    HTTP session with a local cache.
-
-    Proxies are taken from the http_proxy and https_proxy environment
-    variables.
+    DuckDB connection able to read the cartiflette files.
 
     Parameters
     ----------
-    expire_after : datetime.timedelta, optional
-        Lifetime of the cached responses. Defaults to 30 days.
+    con : duckdb.DuckDBPyConnection, optional
+        Existing connection to use. By default, an in-memory connection
+        shared by all the calls: the relations returned with
+        ``engine="duckdb"`` stay usable, and the extensions are loaded once.
 
     Returns
     -------
-    requests_cache.CachedSession
-        Session caching responses in the user cache directory
-        (``platformdirs.user_cache_dir("cartiflette")``).
+    duckdb.DuckDBPyConnection
+        Connection with the httpfs and spatial extensions loaded. The proxy
+        is taken from the https_proxy environment variable.
     """
-    return CachedSession(
-        cache_name=os.path.join(DIR_CACHE, CACHE_NAME),
-        expire_after=expire_after or _config["DEFAULT_EXPIRE_AFTER"],
-    )
-
-
-def get_s3_filesystem() -> pafs.S3FileSystem:
-    """
-    Anonymous access to the cartiflette storage through its S3 API.
-
-    Unlike plain HTTP downloads, it allows reading only the needed parts of a
-    parquet file. The proxy is taken from the https_proxy environment
-    variable.
-
-    Returns
-    -------
-    pyarrow.fs.S3FileSystem
-    """
+    global _CONNECTION
+    if con is None:
+        if _CONNECTION is None:
+            _CONNECTION = duckdb.connect()
+        con = _CONNECTION
+    con.execute("SET enable_progress_bar = false")
+    con.execute("INSTALL httpfs; LOAD httpfs; INSTALL spatial; LOAD spatial;")
     proxy = os.environ.get("https_proxy") or os.environ.get("HTTPS_PROXY")
-    endpoint = urlparse(ENDPOINT_URL)
-    return pafs.S3FileSystem(
-        anonymous=True,
-        endpoint_override=endpoint.netloc,
-        scheme=endpoint.scheme,
-        region="us-east-1",
-        proxy_options=proxy,
-    )
+    if proxy:
+        con.execute("SET http_proxy = ?", [urlparse(proxy).netloc or proxy])
+    return con
 
 
-def select_row_groups(
-    parquet_file: pq.ParquetFile, column: str, wanted: list[str]
-) -> list[int]:
+def choose_format(vectorfile_format: str, year: int | str, force: bool = False) -> str:
     """
-    Row groups of a parquet file holding some values of a column.
+    Format of the files to read.
 
-    Only `column` is read (a few dozen kB, as it is dictionary encoded). This
-    is exact, whereas the min/max statistics of the row groups are only
-    selective for the first sorting column of the file.
+    GeoParquet is used whenever it exists (from 2025 onwards): only the needed
+    parts of the file are downloaded, which is as fast as GeoJSON for a small
+    request and much faster for a large one. GeoJSON is only read for earlier
+    years, or when explicitly requested with ``force=True``.
 
     Parameters
     ----------
-    parquet_file : pyarrow.parquet.ParquetFile
-        Opened file.
-    column : str
-        Column to look into.
-    wanted : list of str
-        Values looked for.
+    vectorfile_format : str
+        "auto", "geojson", "parquet" or "geoparquet".
+    year : int or str
+        Vintage.
+    force : bool
+        Read GeoJSON when requested even if GeoParquet exists.
 
     Returns
     -------
-    list of int
-        Indices of the row groups holding at least one of the values.
+    str
+        "parquet" or "geojson".
+
+    Notes
+    -----
+    A UserWarning is emitted when GeoJSON is requested and GeoParquet exists:
+    either GeoParquet is read instead (``force=False``), or GeoJSON is read
+    but is slower (``force=True``).
+
+    Examples
+    --------
+    >>> choose_format("auto", 2025)
+    'parquet'
+    >>> choose_format("auto", 2022)
+    'geojson'
     """
-    values = parquet_file.read(columns=[column]).column(column)
-    groups, start = [], 0
-    for i in range(parquet_file.metadata.num_row_groups):
-        length = parquet_file.metadata.row_group(i).num_rows
-        chunk = values.slice(start, length)
-        if pc.any(pc.is_in(chunk, value_set=pa.array(wanted))).as_py():
-            groups.append(i)
-        start += length
-    return groups
+    parquet_exists = int(year) >= PARQUET_FIRST_YEAR
+    if vectorfile_format.lower() == "auto":
+        return "parquet" if parquet_exists else "geojson"
+    vectorfile_format = standardize_format(vectorfile_format)
+    if vectorfile_format != "geojson" or not parquet_exists:
+        return vectorfile_format
+    if force:
+        warnings.warn(
+            f"Reading GeoJSON files as requested (force=True). GeoParquet is "
+            f"available for {year}: it gives the same result and is much faster "
+            "for large requests, as only the needed parts are downloaded.",
+            UserWarning,
+            stacklevel=3,
+        )
+        return "geojson"
+    warnings.warn(
+        f"GeoParquet is used instead of GeoJSON, as it is available for {year}: "
+        "it gives the same result and is much faster for large requests, as only "
+        "the needed parts are downloaded. Pass force=True to read the GeoJSON "
+        "files anyway.",
+        UserWarning,
+        stacklevel=3,
+    )
+    return "parquet"
 
 
-def to_geodataframe(table: pa.Table) -> gpd.GeoDataFrame:
+def _exists(url: str) -> bool:
+    if not url.startswith(("http://", "https://")):
+        return os.path.exists(url)
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, method="HEAD")):
+            return True
+    except urllib.error.HTTPError:
+        return False
+
+
+def geojson_urls(
+    values: list[str | int | float], filter_by: str, **path_kwargs
+) -> list[str]:
     """
-    GeoDataFrame from an Arrow table read from a GeoParquet file.
+    Links of the GeoJSON files of some values, one file per value.
 
     Parameters
     ----------
-    table : pyarrow.Table
-        Table whose schema holds the GeoParquet "geo" metadata (WKB
-        geometries).
+    values : list
+        Values of `filter_by`.
+    filter_by : str
+        Level used to split the files (e.g. "REGION").
+    **path_kwargs
+        Other arguments of `create_path_bucket`.
 
     Returns
     -------
-    geopandas.GeoDataFrame
+    list of str
+
+    Raises
+    ------
+    OSError
+        If no file exists for a value that has several possible spellings
+        (see `value_candidates`).
     """
-    geo = json.loads(table.schema.metadata[b"geo"])
-    geometry = geo["primary_column"]
-    # GeoParquet: a missing "crs" means OGC:CRS84, a null one an unknown CRS
-    crs = geo["columns"][geometry].get("crs", "OGC:CRS84")
-    df = table.to_pandas()
-    return gpd.GeoDataFrame(
-        df.drop(columns=geometry),
-        geometry=gpd.GeoSeries.from_wkb(
-            df[geometry],
-            crs=None if crs is None else pyproj.CRS.from_user_input(crs),
-        ),
+    urls = []
+    for value in values:
+        candidates = [
+            f"{ENDPOINT_URL}/"
+            + create_path_bucket(
+                filter_by=filter_by,
+                value=candidate,
+                vectorfile_format="geojson",
+                **path_kwargs,
+            )
+            for candidate in value_candidates(filter_by, value)
+        ]
+        if len(candidates) == 1:
+            # A missing file makes DuckDB raise an explicit HTTP 404 error
+            urls.append(candidates[0])
+            continue
+        existing = [url for url in candidates if _exists(url)]
+        if not existing:
+            raise OSError(
+                f"No file for {filter_by} {value}: {' nor '.join(candidates)}"
+            )
+        urls.append(existing[0])
+    return urls
+
+
+def read_geojson(
+    con: duckdb.DuckDBPyConnection, urls: list[str]
+) -> duckdb.DuckDBPyRelation:
+    """
+    Relation over several GeoJSON files, one row per feature.
+
+    Parameters
+    ----------
+    con : duckdb.DuckDBPyConnection
+        See `connect`.
+    urls : list of str
+        Links of the files.
+
+    Returns
+    -------
+    duckdb.DuckDBPyRelation
+        The properties of the features as columns, and a `geometry` column.
+    """
+    return con.sql(
+        """
+        SELECT
+            unnest(feature.properties),
+            ST_GeomFromGeoJSON(feature.geometry) AS geometry
+        FROM (
+            SELECT unnest(features) AS feature
+            FROM read_json(
+                $urls,
+                maximum_object_size = 2000000000,
+                union_by_name = true,
+                hive_partitioning = false
+            )
+        )
+        """,
+        params={"urls": urls},
     )
 
 
-def read_consolidated(
-    fs: pafs.FileSystem,
+def read_parquet(
+    con: duckdb.DuckDBPyConnection,
     values: list[str | int | float],
     filter_by: str,
     **path_kwargs,
-) -> gpd.GeoDataFrame:
+) -> duckdb.DuckDBPyRelation:
     """
-    Read the polygons of some values from a consolidated GeoParquet.
+    Relation over the polygons of some values in a consolidated GeoParquet.
 
-    The filter column is read first, then only the row groups holding the
-    requested values are downloaded (see `select_row_groups`).
+    The file holds a whole level and the filter is a `WHERE` clause: DuckDB
+    only downloads the row groups holding the requested values, thanks to
+    the sorting of the file, its statistics and bloom filters.
 
     Parameters
     ----------
-    fs : pyarrow.fs.FileSystem
-        Filesystem of the storage, see `get_s3_filesystem`.
+    con : duckdb.DuckDBPyConnection
+        See `connect`.
     values : list
         Values of `filter_by` to retrieve.
     filter_by : str
         Level used to select the polygons (e.g. "REGION").
     **path_kwargs
-        Other arguments of `create_path_consolidated`, except `geometry`,
+        Other arguments of `create_path_consolidated`, except `layout`,
         deduced from `filter_by`.
 
     Returns
     -------
-    geopandas.GeoDataFrame
+    duckdb.DuckDBPyRelation
 
     Raises
     ------
     OSError
-        If there is no consolidated file for these parameters (e.g. a year
+        If there is no GeoParquet file for these parameters (e.g. a year
         before 2025).
     ValueError
         If the file cannot be filtered by `filter_by`, or if some values are
         not found.
     """
     filter_by = filter_by.upper()
-    geometry = DROM_RAPPROCHES if filter_by == DROM_RAPPROCHES else "FRANCE_ENTIERE"
-    path = create_path_consolidated(geometry=geometry, **path_kwargs)
+    layout = DROM_RAPPROCHES if filter_by == DROM_RAPPROCHES else "FRANCE_ENTIERE"
+    url = f"{ENDPOINT_URL}/" + create_path_consolidated(layout=layout, **path_kwargs)
     try:
-        parquet_file = pq.ParquetFile(path, filesystem=fs)
-    except OSError as e:
+        metadata = con.execute(
+            "SELECT decode(value) FROM parquet_kv_metadata($url) "
+            "WHERE decode(key) = $key",
+            {"url": url, "key": FILTER_COLUMNS_KEY},
+        ).fetchone()
+    except (duckdb.IOException, duckdb.HTTPException) as e:
         raise OSError(
-            f"No GeoParquet file at {ENDPOINT_URL}/{path}. GeoParquet files are "
-            "available from 2025 onwards, use vectorfile_format='geojson' for "
-            "earlier years."
+            f"No GeoParquet file at {url}. GeoParquet files are available "
+            f"from {PARQUET_FIRST_YEAR} onwards, use vectorfile_format='geojson' "
+            "for earlier years."
         ) from e
-
-    filter_columns = json.loads(parquet_file.schema_arrow.metadata[FILTER_COLUMNS_KEY])
+    filter_columns = json.loads(metadata[0])
     if filter_by not in filter_columns:
         raise ValueError(
             f"{path_kwargs['borders']} polygons cannot be filtered by {filter_by}; "
@@ -208,79 +286,48 @@ def read_consolidated(
 
     candidates = {str(v): value_candidates(filter_by, v) for v in values}
     wanted = list(dict.fromkeys(c for cs in candidates.values() for c in cs))
-    table = parquet_file.read_row_groups(
-        select_row_groups(parquet_file, column, wanted)
-    )
-    table = table.filter(pc.is_in(table[column], value_set=pa.array(wanted)))
+    source = "read_parquet($url, hive_partitioning = false)"
+    where = f'"{column}" IN (SELECT unnest($wanted))'
+    params = {"url": url, "wanted": wanted}
 
-    found = set(table[column].to_pylist())
+    found = {
+        row[0]
+        for row in con.execute(
+            f'SELECT DISTINCT "{column}" FROM {source} WHERE {where}', params
+        ).fetchall()
+    }
     missing = [v for v, cs in candidates.items() if not found.intersection(cs)]
     if missing:
-        raise ValueError(f"No {filter_by} {', '.join(missing)} in {path}")
-    return to_geodataframe(table.drop_columns(["bbox"]))
+        raise ValueError(f"No {filter_by} {', '.join(missing)} in {url}")
+
+    return con.sql(
+        f"SELECT * EXCLUDE (bbox) FROM {source} WHERE {where}", params=params
+    )
 
 
-def read_file(content: bytes, vectorfile_format: str) -> gpd.GeoDataFrame:
+def to_geopandas(relation: duckdb.DuckDBPyRelation, crs: int | str) -> gpd.GeoDataFrame:
     """
-    Read a downloaded file into a GeoDataFrame.
+    Convert a relation with a `geometry` column into a GeoDataFrame.
 
     Parameters
     ----------
-    content : bytes
-        Raw content of the file.
-    vectorfile_format : str
-        "parquet" (GeoParquet) or "geojson".
+    relation : duckdb.DuckDBPyRelation
+        Relation, e.g. from `read_parquet` or `read_geojson`.
+    crs : int or str
+        EPSG code of the geometries.
 
     Returns
     -------
     geopandas.GeoDataFrame
     """
-    if vectorfile_format == "parquet":
-        return gpd.read_parquet(io.BytesIO(content))
-    return gpd.read_file(io.BytesIO(content))
-
-
-def download_single(
-    session: CachedSession,
-    value: str | float,
-    vectorfile_format: str = "geojson",
-    **path_kwargs,
-) -> gpd.GeoDataFrame:
-    """
-    Download the file of a single value.
-
-    Several spellings of the value may be tried (see `value_candidates`).
-
-    Parameters
-    ----------
-    session : requests_cache.CachedSession
-        Session used for the requests, see `get_session`.
-    value : str or float
-        Value of `filter_by` (e.g. "11" for a region).
-    vectorfile_format : str
-        "geojson" or "parquet".
-    **path_kwargs
-        Other arguments of `create_path_bucket`, `filter_by` included.
-
-    Returns
-    -------
-    geopandas.GeoDataFrame
-
-    Raises
-    ------
-    OSError
-        If no candidate file can be downloaded.
-    """
-    urls = []
-    for candidate in value_candidates(path_kwargs["filter_by"], value):
-        path = create_path_bucket(
-            value=candidate, vectorfile_format=vectorfile_format, **path_kwargs
-        )
-        urls.append(f"{ENDPOINT_URL}/{path}")
-        r = session.get(urls[-1])
-        if r.ok:
-            return read_file(r.content, vectorfile_format)
-    raise OSError(f"Could not download {' nor '.join(urls)} (HTTP {r.status_code})")
+    table = relation.select(
+        "* EXCLUDE (geometry), ST_AsWKB(geometry) AS geometry"
+    ).to_arrow_table()
+    df = table.to_pandas()
+    return gpd.GeoDataFrame(
+        df.drop(columns="geometry"),
+        geometry=gpd.GeoSeries.from_wkb(df["geometry"], crs=f"EPSG:{crs}"),
+    )
 
 
 def carti_download(
@@ -288,7 +335,7 @@ def carti_download(
     borders: str = "COMMUNE",
     filter_by: str = "REGION",
     territory: str = "metropole",
-    vectorfile_format: str = "geojson",
+    vectorfile_format: str = "auto",
     year: str | int | None = None,
     crs: str | int = 4326,
     simplification: str | float | None = None,
@@ -299,14 +346,20 @@ def carti_download(
     source: str = "EXPRESS-COG-CARTO-TERRITOIRE",
     filename: str = "raw",
     return_as_json: bool = False,
-) -> gpd.GeoDataFrame | str:
+    engine: str = "geopandas",
+    con: duckdb.DuckDBPyConnection | None = None,
+    force: bool = False,
+) -> gpd.GeoDataFrame | duckdb.DuckDBPyRelation | str:
     """
     Download official French borders produced by cartiflette.
 
-    GeoJSON: the file of each value of `filter_by` is downloaded, and the
-    files are concatenated. GeoParquet (from 2025 onwards): the polygons of the
-    values are read from a single file holding the whole level, downloading
-    only the needed parts.
+    Everything is done with DuckDB; with the default engine, the result is
+    converted into a GeoDataFrame at the end.
+
+    - GeoJSON: one file per value of `filter_by`; the list of links is built
+      and DuckDB reads the files together.
+    - GeoParquet (from 2025 onwards): one file per level; DuckDB filters it
+      and only downloads the needed parts.
 
     Parameters
     ----------
@@ -324,7 +377,9 @@ def carti_download(
         Kept for compatibility with the storage layout of the GeoJSON files,
         "metropole".
     vectorfile_format : str
-        "geojson" or "parquet".
+        "auto" (default), "geojson" or "parquet". GeoParquet is read whenever
+        it exists (from 2025 onwards), even if "geojson" is requested, unless
+        `force` is True; see `choose_format`.
     year : str or int
         Vintage of the borders. Defaults to the current year.
     crs : str or int
@@ -345,23 +400,29 @@ def carti_download(
     filename : str
         Name of the file without extension, "raw".
     return_as_json : bool
-        If True, return a GeoJSON string instead of a GeoDataFrame.
+        If True, return a GeoJSON string.
+    engine : str
+        "geopandas" (default): return a GeoDataFrame. "duckdb": return the
+        DuckDB relation, not evaluated yet, to go on with SQL.
+    con : duckdb.DuckDBPyConnection, optional
+        DuckDB connection to use (e.g. to join the result with other data).
+        By default, an in-memory connection shared by all the calls.
+    force : bool
+        Read GeoJSON when ``vectorfile_format="geojson"`` even if GeoParquet
+        exists for the year. A warning recalls that GeoParquet is faster.
 
     Returns
     -------
-    geopandas.GeoDataFrame or str
-        The polygons of all the requested values, concatenated (a GeoJSON
-        string if `return_as_json`).
+    geopandas.GeoDataFrame or duckdb.DuckDBPyRelation or str
 
     Raises
     ------
     ValueError
-        If `vectorfile_format` is not supported.
+        If `vectorfile_format` or `engine` is not supported; GeoParquet only:
+        if `borders` cannot be filtered by `filter_by`, or if some values are
+        not found.
     OSError
-        If the file of one of the values cannot be downloaded.
-    ValueError
-        GeoParquet only: if `borders` cannot be filtered by `filter_by`, or if
-        some values are not found.
+        If a file cannot be found.
 
     Examples
     --------
@@ -376,19 +437,22 @@ def carti_download(
     ...     year=2022,
     ... )
 
-    Communes of two regions, as GeoParquet:
+    Communes of two regions, kept in DuckDB:
 
-    >>> gdf = carti_download(
+    >>> rel = carti_download(
     ...     values=["11", "84"],
     ...     borders="COMMUNE",
     ...     filter_by="REGION",
-    ...     vectorfile_format="parquet",
     ...     year=2025,
+    ...     engine="duckdb",
     ... )
+    >>> rel.aggregate("INSEE_REG, sum(POPULATION)")  # doctest: +SKIP
     """
-    vectorfile_format = standardize_format(vectorfile_format)
+    if engine not in ENGINES:
+        raise ValueError(f"engine must be one of {ENGINES}, not {engine!r}")
     if not year:
         year = datetime.now(timezone.utc).year
+    vectorfile_format = choose_format(vectorfile_format, year, force)
     if isinstance(values, (str, int, float)):
         values = [values]
 
@@ -404,25 +468,14 @@ def carti_download(
         "simplification": simplification,
         "filename": filename,
     }
+    con = connect(con)
     if vectorfile_format == "parquet":
-        gdf = read_consolidated(get_s3_filesystem(), values, filter_by, **path_kwargs)
+        relation = read_parquet(con, values, filter_by, **path_kwargs)
     else:
-        with get_session() as session:
-            gdf = pd.concat(
-                [
-                    download_single(
-                        session,
-                        value,
-                        vectorfile_format,
-                        filter_by=filter_by,
-                        territory=territory,
-                        **path_kwargs,
-                    )
-                    for value in values
-                ],
-                ignore_index=True,
-            )
+        urls = geojson_urls(values, filter_by, territory=territory, **path_kwargs)
+        relation = read_geojson(con, urls)
 
-    if return_as_json:
-        return gdf.to_json()
-    return gdf
+    if engine == "duckdb" and not return_as_json:
+        return relation
+    gdf = to_geopandas(relation, crs)
+    return gdf.to_json() if return_as_json else gdf

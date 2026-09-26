@@ -98,7 +98,7 @@ cd /tmp/cartiflette && uv run --project $REPO python $REPO/argo-pipeline/src/spl
 # GeoParquet consolidé : même principe avec consolidate.py
 cd /tmp/cartiflette && uv run --project $REPO python $REPO/argo-pipeline/src/consolidate.py \
   --year 2026 --inputs $DATA \
-  --level_polygons REGION --geometry FRANCE_ENTIERE --simplification 50 --crs 4326 \
+  --level_polygons REGION --layout FRANCE_ENTIERE --simplification 50 --crs 4326 \
   --path test/v0.2.0
 ```
 

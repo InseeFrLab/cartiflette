@@ -5,8 +5,8 @@ Production pipeline: the functions called by the Argo workflow steps.
 2. GeoJSON, one file per value of a split level:
    `combinations` lists the (level, filter_by, simplification, crs) jobs,
    `split_and_upload` runs one of them.
-3. GeoParquet, one consolidated file per level and geometry, filtered when
-   read: `consolidated_combinations` lists the (level, geometry,
+3. GeoParquet, one consolidated file per level and layout, filtered when
+   read: `consolidated_combinations` lists the (level, layout,
    simplification, crs) jobs, `consolidate_and_upload` runs one of them.
 """
 
@@ -87,21 +87,21 @@ def consolidated_combinations(
     return [
         {
             "level_polygons": level,
-            "geometry": geometry,
+            "layout": layout,
             "simplification": simplification,
             "crs": crs,
         }
         for level in SPLITS
         if levels is None or level in levels
-        for geometry in config.GEOMETRIES
+        for layout in config.LAYOUTS
         for simplification in simplifications
         for crs in crs_list
     ]
 
 
-def filter_levels(level_polygons: str, geometry: str) -> list[str]:
-    """Levels a consolidated file of `geometry` can be filtered by."""
-    if geometry == DROM_RAPPROCHES:
+def filter_levels(level_polygons: str, layout: str) -> list[str]:
+    """Levels a consolidated file of `layout` can be filtered by."""
+    if layout == DROM_RAPPROCHES:
         return [DROM_RAPPROCHES]
     return [x for x in SPLITS[level_polygons] if x != DROM_RAPPROCHES]
 
@@ -206,7 +206,7 @@ def process_consolidated(
     inputs_dir: str,
     work_dir: str,
     level_polygons: str,
-    geometry: str,
+    layout: str,
     simplification: float,
     crs: int,
 ) -> str:
@@ -215,13 +215,13 @@ def process_consolidated(
     Returns its path.
     """
     fields = _read_fields(inputs_dir)
-    levels = filter_levels(level_polygons, geometry)
+    levels = filter_levels(level_polygons, layout)
     polygons = _prepare_polygons(
         inputs_dir,
         work_dir,
         level_polygons,
         levels,
-        geometry == DROM_RAPPROCHES,
+        layout == DROM_RAPPROCHES,
         fields,
     )
     geojson = mapshaper.finalize(
@@ -388,7 +388,7 @@ def consolidate_and_upload(
     inputs_dir: str,
     work_dir: str,
     level_polygons: str,
-    geometry: str,
+    layout: str,
     simplification: float,
     crs: int,
     fs: s3fs.S3FileSystem,
@@ -399,7 +399,7 @@ def consolidate_and_upload(
     check_write_target(bucket, path_within_bucket)
 
     parquet = process_consolidated(
-        inputs_dir, work_dir, level_polygons, geometry, simplification, crs
+        inputs_dir, work_dir, level_polygons, layout, simplification, crs
     )
     remote = create_path_consolidated(
         bucket=bucket,
@@ -410,7 +410,7 @@ def consolidate_and_upload(
         year=year,
         borders=level_polygons,
         crs=crs,
-        geometry=geometry,
+        layout=layout,
         simplification=simplification,
     )
     uploaded = upload(parquet, remote, fs)

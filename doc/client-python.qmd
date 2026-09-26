@@ -4,10 +4,12 @@ title: "Client Python"
 
 Le client `cartiflette` publié sur [PyPI](https://pypi.org/project/cartiflette/)
 lit en HTTPS les fichiers que le pipeline a écrits dans
-`projet-cartiflette/production`, puis les renvoie sous forme de
-`geopandas.GeoDataFrame`. Son code est dans `python-package/cartiflette/`, avec
-son propre `pyproject.toml`, son `uv.lock` et ses tests. Il n'importe rien du
-pipeline.
+`projet-cartiflette/production`. **Tout le traitement se fait avec DuckDB** ; le
+résultat est converti en `geopandas.GeoDataFrame` à la fin (par défaut), ou rendu
+tel quel sous forme de relation DuckDB. Son code est dans
+`python-package/cartiflette/`, avec son propre `pyproject.toml`, son `uv.lock` et
+ses tests. Il n'importe rien du pipeline. Il demande Python 3.10 ou plus et
+DuckDB 1.5 ou plus.
 
 La liste complète des fonctions est dans la [référence de l'API](reference/index.qmd),
 générée depuis les docstrings par [quartodoc](https://machow.github.io/quartodoc/).
@@ -21,7 +23,7 @@ pip install cartiflette
 ```python
 from cartiflette import carti_download
 
-# Départements, DROM rapprochés de la métropole
+# Départements, DROM rapprochés de la métropole (GeoDataFrame)
 france = carti_download(
     values=["France"],
     borders="DEPARTEMENT",
@@ -30,31 +32,59 @@ france = carti_download(
     year=2025,
 )
 
-# Communes de deux régions, en GeoParquet
+# Communes de deux régions, gardées dans DuckDB pour continuer en SQL
 communes = carti_download(
     values=["11", "84"],
     borders="COMMUNE",
     filter_by="REGION",
-    vectorfile_format="parquet",
     year=2025,
+    engine="duckdb",
 )
+communes.aggregate("INSEE_REG, sum(POPULATION)")
 ```
 
-En `geojson`, `carti_download` construit un chemin par valeur avec
-`create_path_bucket`, télécharge les fichiers en HTTPS (avec cache) et les concatène.
+### Moteur : `engine`
 
-En `parquet`, il ouvre **un seul fichier** par niveau (`create_path_consolidated`),
-via l'API S3 en anonyme (pyarrow), lit la métadonnée `cartiflette:filter_columns`
-pour savoir quelle colonne correspond à `filter_by`, lit **cette seule colonne**,
-puis ne télécharge que les groupes de lignes qui contiennent les valeurs demandées
-([`select_row_groups`](reference/client.select_row_groups.qmd)). Sur le fichier
-des communes 2025 (35 Mo, 18 groupes), un département, un bassin de vie ou une zone
-d'emploi coûtent environ 2 Mo, une région 2 à 7 Mo. Les statistiques min/max du
-Parquet ne suffiraient pas : elles ne sont sélectives que sur la première variable
-de tri (un département ferait lire plus de la moitié du fichier). Le fichier contient toute
-la France : pour lire tout un niveau, `filter_by="FRANCE_ENTIERE"` et
-`values="France"`. Une erreur est levée si une valeur n'existe pas ou si le niveau
-ne peut pas être filtré ainsi (ex. des régions par département).
+- `"geopandas"` (défaut) : renvoie un `GeoDataFrame`. La lecture et le filtrage sont
+  faits par DuckDB, la conversion n'a lieu qu'à la fin
+  ([`to_geopandas`](reference/client.to_geopandas.qmd)).
+- `"duckdb"` : renvoie la relation DuckDB, pas encore évaluée, avec une colonne
+  `geometry` de type `GEOMETRY`. Le paramètre `con` permet d'utiliser sa propre
+  connexion (par exemple pour joindre le résultat à d'autres tables) ; par défaut,
+  une connexion en mémoire est partagée par tous les appels.
+
+### Format : `vectorfile_format`
+
+Les deux formats ne s'utilisent pas de la même façon :
+
+- **GeoJSON** : un fichier par valeur de `filter_by`. Le client construit la liste des
+  liens ([`geojson_urls`](reference/client.geojson_urls.qmd), avec
+  `create_path_bucket`) et DuckDB les lit ensemble
+  ([`read_geojson`](reference/client.read_geojson.qmd), `read_json`).
+- **GeoParquet** : **un seul fichier** par niveau (`create_path_consolidated`), qui
+  contient toute la France. Le client lit la métadonnée `cartiflette:filter_columns`
+  pour savoir quelle colonne correspond à `filter_by`, puis ajoute un `WHERE`
+  ([`read_parquet`](reference/client.read_parquet.qmd)). DuckDB ne télécharge que
+  les groupes de lignes utiles, grâce au tri du fichier, à ses statistiques et à
+  ses filtres de Bloom : sur le fichier des communes 2025 (35 Mo), un département,
+  un bassin de vie ou une zone d'emploi coûtent environ 2 Mo, une région 2 à 7 Mo.
+  Une erreur est levée si une valeur n'existe pas ou si le niveau ne peut pas être
+  filtré ainsi (ex. des régions par département).
+
+**Le GeoParquet est lu dès qu'il existe** (à partir de 2025,
+[`choose_format`](reference/client.choose_format.qmd)), même si `vectorfile_format="geojson"`
+est demandé : un avertissement l'indique. Il est aussi rapide que le GeoJSON pour une
+petite requête et bien plus rapide pour une grosse. Pour lire quand même le GeoJSON,
+passer `force=True` (un avertissement rappelle que le GeoParquet est plus rapide).
+Avant 2025, seul le GeoJSON existe et il est lu sans avertissement.
+Mesures depuis le SSPCloud, millésime 2025, simplification 50 :
+
+| Requête | GeoParquet | GeoJSON |
+|---|---|---|
+| Communes d'un département | 0,2–0,3 s | 0,1 s |
+| Communes d'une région (84) | 0,5 s | 1,1 s |
+| Départements, DROM rapprochés | 0,4 s | 0,8 s |
+| Toutes les communes | 2,2 s | 16 s |
 
 ### Combinaisons disponibles
 
@@ -72,20 +102,21 @@ d'un territoire (`"metropole"`, `"guadeloupe"`…) ou `"France"`.
 
 ### Formats et millésimes
 
-- À partir de 2025 : `geojson` et `parquet` (alias accepté : `geoparquet`).
-- Avant 2025 : `geojson` seulement. Ces fichiers ont été produits par l'ancien
-  pipeline et ne sont plus régénérés.
+- À partir de 2025 : `geojson` et `parquet` (alias accepté : `geoparquet`) ;
+  le client lit le `parquet`, sauf `vectorfile_format="geojson"` avec `force=True`.
+- Avant 2025 : `geojson` seulement (`auto` choisit `geojson`). Ces fichiers ont été
+  produits par l'ancien pipeline et ne sont plus régénérés.
 - Codes de région : `1`, `"1"` et `"01"` sont acceptés. Le client essaie `REGION=01`
   (fichiers depuis 2025) puis `REGION=1` (fichiers plus anciens), voir
   [`value_candidates`](reference/utils.value_candidates.qmd).
 
-### Cache et proxy
+### Extensions DuckDB et proxy
 
-Les réponses sont mises en cache 30 jours dans le répertoire de cache de
-l'utilisateur (`platformdirs.user_cache_dir("cartiflette")`, fichier
-`cartiflette_http_cache.sqlite`). Pour forcer un nouveau téléchargement, il
-suffit de supprimer ce fichier. Derrière un proxy, définir les variables
-d'environnement `http_proxy` et `https_proxy`.
+Au premier appel, DuckDB télécharge ses extensions `httpfs` et `spatial` (depuis
+`extensions.duckdb.org`) et les garde dans `~/.duckdb`. Derrière un proxy, définir
+la variable d'environnement `https_proxy`, transmise à DuckDB. Il n'y a plus de cache
+persistant des fichiers téléchargés : le GeoParquet ne rapatrie que ce qui est
+demandé.
 
 ### Lire une sortie de test
 

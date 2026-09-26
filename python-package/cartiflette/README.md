@@ -39,19 +39,22 @@ data = carti_download(
 )
 ```
 
-À partir du millésime 2025, les fonds de carte sont disponibles aux formats `geojson` et `parquet` (GeoParquet). Les millésimes antérieurs restent disponibles en `geojson`. En `parquet`, chaque niveau est stocké dans un seul fichier que le client lit partiellement : seules les parties correspondant aux valeurs demandées sont téléchargées.
+À partir du millésime 2025, les fonds de carte sont disponibles aux formats `geojson` et `parquet` (GeoParquet). Le client lit le GeoParquet dès qu'il existe, même si `vectorfile_format="geojson"` est demandé (un avertissement l'indique ; `force=True` permet de lire quand même le GeoJSON). Chaque niveau y est stocké dans un seul fichier que DuckDB lit partiellement : seules les parties correspondant aux valeurs demandées sont téléchargées. Les millésimes antérieurs restent disponibles en `geojson`.
+
+Toute la lecture est faite avec DuckDB. Avec `engine="duckdb"`, le résultat reste une relation DuckDB, pour continuer en SQL sans passer par geopandas :
 
 ``` python
-data = carti_download(
-    values=["11"],
+communes = carti_download(
+    values=["11", "84"],
     borders="COMMUNE",
     filter_by="REGION",
-    vectorfile_format="parquet",
     year=2025,
+    engine="duckdb",
 )
+communes.aggregate("INSEE_REG, sum(POPULATION)")
 ```
 
-Si besoin de passer par un proxy, il faut déclarer http_proxy et https_proxy en variable d'environnement. Par exemple :
+Si besoin de passer par un proxy, il faut déclarer https_proxy en variable d'environnement (il est transmis à DuckDB). Par exemple :
 ``` python
 import os
 

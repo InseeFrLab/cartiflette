@@ -65,7 +65,7 @@ spec:
               - name: crs
                 value: "{{item.crs}}"
             withParam: "{{tasks.list-jobs.outputs.result}}"
-          # STEP 3b: GEOPARQUET, ONE JOB PER (LEVEL, GEOMETRY, SIMPLIFICATION, CRS)
+          # STEP 3b: GEOPARQUET, ONE JOB PER (LEVEL, LAYOUT, SIMPLIFICATION, CRS)
           - name: consolidate
             template: consolidate
             dependencies: [ list-parquet-jobs ]
@@ -73,8 +73,8 @@ spec:
               parameters:
               - name: level_polygons
                 value: "{{item.level-polygons}}"
-              - name: geometry
-                value: "{{item.geometry}}"
+              - name: layout
+                value: "{{item.layout}}"
               - name: simplification
                 value: "{{item.simplification}}"
               - name: crs
@@ -160,7 +160,7 @@ spec:
       inputs:
         parameters:
         - name: level_polygons
-        - name: geometry
+        - name: layout
         - name: simplification
         - name: crs
       container:
@@ -171,7 +171,7 @@ spec:
           --year {{workflow.parameters.year}} \
           --inputs $LOCAL_DATA_PATH \
           --level_polygons {{inputs.parameters.level_polygons}} \
-          --geometry {{inputs.parameters.geometry}} \
+          --layout {{inputs.parameters.layout}} \
           --simplification {{inputs.parameters.simplification}} \
           --crs {{inputs.parameters.crs}}"
         ]

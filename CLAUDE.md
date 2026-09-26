@@ -3,7 +3,7 @@
 Two separate things live in this repo:
 
 - `cartiflette/` + `argo-pipeline/`: the **production pipeline** (dist name `cartiflette-pipeline`, not on PyPI). It fetches IGN and Insee sources, processes them with mapshaper and DuckDB, and writes GeoJSON and GeoParquet files to S3 (MinIO, SSPCloud).
-- `python-package/cartiflette/`: the **client** published on PyPI as `cartiflette`. It reads those files over HTTPS. It has its own `pyproject.toml`, `uv.lock` and tests.
+- `python-package/cartiflette/`: the **client** published on PyPI as `cartiflette`. It reads those files over HTTPS with DuckDB (GeoJSON: `read_json` over the list of per-value links; GeoParquet: one link filtered in SQL), and converts to geopandas only at the end (`engine="geopandas"`, default) or returns the DuckDB relation (`engine="duckdb"`). GeoParquet is read whenever it exists (from 2025 onwards), even when GeoJSON is requested, with a warning; GeoJSON is only read before 2025 or with `force=True` (also with a warning). It has its own `pyproject.toml`, `uv.lock` and tests; Python >= 3.10, DuckDB >= 1.5.
 
 The only contract between the two is the S3 layout. Paths are built by `cartiflette/paths.py` and by `python-package/cartiflette/cartiflette/utils.py` (`create_path_bucket` for GeoJSON, `create_path_consolidated` for GeoParquet), which must stay identical. Both test suites pin the same expected strings. The `cartiflette:filter_columns` metadata of the GeoParquet files is part of the contract too.
 
@@ -30,10 +30,10 @@ The only contract between the two is the S3 layout. Paths are built by `cartifle
 - **Rate limit.** The Géoplateforme allows 1 request per second, so `cartiflette/http.py` retries on 429.
 - **Field names.** v4 renamed every field (`code_insee`, `population`…). `prepare.py` maps them back to the historical names (`ID`, `NOM`, `INSEE_COM`, `STATUT`, `POPULATION`, `AREA`) so that the published attributes stay stable.
 - **Insee TAGC.** `table-appartenance-geo-communes-{year}.zip`, with the header on row 6. Zoning field vintages change over time (`BV2012` became `BV2022`), so they are resolved at runtime into `fields.json`, never hard-coded.
-- **Territories.** Metropole and the 5 DROM. Saint-Pierre-et-Miquelon (`code_insee_du_departement = 'NR'`) is excluded.
+- **Territories.** Metropole and the 5 DROM. Saint-Pierre-et-Miquelon (`code_insee_du_departement = 'NR'`) is excluded. `mapshaper.dissolve` groups by code **and** territory (`AREA`): some codes span territories (AAV2020 `000`, communes outside any attraction area), and one feature over metropole + DROM breaks `bring_drom_closer`.
 - **Formats.** GeoJSON and GeoParquet only, with two different layouts:
   - GeoJSON: one file per value of the split level (`{FILTER_BY}={value}` in the path), as before.
-  - GeoParquet: one consolidated file per (year, level, crs, simplification, `geometry`), where `geometry` is `FRANCE_ENTIERE` or `FRANCE_ENTIERE_DROM_RAPPROCHES` (DROM moved, IDF zoom: different geometries, so a separate file). Rows are sorted by `pipeline.sort_levels` (communes: region, departement, living area, commune; departements: region, departement; zonings: territory, code) in row groups of 2048 rows (DuckDB minimum), with a `bbox` column declared as GeoParquet 1.1 covering. The metadata key `cartiflette:filter_columns` maps each usable `filter_by` to its column (e.g. `BASSIN_VIE` -> `BV2022`). The client reads anonymously through the S3 API (pyarrow), in two steps: the filter column only, then the row groups holding the requested values (`client.select_row_groups`). Don't rely on min/max statistics: they only prune on the first sort column (a departement read ~10 of the 18 commune row groups).
+  - GeoParquet: one consolidated file per (year, level, crs, simplification, `layout`), where `layout` is `FRANCE_ENTIERE` or `FRANCE_ENTIERE_DROM_RAPPROCHES` (DROM moved, IDF zoom: different geometries, so a separate file). Never name a path segment after a column (the segment was `geometry=` at first): DuckDB and pyarrow read `key=value` segments as hive partitions, which shadowed the geometry column. Rows are sorted by `pipeline.sort_levels` (communes: region, departement, living area, commune; departements: region, departement; zonings: territory, code) in row groups of 2048 rows (DuckDB minimum), with a `bbox` column declared as GeoParquet 1.1 covering. The metadata key `cartiflette:filter_columns` maps each usable `filter_by` to its column (e.g. `BASSIN_VIE` -> `BV2022`). The client filters it with a SQL `WHERE` in DuckDB (`read_parquet(..., hive_partitioning = false)`), which only downloads the needed row groups thanks to the sort, the statistics and the bloom filters DuckDB writes (measured: ~2 MB for a departement out of 35 MB).
   - DuckDB writes the GeoParquet: the `geo` metadata is rewritten by `pipeline.to_consolidated_parquet` (version 1.1.0 + covering) with `GEOPARQUET_VERSION NONE`; keep the CRS as PROJJSON, geopandas ignores a plain `OGC:CRS84` string.
 - **mapshaper.** Pinned at **0.6.59** (Docker, CI). Keep it.
 - **Historical path labels.** Kept for client compatibility: `source=EXPRESS-COG-CARTO-TERRITOIRE`, `territory=metropole` for every file, `filename=raw`.
@@ -50,6 +50,7 @@ The only contract between the two is the S3 layout. Paths are built by `cartifle
 ```bash
 uv run pytest tests                                   # pipeline, no S3; mapshaper tests skipped if not on PATH
 cd python-package/cartiflette && uv run pytest tests  # client; the `network` test reads a production file (read-only)
+cd python-package/cartiflette && uv run pytest -m integration  # website use cases on published files (read-only); CARTIFLETTE_TEST_PATH / CARTIFLETTE_TEST_YEARS
 ```
 
 - mapshaper is not installed system-wide on the dev machine. Install it locally with `npm install mapshaper@0.6.59` in a scratch directory and prepend its `node_modules/.bin` to `PATH`.

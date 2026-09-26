@@ -74,16 +74,15 @@ quartodoc:
         - utils.value_candidates
     - title: Fonctions internes
       desc: >
-        Téléchargement et lecture d'un fichier GeoJSON (session HTTP avec cache),
-        lecture partielle d'un GeoParquet consolidé (API S3 anonyme).
+        Choix du format, lecture avec DuckDB (liste de liens GeoJSON, GeoParquet
+        filtré en SQL) et conversion finale en GeoDataFrame.
       contents:
-        - client.download_single
-        - client.read_file
-        - client.get_session
-        - client.read_consolidated
-        - client.select_row_groups
-        - client.to_geodataframe
-        - client.get_s3_filesystem
+        - client.choose_format
+        - client.connect
+        - client.geojson_urls
+        - client.read_geojson
+        - client.read_parquet
+        - client.to_geopandas
 
 format:
   html:

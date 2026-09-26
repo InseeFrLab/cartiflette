@@ -27,9 +27,9 @@ argo submit argo-pipeline/pipeline.yaml \
    polygones, niveau de découpage, simplification, projection), `mapshaper` agrège les
    communes, rapproche éventuellement les DROM, simplifie et découpe en un fichier par valeur.
 4. `consolidate` ([src/consolidate.py](src/consolidate.py)) : GeoParquet. Pour chaque
-   combinaison (niveau des polygones, géométrie, simplification, projection), un seul
+   combinaison (niveau des polygones, disposition, simplification, projection), un seul
    fichier contenant tous les polygones du niveau, trié et découpé en petits groupes de
-   lignes, que les clients filtrent à la lecture. La géométrie vaut `FRANCE_ENTIERE` ou
+   lignes, que les clients filtrent à la lecture. La disposition (`layout`) vaut `FRANCE_ENTIERE` ou
    `FRANCE_ENTIERE_DROM_RAPPROCHES` (DROM rapprochés et zoom sur l'Île-de-France).
 
 Seules les éditions 4-0 d'ADMIN EXPRESS (2025 et après) sont prises en charge.

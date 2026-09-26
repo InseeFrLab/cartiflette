@@ -13,7 +13,7 @@ title: "Les parties du projet"
 | Dossier | `cartiflette/` + `argo-pipeline/` | `python-package/cartiflette/` |
 | Nom de distribution | `cartiflette-pipeline` (non publié) | `cartiflette` sur PyPI |
 | Rôle | fabriquer les fonds de carte et les écrire sur S3 | lire ces fichiers en HTTPS et renvoyer un `GeoDataFrame` |
-| Dépendances clés | DuckDB 1.5.5, mapshaper 0.6.59 (Node), s3fs, py7zr | geopandas, requests-cache |
+| Dépendances clés | DuckDB 1.5.5, mapshaper 0.6.59 (Node), s3fs, py7zr | DuckDB (≥ 1.5), geopandas, pyarrow |
 | `pyproject.toml` / `uv.lock` | à la racine | dans `python-package/cartiflette/` |
 | Tests | `tests/` | `python-package/cartiflette/tests/` |
 | Où ça tourne | pods Argo sur le SSPCloud (image Docker) | poste de l'utilisateur |
@@ -57,13 +57,13 @@ un seul fichier par niveau, que le client filtre à la lecture.
   /year={année}
   /administrative_level={niveau des polygones}      ex. COMMUNE
   /crs={EPSG}                                       4326
-  /geometry={FRANCE_ENTIERE|FRANCE_ENTIERE_DROM_RAPPROCHES}
+  /layout={FRANCE_ENTIERE|FRANCE_ENTIERE_DROM_RAPPROCHES}
   /vectorfile_format=parquet
   /simplification={0|50}
   /raw.parquet
 ```
 
-`geometry=FRANCE_ENTIERE_DROM_RAPPROCHES` est à part parce que ses géométries
+`layout=FRANCE_ENTIERE_DROM_RAPPROCHES` est à part parce que ses géométries
 diffèrent (DROM déplacés, zoom sur l'Île-de-France). Dans chaque fichier :
 
 - les lignes sont triées (`pipeline.sort_levels`) en groupes de 2 048 lignes, pour que
@@ -117,7 +117,7 @@ Cela permet de rendre le  développement du projet plus simple mais reste robust
 
 | Module | Rôle | Fonctions principales |
 |---|---|---|
-| `config.py` | emplacements de lecture et d'écriture, libellés historiques, géométries et taille des groupes de lignes du GeoParquet | constantes `WRITE_BUCKET`, `WRITE_PATH`, `ALLOW_PRODUCTION_WRITE`, `GEOMETRIES`, `ROW_GROUP_SIZE` |
+| `config.py` | emplacements de lecture et d'écriture, libellés historiques, dispositions (`LAYOUTS`) et taille des groupes de lignes du GeoParquet | constantes `WRITE_BUCKET`, `WRITE_PATH`, `ALLOW_PRODUCTION_WRITE`, `LAYOUTS`, `ROW_GROUP_SIZE` |
 | `http.py` | session HTTP avec relances (429, 5xx), téléchargement vérifié par `Content-Length` | `get_session`, `download_file` |
 | `ign.py` | lecture du catalogue Atom de la Géoplateforme, choix de l'édition, téléchargement des couches en GeoParquet (ou GPKG converti) | `list_editions`, `select_edition`, `list_files`, `fetch_layers`, `gpkg_to_parquet` |
 | `insee.py` | téléchargement de la TAGC et conversion xlsx → parquet | `fetch_tagc`, `tagc_to_parquet` |
@@ -171,7 +171,7 @@ autorisés), de `SIMPLIFICATIONS = [0, 50]` et de `CRS = [4326]`, soit
 
 ### Étape 3 bis — `consolidate_and_upload` (un job GeoParquet)
 
-`consolidated_combinations` liste **32 jobs** : 8 niveaux × 2 géométries × 2 simplifications.
+`consolidated_combinations` liste **32 jobs** : 8 niveaux × 2 dispositions (`layout`) × 2 simplifications.
 Pour chacun :
 
 1. `check_write_target`, comme pour le GeoJSON ;

@@ -28,7 +28,15 @@ uvx vulture cartiflette argo-pipeline/src --min-confidence 80
 ```
 
 La CI (`check.yml`) installe mapshaper 0.6.59 et lance les deux suites à chaque
-push. Un `skipped` en local n'est donc pas un `passed` : installer mapshaper
+push. Les tests d'intégration, eux, se lancent à la main après une écriture en test
+(ils lisent `test/v0.2.0` pour 2025 et 2026, et la production pour 2022) :
+
+```bash
+cd python-package/cartiflette
+uv run pytest -m integration
+CARTIFLETTE_TEST_PATH=test/v0.3.0 CARTIFLETTE_TEST_YEARS=2026 uv run pytest -m integration
+```
+ Un `skipped` en local n'est donc pas un `passed` : installer mapshaper
 (voir [02, prérequis](02-lancer-le-pipeline.qmd#prerequis)) avant de conclure.
 
 ### Ce que couvrent les tests
@@ -40,9 +48,10 @@ push. Un `skipped` en local n'est donc pas un `passed` : installer mapshaper
 | `pipeline` | `tests/test_pipeline.py` | nombre de jobs (74 GeoJSON, 32 GeoParquet), refus de la production **avant** traitement, `process` et `process_consolidated` sur 3 communes synthétiques (métadonnées `geo` 1.1.0 et `cartiflette:filter_columns`, `bbox`, tri) | mapshaper pour `test_process*` |
 | `paths`, `s3` | `tests/test_paths_and_s3.py` | chaîne de chemin exacte (contrat), cible par défaut ≠ production, refus de la production, `upload` sans toucher S3 (système de fichiers simulé) | — |
 | client | `python-package/.../tests/test_client.py` | mêmes chaînes de chemin, formats, concaténation GeoJSON, repli `REGION=01 → 1`, lecture filtrée d'un GeoParquet consolidé (stockage local simulé), erreurs (filtre impossible, valeur absente, année sans GeoParquet), lecture d'un fichier de production | réseau pour `network` |
+| intégration | `python-package/.../tests/test_integration.py` | cas d'usage du site cartiflette sur les fichiers publiés : communes avec arrondissements de la petite couronne (dissolve, jointure spatiale, `INSEE_COG`), Lyon et Marseille, départements DROM rapprochés (jointure sur `INSEE_DEP`, `POPULATION`), cartes France entière des niveaux de la page d'accueil (avec ou sans DROM rapprochés, simplification 0 et 50, emprises), communes de départements, métadonnées, moteur DuckDB | réseau ; lancé seulement avec `-m integration` |
 
 Ce que les tests **ne couvrent pas** : le vrai schéma des sources IGN et Insee
-de l'année, `bring_drom_closer` (positions des DROM), le volume réel des
+de l'année, le volume réel des
 données et le workflow Argo. Ces points se vérifient à la marche 3.
 
 ## 3. Vérifier une brique à la main, en local

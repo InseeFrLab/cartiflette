@@ -12,7 +12,7 @@ parser = argparse.ArgumentParser(description="Consolidate and upload one job")
 parser.add_argument("--year", type=int, required=True)
 parser.add_argument("--inputs", type=str, required=True, help="Prepared inputs dir")
 parser.add_argument("--level_polygons", type=str, required=True)
-parser.add_argument("--geometry", type=str, required=True, choices=config.GEOMETRIES)
+parser.add_argument("--layout", type=str, required=True, choices=config.LAYOUTS)
 parser.add_argument("--simplification", type=float, required=True)
 parser.add_argument("--crs", type=int, required=True)
 parser.add_argument(
@@ -28,10 +28,10 @@ if __name__ == "__main__":
         inputs_dir=args.inputs,
         work_dir=os.path.join(
             "work",
-            f"{args.level_polygons}_{args.geometry}_{args.simplification}_{args.crs}",
+            f"{args.level_polygons}_{args.layout}_{args.simplification}_{args.crs}",
         ),
         level_polygons=args.level_polygons,
-        geometry=args.geometry,
+        layout=args.layout,
         simplification=args.simplification,
         crs=args.crs,
         fs=get_fs(),

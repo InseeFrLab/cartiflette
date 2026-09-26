@@ -84,11 +84,11 @@ def test_create_path_consolidated_layout():
         year=2025,
         borders="COMMUNE",
         crs=4326,
-        geometry="FRANCE_ENTIERE_DROM_RAPPROCHES",
+        layout="FRANCE_ENTIERE_DROM_RAPPROCHES",
         simplification=50.0,
     ) == (
         "projet-cartiflette/production/provider=IGN/dataset_family=ADMINEXPRESS/"
         "source=EXPRESS-COG-CARTO-TERRITOIRE/year=2025/administrative_level=COMMUNE/"
-        "crs=4326/geometry=FRANCE_ENTIERE_DROM_RAPPROCHES/vectorfile_format=parquet/"
+        "crs=4326/layout=FRANCE_ENTIERE_DROM_RAPPROCHES/vectorfile_format=parquet/"
         "simplification=50/raw.parquet"
     )

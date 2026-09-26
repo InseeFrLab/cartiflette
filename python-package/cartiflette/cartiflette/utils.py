@@ -172,7 +172,7 @@ def create_path_consolidated(
     year: int | str,
     borders: str,
     crs: int | str,
-    geometry: str,
+    layout: str,
     simplification: float | None = 0,
     filename: str = "raw",
     bucket: str = BUCKET,
@@ -190,9 +190,11 @@ def create_path_consolidated(
     provider, dataset_family, source, year, borders, crs, simplification,
     filename, bucket, path_within_bucket :
         See `create_path_bucket`.
-    geometry : str
+    layout : str
         "FRANCE_ENTIERE" (true positions) or "FRANCE_ENTIERE_DROM_RAPPROCHES"
         (DROM moved next to metropolitan France, Ile-de-France zoomed in).
+        The path segment is not named "geometry": tools reading the path as
+        hive partitions would shadow the geometry column.
 
     Returns
     -------
@@ -204,10 +206,10 @@ def create_path_consolidated(
     >>> create_path_consolidated(
     ...     provider="IGN", dataset_family="ADMINEXPRESS",
     ...     source="EXPRESS-COG-CARTO-TERRITOIRE", year=2025,
-    ...     borders="COMMUNE", crs=4326, geometry="FRANCE_ENTIERE",
+    ...     borders="COMMUNE", crs=4326, layout="FRANCE_ENTIERE",
     ...     simplification=50,
     ... )  # doctest: +ELLIPSIS
-    'projet-cartiflette/production/.../geometry=FRANCE_ENTIERE/vectorfile_format=parquet/simplification=50/raw.parquet'
+    'projet-cartiflette/production/.../layout=FRANCE_ENTIERE/vectorfile_format=parquet/simplification=50/raw.parquet'
     """
     simplification = int(simplification or 0)
     return (
@@ -218,7 +220,7 @@ def create_path_consolidated(
         f"/year={year}"
         f"/administrative_level={borders}"
         f"/crs={crs}"
-        f"/geometry={geometry}"
+        f"/layout={layout}"
         f"/vectorfile_format=parquet"
         f"/simplification={simplification}"
         f"/{filename}.parquet"

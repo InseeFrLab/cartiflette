@@ -78,15 +78,22 @@ def dissolve(
     """
     Dissolve communes into `level`, summing populations and keeping the
     fields of `level` and of each of `keep_levels` (and their labels).
+
+    Communes of different territories are never merged: the dissolve is by
+    the code of `level` and the territory (AREA). Otherwise a code spanning
+    several territories (e.g. AAV2020 "000", communes outside any
+    attraction area) makes one feature covering metropolitan France and the
+    DROM, which `bring_drom_closer` cannot move.
     """
+    keys = [fields[level], LEVEL_FIELDS["TERRITOIRE"]]
     levels = [level, *keep_levels]
     copy_fields = [fields[x] for x in levels]
     copy_fields += [LABEL_FIELDS[x] for x in levels if x in LABEL_FIELDS]
-    copy_fields = list(dict.fromkeys(copy_fields))
+    copy_fields = [x for x in dict.fromkeys(copy_fields) if x not in keys]
     run(
         input_path,
         "-dissolve",
-        fields[level],
+        ",".join(dict.fromkeys(keys)),
         "calc=POPULATION=sum(POPULATION)",
         f"copy-fields={','.join(copy_fields)}",
         "-o",
