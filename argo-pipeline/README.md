@@ -14,6 +14,11 @@ argo submit argo-pipeline/pipeline.yaml \
   -p revision=main
 ```
 
+> [!IMPORTANT]
+> **Seules les années de `years` sont produites.** Sans `-p years=...`, le workflow
+> ne produit que **2025**. Toujours passer la liste explicitement, au format JSON
+> (`'["2026"]'`, `'["2022", "2023", "2024", "2025", "2026"]'`…).
+
 | Paramètre | Défaut | Sens |
 |---|---|---|
 | `years` | `["2025"]` | millésimes à produire (liste JSON), traités en parallèle |

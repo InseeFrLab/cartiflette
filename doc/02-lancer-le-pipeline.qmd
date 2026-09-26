@@ -145,6 +145,21 @@ dépendances viennent de `image`.
 
 ### Lancer
 
+::: {.callout-important}
+## Quelles années sont produites ?
+
+**Uniquement celles de `years`.** Sans `-p years=...`, le workflow ne produit
+que **2025** (valeur par défaut du YAML). Toujours passer la liste explicitement,
+au format JSON :
+
+- jeu complet : `-p years='["2022", "2023", "2024", "2025", "2026"]'` ;
+- un seul millésime : `-p years='["2026"]'`.
+
+Les années de la liste tournent en parallèle, au plus 20 pods à la fois pour
+l'ensemble. Millésimes pris en charge : 2021 et après (éditions IGN 3-x à partir
+de 2021, 4-0 à partir de 2025).
+:::
+
 Il faut un service du SSPCloud avec les droits Kubernetes du projet
 `projet-cartiflette` (rôle admin) et la CLI `argo`, en version compatible avec
 le serveur Argo du SSPCloud.
