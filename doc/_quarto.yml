@@ -8,28 +8,106 @@ project:
 lang: fr
 
 website:
-  title: "cartiflette — reprise"
+  title: "cartiflette"
+  description: "Documentation de reprise du projet cartiflette"
+  favicon: images/logo.png
+  back-to-top-navigation: true
+  bread-crumbs: true
+  reader-mode: true
   repo-url: https://github.com/InseeFrLab/cartiflette
   repo-subdir: doc
   repo-actions: [edit, issue]
   page-navigation: true
+  navbar:
+    logo: images/logo.png
+    title: "cartiflette"
+    left:
+      - text: "Reprise du projet"
+        href: index.qmd
+      - text: "Client Python"
+        href: client-python.qmd
+      - text: "API"
+        href: reference/index.qmd
+    tools:
+      - icon: github
+        href: https://github.com/InseeFrLab/cartiflette
+        aria-label: GitHub
+  search:
+    location: navbar
+    type: overlay
   sidebar:
-    style: docked
-    search: true
+    style: floating
+    collapse-level: 1
     contents:
       - index.qmd
       - 01-architecture.qmd
       - 02-lancer-le-pipeline.qmd
       - 03-verifier-et-faire-evoluer.qmd
+      - section: "Client Python"
+        contents:
+          - client-python.qmd
+          - text: "Référence de l'API"
+            href: reference/index.qmd
+
+# API reference of the PyPI client, generated from its docstrings.
+# Build with the client environment (see client-python.qmd).
+quartodoc:
+  package: cartiflette
+  source_dir: ../python-package/cartiflette
+  dir: reference
+  title: "Référence de l'API"
+  parser: numpy
+  render_interlinks: false
+  sections:
+    - title: Téléchargement
+      desc: Point d'entrée du client, exporté par `cartiflette`.
+      contents:
+        - carti_download
+    - title: Chemins et formats
+      desc: >
+        Construction des chemins S3 (contrat partagé avec le pipeline,
+        `cartiflette/paths.py`) et normalisation des paramètres.
+      contents:
+        - utils.create_path_bucket
+        - utils.standardize_format
+        - utils.value_candidates
+    - title: Fonctions internes
+      desc: Téléchargement et lecture d'un fichier, session HTTP avec cache.
+      contents:
+        - client.download_single
+        - client.read_file
+        - client.get_session
 
 format:
   html:
     theme:
-      light: cosmo
-      dark: darkly
+      light: [cosmo, brand]
+      dark: [darkly, brand]
+    # Warm "gratin" palette, taken from the logo
+    brand:
+      color:
+        palette:
+          gratin: "#B4540A"
+          creme: "#FFF8EC"
+        primary: gratin
+      typography:
+        link:
+          decoration: none
     toc: true
     toc-depth: 3
+    toc-title: "Sur cette page"
     number-sections: false
     code-copy: true
     code-overflow: wrap
+    code-block-bg: true
+    code-block-border-left: "#B4540A"
+    highlight-style:
+      light: github
+      dark: github-dark
     anchor-sections: true
+    callout-appearance: simple
+    smooth-scroll: true
+    link-external-icon: true
+    link-external-newwindow: true
+    fig-align: center
+    lightbox: auto

@@ -31,7 +31,7 @@ Le code est écrit sous forme de fonctions, chaque module correspondant à une �
 
 ## Tests
 
-```shell
+```bash
 uv run pytest tests                                   # pipeline (mapshaper requis pour certains tests)
 cd python-package/cartiflette && uv run pytest tests  # client
 ```

@@ -2,6 +2,8 @@
 title: "Lancer le pipeline"
 ---
 
+<br>
+
 Il y a trois façons de lancer le pipeline, de la moins risquée à la plus risquée :
 
 | Mode | Écrit sur S3 ? | Usage |
@@ -21,8 +23,7 @@ Le garde-fou du code est décrit ci-dessous.
 
 ## Prérequis {#prerequis}
 
-```shell
-# Dépendances du pipeline (Python ≥ 3.10)
+```python
 uv sync
 
 # mapshaper 0.6.59 (Node), si absent du PATH : installation locale hors du dépôt
@@ -40,8 +41,9 @@ Sur Argo, elles viennent du secret Kubernetes `sa-cartiflette`.
 C'est le mode à utiliser d'abord. Il lit les sources publiques de l'IGN et de
 l'Insee et n'écrit que sur le disque.
 
-```shell
-DATA=/tmp/cartiflette/2026        # hors du dépôt
+```bash
+# hors du dépôt
+DATA=/tmp/cartiflette/2026        
 YEAR=2026
 
 # Étape 1 : télécharge et prépare (quelques minutes, plusieurs centaines de Mo)
@@ -55,7 +57,7 @@ uv run python argo-pipeline/src/crossproduct.py --restrictfield REGION
 Pour l'étape 3 sans envoi sur S3, appeler directement `pipeline.process`, la
 partie de `split_and_upload` qui ne fait que les traitements :
 
-```shell
+```bash
 uv run python -c "
 from cartiflette.pipeline import process
 files = process('$DATA', '/tmp/cartiflette/work', 'REGION', 'FRANCE_ENTIERE_DROM_RAPPROCHES', 50, 4326)
@@ -75,7 +77,7 @@ les contrôles à faire.
 (voir `cartiflette/config.py`). Il crée un dossier de travail `work/` dans le
 répertoire courant : le lancer depuis un dossier temporaire.
 
-```shell
+```bash
 # ⚠ écrit sur S3 (espace de test)
 REPO=$(pwd)
 cd /tmp/cartiflette && uv run --project $REPO python $REPO/argo-pipeline/src/split.py \
@@ -120,7 +122,7 @@ Il faut un service du SSPCloud avec les droits Kubernetes du projet
 `projet-cartiflette` (rôle admin) et la CLI `argo`, en version compatible avec
 le serveur Argo du SSPCloud.
 
-```shell
+```bash
 # ⚠ écrit sur S3 (espace de test). Une branche de travail, un préfixe neuf.
 argo submit argo-pipeline/pipeline.yaml \
   -p year=2026 \
@@ -131,7 +133,7 @@ argo submit argo-pipeline/pipeline.yaml \
 
 Suivi et reprise :
 
-```shell
+```bash
 argo list                          # workflows du namespace
 argo get @latest                   # état de chaque étape
 argo logs @latest -f               # logs de tous les pods
@@ -163,7 +165,7 @@ monte la version (voir [plus bas](#versions)).
 3. Autoriser l'écriture en production **dans une copie locale** du workflow, qu'on
    ne commite pas. Le YAML versionné ne contient volontairement pas cette variable.
 
-```shell
+```bash
 cp argo-pipeline/pipeline.yaml /tmp/pipeline-prod.yaml
 # Dans /tmp/pipeline-prod.yaml, ajouter sous `env: &env_parameters` :
 #   - name: CARTIFLETTE_ALLOW_PRODUCTION_WRITE

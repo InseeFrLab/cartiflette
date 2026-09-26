@@ -12,7 +12,7 @@ de test : elle se décide explicitement. La marche 6 est la publication.
 
 ## 1–2. Tests automatiques
 
-```shell
+```bash
 # Pipeline : hors ligne, jamais d'écriture S3.
 # Les tests mapshaper sont ignorés (« skipped ») si mapshaper n'est pas dans le PATH.
 uv run pytest tests
@@ -50,14 +50,14 @@ données et le workflow Argo. Ces points se vérifient à la marche 3.
 Toutes les commandes ci-dessous lisent les sources publiques et écrivent
 uniquement sur le disque. On suppose :
 
-```shell
+```bash
 YEAR=2026
 DATA=/tmp/cartiflette/$YEAR
 ```
 
 ### Catalogue IGN : l'édition existe-t-elle ?
 
-```shell
+```bash
 uv run python -c "
 from cartiflette import ign
 from cartiflette.http import get_session
@@ -74,7 +74,7 @@ On attend `ADMIN-EXPRESS-COG-CARTO_4-0__GEOPARQUET_WGS84G_FRA_$YEAR-01-01`
 
 ### TAGC Insee : le fichier est-il publié ?
 
-```shell
+```bash
 curl -sI -o /dev/null -w "%{http_code}\n" \
   "https://www.insee.fr/fr/statistiques/fichier/7671844/table-appartenance-geo-communes-$YEAR.zip"
 ```
@@ -85,7 +85,7 @@ jour `insee.TAGC_URL`.
 
 ### Préparation : schéma des sources et sorties de `prepare_year`
 
-```shell
+```bash
 uv run python argo-pipeline/src/prepare.py --year $YEAR --localpath $DATA
 ```
 
@@ -93,7 +93,7 @@ Si la préparation échoue sur un champ inconnu, comparer le schéma reçu avec
 les champs attendus par `prepare.communes_query` et
 `prepare.communes_arrondissement_query` :
 
-```shell
+```bash
 uv run python -c "
 import duckdb
 for layer in ['commune', 'arrondissement_municipal', 'departement', 'region']:
@@ -112,7 +112,7 @@ Champs TAGC utilisés : `CODGEO`, `LIBGEO`, `DEP`, `REG`, et les zonages `BVxxxx
 Puis contrôler le contenu. Toujours ouvrir le GeoJSON avec `threads = 1`
 (voir [pièges DuckDB](01-architecture.qmd#pieges-duckdb)) :
 
-```shell
+```bash
 uv run python -c "
 import duckdb
 con = duckdb.connect()
@@ -135,7 +135,7 @@ Points à contrôler :
 
 ### Traitements mapshaper : un job, sans S3
 
-```shell
+```bash
 uv run python -c "
 from cartiflette.pipeline import process
 for f in process('$DATA', '/tmp/cartiflette/work', 'DEPARTEMENT', 'REGION', 50, 4326):
@@ -162,7 +162,7 @@ ouvrir `France.geojson` sur <https://mapshaper.org> ou dans QGIS.
 
 ### Conversion GeoParquet
 
-```shell
+```bash
 uv run python -c "
 import duckdb
 from cartiflette.pipeline import geojson_to_parquet

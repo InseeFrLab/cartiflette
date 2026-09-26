@@ -44,7 +44,7 @@ The only contract between the two is the S3 path layout. It is built by `cartifl
 
 ## Commands
 
-```shell
+```bash
 uv run pytest tests                                   # pipeline, no S3; mapshaper tests skipped if not on PATH
 cd python-package/cartiflette && uv run pytest tests  # client; the `network` test reads a production file (read-only)
 ```

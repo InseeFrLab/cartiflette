@@ -1,0 +1,116 @@
+---
+title: "Client Python"
+---
+
+Le client `cartiflette` publié sur [PyPI](https://pypi.org/project/cartiflette/)
+lit en HTTPS les fichiers que le pipeline a écrits dans
+`projet-cartiflette/production`, puis les renvoie sous forme de
+`geopandas.GeoDataFrame`. Son code est dans `python-package/cartiflette/`, avec
+son propre `pyproject.toml`, son `uv.lock` et ses tests. Il n'importe rien du
+pipeline.
+
+La liste complète des fonctions est dans la [référence de l'API](reference/index.qmd),
+générée depuis les docstrings par [quartodoc](https://machow.github.io/quartodoc/).
+
+## Utilisation
+
+```bash
+pip install cartiflette
+```
+
+```python
+from cartiflette import carti_download
+
+# Départements, DROM rapprochés de la métropole
+france = carti_download(
+    values=["France"],
+    borders="DEPARTEMENT",
+    filter_by="FRANCE_ENTIERE_DROM_RAPPROCHES",
+    simplification=50,
+    year=2025,
+)
+
+# Communes de deux régions, en GeoParquet
+communes = carti_download(
+    values=["11", "84"],
+    borders="COMMUNE",
+    filter_by="REGION",
+    vectorfile_format="parquet",
+    year=2025,
+)
+```
+
+`carti_download` construit un chemin par valeur avec `create_path_bucket`,
+télécharge les fichiers et les concatène.
+
+### Combinaisons disponibles
+
+Elles correspondent à `SPLITS` dans `cartiflette/pipeline.py`. Chaque
+combinaison existe avec `simplification` 0 et 50, en `crs=4326`.
+
+| `borders` (polygones) | `filter_by` (découpage) |
+|---|---|
+| `COMMUNE`, `COMMUNE_ARRONDISSEMENT` | `BASSIN_VIE`, `ZONE_EMPLOI`, `UNITE_URBAINE`, `AIRE_ATTRACTION_VILLES`, `DEPARTEMENT`, `REGION`, `TERRITOIRE`, `FRANCE_ENTIERE`, `FRANCE_ENTIERE_DROM_RAPPROCHES` |
+| `DEPARTEMENT` | `REGION`, `TERRITOIRE`, `FRANCE_ENTIERE`, `FRANCE_ENTIERE_DROM_RAPPROCHES` |
+| `REGION`, `BASSIN_VIE`, `ZONE_EMPLOI`, `UNITE_URBAINE`, `AIRE_ATTRACTION_VILLES` | `TERRITOIRE`, `FRANCE_ENTIERE`, `FRANCE_ENTIERE_DROM_RAPPROCHES` |
+
+Valeurs de `values` selon le découpage : un code Insee (`"75"`, `"11"`), le nom
+d'un territoire (`"metropole"`, `"guadeloupe"`…) ou `"France"`.
+
+### Formats et millésimes
+
+- À partir de 2025 : `geojson` et `parquet` (alias accepté : `geoparquet`).
+- Avant 2025 : `geojson` seulement. Ces fichiers ont été produits par l'ancien
+  pipeline et ne sont plus régénérés.
+- Codes de région : `1`, `"1"` et `"01"` sont acceptés. Le client essaie `REGION=01`
+  (fichiers depuis 2025) puis `REGION=1` (fichiers plus anciens), voir
+  [`value_candidates`](reference/utils.value_candidates.qmd).
+
+### Cache et proxy
+
+Les réponses sont mises en cache 30 jours dans le répertoire de cache de
+l'utilisateur (`platformdirs.user_cache_dir("cartiflette")`, fichier
+`cartiflette_http_cache.sqlite`). Pour forcer un nouveau téléchargement, il
+suffit de supprimer ce fichier. Derrière un proxy, définir les variables
+d'environnement `http_proxy` et `https_proxy`.
+
+### Lire une sortie de test
+
+Les paramètres `bucket` et `path_within_bucket` permettent de lire un autre
+emplacement que la production. C'est utile pour relire une exécution du pipeline
+écrite dans l'espace de test (voir
+[Vérifier et faire évoluer](03-verifier-et-faire-evoluer.qmd#relire-test)) :
+
+```python
+carti_download(values="11", borders="DEPARTEMENT", filter_by="REGION",
+               year=2026, path_within_bucket="test/v0.2.0")
+```
+
+## Développer le client
+
+```bash
+cd python-package/cartiflette
+uv run pytest tests                   # tests `network` : lecture seule en production
+uv run pytest tests -m "not network"  # hors ligne
+```
+
+- `create_path_bucket` doit rester **identique** à `cartiflette/paths.py` dans le
+  pipeline (voir [Les parties du projet](01-architecture.qmd)). Les deux suites
+  de tests fixent la même chaîne attendue.
+- Docstrings au format numpydoc : elles alimentent la référence de l'API.
+- Publication : monter `version` dans `python-package/cartiflette/pyproject.toml`,
+  puis pousser un tag `v*`. Le workflow `pypi.yml` construit et publie le paquet
+  (voir [Versions, images et publication](02-lancer-le-pipeline.qmd#versions)).
+
+## Construire cette documentation
+
+La référence de l'API est générée par quartodoc, installé dans le groupe de
+dépendances `docs` du client. Il faut la régénérer avant de construire le site :
+
+```bash
+cd doc
+uv run --project ../python-package/cartiflette --group docs quartodoc build
+quarto render      # ou quarto preview
+```
+
+Les pages générées (`doc/reference/`, `doc/objects.json`) ne sont pas versionnées.

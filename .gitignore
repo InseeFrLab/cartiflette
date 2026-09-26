@@ -139,3 +139,5 @@ dmypy.json
 # Quarto documentation site
 doc/_site/
 doc/.quarto/
+doc/reference/
+doc/objects.json

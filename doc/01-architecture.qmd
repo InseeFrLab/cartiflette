@@ -78,11 +78,12 @@ production mais ne sont **pas** régénérables avec le code actuel.
 
 [Source Excalidraw : diagrams/flux-donnees.excalidraw](diagrams/flux-donnees.excalidraw){.small}
 
-Le code est **fonctionnel** : des fonctions et des dictionnaires, pas de
-classes. L'ancienne version objet (`Dataset`, `Layer`, `MasterScraper`) a été
-retirée volontairement. Les chemins, le système de fichiers `fs` et les cibles
-d'écriture sont passés explicitement, et aucun module n'a d'effet de bord à
-l'import.
+::: {.callout-tip}
+Le code source de ce projet privilégie la programmation fonctionnelle plutôt que la programmation orientée object. 
+
+Cela permet de rendre le  développement du projet plus simple mais reste robuste en cloisonnant les fonctions à un objectif unique. 
+
+:::
 
 | Module | Rôle | Fonctions principales |
 |---|---|---|

@@ -7,7 +7,7 @@ pour fonctionner.
 Pour le lancer, dans un service ayant des droits admin
 de Kubernetes :
 
-```shell
+```bash
 argo submit argo-pipeline/pipeline.yaml \
   -p year=2025 \
   -p path=test/v0.2.0 \
