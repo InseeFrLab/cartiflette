@@ -1,6 +1,5 @@
 from unittest import mock
 
-import duckdb
 import pytest
 
 from cartiflette import ign, insee, prepare
@@ -47,8 +46,7 @@ def test_select_edition_missing_year():
 def test_shapefile_to_parquet(tmp_path):
     """Layers of the editions 3-x get the field names of the edition 4-0."""
     shp = str(tmp_path / "COMMUNE.shp")
-    with duckdb.connect() as con:
-        con.execute("LOAD spatial")
+    with prepare.connect() as con:
         con.execute(
             "COPY (SELECT * FROM (VALUES "
             "('COMMUNE_1', 'Paris', 'PARIS', '75056', 'Capitale d''état', 2165423, "
