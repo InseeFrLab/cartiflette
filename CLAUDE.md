@@ -56,3 +56,7 @@ cd python-package/cartiflette && uv run pytest -m integration  # website use cas
 
 - mapshaper is not installed system-wide on the dev machine. Install it locally with `npm install mapshaper@0.6.59` in a scratch directory and prepend its `node_modules/.bin` to `PATH`.
 - Commit or push only when asked. Work on a branch, not on `main`: `main` is the revision the Argo workflow clones by default.
+
+## Restrictions and safeguards
+
+* Do not commit and push unless **explicitly** asked. 
