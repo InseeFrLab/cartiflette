@@ -18,7 +18,7 @@ argo submit argo-pipeline/pipeline.yaml \
 |---|---|---|
 | `years` | `["2025"]` | millésimes à produire (liste JSON), traités en parallèle |
 | `path` | `test/v0.2.0` | préfixe d'écriture dans le bucket |
-| `allow_production_write` | `no` | `i-know-what-i-am-doing` pour autoriser `path=production` |
+| `allow_production_write` | `false` | `true` pour autoriser `path=production` |
 | `revision` | `main` | branche, tag ou commit dont le code Python est utilisé |
 | `image` | `inseefrlab/cartiflette:v0.2.0` | image Docker (mapshaper, DuckDB, dépendances) |
 
@@ -26,7 +26,7 @@ argo submit argo-pipeline/pipeline.yaml \
 
 0. `check-target` ([src/check_target.py](src/check_target.py)) : clone le code sur le
    volume partagé et vérifie la cible d'écriture. Échoue avant tout téléchargement si
-   `path` est la production sans `allow_production_write`.
+   `path` est la production sans `allow_production_write=true`.
 
 Puis, pour chaque millésime de `years` (sous-DAG `year`, données dans `/mnt/data/<année>`) :
 
@@ -55,8 +55,8 @@ Les éditions 3-x (2021 à 2024, shapefile) et 4-0 (2025 et après) sont prises 
 Le chemin d'écriture est le paramètre `path` du _workflow_ (`test/v<version>` par défaut, un dossier neuf par version pour ne pas écraser les tests précédents).
 Le code refuse d'écrire sous `projet-cartiflette/production`, lu par les clients,
 sauf si la variable d'environnement `CARTIFLETTE_ALLOW_PRODUCTION_WRITE` vaut
-`i-know-what-i-am-doing`. Le _workflow_ la renseigne avec le paramètre
-`allow_production_write` (`no` par défaut), à ne passer qu'en ligne de commande pour
+`true`. Le _workflow_ la renseigne avec le paramètre
+`allow_production_write` (`false` par défaut), à ne passer qu'en ligne de commande pour
 une publication décidée, jamais à modifier dans le YAML versionné
 (`tests/test_argo.py` le vérifie).
 

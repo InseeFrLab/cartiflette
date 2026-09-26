@@ -95,7 +95,7 @@ MinIO du SSPCloud (`https://minio.lab.sspcloud.fr`), bucket `projet-cartiflette`
 
 | Préfixe | Qui écrit | Qui lit |
 |---|---|---|
-| `production/` | le pipeline, **uniquement** avec `CARTIFLETTE_ALLOW_PRODUCTION_WRITE=i-know-what-i-am-doing` | tous les clients, en direct (HTTPS public) |
+| `production/` | le pipeline, **uniquement** avec `CARTIFLETTE_ALLOW_PRODUCTION_WRITE=true` | tous les clients, en direct (HTTPS public) |
 | `test/v<version>/` | le pipeline, par défaut | vous, pour vérifier |
 | `test/` (racine) | personne : contient d'anciens essais, ne pas écrire à sa racine | — |
 

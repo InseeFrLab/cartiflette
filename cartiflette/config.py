@@ -21,10 +21,11 @@ PRODUCTION_PATH = "production"
 WRITE_BUCKET = os.environ.get("CARTIFLETTE_WRITE_BUCKET", PRODUCTION_BUCKET)
 WRITE_PATH = os.environ.get("CARTIFLETTE_WRITE_PATH", f"test/v{__version__}")
 
-# Writing to the production prefix requires this variable to be set to
-# exactly this value; anything else raises before any upload.
+# Writing to the production prefix requires this variable to be "true";
+# anything else (unset, "false"...) raises before any upload.
 ALLOW_PRODUCTION_WRITE = (
-    os.environ.get("CARTIFLETTE_ALLOW_PRODUCTION_WRITE") == "i-know-what-i-am-doing"
+    os.environ.get("CARTIFLETTE_ALLOW_PRODUCTION_WRITE", "false").strip().lower()
+    == "true"
 )
 
 # Label used in the S3 paths and in the SOURCE field of the outputs. The

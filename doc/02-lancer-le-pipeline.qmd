@@ -115,7 +115,7 @@ cd /tmp/cartiflette && uv run --project $REPO python $REPO/argo-pipeline/src/con
 
 0. `check-target` clone le dépôt GitHub à la révision `revision` dans `/mnt/bin`
    (volume partagé `volume-workflow-tmp`, 20 Gi) et vérifie la cible d'écriture :
-   `path=production` sans `allow_production_write` échoue ici, avant tout
+   `path=production` sans `allow_production_write=true` échoue ici, avant tout
    téléchargement ;
 
 puis, pour chaque millésime de `years`, en parallèle (sous-DAG `year`) :
@@ -136,7 +136,7 @@ Paramètres du workflow :
 |---|---|---|
 | `years` | `["2025"]` | millésimes ADMIN EXPRESS et TAGC à produire, liste JSON (2021 et après) |
 | `path` | `test/v0.2.0` | préfixe d'écriture dans le bucket (transmis en `CARTIFLETTE_WRITE_PATH`) |
-| `allow_production_write` | `no` | transmis en `CARTIFLETTE_ALLOW_PRODUCTION_WRITE` ; voir [C](#mode-production) |
+| `allow_production_write` | `false` | transmis en `CARTIFLETTE_ALLOW_PRODUCTION_WRITE` ; voir [C](#mode-production) |
 | `revision` | `main` | branche, tag ou commit dont le **code Python** est utilisé |
 | `image` | `inseefrlab/cartiflette:v0.2.0` | image Docker : mapshaper, DuckDB et dépendances Python |
 
@@ -193,19 +193,19 @@ monte la version (voir [plus bas](#versions)).
    sur `main` ou un tag `v*`).
 3. Soumettre depuis `main` (ou un tag), jamais depuis une branche non fusionnée,
    en autorisant l'écriture **en ligne de commande**. Le YAML versionné garde
-   `allow_production_write: "no"` (vérifié par `tests/test_argo.py`).
+   `allow_production_write: "false"` (vérifié par `tests/test_argo.py`).
 
 ```bash
 # ⚠⚠ écrit dans projet-cartiflette/production, lu par tous les clients
 argo submit argo-pipeline/pipeline.yaml \
   -p years='["2026"]' \
   -p path=production \
-  -p allow_production_write=i-know-what-i-am-doing \
+  -p allow_production_write=true \
   -p revision=main \
   --watch
 ```
 
-Sans `allow_production_write`, l'étape `check-target` échoue avec
+Sans `allow_production_write=true`, l'étape `check-target` échoue avec
 `PermissionError` et rien n'est téléchargé ni écrit.
 
 4. Relire quelques fichiers avec le client publié (`carti_download(...)` sans

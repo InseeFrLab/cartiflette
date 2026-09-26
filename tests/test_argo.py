@@ -22,7 +22,7 @@ TEMPLATES = {t["name"]: t for t in WORKFLOW["spec"]["templates"]}
 
 def test_defaults_write_to_test_location():
     assert PARAMETERS["path"] == f"test/v{__version__}"
-    assert PARAMETERS["allow_production_write"] == "no"
+    assert PARAMETERS["allow_production_write"] == "false"
 
 
 def test_image_matches_pipeline_version():
@@ -52,10 +52,11 @@ def test_target_checked_before_anything_else():
 @pytest.mark.parametrize(
     "path, allow, ok",
     [
-        ("test/v0.2.0", "no", True),
-        ("production", "no", False),
+        ("test/v0.2.0", "false", True),
+        ("production", "false", False),
         ("production/", "yes", False),
-        ("production", "i-know-what-i-am-doing", True),
+        ("production", "true", True),
+        ("production", "True", True),
     ],
 )
 def test_check_target_script(path, allow, ok):

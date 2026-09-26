@@ -15,13 +15,14 @@ spec:
       - name: years
         value: '["2025"]'
       # Chemin d'écriture dans le bucket. Le code refuse d'écrire sous
-      # "production" sauf si allow_production_write vaut la valeur attendue.
+      # "production" sauf si allow_production_write vaut "true".
       - name: path
         value: "test/v0.2.0"
-      # Écriture en production : laisser "no". Pour publier, passer
-      # -p allow_production_write=i-know-what-i-am-doing -p path=production
+      # Écriture en production : laisser "false". Pour publier, passer
+      # -p allow_production_write=true -p path=production
       - name: allow_production_write
-        value: "no"
+        value: "false"
+        enum: ["false", "true"]
       # Branche, tag ou commit Git dont le code Python est utilisé
       - name: revision
         value: "main"

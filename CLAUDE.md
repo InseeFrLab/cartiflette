@@ -10,7 +10,7 @@ The only contract between the two is the S3 layout. Paths are built by `cartifle
 ## S3 safety: never write to production
 
 - `projet-cartiflette/production` is read live by the Python, R and JS clients. Never write there.
-- All writes go through `cartiflette/s3.py::upload`. It raises unless `CARTIFLETTE_ALLOW_PRODUCTION_WRITE=i-know-what-i-am-doing` is set. Don't bypass it: no direct `fs.put*` and no `mc` commands.
+- All writes go through `cartiflette/s3.py::upload`. It raises unless `CARTIFLETTE_ALLOW_PRODUCTION_WRITE=true` is set. Don't bypass it: no direct `fs.put*` and no `mc` commands.
 - The default write target is `projet-cartiflette/test/v<version>` (a fresh prefix per version: `test/` already holds files from earlier tests, never write at its root), overridable with `CARTIFLETTE_WRITE_BUCKET` and `CARTIFLETTE_WRITE_PATH`.
 - Reading published files over public HTTPS is fine.
 - Ask before running anything that writes to S3, even to the test location.
@@ -24,7 +24,7 @@ The only contract between the two is the S3 layout. Paths are built by `cartifle
 
 ## Pipeline
 
-`prepare_year` → `combinations` → `split_and_upload` (see `cartiflette/pipeline.py`). The Argo steps are in `argo-pipeline/src/`. The workflow (`argo-pipeline/pipeline.yaml`) runs `check-target` first, then one sub-DAG per year of the `years` JSON list. Writing to production takes `-p path=production -p allow_production_write=i-know-what-i-am-doing` on the command line; the versioned YAML keeps `allow_production_write: "no"` and `path: test/v<version>`, and `tests/test_argo.py` pins this.
+`prepare_year` → `combinations` → `split_and_upload` (see `cartiflette/pipeline.py`). The Argo steps are in `argo-pipeline/src/`. The workflow (`argo-pipeline/pipeline.yaml`) runs `check-target` first, then one sub-DAG per year of the `years` JSON list. Writing to production takes `-p path=production -p allow_production_write=true` on the command line; the versioned YAML keeps `allow_production_write: "false"` and `path: test/v<version>`, and `tests/test_argo.py` pins this.
 
 - **IGN source.** ADMIN EXPRESS COG CARTO, "France entière" (`FRA`) WGS84. The catalogue is an Atom feed at `https://data.geopf.fr/chunk/telechargement/resource/ADMIN-EXPRESS-COG-CARTO`. Editions 4-0: GeoParquet from 2026, GPKG only for 2025. Editions 3-x (2021-2024): shapefile only, one `.7z` with one file per layer; `ign.shapefile_to_parquet` renames their fields to the 4-0 names (`ign.SHAPEFILE_LAYERS`), so everything after `fetch_layers` is edition-agnostic.
 - **Published years.** In production, only 2022 is published before 2025 (GeoJSON, former pipeline); 2021, 2023 and 2024 only hold an intermediate `preprocessed=before_cog` file that no client reads. Regenerating 2022 in production would replace files read live: it is a decision of its own.
