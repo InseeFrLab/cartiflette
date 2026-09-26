@@ -5,7 +5,7 @@ Two separate things live in this repo:
 - `cartiflette/` + `argo-pipeline/`: the **production pipeline** (dist name `cartiflette-pipeline`, not on PyPI). It fetches IGN and Insee sources, processes them with mapshaper and DuckDB, and writes GeoJSON and GeoParquet files to S3 (MinIO, SSPCloud).
 - `python-package/cartiflette/`: the **client** published on PyPI as `cartiflette`. It reads those files over HTTPS. It has its own `pyproject.toml`, `uv.lock` and tests.
 
-The only contract between the two is the S3 path layout. It is built by `cartiflette/paths.py` and by `python-package/cartiflette/cartiflette/utils.py::create_path_bucket`, which must stay identical. Both test suites pin the same expected string.
+The only contract between the two is the S3 layout. Paths are built by `cartiflette/paths.py` and by `python-package/cartiflette/cartiflette/utils.py` (`create_path_bucket` for GeoJSON, `create_path_consolidated` for GeoParquet), which must stay identical. Both test suites pin the same expected strings. The `cartiflette:filter_columns` metadata of the GeoParquet files is part of the contract too.
 
 ## S3 safety: never write to production
 
@@ -31,13 +31,16 @@ The only contract between the two is the S3 path layout. It is built by `cartifl
 - **Field names.** v4 renamed every field (`code_insee`, `population`…). `prepare.py` maps them back to the historical names (`ID`, `NOM`, `INSEE_COM`, `STATUT`, `POPULATION`, `AREA`) so that the published attributes stay stable.
 - **Insee TAGC.** `table-appartenance-geo-communes-{year}.zip`, with the header on row 6. Zoning field vintages change over time (`BV2012` became `BV2022`), so they are resolved at runtime into `fields.json`, never hard-coded.
 - **Territories.** Metropole and the 5 DROM. Saint-Pierre-et-Miquelon (`code_insee_du_departement = 'NR'`) is excluded.
-- **Formats.** GeoJSON and GeoParquet only. DuckDB converts mapshaper's GeoJSON output to parquet, with the geometry column named `geometry`.
+- **Formats.** GeoJSON and GeoParquet only, with two different layouts:
+  - GeoJSON: one file per value of the split level (`{FILTER_BY}={value}` in the path), as before.
+  - GeoParquet: one consolidated file per (year, level, crs, simplification, `geometry`), where `geometry` is `FRANCE_ENTIERE` or `FRANCE_ENTIERE_DROM_RAPPROCHES` (DROM moved, IDF zoom: different geometries, so a separate file). Rows are sorted by `pipeline.sort_levels` (communes: region, departement, living area, commune; departements: region, departement; zonings: territory, code) in row groups of 2048 rows (DuckDB minimum), with a `bbox` column declared as GeoParquet 1.1 covering. The metadata key `cartiflette:filter_columns` maps each usable `filter_by` to its column (e.g. `BASSIN_VIE` -> `BV2022`). The client reads anonymously through the S3 API (pyarrow), in two steps: the filter column only, then the row groups holding the requested values (`client.select_row_groups`). Don't rely on min/max statistics: they only prune on the first sort column (a departement read ~10 of the 18 commune row groups).
+  - DuckDB writes the GeoParquet: the `geo` metadata is rewritten by `pipeline.to_consolidated_parquet` (version 1.1.0 + covering) with `GEOPARQUET_VERSION NONE`; keep the CRS as PROJJSON, geopandas ignores a plain `OGC:CRS84` string.
 - **mapshaper.** Pinned at **0.6.59** (Docker, CI). Keep it.
 - **Historical path labels.** Kept for client compatibility: `source=EXPRESS-COG-CARTO-TERRITOIRE`, `territory=metropole` for every file, `filename=raw`.
 
 ## DuckDB 1.5.5 pitfalls
 
-- `ST_Read` (GDAL) with several threads randomly corrupts memory: segfaults, "Unsupported geometry type in WKB". Always run it with `SET threads = 1` in its own connection (see `ign.gpkg_to_parquet`, `pipeline.geojson_to_parquet`).
+- `ST_Read` (GDAL) with several threads randomly corrupts memory: segfaults, "Unsupported geometry type in WKB". Always run it with `SET threads = 1` in its own connection (see `ign.gpkg_to_parquet`, `pipeline.to_consolidated_parquet`).
 - Do not load the `excel` extension in a connection that does spatial work. The TAGC xlsx is converted to parquet in a separate connection (`insee.tagc_to_parquet`).
 - Run `LOAD spatial` before `SET geometry_always_xy = true`, and set it so that coordinates stay lon/lat.
 - Run `SET enable_progress_bar = false`, otherwise logs are flooded.

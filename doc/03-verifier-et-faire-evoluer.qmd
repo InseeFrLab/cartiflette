@@ -37,9 +37,9 @@ push. Un `skipped` en local n'est donc pas un `passed` : installer mapshaper
 |---|---|---|---|
 | `ign` | `tests/test_ign.py` | analyse des noms d'édition, préférence GeoParquet > GPKG, année absente, pagination Atom (réponses HTTP simulées) | — |
 | `prepare` | `tests/test_prepare.py` | requêtes DuckDB sur de petites tables qui imitent l'IGN 4-0 et la TAGC : renommage des champs, exclusion de SPM, arrondissements PLM, jointure TAGC, écriture GeoJSON, détection des zonages | — |
-| `pipeline` | `tests/test_pipeline.py` | nombre de jobs (74), refus de la production **avant** traitement, `process` sur 3 communes synthétiques, conversion parquet (`geometry`, `SOURCE`) | mapshaper pour `test_process` |
+| `pipeline` | `tests/test_pipeline.py` | nombre de jobs (74 GeoJSON, 32 GeoParquet), refus de la production **avant** traitement, `process` et `process_consolidated` sur 3 communes synthétiques (métadonnées `geo` 1.1.0 et `cartiflette:filter_columns`, `bbox`, tri) | mapshaper pour `test_process*` |
 | `paths`, `s3` | `tests/test_paths_and_s3.py` | chaîne de chemin exacte (contrat), cible par défaut ≠ production, refus de la production, `upload` sans toucher S3 (système de fichiers simulé) | — |
-| client | `python-package/.../tests/test_client.py` | même chaîne de chemin, formats, concaténation, repli `REGION=01 → 1`, lecture d'un fichier de production | réseau pour `network` |
+| client | `python-package/.../tests/test_client.py` | mêmes chaînes de chemin, formats, concaténation GeoJSON, repli `REGION=01 → 1`, lecture filtrée d'un GeoParquet consolidé (stockage local simulé), erreurs (filtre impossible, valeur absente, année sans GeoParquet), lecture d'un fichier de production | réseau pour `network` |
 
 Ce que les tests **ne couvrent pas** : le vrai schéma des sources IGN et Insee
 de l'année, `bring_drom_closer` (positions des DROM), le volume réel des
@@ -164,15 +164,20 @@ ouvrir `France.geojson` sur <https://mapshaper.org> ou dans QGIS.
 
 ```bash
 uv run python -c "
-import duckdb
-from cartiflette.pipeline import geojson_to_parquet
-p = geojson_to_parquet('/tmp/cartiflette/work/split/11.geojson', '/tmp/cartiflette/11.parquet')
-print(duckdb.sql(f\"DESCRIBE '{p}'\"))
+import json, pyarrow.parquet as pq
+from cartiflette.pipeline import process_consolidated
+p = process_consolidated('/tmp/cartiflette', '/tmp/cartiflette/work_parquet', 'DEPARTEMENT', 'FRANCE_ENTIERE', 50, 4326)
+f = pq.ParquetFile(p)
+print(f.metadata.num_rows, 'lignes,', f.metadata.num_row_groups, 'groupes de lignes')
+print(f.schema_arrow.names)
+print(f.schema_arrow.metadata[b'cartiflette:filter_columns'])
+print(json.loads(f.schema_arrow.metadata[b'geo'])['version'])
 "
 ```
 
-On attend une colonne `geometry` (et pas `geom` ni `OGC_FID`), les champs
-historiques et `SOURCE`.
+On attend 101 lignes, une colonne `geometry` (et pas `geom` ni `OGC_FID`), une
+colonne `bbox`, les champs historiques, `SOURCE`, la version `1.1.0` et les filtres
+`REGION`, `TERRITOIRE`, `FRANCE_ENTIERE`.
 
 ## 4–5. Relire une sortie publiée en test {#relire-test}
 
@@ -253,16 +258,20 @@ Exemple : ajouter les EPCI.
    entrée dans `mapshaper.IDF_ZOOM`**, sinon `bring_drom_closer` lève un `KeyError`.
 4. Libellé éventuel dans `mapshaper.LABEL_FIELDS`.
 5. Tests : mettre à jour le nombre de jobs dans `test_combinations` (74 aujourd'hui)
-   et ajouter un cas à `test_process`.
+   et `test_consolidated_combinations` (32), et ajouter un cas à `test_process`.
 6. Client : compléter la docstring de `carti_download` (liste des `borders` et `filter_by`).
 7. Marche 3 sur le nouveau niveau, dont un contrôle visuel.
 
 ### Ajouter un format de sortie
 
-1. `config.OUTPUT_FORMATS`.
-2. Dans `pipeline.split_and_upload`, produire le fichier local correspondant (dictionnaire `local`).
-3. Client : `utils.FORMATS` et `client.read_file`.
-4. Tests des deux côtés (`test_standardize_format`, un test de conversion côté pipeline).
+Les deux formats actuels ont chacun leur étape : `split_and_upload` pour le GeoJSON
+(un fichier par valeur), `consolidate_and_upload` pour le GeoParquet (un fichier par niveau).
+
+1. Choisir l'organisation (par valeur ou consolidée) et produire le fichier dans l'étape
+   correspondante, avec sa fonction de chemin dans `paths.py` et son pendant côté client.
+2. Client : `utils.FORMATS`, et la lecture dans `client.py` (`read_file` ou `read_consolidated`).
+3. Argo : une liste de jobs et un _fan-out_ si c'est une nouvelle étape.
+4. Tests des deux côtés (`test_standardize_format`, un test de production côté pipeline).
 
 ### Changer une simplification ou une projection
 

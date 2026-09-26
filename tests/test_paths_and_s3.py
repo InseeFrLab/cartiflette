@@ -3,7 +3,7 @@ from unittest import mock
 import pytest
 
 from cartiflette import config
-from cartiflette.paths import create_path_bucket
+from cartiflette.paths import create_path_bucket, create_path_consolidated
 from cartiflette.s3 import check_write_target, upload
 
 
@@ -70,4 +70,25 @@ def test_upload_to_test():
     upload("local.geojson", "projet-cartiflette/test/x/raw.geojson", fs)
     fs.put_file.assert_called_once_with(
         "local.geojson", "projet-cartiflette/test/x/raw.geojson"
+    )
+
+
+def test_create_path_consolidated_layout():
+    # Same test in python-package/cartiflette/tests/test_client.py
+    assert create_path_consolidated(
+        bucket="projet-cartiflette",
+        path_within_bucket="production",
+        provider="IGN",
+        dataset_family="ADMINEXPRESS",
+        source="EXPRESS-COG-CARTO-TERRITOIRE",
+        year=2025,
+        borders="COMMUNE",
+        crs=4326,
+        geometry="FRANCE_ENTIERE_DROM_RAPPROCHES",
+        simplification=50.0,
+    ) == (
+        "projet-cartiflette/production/provider=IGN/dataset_family=ADMINEXPRESS/"
+        "source=EXPRESS-COG-CARTO-TERRITOIRE/year=2025/administrative_level=COMMUNE/"
+        "crs=4326/geometry=FRANCE_ENTIERE_DROM_RAPPROCHES/vectorfile_format=parquet/"
+        "simplification=50/raw.parquet"
     )

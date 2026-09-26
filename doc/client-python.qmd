@@ -40,8 +40,21 @@ communes = carti_download(
 )
 ```
 
-`carti_download` construit un chemin par valeur avec `create_path_bucket`,
-télécharge les fichiers et les concatène.
+En `geojson`, `carti_download` construit un chemin par valeur avec
+`create_path_bucket`, télécharge les fichiers en HTTPS (avec cache) et les concatène.
+
+En `parquet`, il ouvre **un seul fichier** par niveau (`create_path_consolidated`),
+via l'API S3 en anonyme (pyarrow), lit la métadonnée `cartiflette:filter_columns`
+pour savoir quelle colonne correspond à `filter_by`, lit **cette seule colonne**,
+puis ne télécharge que les groupes de lignes qui contiennent les valeurs demandées
+([`select_row_groups`](reference/client.select_row_groups.qmd)). Sur le fichier
+des communes 2025 (35 Mo, 18 groupes), un département, un bassin de vie ou une zone
+d'emploi coûtent environ 2 Mo, une région 2 à 7 Mo. Les statistiques min/max du
+Parquet ne suffiraient pas : elles ne sont sélectives que sur la première variable
+de tri (un département ferait lire plus de la moitié du fichier). Le fichier contient toute
+la France : pour lire tout un niveau, `filter_by="FRANCE_ENTIERE"` et
+`values="France"`. Une erreur est levée si une valeur n'existe pas ou si le niveau
+ne peut pas être filtré ainsi (ex. des régions par département).
 
 ### Combinaisons disponibles
 

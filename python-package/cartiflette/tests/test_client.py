@@ -2,10 +2,16 @@
 Test cartiflette client
 """
 
+import json
+
 import geopandas as gpd
+import pyarrow as pa
+import pyarrow.fs as pafs
+import pyarrow.parquet as pq
 import pytest
 from cartiflette.utils import (
     create_path_bucket,
+    create_path_consolidated,
     standardize_format,
     value_candidates,
 )
@@ -95,15 +101,12 @@ def _gdf(code):
     return gpd.GeoDataFrame({"INSEE_DEP": [code]}, geometry=[Point(2, 48)], crs=4326)
 
 
-@pytest.mark.parametrize("fmt", ["geojson", "parquet"])
-def test_carti_download_concatenates_values(monkeypatch, tmp_path, fmt):
+def test_carti_download_concatenates_values(monkeypatch, tmp_path):
+    fmt = "geojson"
     contents = {}
     for code in ("75", "92"):
         local = tmp_path / f"{code}.{fmt}"
-        if fmt == "parquet":
-            _gdf(code).to_parquet(local)
-        else:
-            _gdf(code).to_file(local, driver="GeoJSON")
+        _gdf(code).to_file(local, driver="GeoJSON")
         path = create_path_bucket(
             vectorfile_format=fmt, **{**PATH_KWARGS, "value": code}
         )
@@ -167,6 +170,141 @@ def test_region_code_falls_back_to_unpadded(monkeypatch, tmp_path):
     )
     assert list(gdf["INSEE_DEP"]) == ["971"]
     assert [u.split("/REGION=")[1].split("/")[0] for u in session.urls] == ["01", "1"]
+
+
+def test_create_path_consolidated():
+    # Same test in tests/test_paths_and_s3.py of the pipeline
+    assert create_path_consolidated(
+        provider="IGN",
+        dataset_family="ADMINEXPRESS",
+        source="EXPRESS-COG-CARTO-TERRITOIRE",
+        year=2025,
+        borders="COMMUNE",
+        crs=4326,
+        geometry="FRANCE_ENTIERE_DROM_RAPPROCHES",
+        simplification=50.0,
+    ) == (
+        "projet-cartiflette/production/provider=IGN/dataset_family=ADMINEXPRESS/"
+        "source=EXPRESS-COG-CARTO-TERRITOIRE/year=2025/administrative_level=COMMUNE/"
+        "crs=4326/geometry=FRANCE_ENTIERE_DROM_RAPPROCHES/vectorfile_format=parquet/"
+        "simplification=50/raw.parquet"
+    )
+
+
+CONSOLIDATED_KWARGS = {
+    "provider": "IGN",
+    "dataset_family": "ADMINEXPRESS",
+    "source": "EXPRESS-COG-CARTO-TERRITOIRE",
+    "year": 2025,
+    "borders": "DEPARTEMENT",
+    "crs": 4326,
+    "simplification": 50,
+}
+
+
+@pytest.fixture
+def consolidated_storage(tmp_path, monkeypatch):
+    """Local storage holding a consolidated file of departements."""
+    gdf = gpd.GeoDataFrame(
+        {
+            "INSEE_DEP": ["75", "92", "971", "01"],
+            "INSEE_REG": ["11", "11", "01", "84"],
+            "AREA": ["metropole", "metropole", "guadeloupe", "metropole"],
+            "PAYS": ["France"] * 4,
+        },
+        geometry=[Point(2.3, 48.8), Point(2.2, 48.8), Point(-61.5, 16.2), Point(5, 46)],
+        crs=4326,
+    )
+    gdf["bbox"] = [
+        {"xmin": p.x, "ymin": p.y, "xmax": p.x, "ymax": p.y} for p in gdf.geometry
+    ]
+    path = tmp_path / create_path_consolidated(
+        geometry="FRANCE_ENTIERE", **CONSOLIDATED_KWARGS
+    )
+    path.parent.mkdir(parents=True)
+    # One row group per departement, to check that only the needed ones are read
+    gdf.to_parquet(path, row_group_size=1)
+    table = pq.read_table(path)
+    filters = {"REGION": "INSEE_REG", "TERRITOIRE": "AREA", "FRANCE_ENTIERE": "PAYS"}
+    table = table.replace_schema_metadata(
+        {**table.schema.metadata, client.FILTER_COLUMNS_KEY: json.dumps(filters)}
+    )
+    pq.write_table(table, path, row_group_size=1)
+
+    fs = pafs.SubTreeFileSystem(str(tmp_path), pafs.LocalFileSystem())
+    monkeypatch.setattr(client, "get_s3_filesystem", lambda: fs)
+
+
+@pytest.mark.parametrize(
+    "filter_by, values, expected",
+    [
+        ("REGION", ["11"], ["75", "92"]),
+        ("REGION", [1, "84"], ["01", "971"]),
+        ("TERRITOIRE", "guadeloupe", ["971"]),
+        ("FRANCE_ENTIERE", "France", ["01", "75", "92", "971"]),
+    ],
+)
+@pytest.mark.usefixtures("consolidated_storage")
+def test_carti_download_parquet(filter_by, values, expected):
+    gdf = client.carti_download(
+        values=values,
+        borders="DEPARTEMENT",
+        filter_by=filter_by,
+        vectorfile_format="parquet",
+        year=2025,
+        simplification=50,
+    )
+    assert sorted(gdf["INSEE_DEP"]) == expected
+    assert "bbox" not in gdf.columns
+    assert gdf.crs.to_epsg() == 4326
+
+
+def test_select_row_groups(tmp_path):
+    table = pa.table({"INSEE_REG": ["01", "11", "11", "84"], "x": [1, 2, 3, 4]})
+    pq.write_table(table, tmp_path / "t.parquet", row_group_size=1)
+    parquet_file = pq.ParquetFile(tmp_path / "t.parquet")
+    assert client.select_row_groups(parquet_file, "INSEE_REG", ["11"]) == [1, 2]
+    assert client.select_row_groups(parquet_file, "INSEE_REG", ["01", "84"]) == [0, 3]
+    assert client.select_row_groups(parquet_file, "INSEE_REG", ["99"]) == []
+
+
+@pytest.mark.usefixtures("consolidated_storage")
+def test_carti_download_parquet_unknown_filter():
+    with pytest.raises(ValueError, match="cannot be filtered by DEPARTEMENT"):
+        client.carti_download(
+            values="75",
+            borders="DEPARTEMENT",
+            filter_by="DEPARTEMENT",
+            vectorfile_format="parquet",
+            year=2025,
+            simplification=50,
+        )
+
+
+@pytest.mark.usefixtures("consolidated_storage")
+def test_carti_download_parquet_missing_value():
+    with pytest.raises(ValueError, match="No REGION 99"):
+        client.carti_download(
+            values=["11", "99"],
+            borders="DEPARTEMENT",
+            filter_by="REGION",
+            vectorfile_format="parquet",
+            year=2025,
+            simplification=50,
+        )
+
+
+@pytest.mark.usefixtures("consolidated_storage")
+def test_carti_download_parquet_missing_file():
+    with pytest.raises(OSError, match="available from 2025"):
+        client.carti_download(
+            values="11",
+            borders="DEPARTEMENT",
+            filter_by="REGION",
+            vectorfile_format="parquet",
+            year=2022,
+            simplification=50,
+        )
 
 
 @pytest.mark.network

@@ -39,7 +39,7 @@ data = carti_download(
 )
 ```
 
-À partir du millésime 2025, les fonds de carte sont disponibles aux formats `geojson` et `parquet` (GeoParquet). Les millésimes antérieurs restent disponibles en `geojson` :
+À partir du millésime 2025, les fonds de carte sont disponibles aux formats `geojson` et `parquet` (GeoParquet). Les millésimes antérieurs restent disponibles en `geojson`. En `parquet`, chaque niveau est stocké dans un seul fichier que le client lit partiellement : seules les parties correspondant aux valeurs demandées sont téléchargées.
 
 ``` python
 data = carti_download(

@@ -35,11 +35,22 @@ spec:
           # STEP 1: RETRIEVE IGN AND INSEE SOURCES, PREPARE INPUTS
           - name: prepare
             template: prepare
-          # STEP 2: LIST THE SPLIT JOBS
+          # STEP 2: LIST THE JOBS
           - name: list-jobs
             template: list-jobs
             dependencies: [ prepare ]
-          # STEP 3: ONE JOB PER (LEVEL, FILTER_BY, SIMPLIFICATION, CRS)
+            arguments:
+              parameters:
+              - name: kind
+                value: "geojson"
+          - name: list-parquet-jobs
+            template: list-jobs
+            dependencies: [ prepare ]
+            arguments:
+              parameters:
+              - name: kind
+                value: "parquet"
+          # STEP 3a: GEOJSON, ONE JOB PER (LEVEL, FILTER_BY, SIMPLIFICATION, CRS)
           - name: split
             template: split
             dependencies: [ list-jobs ]
@@ -54,6 +65,21 @@ spec:
               - name: crs
                 value: "{{item.crs}}"
             withParam: "{{tasks.list-jobs.outputs.result}}"
+          # STEP 3b: GEOPARQUET, ONE JOB PER (LEVEL, GEOMETRY, SIMPLIFICATION, CRS)
+          - name: consolidate
+            template: consolidate
+            dependencies: [ list-parquet-jobs ]
+            arguments:
+              parameters:
+              - name: level_polygons
+                value: "{{item.level-polygons}}"
+              - name: geometry
+                value: "{{item.geometry}}"
+              - name: simplification
+                value: "{{item.simplification}}"
+              - name: crs
+                value: "{{item.crs}}"
+            withParam: "{{tasks.list-parquet-jobs.outputs.result}}"
 
     - name: prepare
       inputs:
@@ -94,10 +120,13 @@ spec:
             value: us-east-1
 
     - name: list-jobs
+      inputs:
+        parameters:
+        - name: kind
       container:
         image: inseefrlab/cartiflette:v0.2.0
         command: [sh, -c]
-        args: ["python /mnt/bin/argo-pipeline/src/crossproduct.py"]
+        args: ["python /mnt/bin/argo-pipeline/src/crossproduct.py --kind {{inputs.parameters.kind}}"]
         env: *env_parameters
         volumeMounts:
           - name: volume-workflow-tmp
@@ -119,6 +148,30 @@ spec:
           --inputs $LOCAL_DATA_PATH \
           --level_polygons {{inputs.parameters.level_polygons}} \
           --filter_by {{inputs.parameters.filter_by}} \
+          --simplification {{inputs.parameters.simplification}} \
+          --crs {{inputs.parameters.crs}}"
+        ]
+        env: *env_parameters
+        volumeMounts:
+          - name: volume-workflow-tmp
+            mountPath: /mnt
+
+    - name: consolidate
+      inputs:
+        parameters:
+        - name: level_polygons
+        - name: geometry
+        - name: simplification
+        - name: crs
+      container:
+        image: inseefrlab/cartiflette:v0.2.0
+        command: ["sh", "-c"]
+        args: ["
+          python /mnt/bin/argo-pipeline/src/consolidate.py \
+          --year {{workflow.parameters.year}} \
+          --inputs $LOCAL_DATA_PATH \
+          --level_polygons {{inputs.parameters.level_polygons}} \
+          --geometry {{inputs.parameters.geometry}} \
           --simplification {{inputs.parameters.simplification}} \
           --crs {{inputs.parameters.crs}}"
         ]

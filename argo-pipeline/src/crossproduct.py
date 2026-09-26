@@ -3,9 +3,15 @@
 import argparse
 import json
 
-from cartiflette.pipeline import combinations
+from cartiflette.pipeline import combinations, consolidated_combinations
 
-parser = argparse.ArgumentParser(description="List the split jobs")
+parser = argparse.ArgumentParser(description="List the jobs")
+parser.add_argument(
+    "--kind",
+    choices=["geojson", "parquet"],
+    default="geojson",
+    help="geojson: one file per value; parquet: one consolidated file per level",
+)
 parser.add_argument(
     "--restrictfield",
     type=str,
@@ -16,8 +22,9 @@ parser.add_argument(
 if __name__ == "__main__":
     args = parser.parse_args()
     levels = [args.restrictfield] if args.restrictfield else None
+    list_jobs = combinations if args.kind == "geojson" else consolidated_combinations
     jobs = [
         {key.replace("_", "-"): value for key, value in job.items()}
-        for job in combinations(levels)
+        for job in list_jobs(levels)
     ]
     print(json.dumps(jobs))

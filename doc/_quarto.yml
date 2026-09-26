@@ -69,14 +69,21 @@ quartodoc:
         `cartiflette/paths.py`) et normalisation des paramètres.
       contents:
         - utils.create_path_bucket
+        - utils.create_path_consolidated
         - utils.standardize_format
         - utils.value_candidates
     - title: Fonctions internes
-      desc: Téléchargement et lecture d'un fichier, session HTTP avec cache.
+      desc: >
+        Téléchargement et lecture d'un fichier GeoJSON (session HTTP avec cache),
+        lecture partielle d'un GeoParquet consolidé (API S3 anonyme).
       contents:
         - client.download_single
         - client.read_file
         - client.get_session
+        - client.read_consolidated
+        - client.select_row_groups
+        - client.to_geodataframe
+        - client.get_s3_filesystem
 
 format:
   html:

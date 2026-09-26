@@ -72,15 +72,16 @@ def dissolve(
     input_path: str,
     output_path: str,
     level: str,
-    filter_by: str,
+    keep_levels: list[str],
     fields: dict[str, str],
 ) -> str:
     """
     Dissolve communes into `level`, summing populations and keeping the
-    fields needed to split by `filter_by` (and their labels).
+    fields of `level` and of each of `keep_levels` (and their labels).
     """
-    copy_fields = [fields[level], fields[filter_by]]
-    copy_fields += [LABEL_FIELDS[x] for x in (level, filter_by) if x in LABEL_FIELDS]
+    levels = [level, *keep_levels]
+    copy_fields = [fields[x] for x in levels]
+    copy_fields += [LABEL_FIELDS[x] for x in levels if x in LABEL_FIELDS]
     copy_fields = list(dict.fromkeys(copy_fields))
     run(
         input_path,
@@ -157,6 +158,18 @@ def bring_drom_closer(
     return output_path
 
 
+def _finalize_commands(crs: int, simplification: float, source_label: str) -> list:
+    """Reprojection, simplification and SOURCE field, common to all outputs."""
+    simplify = ["-simplify", f"{simplification}%"] if simplification else []
+    return [
+        "-proj",
+        f"EPSG:{crs}",
+        *simplify,
+        "-each",
+        f"SOURCE='{source_label}'",
+    ]
+
+
 def split(
     input_path: str,
     output_dir: str,
@@ -170,15 +183,10 @@ def split(
     `split_field`, named `{value}.geojson`. Returns the written paths.
     """
     os.makedirs(output_dir, exist_ok=True)
-    simplify = ["-simplify", f"{simplification}%"] if simplification else []
     run(
         input_path,
         "name=",
-        "-proj",
-        f"EPSG:{crs}",
-        *simplify,
-        "-each",
-        f"SOURCE='{source_label}'",
+        *_finalize_commands(crs, simplification, source_label),
         "-split",
         split_field,
         "-o",
@@ -192,3 +200,23 @@ def split(
         for f in os.listdir(output_dir)
         if f.endswith(".geojson")
     )
+
+
+def finalize(
+    input_path: str,
+    output_path: str,
+    crs: int,
+    simplification: float,
+    source_label: str,
+) -> str:
+    """Reproject and simplify `input_path` into a single GeoJSON."""
+    run(
+        input_path,
+        "name=",
+        *_finalize_commands(crs, simplification, source_label),
+        "-o",
+        output_path,
+        "format=geojson",
+        "force",
+    )
+    return output_path

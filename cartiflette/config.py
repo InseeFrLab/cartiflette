@@ -36,4 +36,8 @@ SOURCE = "EXPRESS-COG-CARTO-TERRITOIRE"
 # Historical value of the `territory` path segment for every split file.
 TERRITORY = "metropole"
 
-OUTPUT_FORMATS = ("geojson", "parquet")
+# GeoJSON: one file per value of the split level. GeoParquet: one consolidated
+# file per level and geometry (see cartiflette.paths.create_path_consolidated)
+GEOMETRIES = ("FRANCE_ENTIERE", "FRANCE_ENTIERE_DROM_RAPPROCHES")
+# Size of the row groups of the consolidated files (DuckDB minimum: 2048)
+ROW_GROUP_SIZE = 2048

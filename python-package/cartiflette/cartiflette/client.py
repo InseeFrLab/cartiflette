@@ -1,12 +1,19 @@
 from __future__ import annotations
 
 import io
+import json
 import logging
 import os
 from datetime import datetime, timezone
+from urllib.parse import urlparse
 
 import geopandas as gpd
 import pandas as pd
+import pyarrow as pa
+import pyarrow.compute as pc
+import pyarrow.fs as pafs
+import pyarrow.parquet as pq
+import pyproj
 from requests_cache import CachedSession
 
 from cartiflette.config import _config
@@ -19,11 +26,17 @@ from cartiflette.constants import (
 )
 from cartiflette.utils import (
     create_path_bucket,
+    create_path_consolidated,
     standardize_format,
     value_candidates,
 )
 
 logger = logging.getLogger(__name__)
+
+DROM_RAPPROCHES = "FRANCE_ENTIERE_DROM_RAPPROCHES"
+# Key of the parquet metadata mapping each level usable in `filter_by` to
+# its column in a consolidated file (e.g. BASSIN_VIE -> BV2022)
+FILTER_COLUMNS_KEY = b"cartiflette:filter_columns"
 
 
 def get_session(expire_after=None) -> CachedSession:
@@ -48,6 +61,163 @@ def get_session(expire_after=None) -> CachedSession:
         cache_name=os.path.join(DIR_CACHE, CACHE_NAME),
         expire_after=expire_after or _config["DEFAULT_EXPIRE_AFTER"],
     )
+
+
+def get_s3_filesystem() -> pafs.S3FileSystem:
+    """
+    Anonymous access to the cartiflette storage through its S3 API.
+
+    Unlike plain HTTP downloads, it allows reading only the needed parts of a
+    parquet file. The proxy is taken from the https_proxy environment
+    variable.
+
+    Returns
+    -------
+    pyarrow.fs.S3FileSystem
+    """
+    proxy = os.environ.get("https_proxy") or os.environ.get("HTTPS_PROXY")
+    endpoint = urlparse(ENDPOINT_URL)
+    return pafs.S3FileSystem(
+        anonymous=True,
+        endpoint_override=endpoint.netloc,
+        scheme=endpoint.scheme,
+        region="us-east-1",
+        proxy_options=proxy,
+    )
+
+
+def select_row_groups(
+    parquet_file: pq.ParquetFile, column: str, wanted: list[str]
+) -> list[int]:
+    """
+    Row groups of a parquet file holding some values of a column.
+
+    Only `column` is read (a few dozen kB, as it is dictionary encoded). This
+    is exact, whereas the min/max statistics of the row groups are only
+    selective for the first sorting column of the file.
+
+    Parameters
+    ----------
+    parquet_file : pyarrow.parquet.ParquetFile
+        Opened file.
+    column : str
+        Column to look into.
+    wanted : list of str
+        Values looked for.
+
+    Returns
+    -------
+    list of int
+        Indices of the row groups holding at least one of the values.
+    """
+    values = parquet_file.read(columns=[column]).column(column)
+    groups, start = [], 0
+    for i in range(parquet_file.metadata.num_row_groups):
+        length = parquet_file.metadata.row_group(i).num_rows
+        chunk = values.slice(start, length)
+        if pc.any(pc.is_in(chunk, value_set=pa.array(wanted))).as_py():
+            groups.append(i)
+        start += length
+    return groups
+
+
+def to_geodataframe(table: pa.Table) -> gpd.GeoDataFrame:
+    """
+    GeoDataFrame from an Arrow table read from a GeoParquet file.
+
+    Parameters
+    ----------
+    table : pyarrow.Table
+        Table whose schema holds the GeoParquet "geo" metadata (WKB
+        geometries).
+
+    Returns
+    -------
+    geopandas.GeoDataFrame
+    """
+    geo = json.loads(table.schema.metadata[b"geo"])
+    geometry = geo["primary_column"]
+    # GeoParquet: a missing "crs" means OGC:CRS84, a null one an unknown CRS
+    crs = geo["columns"][geometry].get("crs", "OGC:CRS84")
+    df = table.to_pandas()
+    return gpd.GeoDataFrame(
+        df.drop(columns=geometry),
+        geometry=gpd.GeoSeries.from_wkb(
+            df[geometry],
+            crs=None if crs is None else pyproj.CRS.from_user_input(crs),
+        ),
+    )
+
+
+def read_consolidated(
+    fs: pafs.FileSystem,
+    values: list[str | int | float],
+    filter_by: str,
+    **path_kwargs,
+) -> gpd.GeoDataFrame:
+    """
+    Read the polygons of some values from a consolidated GeoParquet.
+
+    The filter column is read first, then only the row groups holding the
+    requested values are downloaded (see `select_row_groups`).
+
+    Parameters
+    ----------
+    fs : pyarrow.fs.FileSystem
+        Filesystem of the storage, see `get_s3_filesystem`.
+    values : list
+        Values of `filter_by` to retrieve.
+    filter_by : str
+        Level used to select the polygons (e.g. "REGION").
+    **path_kwargs
+        Other arguments of `create_path_consolidated`, except `geometry`,
+        deduced from `filter_by`.
+
+    Returns
+    -------
+    geopandas.GeoDataFrame
+
+    Raises
+    ------
+    OSError
+        If there is no consolidated file for these parameters (e.g. a year
+        before 2025).
+    ValueError
+        If the file cannot be filtered by `filter_by`, or if some values are
+        not found.
+    """
+    filter_by = filter_by.upper()
+    geometry = DROM_RAPPROCHES if filter_by == DROM_RAPPROCHES else "FRANCE_ENTIERE"
+    path = create_path_consolidated(geometry=geometry, **path_kwargs)
+    try:
+        parquet_file = pq.ParquetFile(path, filesystem=fs)
+    except OSError as e:
+        raise OSError(
+            f"No GeoParquet file at {ENDPOINT_URL}/{path}. GeoParquet files are "
+            "available from 2025 onwards, use vectorfile_format='geojson' for "
+            "earlier years."
+        ) from e
+
+    filter_columns = json.loads(parquet_file.schema_arrow.metadata[FILTER_COLUMNS_KEY])
+    if filter_by not in filter_columns:
+        raise ValueError(
+            f"{path_kwargs['borders']} polygons cannot be filtered by {filter_by}; "
+            f"available: {', '.join(filter_columns)}"
+        )
+    column = filter_columns[filter_by]
+
+    candidates = {str(v): value_candidates(filter_by, v) for v in values}
+    wanted = list(dict.fromkeys(c for cs in candidates.values() for c in cs))
+    table = parquet_file.read_row_groups(
+        select_row_groups(parquet_file, column, wanted)
+    )
+    table = table.filter(pc.is_in(table[column], value_set=pa.array(wanted)))
+
+    found = set(table[column].to_pylist())
+    missing = [v for v, cs in candidates.items() if not found.intersection(cs)]
+    if missing:
+        raise ValueError(f"No {filter_by} {', '.join(missing)} in {path}")
+    return to_geodataframe(table.drop_columns(["bbox"]))
 
 
 def read_file(content: bytes, vectorfile_format: str) -> gpd.GeoDataFrame:
@@ -133,8 +303,10 @@ def carti_download(
     """
     Download official French borders produced by cartiflette.
 
-    The files of one or several values of `filter_by` are downloaded and
-    concatenated.
+    GeoJSON: the file of each value of `filter_by` is downloaded, and the
+    files are concatenated. GeoParquet (from 2025 onwards): the polygons of the
+    values are read from a single file holding the whole level, downloading
+    only the needed parts.
 
     Parameters
     ----------
@@ -149,7 +321,8 @@ def carti_download(
         Level used to select the polygons: DEPARTEMENT, REGION, TERRITOIRE,
         FRANCE_ENTIERE, FRANCE_ENTIERE_DROM_RAPPROCHES or a zoning.
     territory : str
-        Kept for compatibility with the storage layout, "metropole".
+        Kept for compatibility with the storage layout of the GeoJSON files,
+        "metropole".
     vectorfile_format : str
         "geojson" or "parquet".
     year : str or int
@@ -186,6 +359,9 @@ def carti_download(
         If `vectorfile_format` is not supported.
     OSError
         If the file of one of the values cannot be downloaded.
+    ValueError
+        GeoParquet only: if `borders` cannot be filtered by `filter_by`, or if
+        some values are not found.
 
     Examples
     --------
@@ -225,19 +401,27 @@ def carti_download(
         "year": year,
         "borders": borders,
         "crs": crs,
-        "filter_by": filter_by,
-        "territory": territory,
         "simplification": simplification,
         "filename": filename,
     }
-    with get_session() as session:
-        gdf = pd.concat(
-            [
-                download_single(session, value, vectorfile_format, **path_kwargs)
-                for value in values
-            ],
-            ignore_index=True,
-        )
+    if vectorfile_format == "parquet":
+        gdf = read_consolidated(get_s3_filesystem(), values, filter_by, **path_kwargs)
+    else:
+        with get_session() as session:
+            gdf = pd.concat(
+                [
+                    download_single(
+                        session,
+                        value,
+                        vectorfile_format,
+                        filter_by=filter_by,
+                        territory=territory,
+                        **path_kwargs,
+                    )
+                    for value in values
+                ],
+                ignore_index=True,
+            )
 
     if return_as_json:
         return gdf.to_json()

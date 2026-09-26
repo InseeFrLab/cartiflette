@@ -27,7 +27,9 @@ Le seul lien entre le pipeline et tous les clients est l'emplacement des
 fichiers. Il est construit par deux fonctions qui doivent rester identiques :
 
 - `cartiflette/paths.py::create_path_bucket` (pipeline) ;
-- `python-package/cartiflette/cartiflette/utils.py::create_path_bucket` (client).
+- `python-package/cartiflette/cartiflette/utils.py::create_path_bucket` (client),
+
+et de même `create_path_consolidated` pour le GeoParquet.
 
 ```text
 {bucket}/{path_within_bucket}
@@ -38,11 +40,39 @@ fichiers. Il est construit par deux fonctions qui doivent rester identiques :
   /administrative_level={niveau des polygones}      ex. DEPARTEMENT
   /crs={EPSG}                                       4326
   /{niveau de découpage}={valeur}                   ex. REGION=11
-  /vectorfile_format={geojson|parquet}
+  /vectorfile_format=geojson
   /territory=metropole
   /simplification={0|50}
-  /raw.{geojson|parquet}
+  /raw.geojson
 ```
+
+Le **GeoParquet** a une arborescence différente, construite par `create_path_consolidated` :
+un seul fichier par niveau, que le client filtre à la lecture.
+
+```text
+{bucket}/{path_within_bucket}
+  /provider=IGN
+  /dataset_family=ADMINEXPRESS
+  /source=EXPRESS-COG-CARTO-TERRITOIRE
+  /year={année}
+  /administrative_level={niveau des polygones}      ex. COMMUNE
+  /crs={EPSG}                                       4326
+  /geometry={FRANCE_ENTIERE|FRANCE_ENTIERE_DROM_RAPPROCHES}
+  /vectorfile_format=parquet
+  /simplification={0|50}
+  /raw.parquet
+```
+
+`geometry=FRANCE_ENTIERE_DROM_RAPPROCHES` est à part parce que ses géométries
+diffèrent (DROM déplacés, zoom sur l'Île-de-France). Dans chaque fichier :
+
+- les lignes sont triées (`pipeline.sort_levels`) en groupes de 2 048 lignes, pour que
+  chaque région, département ou zonage tienne dans un ou deux groupes :
+  communes par région, département, bassin de vie puis commune ; départements par région
+  puis département ; zonages par territoire puis code ;
+- une colonne `bbox` est déclarée comme _covering_ GeoParquet 1.1, pour filtrer par emprise ;
+- la métadonnée `cartiflette:filter_columns` associe chaque `filter_by` utilisable à
+  sa colonne (ex. `BASSIN_VIE` → `BV2022`). Elle fait partie du contrat avec les clients.
 
 Certaines valeurs sont figées **uniquement pour que les clients continuent de
 fonctionner** (voir `cartiflette/config.py`) :
@@ -87,13 +117,13 @@ Cela permet de rendre le  développement du projet plus simple mais reste robust
 
 | Module | Rôle | Fonctions principales |
 |---|---|---|
-| `config.py` | emplacements de lecture et d'écriture, libellés historiques, formats de sortie | constantes `WRITE_BUCKET`, `WRITE_PATH`, `ALLOW_PRODUCTION_WRITE`, `OUTPUT_FORMATS` |
+| `config.py` | emplacements de lecture et d'écriture, libellés historiques, géométries et taille des groupes de lignes du GeoParquet | constantes `WRITE_BUCKET`, `WRITE_PATH`, `ALLOW_PRODUCTION_WRITE`, `GEOMETRIES`, `ROW_GROUP_SIZE` |
 | `http.py` | session HTTP avec relances (429, 5xx), téléchargement vérifié par `Content-Length` | `get_session`, `download_file` |
 | `ign.py` | lecture du catalogue Atom de la Géoplateforme, choix de l'édition, téléchargement des couches en GeoParquet (ou GPKG converti) | `list_editions`, `select_edition`, `list_files`, `fetch_layers`, `gpkg_to_parquet` |
 | `insee.py` | téléchargement de la TAGC et conversion xlsx → parquet | `fetch_tagc`, `tagc_to_parquet` |
 | `prepare.py` | étape 1 : requêtes DuckDB qui produisent les entrées communes à tous les jobs | `prepare_year`, `communes_query`, `enrich_query`, `zoning_fields` |
 | `mapshaper.py` | appels à mapshaper (liste d'arguments, jamais `shell=True`) | `dissolve`, `bring_drom_closer`, `split` |
-| `pipeline.py` | étapes 2 et 3 : liste des jobs, traitement d'un job, conversion GeoParquet, envoi | `combinations`, `process`, `geojson_to_parquet`, `split_and_upload` |
+| `pipeline.py` | étapes 2 et 3 : listes des jobs, traitement d'un job GeoJSON ou GeoParquet, envoi | `combinations`, `process`, `split_and_upload`, `consolidated_combinations`, `process_consolidated`, `to_consolidated_parquet`, `consolidate_and_upload` |
 | `paths.py` | contrat de chemins (voir plus haut) | `create_path_bucket` |
 | `s3.py` | seul point d'écriture S3, avec le garde-fou production | `get_fs`, `check_write_target`, `upload` |
 
@@ -137,8 +167,23 @@ autorisés), de `SIMPLIFICATIONS = [0, 50]` et de `CRS = [4326]`, soit
    - `mapshaper.bring_drom_closer` si le découpage est `FRANCE_ENTIERE_DROM_RAPPROCHES`
      (DROM déplacés et agrandis près de la métropole, zoom sur l'Île-de-France) ;
    - `mapshaper.split` : reprojection, simplification, un GeoJSON par valeur du champ de découpage ;
-3. `geojson_to_parquet` : conversion GeoParquet par DuckDB, colonne géométrique nommée `geometry` ;
-4. `upload` de chaque fichier aux deux formats, au chemin donné par `create_path_bucket`.
+3. `upload` de chaque GeoJSON, au chemin donné par `create_path_bucket`.
+
+### Étape 3 bis — `consolidate_and_upload` (un job GeoParquet)
+
+`consolidated_combinations` liste **32 jobs** : 8 niveaux × 2 géométries × 2 simplifications.
+Pour chacun :
+
+1. `check_write_target`, comme pour le GeoJSON ;
+2. `process_consolidated` : même préparation des polygones, mais `dissolve` garde les
+   champs de **tous** les niveaux de filtre possibles (`filter_levels`), puis
+   `mapshaper.finalize` reprojette et simplifie en un seul GeoJSON ;
+3. `to_consolidated_parquet` : conversion par DuckDB (tri, groupes de lignes, `bbox`,
+   métadonnées `geo` en version 1.1.0 et `cartiflette:filter_columns`) ;
+4. `upload` au chemin donné par `create_path_consolidated`.
+
+La simplification est calculée sur tout le territoire du niveau, pas fichier par
+fichier : le résultat diffère légèrement des GeoJSON découpés, ce qui est accepté.
 
 Les champs qui portent le code de chaque niveau sont dans
 `mapshaper.LEVEL_FIELDS`, complétés par `fields.json` pour les zonages.
@@ -150,7 +195,10 @@ Ces contournements sont déjà en place. Ils ne doivent pas être « simplifiés
 - `ST_Read` (GDAL) avec plusieurs threads corrompt la mémoire de façon aléatoire
   (segfault, _Unsupported geometry type in WKB_). Toujours l'appeler avec
   `SET threads = 1`, dans sa propre connexion (`ign.gpkg_to_parquet`,
-  `pipeline.geojson_to_parquet`).
+  `pipeline.to_consolidated_parquet`).
+- Pour écrire un GeoParquet 1.1 (avec _covering_), `to_consolidated_parquet` réécrit la
+  métadonnée `geo` avec `GEOPARQUET_VERSION NONE`. Garder le CRS en PROJJSON : geopandas
+  ignore une simple chaîne `OGC:CRS84`.
 - Ne pas charger l'extension `excel` dans une connexion qui fait du spatial. La TAGC
   est convertie dans une connexion séparée (`insee.tagc_to_parquet`).
 - Exécuter `LOAD spatial` **avant** `SET geometry_always_xy = true`, pour que les

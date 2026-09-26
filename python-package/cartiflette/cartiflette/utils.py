@@ -162,3 +162,64 @@ def create_path_bucket(
         f"/simplification={simplification}"
         f"/{filename}.{vectorfile_format}"
     )
+
+
+def create_path_consolidated(
+    *,
+    provider: str,
+    dataset_family: str,
+    source: str,
+    year: int | str,
+    borders: str,
+    crs: int | str,
+    geometry: str,
+    simplification: float | None = 0,
+    filename: str = "raw",
+    bucket: str = BUCKET,
+    path_within_bucket: str = PATH_WITHIN_BUCKET,
+) -> str:
+    """
+    Path of a consolidated GeoParquet file within the S3 storage.
+
+    A consolidated file holds all the polygons of a level, to be filtered
+    when read. This must stay identical to cartiflette/paths.py in the
+    pipeline.
+
+    Parameters
+    ----------
+    provider, dataset_family, source, year, borders, crs, simplification,
+    filename, bucket, path_within_bucket :
+        See `create_path_bucket`.
+    geometry : str
+        "FRANCE_ENTIERE" (true positions) or "FRANCE_ENTIERE_DROM_RAPPROCHES"
+        (DROM moved next to metropolitan France, Ile-de-France zoomed in).
+
+    Returns
+    -------
+    str
+        Path "bucket/path_within_bucket/provider=.../raw.parquet".
+
+    Examples
+    --------
+    >>> create_path_consolidated(
+    ...     provider="IGN", dataset_family="ADMINEXPRESS",
+    ...     source="EXPRESS-COG-CARTO-TERRITOIRE", year=2025,
+    ...     borders="COMMUNE", crs=4326, geometry="FRANCE_ENTIERE",
+    ...     simplification=50,
+    ... )  # doctest: +ELLIPSIS
+    'projet-cartiflette/production/.../geometry=FRANCE_ENTIERE/vectorfile_format=parquet/simplification=50/raw.parquet'
+    """
+    simplification = int(simplification or 0)
+    return (
+        f"{bucket}/{path_within_bucket}"
+        f"/provider={provider}"
+        f"/dataset_family={dataset_family}"
+        f"/source={source}"
+        f"/year={year}"
+        f"/administrative_level={borders}"
+        f"/crs={crs}"
+        f"/geometry={geometry}"
+        f"/vectorfile_format=parquet"
+        f"/simplification={simplification}"
+        f"/{filename}.parquet"
+    )

@@ -51,7 +51,8 @@ uv run python argo-pipeline/src/prepare.py --year $YEAR --localpath $DATA
 ls $DATA   # COMMUNE.geojson  COMMUNE_ARRONDISSEMENT.geojson  fields.json  raw/
 
 # Étape 2 : liste des jobs (tous, ou limités à un niveau de polygones)
-uv run python argo-pipeline/src/crossproduct.py --restrictfield REGION
+uv run python argo-pipeline/src/crossproduct.py --restrictfield REGION              # GeoJSON
+uv run python argo-pipeline/src/crossproduct.py --kind parquet --restrictfield REGION  # GeoParquet
 ```
 
 Pour l'étape 3 sans envoi sur S3, appeler directement `pipeline.process`, la
@@ -64,6 +65,15 @@ files = process('$DATA', '/tmp/cartiflette/work', 'REGION', 'FRANCE_ENTIERE_DROM
 print(files)
 "
 mapshaper /tmp/cartiflette/work/split/France.geojson -info
+```
+
+De même pour le GeoParquet, avec `pipeline.process_consolidated` :
+
+```bash
+uv run python -c "
+from cartiflette.pipeline import process_consolidated
+print(process_consolidated('$DATA', '/tmp/cartiflette/work_parquet', 'REGION', 'FRANCE_ENTIERE', 50, 4326))
+"
 ```
 
 On peut ensuite ouvrir le GeoJSON dans QGIS ou sur <https://mapshaper.org> pour
@@ -84,6 +94,12 @@ cd /tmp/cartiflette && uv run --project $REPO python $REPO/argo-pipeline/src/spl
   --year 2026 --inputs $DATA \
   --level_polygons REGION --filter_by TERRITOIRE --simplification 50 --crs 4326 \
   --path test/v0.2.0
+
+# GeoParquet consolidé : même principe avec consolidate.py
+cd /tmp/cartiflette && uv run --project $REPO python $REPO/argo-pipeline/src/consolidate.py \
+  --year 2026 --inputs $DATA \
+  --level_polygons REGION --geometry FRANCE_ENTIERE --simplification 50 --crs 4326 \
+  --path test/v0.2.0
 ```
 
 ## B. Sur Argo, vers l'espace de test {#mode-argo-test}
@@ -95,14 +111,16 @@ cd /tmp/cartiflette && uv run --project $REPO python $REPO/argo-pipeline/src/spl
 ### Ce que fait le workflow
 
 `argo-pipeline/pipeline.yaml` définit un DAG en trois étapes, dans le namespace
-`projet-cartiflette` :
+`projet-cartiflette` (le schéma ci-dessus ne montre que la branche GeoJSON) :
 
 1. `prepare` clone le dépôt GitHub à la révision `revision` dans `/mnt/bin`, puis
    écrit les entrées dans `/mnt/data`. Les deux sont sur le volume partagé
    `volume-workflow-tmp` (10 Gi) ;
-2. `list-jobs` imprime la liste JSON des 74 jobs ;
-3. `split` crée un pod par job (`withParam`), au plus 20 en parallèle. Chaque pod
-   lit `/mnt/data` et écrit sur S3 sous `{path}`.
+2. `list-jobs` et `list-parquet-jobs` impriment les listes JSON des 74 jobs GeoJSON
+   et des 32 jobs GeoParquet ;
+3. `split` (GeoJSON) et `consolidate` (GeoParquet) créent un pod par job
+   (`withParam`), au plus 20 en parallèle pour l'ensemble du workflow. Chaque pod lit
+   `/mnt/data` et écrit sur S3 sous `{path}`.
 
 Paramètres du workflow :
 

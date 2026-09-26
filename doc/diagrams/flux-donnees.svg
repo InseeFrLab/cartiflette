@@ -29,7 +29,7 @@
 <rect x="575" y="420" width="215" height="110" rx="10" fill="#ffffff" stroke="#1e1e1e" stroke-width="2"/>
 <text x="682.5" y="453.3" font-size="14" text-anchor="middle" fill="#1e1e1e"><tspan x="682.5" dy="0.0">mapshaper.split</tspan><tspan x="682.5" dy="17.5"></tspan><tspan x="682.5" dy="17.5">reprojection, simplification,</tspan><tspan x="682.5" dy="17.5">un fichier par valeur</tspan></text>
 <rect x="815" y="420" width="180" height="110" rx="10" fill="#ffffff" stroke="#1e1e1e" stroke-width="2"/>
-<text x="905.0" y="453.3" font-size="14" text-anchor="middle" fill="#1e1e1e"><tspan x="905.0" dy="0.0">geojson_to_parquet</tspan><tspan x="905.0" dy="17.5"></tspan><tspan x="905.0" dy="17.5">DuckDB</tspan><tspan x="905.0" dy="17.5">(threads = 1)</tspan></text>
+<text x="905.0" y="453.3" font-size="14" text-anchor="middle" fill="#1e1e1e"><tspan x="905.0" dy="0.0">to_consolidated_parquet</tspan><tspan x="905.0" dy="17.5"></tspan><tspan x="905.0" dy="17.5">DuckDB</tspan><tspan x="905.0" dy="17.5">(threads = 1)</tspan></text>
 <rect x="1020" y="420" width="180" height="110" rx="10" fill="#b2f2bb" stroke="#1e1e1e" stroke-width="2"/>
 <text x="1110.0" y="444.6" font-size="14" text-anchor="middle" fill="#1e1e1e"><tspan x="1110.0" dy="0.0">s3.upload</tspan><tspan x="1110.0" dy="17.5"></tspan><tspan x="1110.0" dy="17.5">geojson + parquet</tspan><tspan x="1110.0" dy="17.5">chemin =</tspan><tspan x="1110.0" dy="17.5">create_path_bucket</tspan></text>
 <path d="M 246.0 475.0 L 259.0 475.0" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#head)"/>
