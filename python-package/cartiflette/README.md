@@ -1,83 +1,99 @@
-# Cartiflette [![](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) ![](https://cdn.simpleicons.org/python/00ccff99?viewbox=auto&size=18)
+# cartiflette <img src="https://raw.githubusercontent.com/InseeFrLab/cartiflette/main/cartiflette.png" align="right" height="110" alt="cartiflette" />
 
+**Les fonds de carte officiels français, en une ligne de code.**
 
-`cartiflette` est un projet pour faciliter l’association de sources
-géographiques en proposant des récupérations facilitées de coutours de
-cartes officiels.
+[![PyPI](https://img.shields.io/pypi/v/cartiflette?style=flat-square&color=B4540A&label=PyPI&logo=pypi&logoColor=white)](https://pypi.org/project/cartiflette/)
+[![Téléchargements](https://img.shields.io/pepy/dt/cartiflette?style=flat-square&color=B4540A&label=t%C3%A9l%C3%A9chargements)](https://pepy.tech/projects/cartiflette)
+[![Tests](https://img.shields.io/github/actions/workflow/status/InseeFrLab/cartiflette/check.yml?style=flat-square&label=tests&logo=github)](https://github.com/InseeFrLab/cartiflette/actions/workflows/check.yml)
+[![Lint](https://img.shields.io/github/actions/workflow/status/InseeFrLab/cartiflette/lint.yml?style=flat-square&label=lint&logo=github)](https://github.com/InseeFrLab/cartiflette/actions/workflows/lint.yml)
+[![Licence MIT](https://img.shields.io/badge/licence-MIT-B4540A?style=flat-square)](https://github.com/InseeFrLab/cartiflette/blob/main/LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![DuckDB](https://img.shields.io/badge/DuckDB-1.5-FFF000?style=flat-square&logo=duckdb&logoColor=black)](https://duckdb.org/)
+[![GeoParquet](https://img.shields.io/badge/GeoParquet-1.1-4B8BBE?style=flat-square)](https://geoparquet.org/)
 
-Une documentation interactive est disponible [ici](https://inseefrlab.github.io/cartiflette-website/index.html).
+Contours officiels de l'IGN (ADMIN EXPRESS COG CARTO) enrichis des métadonnées de
+l'Insee : communes, arrondissements municipaux, départements, régions, bassins de
+vie, zones d'emploi, unités urbaines, aires d'attraction des villes, avec ou sans
+les DROM rapprochés de la métropole.
 
-L'objectif de `cartiflette` est d'offrir des méthodes fiables, 
-reproductibles et multi-langages pour récupérer des fonds de carte officiels de l'IGN
-enrichis de métadonnées utiles pour la cartographie et la _data science_. 
+<img src="https://raw.githubusercontent.com/InseeFrLab/cartiflette/main/doc/images/demo.gif" alt="Exemples d'utilisation de cartiflette" width="820" />
 
-La librairie python `cartiflette` ![](https://cdn.simpleicons.org/python/00ccff99?viewbox=auto&size=18) permet la récupération des fonds de carte de l'IGN.
+## Installation
 
-## Installer la librairie python ![](https://cdn.simpleicons.org/python/00ccff99?viewbox=auto&size=18)
-``` python
+```bash
 pip install cartiflette
 ```
 
+Python 3.10 ou plus récent.
 
-## Exemples
+## Utilisation
 
-Plus d'exemples sont disponibles dans la [documentation interactive](https://inseefrlab.github.io/cartiflette-website/index.html).
-
-Exemple de récupération du fonds de carte des départements avec les DROM rapprochés de la France métropolitaine
-``` python
+```python
 from cartiflette import carti_download
 
-data = carti_download(
-    values=["France"],
-    crs=4326,
+departements = carti_download(
+    values="France",
     borders="DEPARTEMENT",
-    vectorfile_format="geojson",
-    simplification=50,
     filter_by="FRANCE_ENTIERE_DROM_RAPPROCHES",
-    source="EXPRESS-COG-CARTO-TERRITOIRE",
-    year=2022,
+    year=2026,
+    simplification=50,
 )
+departements.plot("POPULATION")
 ```
 
-À partir du millésime 2025, les fonds de carte sont disponibles aux formats `geojson` et `parquet` (GeoParquet). Le client lit le GeoParquet dès qu'il existe, même si `vectorfile_format="geojson"` est demandé (un avertissement l'indique ; `force=True` permet de lire quand même le GeoJSON). Chaque niveau y est stocké dans un seul fichier que DuckDB lit partiellement : seules les parties correspondant aux valeurs demandées sont téléchargées. Les millésimes antérieurs restent disponibles en `geojson` ; si leur GeoParquet est publié, le client le détecte et le lit.
+- `borders` : niveau des contours (`COMMUNE`, `COMMUNE_ARRONDISSEMENT`,
+  `DEPARTEMENT`, `REGION`, `BASSIN_VIE`, `ZONE_EMPLOI`, `UNITE_URBAINE`,
+  `AIRE_ATTRACTION_VILLES`).
+- `filter_by` et `values` : zone couverte, par exemple `filter_by="REGION"` et
+  `values=["11", "84"]`, ou `filter_by="FRANCE_ENTIERE"` et `values="France"`.
+  Les codes de région sous 10 s'écrivent indifféremment `1`, `"1"` ou `"01"`.
+- `simplification` : `0` (contours complets) ou `50` (plus léger).
+- `year` : millésime du Code officiel géographique.
 
-Toute la lecture est faite avec DuckDB. Avec `engine="duckdb"`, le résultat reste une relation DuckDB, pour continuer en SQL sans passer par geopandas :
+Le résultat est un `GeoDataFrame` geopandas (EPSG:4326).
 
-``` python
+## Formats : GeoParquet d'abord
+
+Chaque niveau est publié en GeoParquet dans un seul fichier, que DuckDB lit
+partiellement : seules les parties correspondant aux valeurs demandées sont
+téléchargées (environ 2 Mo pour les communes d'un département). Le client lit le
+GeoParquet dès qu'il existe, même si `vectorfile_format="geojson"` est demandé (un
+avertissement l'indique ; `force=True` lit quand même le GeoJSON). Pour les
+millésimes publiés seulement en GeoJSON, le client le détecte et lit le GeoJSON.
+
+## Rester dans DuckDB
+
+Toute la lecture est faite avec DuckDB. Avec `engine="duckdb"`, le résultat reste
+une relation DuckDB, pour continuer en SQL sans passer par geopandas :
+
+```python
 communes = carti_download(
     values=["11", "84"],
     borders="COMMUNE",
     filter_by="REGION",
-    year=2025,
+    year=2026,
     engine="duckdb",
 )
 communes.aggregate("INSEE_REG, sum(POPULATION)")
 ```
 
-Si besoin de passer par un proxy, il faut déclarer https_proxy en variable d'environnement (il est transmis à DuckDB). Par exemple :
-``` python
+## Proxy
+
+Déclarer la variable d'environnement `https_proxy` : elle est transmise à DuckDB.
+
+```python
 import os
 
-from cartiflette import carti_download
-
-os.environ["http_proxy"] = yourproxy
-os.environ["https_proxy"] = yourproxy
-
-data = carti_download(
-    values=["France"],
-    crs=4326,
-    borders="DEPARTEMENT",
-    vectorfile_format="geojson",
-    simplification=50,
-    filter_by="FRANCE_ENTIERE_DROM_RAPPROCHES",
-    source="EXPRESS-COG-CARTO-TERRITOIRE",
-    year=2022,
-)
+os.environ["https_proxy"] = "http://mon-proxy:8080"
 ```
 
-## Contexte
+## En savoir plus
 
-Le projet `cartiflette` est un projet collaboratif lancé par des agents de l'Etat dans le cadre d'un programme interministériel
-nommé [Programme 10%](https://www.10pourcent.etalab.gouv.fr/).
+- [Site de cartiflette](https://inseefrlab.github.io/cartiflette-website/) : exemples
+  et cas d'usage, aussi en R et en JavaScript.
+- [Dépôt GitHub](https://github.com/InseeFrLab/cartiflette) : pipeline de production
+  et documentation technique.
 
-__Vous désirez contribuer ?__ Plus d'information sont disponibles dans le fichier [CONTRIBUTING.md](https://github.com/InseeFrLab/cartiflette/blob/main/CONTRIBUTING.md)
+`cartiflette` est un projet collaboratif lancé par des agents de l'État dans le cadre
+du [Programme 10 %](https://www.10pourcent.etalab.gouv.fr/). Pour contribuer, voir
+[CONTRIBUTING.md](https://github.com/InseeFrLab/cartiflette/blob/main/CONTRIBUTING.md).
