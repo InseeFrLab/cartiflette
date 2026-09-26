@@ -6,19 +6,28 @@ metadata:
 spec:
   entrypoint: main
   serviceAccountName: workflow
+  # Pods running at the same time, all years together
   parallelism: 20
   arguments:
     parameters:
-      # Millésime ADMIN EXPRESS COG CARTO / TAGC à produire
-      - name: year
-        value: "2025"
+      # Millésimes ADMIN EXPRESS COG CARTO / TAGC à produire, liste JSON.
+      # Éditions 3-x (shapefile) pour 2021 à 2024, 4-0 à partir de 2025.
+      - name: years
+        value: '["2025"]'
       # Chemin d'écriture dans le bucket. Le code refuse d'écrire sous
-      # "production" sauf si CARTIFLETTE_ALLOW_PRODUCTION_WRITE est positionné.
+      # "production" sauf si allow_production_write vaut la valeur attendue.
       - name: path
         value: "test/v0.2.0"
-      # Branche ou tag Git dont le code est utilisé
+      # Écriture en production : laisser "no". Pour publier, passer
+      # -p allow_production_write=i-know-what-i-am-doing -p path=production
+      - name: allow_production_write
+        value: "no"
+      # Branche, tag ou commit Git dont le code Python est utilisé
       - name: revision
         value: "main"
+      # Image (mapshaper, DuckDB, dépendances), taguée avec la version du pipeline
+      - name: image
+        value: "inseefrlab/cartiflette:v0.2.0"
   volumeClaimTemplates:
     - metadata:
         name: volume-workflow-tmp
@@ -26,15 +35,39 @@ spec:
         accessModes: [ "ReadWriteOnce" ]
         resources:
           requests:
-            storage: 10Gi
+            # ~1 Gi of prepared inputs per year
+            storage: 20Gi
 
   templates:
     - name: main
       dag:
         tasks:
+          # STEP 0: CLONE THE CODE AND CHECK THE WRITE TARGET, BEFORE ANY DOWNLOAD
+          - name: check-target
+            template: check-target
+          # STEPS 1-3, ONE SUB-DAG PER YEAR
+          - name: year
+            template: year
+            dependencies: [ check-target ]
+            arguments:
+              parameters:
+              - name: year
+                value: "{{item}}"
+            withParam: "{{workflow.parameters.years}}"
+
+    - name: year
+      inputs:
+        parameters:
+        - name: year
+      dag:
+        tasks:
           # STEP 1: RETRIEVE IGN AND INSEE SOURCES, PREPARE INPUTS
           - name: prepare
             template: prepare
+            arguments:
+              parameters:
+              - name: year
+                value: "{{inputs.parameters.year}}"
           # STEP 2: LIST THE JOBS
           - name: list-jobs
             template: list-jobs
@@ -56,6 +89,8 @@ spec:
             dependencies: [ list-jobs ]
             arguments:
               parameters:
+              - name: year
+                value: "{{inputs.parameters.year}}"
               - name: level_polygons
                 value: "{{item.level-polygons}}"
               - name: filter_by
@@ -71,6 +106,8 @@ spec:
             dependencies: [ list-parquet-jobs ]
             arguments:
               parameters:
+              - name: year
+                value: "{{inputs.parameters.year}}"
               - name: level_polygons
                 value: "{{item.level-polygons}}"
               - name: layout
@@ -81,7 +118,8 @@ spec:
                 value: "{{item.crs}}"
             withParam: "{{tasks.list-parquet-jobs.outputs.result}}"
 
-    - name: prepare
+    # The code is cloned once, on the shared volume, for all the steps
+    - name: check-target
       inputs:
         artifacts:
           - name: code
@@ -90,18 +128,17 @@ spec:
               repo: https://github.com/inseefrlab/cartiflette
               revision: "{{workflow.parameters.revision}}"
       container:
-        image: inseefrlab/cartiflette:v0.2.0
+        image: "{{workflow.parameters.image}}"
         command: [sh, -c]
-        args: ["
-                mkdir -p $LOCAL_DATA_PATH ;
-                python /mnt/bin/argo-pipeline/src/prepare.py --year {{workflow.parameters.year}} --localpath $LOCAL_DATA_PATH ;
-                "]
+        args: ["python /mnt/bin/argo-pipeline/src/check_target.py"]
         volumeMounts:
           - name: volume-workflow-tmp
             mountPath: /mnt
         env: &env_parameters
           - name: CARTIFLETTE_WRITE_PATH
             value: "{{workflow.parameters.path}}"
+          - name: CARTIFLETTE_ALLOW_PRODUCTION_WRITE
+            value: "{{workflow.parameters.allow_production_write}}"
           - name: PYTHONPATH
             value: "/mnt/bin"
           - name: LOCAL_DATA_PATH
@@ -119,12 +156,35 @@ spec:
           - name: AWS_DEFAULT_REGION
             value: us-east-1
 
+    - name: prepare
+      inputs:
+        parameters:
+        - name: year
+      # Géoplateforme (1 request per second) and Insee downloads
+      retryStrategy: &retry
+        limit: "2"
+        backoff:
+          duration: "1m"
+          factor: "2"
+      container:
+        image: "{{workflow.parameters.image}}"
+        command: [sh, -c]
+        args: ["
+                python /mnt/bin/argo-pipeline/src/prepare.py \
+                --year {{inputs.parameters.year}} \
+                --localpath $LOCAL_DATA_PATH/{{inputs.parameters.year}}
+                "]
+        env: *env_parameters
+        volumeMounts:
+          - name: volume-workflow-tmp
+            mountPath: /mnt
+
     - name: list-jobs
       inputs:
         parameters:
         - name: kind
       container:
-        image: inseefrlab/cartiflette:v0.2.0
+        image: "{{workflow.parameters.image}}"
         command: [sh, -c]
         args: ["python /mnt/bin/argo-pipeline/src/crossproduct.py --kind {{inputs.parameters.kind}}"]
         env: *env_parameters
@@ -135,17 +195,19 @@ spec:
     - name: split
       inputs:
         parameters:
+        - name: year
         - name: level_polygons
         - name: filter_by
         - name: simplification
         - name: crs
+      retryStrategy: *retry
       container:
-        image: inseefrlab/cartiflette:v0.2.0
+        image: "{{workflow.parameters.image}}"
         command: [sh, -c]
         args: ["
           python /mnt/bin/argo-pipeline/src/split.py \
-          --year {{workflow.parameters.year}} \
-          --inputs $LOCAL_DATA_PATH \
+          --year {{inputs.parameters.year}} \
+          --inputs $LOCAL_DATA_PATH/{{inputs.parameters.year}} \
           --level_polygons {{inputs.parameters.level_polygons}} \
           --filter_by {{inputs.parameters.filter_by}} \
           --simplification {{inputs.parameters.simplification}} \
@@ -159,17 +221,19 @@ spec:
     - name: consolidate
       inputs:
         parameters:
+        - name: year
         - name: level_polygons
         - name: layout
         - name: simplification
         - name: crs
+      retryStrategy: *retry
       container:
-        image: inseefrlab/cartiflette:v0.2.0
-        command: ["sh", "-c"]
+        image: "{{workflow.parameters.image}}"
+        command: [sh, -c]
         args: ["
           python /mnt/bin/argo-pipeline/src/consolidate.py \
-          --year {{workflow.parameters.year}} \
-          --inputs $LOCAL_DATA_PATH \
+          --year {{inputs.parameters.year}} \
+          --inputs $LOCAL_DATA_PATH/{{inputs.parameters.year}} \
           --level_polygons {{inputs.parameters.level_polygons}} \
           --layout {{inputs.parameters.layout}} \
           --simplification {{inputs.parameters.simplification}} \

@@ -24,7 +24,7 @@ The only contract between the two is the S3 layout. Paths are built by `cartifle
 
 ## Pipeline
 
-`prepare_year` → `combinations` → `split_and_upload` (see `cartiflette/pipeline.py`). The Argo steps are in `argo-pipeline/src/`.
+`prepare_year` → `combinations` → `split_and_upload` (see `cartiflette/pipeline.py`). The Argo steps are in `argo-pipeline/src/`. The workflow (`argo-pipeline/pipeline.yaml`) runs `check-target` first, then one sub-DAG per year of the `years` JSON list. Writing to production takes `-p path=production -p allow_production_write=i-know-what-i-am-doing` on the command line; the versioned YAML keeps `allow_production_write: "no"` and `path: test/v<version>`, and `tests/test_argo.py` pins this.
 
 - **IGN source.** ADMIN EXPRESS COG CARTO, "France entière" (`FRA`) WGS84. The catalogue is an Atom feed at `https://data.geopf.fr/chunk/telechargement/resource/ADMIN-EXPRESS-COG-CARTO`. Editions 4-0: GeoParquet from 2026, GPKG only for 2025. Editions 3-x (2021-2024): shapefile only, one `.7z` with one file per layer; `ign.shapefile_to_parquet` renames their fields to the 4-0 names (`ign.SHAPEFILE_LAYERS`), so everything after `fetch_layers` is edition-agnostic.
 - **Published years.** In production, only 2022 is published before 2025 (GeoJSON, former pipeline); 2021, 2023 and 2024 only hold an intermediate `preprocessed=before_cog` file that no client reads. Regenerating 2022 in production would replace files read live: it is a decision of its own.

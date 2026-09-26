@@ -110,29 +110,38 @@ cd /tmp/cartiflette && uv run --project $REPO python $REPO/argo-pipeline/src/con
 
 ### Ce que fait le workflow
 
-`argo-pipeline/pipeline.yaml` définit un DAG en trois étapes, dans le namespace
-`projet-cartiflette` (le schéma ci-dessus ne montre que la branche GeoJSON) :
+`argo-pipeline/pipeline.yaml` définit un DAG dans le namespace
+`projet-cartiflette` (le schéma ci-dessus montre un millésime, branche GeoJSON) :
 
-1. `prepare` clone le dépôt GitHub à la révision `revision` dans `/mnt/bin`, puis
-   écrit les entrées dans `/mnt/data`. Les deux sont sur le volume partagé
-   `volume-workflow-tmp` (10 Gi) ;
+0. `check-target` clone le dépôt GitHub à la révision `revision` dans `/mnt/bin`
+   (volume partagé `volume-workflow-tmp`, 20 Gi) et vérifie la cible d'écriture :
+   `path=production` sans `allow_production_write` échoue ici, avant tout
+   téléchargement ;
+
+puis, pour chaque millésime de `years`, en parallèle (sous-DAG `year`) :
+
+1. `prepare` écrit les entrées dans `/mnt/data/<année>` (environ 1 Gi par année) ;
 2. `list-jobs` et `list-parquet-jobs` impriment les listes JSON des 74 jobs GeoJSON
    et des 32 jobs GeoParquet ;
 3. `split` (GeoJSON) et `consolidate` (GeoParquet) créent un pod par job
    (`withParam`), au plus 20 en parallèle pour l'ensemble du workflow. Chaque pod lit
-   `/mnt/data` et écrit sur S3 sous `{path}`.
+   `/mnt/data/<année>` et écrit sur S3 sous `{path}`.
+
+`prepare`, `split` et `consolidate` sont relancés jusqu'à 2 fois (attente de 1 puis
+2 minutes) : un job relancé réécrit les mêmes chemins.
 
 Paramètres du workflow :
 
 | Paramètre | Défaut | Sens |
 |---|---|---|
-| `year` | `2025` | millésime ADMIN EXPRESS et TAGC à produire |
+| `years` | `["2025"]` | millésimes ADMIN EXPRESS et TAGC à produire, liste JSON (2021 et après) |
 | `path` | `test/v0.2.0` | préfixe d'écriture dans le bucket (transmis en `CARTIFLETTE_WRITE_PATH`) |
+| `allow_production_write` | `no` | transmis en `CARTIFLETTE_ALLOW_PRODUCTION_WRITE` ; voir [C](#mode-production) |
 | `revision` | `main` | branche, tag ou commit dont le **code Python** est utilisé |
+| `image` | `inseefrlab/cartiflette:v0.2.0` | image Docker : mapshaper, DuckDB et dépendances Python |
 
-L'image Docker (`inseefrlab/cartiflette:v0.2.0`) est **écrite en dur** dans le
-YAML. Elle fixe mapshaper, DuckDB et les dépendances Python. `revision` ne
-change que le code de `cartiflette/` et `argo-pipeline/src/`.
+`revision` ne change que le code de `cartiflette/` et `argo-pipeline/src/` ; les
+dépendances viennent de `image`.
 
 ### Lancer
 
@@ -143,7 +152,7 @@ le serveur Argo du SSPCloud.
 ```bash
 # ⚠ écrit sur S3 (espace de test). Une branche de travail, un préfixe neuf.
 argo submit argo-pipeline/pipeline.yaml \
-  -p year=2026 \
+  -p years='["2022", "2023", "2024", "2025", "2026"]' \
   -p path=test/v0.2.0 \
   -p revision=ma-branche \
   --watch
@@ -179,25 +188,46 @@ monte la version (voir [plus bas](#versions)).
 
 1. **Décider explicitement** la publication, et l'annoncer à l'équipe : les
    fichiers d'un millésime déjà publié sont **écrasés**, et les clients les lisent en direct.
-2. Soumettre depuis `main` (ou un tag), jamais depuis une branche non fusionnée.
-3. Autoriser l'écriture en production **dans une copie locale** du workflow, qu'on
-   ne commite pas. Le YAML versionné ne contient volontairement pas cette variable.
+2. Prérequis : la branche est fusionnée dans `main` et l'image
+   `inseefrlab/cartiflette:v<version>` est construite (workflow GitHub `docker.yml`,
+   sur `main` ou un tag `v*`).
+3. Soumettre depuis `main` (ou un tag), jamais depuis une branche non fusionnée,
+   en autorisant l'écriture **en ligne de commande**. Le YAML versionné garde
+   `allow_production_write: "no"` (vérifié par `tests/test_argo.py`).
 
 ```bash
-cp argo-pipeline/pipeline.yaml /tmp/pipeline-prod.yaml
-# Dans /tmp/pipeline-prod.yaml, ajouter sous `env: &env_parameters` :
-#   - name: CARTIFLETTE_ALLOW_PRODUCTION_WRITE
-#     value: "i-know-what-i-am-doing"
-
 # ⚠⚠ écrit dans projet-cartiflette/production, lu par tous les clients
-argo submit /tmp/pipeline-prod.yaml -p year=2026 -p path=production -p revision=main --watch
+argo submit argo-pipeline/pipeline.yaml \
+  -p years='["2026"]' \
+  -p path=production \
+  -p allow_production_write=i-know-what-i-am-doing \
+  -p revision=main \
+  --watch
 ```
 
-Sans la variable, chaque pod `split` échoue immédiatement avec
-`PermissionError`, avant tout traitement.
+Sans `allow_production_write`, l'étape `check-target` échoue avec
+`PermissionError` et rien n'est téléchargé ni écrit.
 
 4. Relire quelques fichiers avec le client publié (`carti_download(...)` sans
-   `path_within_bucket`), puis supprimer `/tmp/pipeline-prod.yaml`.
+   `path_within_bucket`), et lancer les tests d'intégration sur la production :
+   `CARTIFLETTE_TEST_PATH=production CARTIFLETTE_TEST_YEARS=... uv run pytest -m integration`
+   dans `python-package/cartiflette`.
+
+### Première publication de la 0.2.0
+
+Ordre conseillé, un millésime ou un groupe à la fois :
+
+1. **2023, 2024, 2025, 2026** : nouveaux en production (2023 et 2024 n'y ont qu'un
+   fichier intermédiaire que les clients ne lisent pas), rien n'est écrasé.
+2. **2022** : écrase les GeoJSON publiés par l'ancien pipeline, lus en direct par les
+   clients Python, R et JS. Changements visibles : `BV2012` devient `BV2022`, les
+   aires d'attraction et unités urbaines sont découpées par territoire (DROM
+   correctement placés), les codes de région sont écrits `REGION=01`. Les anciens
+   fichiers dont le chemin ne correspond plus (`REGION=1`, codes `BV2012`) restent en
+   place : les supprimer est une décision distincte, à prendre après la mise à jour
+   des clients R et JS.
+3. Publier le client Python 0.2.0 sur PyPI. Il lit le GeoParquet dès qu'il existe,
+   y compris pour 2022 à 2024 ; les versions antérieures continuent de lire le GeoJSON.
 
 ::: {.callout-caution}
 Ne jamais « copier » un résultat de test vers la production avec `mc` ou
@@ -216,7 +246,7 @@ La version du pipeline apparaît à **plusieurs endroits** qu'il faut modifier e
 |---|---|
 | `pyproject.toml` | `version = "0.2.0"` : sert à taguer l'image Docker |
 | `cartiflette/__init__.py` | `__version__ = "0.2.0"` : sert au préfixe de test par défaut `test/v0.2.0` |
-| `argo-pipeline/pipeline.yaml` | image `inseefrlab/cartiflette:v0.2.0` (3 fois) et `path` par défaut `test/v0.2.0` |
+| `argo-pipeline/pipeline.yaml` | paramètres `image` (`inseefrlab/cartiflette:v0.2.0`) et `path` (`test/v0.2.0`) ; `tests/test_argo.py` vérifie qu'ils suivent la version |
 | `argo-pipeline/README.md` | exemple de commande |
 
 Le client Python a **sa propre version** (`python-package/cartiflette/pyproject.toml`).

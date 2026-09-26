@@ -247,7 +247,7 @@ Le cas le plus fréquent, en général sans modifier de code.
 1. Vérifier l'édition IGN et la TAGC (marche 3, les deux premières sections).
 2. `prepare_year` en local, puis contrôle des sorties (communes sans TAGC, territoires, population).
 3. Trois ou quatre jobs `process`, dont un `FRANCE_ENTIERE_DROM_RAPPROCHES` contrôlé visuellement.
-4. Argo vers `test/v<version>` avec `-p year=YYYY`, puis relecture et comparaison avec l'année précédente.
+4. Argo vers `test/v<version>` avec `-p years='["YYYY"]'`, puis relecture et comparaison avec l'année précédente.
 5. Décider la mise en production ([02, C](02-lancer-le-pipeline.qmd#mode-production)).
 
 Si l'IGN change de version de produit (5-0…) ou renomme des champs, adapter
