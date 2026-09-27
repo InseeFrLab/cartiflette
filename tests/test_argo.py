@@ -48,6 +48,17 @@ def test_logs_are_archived_outside_published_files():
     assert location["s3"]["key"].startswith("argo-logs/")
 
 
+def test_final_status_is_logged():
+    # Read by argo-pipeline/logs-app: the exit handler's log is the only trace
+    # of the status once the workflow is deleted
+    assert WORKFLOW["spec"]["onExit"] == "report-status"
+    container = TEMPLATES["report-status"]["container"]
+    assert container["command"] == ["echo"]
+    (line,) = container["args"]
+    for variable in ("status", "failures"):
+        assert f"{{{{workflow.{variable}}}}}" in line
+
+
 def test_years_is_a_json_list():
     assert all(y.isdigit() for y in json.loads(PARAMETERS["years"]))
 

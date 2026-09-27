@@ -5,6 +5,8 @@ metadata:
   namespace: projet-cartiflette
 spec:
   entrypoint: main
+  # Last step, whatever the outcome: writes the final status to its log
+  onExit: report-status
   serviceAccountName: workflow
   # Pods running at the same time, all years together
   parallelism: 10
@@ -154,6 +156,16 @@ spec:
             withParam: "{{tasks.list-parquet-jobs.outputs.result}}"
 
     # The code is cloned once, on the shared volume, for all the steps
+    # Exit handler. Its log, archived on S3 like the others, is the only trace of
+    # the final status once the workflow is deleted (ttlStrategy): one JSON line
+    # with the status and the failed nodes (podName, message...), read by
+    # argo-pipeline/logs-app. No shell, so the quotes of the JSON are kept.
+    - name: report-status
+      container:
+        image: "{{workflow.parameters.image}}"
+        command: [echo]
+        args: ['{"status": "{{workflow.status}}", "duration": {{workflow.duration}}, "failures": {{workflow.failures}}}']
+
     - name: check-target
       inputs:
         artifacts:
