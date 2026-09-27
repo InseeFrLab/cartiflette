@@ -118,13 +118,13 @@ cd /tmp/cartiflette && uv run --project $REPO python $REPO/argo-pipeline/src/con
    `path=production` sans `allow_production_write=true` échoue ici, avant tout
    téléchargement ;
 
-puis, pour chaque millésime de `years`, en parallèle (sous-DAG `year`) :
+puis, pour chaque millésime de `years`, deux années à la fois (sous-DAG `year`) :
 
 1. `prepare` écrit les entrées dans `/mnt/data/<année>` (environ 1 Gi par année) ;
 2. `list-jobs` et `list-parquet-jobs` impriment les listes JSON des 74 jobs GeoJSON
    et des 32 jobs GeoParquet ;
 3. `split` (GeoJSON) et `consolidate` (GeoParquet) créent un pod par job
-   (`withParam`), au plus 20 en parallèle pour l'ensemble du workflow. Chaque pod lit
+   (`withParam`), au plus 10 pods à la fois pour l'ensemble du workflow. Chaque pod lit
    `/mnt/data/<année>` et écrit sur S3 sous `{path}`.
 
 `prepare`, `split` et `consolidate` sont relancés jusqu'à 2 fois (attente de 1 puis
@@ -155,18 +155,26 @@ au format JSON :
 - jeu complet : `-p years='["2022", "2023", "2024", "2025", "2026"]'` ;
 - un seul millésime : `-p years='["2026"]'`.
 
-Les années de la liste tournent en parallèle, au plus 20 pods à la fois pour
+Les années de la liste tournent deux par deux, au plus 10 pods à la fois pour
 l'ensemble. Millésimes pris en charge : 2021 et après (éditions IGN 3-x à partir
 de 2021, 4-0 à partir de 2025).
 :::
 
 Il faut un service du SSPCloud avec les droits Kubernetes du projet
-`projet-cartiflette` (rôle admin) et la CLI `argo`, en version compatible avec
-le serveur Argo du SSPCloud.
+`projet-cartiflette` (rôle admin) et la CLI `argo`, à la version du serveur Argo
+du cluster. `argo-pipeline/install-argo.sh` l'installe : il lit la version du
+contrôleur Argo dans le namespace, puis télécharge la CLI correspondante dans
+`~/.local/bin`.
+
+```bash
+argo-pipeline/install-argo.sh                # namespace projet-cartiflette
+ARGO_VERSION=v3.6.4 argo-pipeline/install-argo.sh   # version imposée
+export PATH="$HOME/.local/bin:$PATH"
+```
 
 ```bash
 # ⚠ écrit sur S3 (espace de test). Une branche de travail, un préfixe neuf.
-argo submit argo-pipeline/pipeline.yaml \
+argo submit argo-pipeline/pipeline.yaml -n projet-cartiflette \
   -p years='["2022", "2023", "2024", "2025", "2026"]' \
   -p path=test/v0.2.0 \
   -p revision=ma-branche \
@@ -182,6 +190,48 @@ argo logs @latest -f               # logs de tous les pods
 argo logs @latest --grep ERROR     # filtrer
 argo retry @latest                 # relancer les étapes en échec
 argo delete @latest                # nettoyer
+```
+
+### Charge et nettoyage
+
+Le workflow limite lui-même son emprise sur le cluster (`spec` de
+`pipeline.yaml`, vérifié par `tests/test_argo.py`) :
+
+| Réglage | Valeur | Effet |
+|---|---|---|
+| `parallelism` | 10 | pods simultanés, toutes années confondues |
+| `parallelism` du template `main` | 2 | années préparées et traitées en même temps (téléchargements, disque) |
+| `activeDeadlineSeconds` | 12 h | arrêt du workflow s'il reste bloqué |
+| `podGC: OnPodSuccess` | — | pod supprimé dès qu'une étape réussit ; les pods en échec restent pour `argo logs` |
+| `ttlStrategy` | 1 jour (succès), 7 jours (échec) | suppression du workflow et de ses pods restants |
+| `volumeClaimGC: OnWorkflowSuccess` | — | volume de 20 Gi supprimé en cas de succès ; conservé après un échec pour `argo retry`, puis supprimé avec le workflow |
+| `templateDefaults.archiveLocation` | `argo-logs/` | logs de chaque étape archivés sur S3, conservés après la suppression des pods |
+
+**Logs archivés.** À la fin de chaque étape, Argo copie ses logs dans
+`projet-cartiflette/argo-logs/<workflow>/<pod>/`, avec la clé du secret
+`sa-cartiflette`. Ces écritures sont faites par Argo et non par `s3.upload` :
+le préfixe est fixe, hors de `test/` et de `production/`. L'interface web
+d'Argo affiche ces archives ; `argo logs` en ligne de commande ne lit que les
+pods encore présents. Pour les lire directement :
+
+```bash
+mc ls s3/projet-cartiflette/argo-logs/cartiflette-pipeline-xxxxx/
+mc cat s3/projet-cartiflette/argo-logs/cartiflette-pipeline-xxxxx/<pod>/main.log
+```
+
+`argo-logs/` n'est pas purgé automatiquement : supprimer de temps en temps les
+dossiers des anciens workflows (`mc rm --recursive --force --older-than 30d
+s3/projet-cartiflette/argo-logs/`).
+
+Pour aller plus vite ou plus doucement, modifier `parallelism` dans le YAML
+(ce n'est pas un paramètre `-p`).
+
+Nettoyer à la main les workflows terminés ou les anciens pods en échec :
+
+```bash
+argo list -n projet-cartiflette --completed           # workflows terminés
+argo delete -n projet-cartiflette --completed --older 1d
+kubectl get pods -n projet-cartiflette --field-selector=status.phase=Failed
 ```
 
 ### Tester une branche sur Argo : ce qui est pris en compte
@@ -212,7 +262,7 @@ monte la version (voir [plus bas](#versions)).
 
 ```bash
 # ⚠⚠ écrit dans projet-cartiflette/production, lu par tous les clients
-argo submit argo-pipeline/pipeline.yaml \
+argo submit argo-pipeline/pipeline.yaml -n projet-cartiflette \
   -p years='["2026"]' \
   -p path=production \
   -p allow_production_write=true \

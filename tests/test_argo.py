@@ -31,6 +31,23 @@ def test_image_matches_pipeline_version():
     assert PARAMETERS["image"] == f"inseefrlab/cartiflette:v{__version__}"
 
 
+def test_resources_are_limited_and_cleaned():
+    spec = WORKFLOW["spec"]
+    assert spec["parallelism"] <= 10
+    assert TEMPLATES["main"]["parallelism"] <= 2
+    assert spec["activeDeadlineSeconds"] > 0
+    assert spec["podGC"]["strategy"] == "OnPodSuccess"
+    assert spec["ttlStrategy"]["secondsAfterSuccess"] > 0
+    assert spec["ttlStrategy"]["secondsAfterFailure"] > 0
+
+
+def test_logs_are_archived_outside_published_files():
+    location = WORKFLOW["spec"]["templateDefaults"]["archiveLocation"]
+    assert location["archiveLogs"] is True
+    assert location["s3"]["bucket"] == "projet-cartiflette"
+    assert location["s3"]["key"].startswith("argo-logs/")
+
+
 def test_years_is_a_json_list():
     assert all(y.isdigit() for y in json.loads(PARAMETERS["years"]))
 

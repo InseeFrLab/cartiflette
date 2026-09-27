@@ -12,6 +12,7 @@ The only contract between the two is the S3 layout. Paths are built by `cartifle
 - `projet-cartiflette/production` is read live by the Python, R and JS clients. Never write there.
 - All writes go through `cartiflette/s3.py::upload`. It raises unless `CARTIFLETTE_ALLOW_PRODUCTION_WRITE=true` is set. Don't bypass it: no direct `fs.put*` and no `mc` commands.
 - The default write target is `projet-cartiflette/test/v<version>` (a fresh prefix per version: `test/` already holds files from earlier tests, never write at its root), overridable with `CARTIFLETTE_WRITE_BUCKET` and `CARTIFLETTE_WRITE_PATH`.
+- Argo itself archives the logs of every step to `projet-cartiflette/argo-logs/` (`templateDefaults.archiveLocation` in `pipeline.yaml`): the only S3 writes that don't go through `s3.upload`. Keep that key prefix fixed, outside `test/` and `production/`.
 - Reading published files over public HTTPS is fine.
 - Ask before running anything that writes to S3, even to the test location.
 

@@ -7,7 +7,39 @@ spec:
   entrypoint: main
   serviceAccountName: workflow
   # Pods running at the same time, all years together
-  parallelism: 20
+  parallelism: 10
+  # Stop the whole workflow if it runs longer than this (hung pod...)
+  activeDeadlineSeconds: 43200  # 12 h
+  # Delete the pods of the steps that succeeded as soon as they finish; the
+  # failed ones are kept for `argo logs` until the workflow is deleted
+  podGC:
+    strategy: OnPodSuccess
+  # Delete the workflow itself (and its failed pods) some time after the end
+  ttlStrategy:
+    secondsAfterSuccess: 120    # 1 day
+    secondsAfterFailure: 120   # 7 days, time to look at the logs and retry
+  # Shared volume: deleted when the workflow succeeds; kept after a failure so
+  # that `argo retry` can reuse the prepared inputs, then deleted with the
+  # workflow (ttlStrategy)
+  volumeClaimGC:
+    strategy: OnWorkflowSuccess
+  # Logs of every step archived on S3, so that they survive the deletion of the
+  # pods (podGC) and of the workflow: projet-cartiflette/argo-logs/<workflow>/.
+  # Written by Argo, outside test/ and production/.
+  templateDefaults:
+    archiveLocation:
+      archiveLogs: true
+      s3:
+        endpoint: minio.lab.sspcloud.fr
+        bucket: projet-cartiflette
+        region: us-east-1
+        key: "argo-logs/{{workflow.name}}/{{pod.name}}"
+        accessKeySecret:
+          name: sa-cartiflette
+          key: accessKey
+        secretKeySecret:
+          name: sa-cartiflette
+          key: secretKey
   arguments:
     parameters:
       # Millésimes ADMIN EXPRESS COG CARTO / TAGC à produire, liste JSON.
@@ -41,6 +73,8 @@ spec:
 
   templates:
     - name: main
+      # Years prepared and processed at the same time (downloads, disk space)
+      parallelism: 2
       dag:
         tasks:
           # STEP 0: CLONE THE CODE AND CHECK THE WRITE TARGET, BEFORE ANY DOWNLOAD

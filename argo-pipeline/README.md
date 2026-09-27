@@ -5,10 +5,13 @@ et s'appuie sur l'infrastructure du `SSPCloud`
 pour fonctionner.
 
 Pour le lancer, dans un service ayant des droits admin
-de Kubernetes :
+de Kubernetes, installer la CLI `argo` à la version du serveur, puis soumettre :
 
 ```bash
-argo submit argo-pipeline/pipeline.yaml \
+argo-pipeline/install-argo.sh        # lit la version du contrôleur Argo, installe dans ~/.local/bin
+export PATH="$HOME/.local/bin:$PATH"
+
+argo submit argo-pipeline/pipeline.yaml -n projet-cartiflette \
   -p years='["2022", "2023", "2024", "2025", "2026"]' \
   -p path=test/v0.2.0 \
   -p revision=main
@@ -21,7 +24,7 @@ argo submit argo-pipeline/pipeline.yaml \
 
 | Paramètre | Défaut | Sens |
 |---|---|---|
-| `years` | `["2025"]` | millésimes à produire (liste JSON), traités en parallèle |
+| `years` | `["2025"]` | millésimes à produire (liste JSON), traités deux par deux |
 | `path` | `test/v0.2.0` | préfixe d'écriture dans le bucket |
 | `allow_production_write` | `false` | `true` pour autoriser `path=production` |
 | `revision` | `main` | branche, tag ou commit dont le code Python est utilisé |
@@ -67,3 +70,14 @@ une publication décidée, jamais à modifier dans le YAML versionné
 
 L'image `Docker` utilisée est `inseefrlab/cartiflette:v<version>`, construite à partir de
 la version déclarée dans `pyproject.toml`.
+
+## Charge et nettoyage
+
+Le _workflow_ limite son emprise sur le cluster : 10 pods au plus en même temps,
+2 millésimes à la fois, arrêt au bout de 12 h. Les pods des étapes réussies sont
+supprimés aussitôt, ceux en échec sont gardés pour les logs. Le _workflow_ lui-même
+est supprimé 1 jour après un succès et 7 jours après un échec, avec son volume.
+Les logs de chaque étape sont archivés par Argo dans
+`projet-cartiflette/argo-logs/<workflow>/` et survivent à ces suppressions.
+Détail et commandes de nettoyage manuel dans
+[la documentation](../doc/02-lancer-le-pipeline.qmd).
