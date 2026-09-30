@@ -43,6 +43,7 @@ website:
       - 01-architecture.qmd
       - 02-lancer-le-pipeline.qmd
       - 03-verifier-et-faire-evoluer.qmd
+      - 04-api-geojson.qmd
       - section: "Client Python"
         contents:
           - client-python.qmd

@@ -21,6 +21,10 @@ title: "Les parties du projet"
 Les deux produits ne s'importent pas l'un l'autre. Les clients R et JS
 (Observable) vivent dans d'autres dépôts mais lisent les mêmes fichiers.
 
+Un troisième dossier, `api/`, contient une API (non déployée) qui sert le
+GeoJSON à partir du GeoParquet, en s'appuyant sur le client Python : voir
+[04. API GeoJSON](04-api-geojson.qmd).
+
 ## Le contrat : la structure des chemins S3
 
 Le seul lien entre le pipeline et tous les clients est l'emplacement des
@@ -220,7 +224,7 @@ Ces contournements sont déjà en place. Ils ne doivent pas être « simplifiés
 |---|---|---|
 | Image Docker | `Dockerfile`, `docker/install-mapshaper.sh` | base `python:3.12-slim`, mapshaper 0.6.59, dépendances du pipeline aux versions de `uv.lock`, extensions DuckDB préinstallées ; pas de code (Argo clone la révision demandée) |
 | Workflow Argo | `argo-pipeline/pipeline.yaml` | DAG `prepare → list-jobs → split` (voir [02](02-lancer-le-pipeline.qmd)) |
-| CI tests | `.github/workflows/check.yml` | `pytest` pipeline (avec mapshaper) et client, à chaque push |
+| CI tests | `.github/workflows/check.yml` | `pytest` pipeline (avec mapshaper), client et API, à chaque push |
 | CI lint | `.github/workflows/lint.yml` | flake8 et pylint sur `cartiflette/` |
 | CI image | `.github/workflows/docker.yml` | construit `inseefrlab/cartiflette:v<version>` sur `main` et sur les tags `v*` |
 | CI PyPI | `.github/workflows/pypi.yml` | publie le client sur un tag `v*` |

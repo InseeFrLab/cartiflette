@@ -12,15 +12,24 @@ the test location of the pipeline) for the years in CARTIFLETTE_TEST_YEARS
 (default "2025,2026"; add 2022, 2023, 2024 once produced from the IGN
 editions 3-x). The 2022 files are read from production, to check that
 the files published by the former pipeline are still readable.
+
+With CARTIFLETTE_API_URL (e.g. "http://localhost:8000", see api/), the same
+use cases read GeoJSON from the API instead of the files: /v1/geojson when
+there is GeoParquet, the legacy file path (redirected to the file) otherwise.
 """
 
+import gzip
+import io
 import os
+import urllib.parse
+import urllib.request
 import warnings
 
 import duckdb
 import geopandas as gpd
 import pandas as pd
 import pytest
+from cartiflette.utils import create_path_bucket
 from shapely.geometry import Point
 
 from cartiflette import carti_download
@@ -37,6 +46,11 @@ LEGACY_YEAR = 2022
 LOCATIONS = [(year, TEST_PATH) for year in YEARS] + [(LEGACY_YEAR, "production")]
 NEW_LOCATIONS = [(year, TEST_PATH) for year in YEARS]
 
+API_URL = os.environ.get("CARTIFLETTE_API_URL")
+skip_with_api = pytest.mark.skipif(
+    bool(API_URL), reason="option of the Python client, not of the API"
+)
+
 PETITE_COURONNE = ["75", "92", "93", "94"]
 DROM = {"971", "972", "973", "974", "976"}
 
@@ -44,7 +58,63 @@ DROM = {"971", "972", "973", "974", "976"}
 def download(year, path, **kwargs):
     kwargs.setdefault("crs", 4326)
     kwargs.setdefault("simplification", 50)
+    if API_URL:
+        return download_api(year, path, **kwargs)
     return carti_download(year=year, path_within_bucket=path, **kwargs)
+
+
+def _read_geojson_url(url):
+    request = urllib.request.Request(url, headers={"Accept-Encoding": "gzip"})
+    with urllib.request.urlopen(request) as response:
+        content = response.read()
+        if response.headers.get("Content-Encoding") == "gzip":
+            content = gzip.decompress(content)
+    return gpd.read_file(io.BytesIO(content))
+
+
+def download_api(
+    year, path, values, borders, filter_by, crs, simplification, **_format
+):
+    """Same polygons as `carti_download`, as GeoJSON from the API."""
+    values = [values] if isinstance(values, (str, int)) else values
+    if year != LEGACY_YEAR:
+        query = urllib.parse.urlencode(
+            {
+                "year": year,
+                "borders": borders,
+                "filter_by": filter_by,
+                "values": values,
+                "crs": crs,
+                "simplification": simplification,
+                "path_within_bucket": path,
+            },
+            doseq=True,
+        )
+        return _read_geojson_url(f"{API_URL}/v1/geojson?{query}")
+    # No GeoParquet: legacy paths, which the API redirects to the files
+    return pd.concat(
+        [
+            _read_geojson_url(
+                f"{API_URL}/"
+                + create_path_bucket(
+                    provider="IGN",
+                    dataset_family="ADMINEXPRESS",
+                    source="EXPRESS-COG-CARTO-TERRITOIRE",
+                    year=year,
+                    borders=borders,
+                    crs=crs,
+                    filter_by=filter_by,
+                    value=value,
+                    vectorfile_format="geojson",
+                    territory="metropole",
+                    simplification=simplification,
+                    path_within_bucket=path,
+                )
+            )
+            for value in values
+        ],
+        ignore_index=True,
+    )
 
 
 # --------------------------------------------------------------------------
@@ -150,6 +220,7 @@ def test_usecase2_departements_drom_rapproches(year, path):
     assert minx > -10 and maxx < 12 and miny > 40 and maxy < 53
 
 
+@skip_with_api
 @pytest.mark.parametrize("year, path", NEW_LOCATIONS)
 def test_usecase2_geojson_forced_equals_geoparquet(year, path):
     kwargs = {
@@ -296,6 +367,7 @@ def test_homepage_metadata(year, path):
 # --------------------------------------------------------------------------
 
 
+@skip_with_api
 @pytest.mark.parametrize("year, path", NEW_LOCATIONS)
 def test_engine_duckdb_same_result(year, path):
     kwargs = {
@@ -312,6 +384,7 @@ def test_engine_duckdb_same_result(year, path):
     )
 
 
+@skip_with_api
 def test_topojson_no_longer_supported():
     # Default format of the website examples: now refused explicitly
     with pytest.raises(ValueError, match="geojson' or 'parquet"):
