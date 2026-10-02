@@ -14,8 +14,7 @@ editions 3-x). The 2022 files are read from production, to check that
 the files published by the former pipeline are still readable.
 
 With CARTIFLETTE_API_URL (e.g. "http://localhost:8000", see api/), the same
-use cases read GeoJSON from the API instead of the files: /v1/geojson when
-there is GeoParquet, the legacy file path (redirected to the file) otherwise.
+use cases read GeoJSON from the API (/v1/geojson) instead of the files.
 """
 
 import gzip
@@ -29,7 +28,6 @@ import duckdb
 import geopandas as gpd
 import pandas as pd
 import pytest
-from cartiflette.utils import create_path_bucket
 from shapely.geometry import Point
 
 from cartiflette import carti_download
@@ -76,45 +74,20 @@ def download_api(
     year, path, values, borders, filter_by, crs, simplification, **_format
 ):
     """Same polygons as `carti_download`, as GeoJSON from the API."""
-    values = [values] if isinstance(values, (str, int)) else values
-    if year != LEGACY_YEAR:
-        query = urllib.parse.urlencode(
-            {
-                "year": year,
-                "borders": borders,
-                "filter_by": filter_by,
-                "values": values,
-                "crs": crs,
-                "simplification": simplification,
-                "path_within_bucket": path,
-            },
-            doseq=True,
-        )
-        return _read_geojson_url(f"{API_URL}/v1/geojson?{query}")
-    # No GeoParquet: legacy paths, which the API redirects to the files
-    return pd.concat(
-        [
-            _read_geojson_url(
-                f"{API_URL}/"
-                + create_path_bucket(
-                    provider="IGN",
-                    dataset_family="ADMINEXPRESS",
-                    source="EXPRESS-COG-CARTO-TERRITOIRE",
-                    year=year,
-                    borders=borders,
-                    crs=crs,
-                    filter_by=filter_by,
-                    value=value,
-                    vectorfile_format="geojson",
-                    territory="metropole",
-                    simplification=simplification,
-                    path_within_bucket=path,
-                )
-            )
-            for value in values
-        ],
-        ignore_index=True,
+    query = urllib.parse.urlencode(
+        {
+            "year": year,
+            "borders": borders,
+            "filter_by": filter_by,
+            "values": [values] if isinstance(values, (str, int)) else values,
+            "crs": crs,
+            "simplification": simplification,
+            "path_within_bucket": path,
+        },
+        doseq=True,
     )
+    # Without GeoParquet (2022), redirected to the file or files merged
+    return _read_geojson_url(f"{API_URL}/v1/geojson?{query}")
 
 
 # --------------------------------------------------------------------------

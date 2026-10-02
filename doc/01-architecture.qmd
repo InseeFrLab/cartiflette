@@ -225,6 +225,6 @@ Ces contournements sont déjà en place. Ils ne doivent pas être « simplifiés
 | Image Docker | `Dockerfile`, `docker/install-mapshaper.sh` | base `python:3.12-slim`, mapshaper 0.6.59, dépendances du pipeline aux versions de `uv.lock`, extensions DuckDB préinstallées ; pas de code (Argo clone la révision demandée) |
 | Workflow Argo | `argo-pipeline/pipeline.yaml` | DAG `prepare → list-jobs → split` (voir [02](02-lancer-le-pipeline.qmd)) |
 | CI tests | `.github/workflows/check.yml` | `pytest` pipeline (avec mapshaper), client et API, à chaque push |
-| CI lint | `.github/workflows/lint.yml` | flake8 et pylint sur `cartiflette/` |
+| CI lint | `.github/workflows/lint.yml` | ruff (`check` et `format --check`) sur tout le dépôt : pipeline, client et API ; version figée dans le workflow |
 | CI image | `.github/workflows/docker.yml` | construit `inseefrlab/cartiflette:v<version>` sur `main` et sur les tags `v*` |
 | CI PyPI | `.github/workflows/pypi.yml` | publie le client sur un tag `v*` |

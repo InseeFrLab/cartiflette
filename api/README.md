@@ -17,11 +17,14 @@ GeoJSON se fait en SQL (`ST_AsGeoJSON`), en streaming, avec une compression gzip
   `production`).
 - `GET /{chemin d'un fichier GeoJSON du stockage}`, par exemple
   `/projet-cartiflette/production/provider=IGN/.../DEPARTEMENT=75/vectorfile_format=geojson/territory=metropole/simplification=50/raw.geojson`
-  : un client qui lit les fichiers n'a qu'à changer d'hôte. Pour un millésime
-  sans GeoParquet (2022), l'API redirige (307) vers le fichier lui-même.
+  : un client qui lit les fichiers n'a qu'à changer d'hôte.
 - `GET /health`.
 
-Erreurs : 404 si le GeoParquet n'existe pas, si le niveau ne peut pas être filtré
+Pour un millésime sans GeoParquet (2022), les deux routes redirigent (307) vers
+le fichier GeoJSON ; `/v1/geojson` avec plusieurs valeurs lit les fichiers et les
+renvoie fusionnés.
+
+Erreurs : 404 si un fichier n'existe pas, si le niveau ne peut pas être filtré
 par `filter_by` ou si une valeur est introuvable ; 400 pour un
 `path_within_bucket` invalide.
 
@@ -43,6 +46,19 @@ CARTIFLETTE_API_URL=http://localhost:8000 uv run pytest -m integration
 
 Résultat : 91 réussis, 5 ignorés (options propres au client Python : `force`,
 `engine="duckdb"`, topojson), 2 xfail (comme sans API).
+
+## Image Docker
+
+À construire depuis la racine du dépôt (l'API dépend du client) :
+
+```bash
+docker build -f api/Dockerfile -t cartiflette-api .
+docker run -p 8000:8000 cartiflette-api
+```
+
+Publiée par la CI (`docker.yml`) sous `inseefrlab/cartiflette-api:v<version>`,
+version de `api/pyproject.toml` : la monter avant de pousser sur `main`, sinon
+l'image est écrasée.
 
 ## Coût par rapport aux fichiers
 

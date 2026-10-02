@@ -36,7 +36,8 @@ Avec l'API    client R / JS  ──HTTPS──▶  API  ──HTTPS──▶  S3
 | Mesures | `api/benchmark.py`, `api/benchmark-2025.json` | comparaison API / fichiers sur les cas d'usage du site |
 | Documentation | `api/README.md`, cette page | |
 | Tests d'intégration | `python-package/cartiflette/tests/test_integration.py` | peuvent passer par l'API avec `CARTIFLETTE_API_URL` |
-| CI | `.github/workflows/check.yml` | job `api` : tests unitaires de l'API à chaque push |
+| Image Docker | `api/Dockerfile`, `api/Dockerfile.dockerignore` | image de l'API, à construire depuis la racine du dépôt |
+| CI | `.github/workflows/check.yml`, `.github/workflows/docker.yml` | jobs `api` : tests unitaires à chaque push, construction et publication de l'image |
 
 Le client Python et le pipeline ne changent pas.
 
@@ -72,8 +73,17 @@ https://minio.lab.sspcloud.fr/projet-cartiflette/production/provider=IGN/.../DEP
 https://<hôte de l'API>/projet-cartiflette/production/provider=IGN/.../DEPARTEMENT=75/.../raw.geojson
 ```
 
-Pour un millésime sans GeoParquet (2022), cette route redirige vers le fichier
-S3 existant : le client n'a pas à distinguer les millésimes.
+### Millésimes sans GeoParquet (2022)
+
+Le client n'a pas à distinguer les millésimes. Quand il n'y a pas de GeoParquet :
+
+- les deux routes **redirigent** (307) vers le fichier GeoJSON existant sur S3 ;
+- `/v1/geojson` avec **plusieurs valeurs** lit les fichiers correspondants et les
+  renvoie fusionnés en une seule réponse, puisqu'une redirection ne peut viser
+  qu'un fichier.
+
+L'existence du GeoParquet est vérifiée une fois puis gardée en mémoire : si un
+GeoParquet est publié plus tard pour 2022, redémarrer l'API pour qu'elle le lise.
 
 ### Différences avec les fichiers
 
@@ -86,7 +96,7 @@ Le contenu est équivalent, pas identique à l'octet :
   client Python depuis la 0.2.0 ;
 - **ordre des lignes non garanti**.
 
-Erreurs : 404 si le GeoParquet n'existe pas, si le niveau ne peut pas être filtré
+Erreurs : 404 si un fichier n'existe pas, si le niveau ne peut pas être filtré
 de cette façon ou si une valeur est introuvable ; 400 pour un
 `path_within_bucket` invalide.
 
@@ -156,16 +166,31 @@ par l'API casserait ces clients pour tous les nouveaux millésimes.**
 
 ### 1. Déployer l'API
 
-Ce qui manque :
+L'**image Docker** existe : `api/Dockerfile`, construite à la racine du dépôt (l'API
+dépend du client dans `python-package/`) :
 
-- une **image Docker** de l'API (l'image actuelle est celle du pipeline) et sa
-  construction en CI ;
-- un **déploiement** sur le SSPCloud (Kubernetes) avec une **adresse publique
-  stable** : c'est elle que les clients R et JS inscriront dans leur code, elle ne
-  doit plus changer ensuite ;
+```bash
+docker build -f api/Dockerfile -t cartiflette-api .
+docker run -p 8000:8000 cartiflette-api
+```
+
+La CI (`.github/workflows/docker.yml`, job `api`) la construit à chaque PR et la
+publie sur `main` et sur les tags sous `inseefrlab/cartiflette-api:v<version>`, la
+version étant celle de `api/pyproject.toml`. Comme pour l'image du pipeline,
+**pousser sur `main` sans monter cette version écrase l'image** déjà déployée.
+
+L'image écoute sur le port 8000, sans utilisateur root, avec les extensions DuckDB
+préinstallées. Un seul processus par conteneur : DuckDB utilise déjà tous les
+cœurs, on ajoute de la capacité en ajoutant des réplicas. Aucun secret n'est
+nécessaire : l'API lit les fichiers publics en HTTPS.
+
+Ce qui manque, pour un déploiement par Argo CD :
+
+- les **manifestes Kubernetes** (Deployment avec au moins deux réplicas, Service,
+  Ingress), avec des sondes sur `/health` ;
+- une **adresse publique stable** : c'est elle que les clients R et JS inscriront
+  dans leur code, elle ne doit plus changer ensuite ;
 - un **responsable** du service.
-
-Aucun secret n'est nécessaire : l'API lit les fichiers publics en HTTPS.
 
 ### 2. Accepter de passer de fichiers à un service
 
@@ -178,9 +203,9 @@ l'API, il y a un service à faire tourner :
   réplicas et une surveillance ;
 - **charge** : chaque requête coûte du calcul (environ 2 s de CPU pour un niveau
   France entière non simplifié), là où un fichier statique ne coûte rien à servir.
-  Les requêtes les plus fréquentes (France entière, départements) sont peu
-  nombreuses et toujours identiques : un cache des réponses devant l'API serait
-  le premier levier si la charge monte ;
+  Il n'y a pas de cache des réponses pour l'instant. Les requêtes les plus
+  fréquentes (France entière, départements) sont peu nombreuses et toujours
+  identiques : un cache serait le premier levier si la charge monte ;
 - **abus** : l'API est publique ; prévoir une limite de débit si besoin.
 
 ### 3. Faire passer les clients par l'API

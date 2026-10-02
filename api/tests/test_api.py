@@ -15,6 +15,7 @@ from cartiflette.utils import create_path_bucket, create_path_consolidated
 from fastapi.testclient import TestClient
 from shapely.geometry import Point
 
+from cartiflette_api import app as api_module
 from cartiflette_api import create_app
 
 PATH_KWARGS = {
@@ -58,6 +59,8 @@ def storage(tmp_path, monkeypatch):
 
 @pytest.fixture
 def api(storage):
+    # The existence of the GeoParquet is cached, and the storage changes
+    api_module.parquet_available.cache_clear()
     with TestClient(create_app()) as test_client:
         yield test_client
 
@@ -73,7 +76,7 @@ def _legacy_path(year, value):
     )
 
 
-def _v1(api, **params):
+def _v1(api, follow_redirects=True, **params):
     return api.get(
         "/v1/geojson",
         params={
@@ -83,6 +86,7 @@ def _v1(api, **params):
             "simplification": 50,
             **params,
         },
+        follow_redirects=follow_redirects,
     )
 
 
@@ -128,7 +132,6 @@ def test_v1_gzip(api):
     [
         ({"values": "99"}, "No REGION 99"),
         ({"values": "75", "filter_by": "DEPARTEMENT"}, "cannot be filtered"),
-        ({"values": "11", "year": 2024}, "No GeoParquet file"),
     ],
 )
 def test_v1_not_found(api, params, message):
@@ -147,6 +150,39 @@ def test_legacy_path(api):
     assert response.status_code == 200
     features = response.json()["features"]
     assert sorted(f["properties"]["INSEE_DEP"] for f in features) == ["75", "92"]
+
+
+def _write_geojson(storage, region, year=2022):
+    """GeoJSON file of the departements of a region, legacy layout."""
+    path = storage / _legacy_path(year, region)
+    path.parent.mkdir(parents=True)
+    DEPARTEMENTS[DEPARTEMENTS["INSEE_REG"] == region].to_file(path, driver="GeoJSON")
+
+
+@pytest.mark.parametrize("value", ["11", "84"])
+def test_v1_without_parquet_redirects(api, storage, value):
+    response = _v1(api, values=value, year=2022, follow_redirects=False)
+    assert response.status_code == 307
+    assert response.headers["location"] == f"{storage}/{_legacy_path(2022, value)}"
+
+
+def test_v1_without_parquet_merges_several_values(api, storage):
+    _write_geojson(storage, "11")
+    _write_geojson(storage, "84")
+    response = _v1(api, values=["11", "84"], year=2022)
+    assert response.status_code == 200
+    features = response.json()["features"]
+    assert sorted(f["properties"]["INSEE_DEP"] for f in features) == [
+        "01",
+        "75",
+        "92",
+    ]
+
+
+def test_v1_without_parquet_missing_file(api, storage):
+    _write_geojson(storage, "11")
+    response = _v1(api, values=["11", "84"], year=2022)
+    assert response.status_code == 404
 
 
 def test_legacy_path_without_parquet_redirects(api, storage):

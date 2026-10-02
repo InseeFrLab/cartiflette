@@ -11,8 +11,10 @@ Two routes:
 - ``/v1/geojson``: query parameters, several values in one response.
 - ``/{legacy GeoJSON path}``: the path of a GeoJSON file in the S3 storage
   (``projet-cartiflette/production/provider=IGN/.../raw.geojson``), so that the
-  clients reading those files only change the host. When there is no
-  GeoParquet for the year (2022), it redirects to the file itself.
+  clients reading those files only change the host.
+
+When there is no GeoParquet for the year (2022), both routes redirect to the
+GeoJSON file; ``/v1/geojson`` with several values merges the files instead.
 
 Run with ``uvicorn --factory cartiflette_api.app:create_app``.
 """
@@ -86,27 +88,51 @@ def features_sql(relation: duckdb.DuckDBPyRelation) -> str:
     )
 
 
-def feature_collection(relation: duckdb.DuckDBPyRelation) -> Iterator[str]:
+def stream_geojson(
+    cursor: duckdb.DuckDBPyConnection, relation: duckdb.DuckDBPyRelation
+) -> StreamingResponse:
     """
-    GeoJSON FeatureCollection of a relation, in chunks.
+    GeoJSON FeatureCollection of a relation, streamed.
+
+    The first rows are read before answering, so that a missing file gives a
+    404 rather than a truncated response.
 
     Parameters
     ----------
+    cursor : duckdb.DuckDBPyConnection
+        Cursor of `relation`, closed once the response is sent.
     relation : duckdb.DuckDBPyRelation
         Relation with a `geometry` column in EPSG:4326 (RFC 7946).
 
-    Yields
+    Returns
+    -------
+    StreamingResponse
+
+    Raises
     ------
-    str
-        Pieces of the FeatureCollection, to concatenate.
+    HTTPException
+        404 if a file cannot be read.
     """
     features = relation.query("rel", features_sql(relation))
-    yield '{"type":"FeatureCollection","features":['
-    separator = ""
-    while rows := features.fetchmany(BATCH_SIZE):
-        yield separator + ",".join(row[0] for row in rows)
-        separator = ","
-    yield "]}"
+    try:
+        rows = features.fetchmany(BATCH_SIZE)
+    except (duckdb.IOException, duckdb.HTTPException) as e:
+        cursor.close()
+        raise HTTPException(404, str(e)) from None
+
+    def chunks(rows: list) -> Iterator[str]:
+        try:
+            yield '{"type":"FeatureCollection","features":['
+            separator = ""
+            while rows:
+                yield separator + ",".join(row[0] for row in rows)
+                separator = ","
+                rows = features.fetchmany(BATCH_SIZE)
+            yield "]}"
+        finally:
+            cursor.close()
+
+    return StreamingResponse(chunks(rows), media_type=MEDIA_TYPE)
 
 
 def check_path_within_bucket(path_within_bucket: str) -> str:
@@ -123,14 +149,14 @@ def parquet_available(filter_by: str, path_kwargs: tuple) -> bool:
     return client.parquet_available(filter_by, **dict(path_kwargs))
 
 
-def geojson_response(
+def parquet_response(
     con: duckdb.DuckDBPyConnection,
     values: list[str],
     filter_by: str,
     path_kwargs: dict,
 ) -> StreamingResponse:
     """
-    Streamed GeoJSON of the polygons of some values.
+    GeoJSON of the polygons of some values, read from the GeoParquet.
 
     Parameters
     ----------
@@ -159,14 +185,54 @@ def geojson_response(
     except (OSError, ValueError) as e:
         cursor.close()
         raise HTTPException(404, str(e)) from None
+    return stream_geojson(cursor, relation)
 
-    def chunks() -> Iterator[str]:
-        try:
-            yield from feature_collection(relation)
-        finally:
-            cursor.close()
 
-    return StreamingResponse(chunks(), media_type=MEDIA_TYPE)
+def files_response(
+    con: duckdb.DuckDBPyConnection,
+    values: list[str],
+    filter_by: str,
+    path_kwargs: dict,
+) -> StreamingResponse | RedirectResponse:
+    """
+    GeoJSON of some values when there is no GeoParquet (e.g. 2022).
+
+    One value: redirect to its GeoJSON file. Several values: the files are
+    read and merged into one FeatureCollection, as a redirect can only point
+    to one file.
+
+    Parameters
+    ----------
+    con, values, filter_by :
+        See `parquet_response`.
+    path_kwargs : dict
+        Arguments of `create_path_bucket`, except `filter_by`, `value`,
+        `vectorfile_format` and `territory`.
+
+    Returns
+    -------
+    StreamingResponse or RedirectResponse
+
+    Raises
+    ------
+    HTTPException
+        404 if a file does not exist.
+    """
+    try:
+        urls = client.geojson_urls(
+            values, filter_by, territory="metropole", **path_kwargs
+        )
+    except OSError as e:
+        raise HTTPException(404, str(e)) from None
+    if len(urls) == 1:
+        return RedirectResponse(urls[0], status_code=307)
+    cursor = client.connect(con.cursor())
+    try:
+        relation = client.read_geojson(cursor, urls)
+    except (duckdb.IOException, duckdb.HTTPException) as e:
+        cursor.close()
+        raise HTTPException(404, str(e)) from None
+    return stream_geojson(cursor, relation)
 
 
 def geojson(
@@ -178,13 +244,16 @@ def geojson(
     crs: int = 4326,
     simplification: int = 0,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
-) -> StreamingResponse:
+) -> StreamingResponse | RedirectResponse:
     """
     Polygons of `borders` for some values of `filter_by`, as GeoJSON.
 
     Same parameters as `carti_download` (e.g.
     ``/v1/geojson?year=2025&borders=COMMUNE&filter_by=DEPARTEMENT&values=75&values=92``).
+    Read from the GeoParquet; for a year without GeoParquet (2022), see
+    `files_response`.
     """
+    filter_by = filter_by.upper()
     path_kwargs = {
         **DEFAULT_PATH_KWARGS,
         "path_within_bucket": check_path_within_bucket(path_within_bucket),
@@ -193,7 +262,10 @@ def geojson(
         "crs": crs,
         "simplification": simplification,
     }
-    return geojson_response(request.app.state.con, values, filter_by, path_kwargs)
+    con = request.app.state.con
+    if not parquet_available(filter_by, tuple(sorted(path_kwargs.items()))):
+        return files_response(con, values, filter_by, path_kwargs)
+    return parquet_response(con, values, filter_by, path_kwargs)
 
 
 def legacy_geojson(request: Request, path: str) -> StreamingResponse | RedirectResponse:
@@ -211,7 +283,7 @@ def legacy_geojson(request: Request, path: str) -> StreamingResponse | RedirectR
     check_path_within_bucket(path_kwargs["path_within_bucket"])
     if not parquet_available(filter_by, tuple(sorted(path_kwargs.items()))):
         return RedirectResponse(f"{client.ENDPOINT_URL}/{path}", status_code=307)
-    return geojson_response(request.app.state.con, [value], filter_by, path_kwargs)
+    return parquet_response(request.app.state.con, [value], filter_by, path_kwargs)
 
 
 def health() -> dict:
@@ -243,6 +315,6 @@ def create_app(con: duckdb.DuckDBPyConnection | None = None) -> FastAPI:
     app = FastAPI(title="cartiflette", lifespan=lifespan)
     app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=1)
     app.get("/health")(health)
-    app.get("/v1/geojson", response_class=StreamingResponse)(geojson)
+    app.get("/v1/geojson", response_model=None)(geojson)
     app.get("/{path:path}", response_model=None)(legacy_geojson)
     return app
