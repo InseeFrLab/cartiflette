@@ -1,5 +1,14 @@
-# Only pyproject.toml, uv.lock and docker/ are needed to build the image
+# Allow-list of the files needed to build the images, from the repository root
 *
+# Pipeline (Dockerfile): pyproject.toml, uv.lock and docker/
 !pyproject.toml
 !uv.lock
 !docker/
+# API (api/Dockerfile): the API and the client it depends on
+!api/pyproject.toml
+!api/uv.lock
+!api/cartiflette_api/
+!python-package/cartiflette/pyproject.toml
+!python-package/cartiflette/README.md
+!python-package/cartiflette/cartiflette/
+**/__pycache__

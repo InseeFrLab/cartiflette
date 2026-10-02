@@ -36,7 +36,7 @@ Avec l'API    client R / JS  ──HTTPS──▶  API  ──HTTPS──▶  S3
 | Mesures | `api/benchmark.py`, `api/benchmark-2025.json` | comparaison API / fichiers sur les cas d'usage du site |
 | Documentation | `api/README.md`, cette page | |
 | Tests d'intégration | `python-package/cartiflette/tests/test_integration.py` | peuvent passer par l'API avec `CARTIFLETTE_API_URL` |
-| Image Docker | `api/Dockerfile`, `api/Dockerfile.dockerignore` | image de l'API, à construire depuis la racine du dépôt |
+| Image Docker | `api/Dockerfile`, `.dockerignore` | image de l'API, à construire depuis la racine du dépôt ; le `.dockerignore` racine, commun aux deux images, liste les fichiers autorisés |
 | CI | `.github/workflows/check.yml`, `.github/workflows/docker.yml` | jobs `api` : tests unitaires à chaque push, construction et publication de l'image |
 
 Le client Python et le pipeline ne changent pas.
