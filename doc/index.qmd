@@ -14,6 +14,7 @@ Elle couvre l'organisation du dépôt, le lancement du _pipeline_ et la façon d
 | [01. Les parties du projet](01-architecture.qmd) | _Pipeline_ de préparation des données, architecture du projet, rôle de chaque module |
 | [02. Lancer le pipeline](02-lancer-le-pipeline.qmd) | Différentes manières de lancer le _pipeline_, pour des tests (en local) ou via l'outil `Argo Workflows` pour la production |
 | [03. Vérifier et faire évoluer](03-verifier-et-faire-evoluer.qmd) | Evocation des tests, de la vérification du _pipeline_ brique par brique, de la procédure à suivre pour un nouveau millésime ou de nouveaux découpages ou formats |
+| [04. API GeoJSON](04-api-geojson.qmd) | API qui sert le GeoJSON à partir du GeoParquet (non déployée), son coût mesuré et les enjeux de sa mise en production |
 | [Client Python](client-python.qmd) et sa [référence de l'API](reference/index.qmd) | Explication des points d'entrée de la librairie disponible pour les utilisateurs et de la démarche pour pousser le paquet sur  PyPI |
 
 ::: {.callout-caution collapse="true"}

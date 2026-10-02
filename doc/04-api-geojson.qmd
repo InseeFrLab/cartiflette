@@ -1,0 +1,240 @@
+---
+title: "API GeoJSON"
+---
+
+Cette page décrit l'API ajoutée dans `api/`, ce qu'elle coûte en temps de
+réponse, et ce qu'il reste à décider avant de la mettre en production.
+**Elle n'est pas déployée** : le code, les tests et les mesures existent, rien
+d'autre n'a changé côté production.
+
+## Pourquoi une API
+
+Le pipeline publie chaque niveau sous deux formes :
+
+- en **GeoParquet**, un fichier par niveau (32 jobs par millésime), que le
+  client Python filtre à la lecture ;
+- en **GeoJSON**, un fichier par valeur de découpage (`DEPARTEMENT=75`,
+  `REGION=11`…), soit **74 jobs par millésime**, chacun avec son pod Argo, ses
+  relances et ses fichiers à écrire sur S3.
+
+Le GeoJSON n'existe que pour les clients qui ne savent pas lire le GeoParquet
+(R, JS/Observable, navigateur, client Python antérieur à 0.2.0). L'API les sert à
+partir du GeoParquet, à la demande : si les clients passent par elle, le
+pipeline n'a plus besoin de produire les 74 jobs GeoJSON.
+
+```text
+Aujourd'hui   client R / JS  ──HTTPS──▶  S3 : un GeoJSON par valeur (74 jobs)
+Avec l'API    client R / JS  ──HTTPS──▶  API  ──HTTPS──▶  S3 : GeoParquet (32 jobs)
+```
+
+## Ce qui a été ajouté
+
+| Élément | Fichier | Rôle |
+|---|---|---|
+| API | `api/cartiflette_api/app.py` | application FastAPI, paquet `cartiflette-api` (non publié) |
+| Tests unitaires | `api/tests/test_api.py` | 18 tests sur un stockage local simulé, sans réseau |
+| Mesures | `api/benchmark.py`, `api/benchmark-2025.json` | comparaison API / fichiers sur les cas d'usage du site |
+| Documentation | `api/README.md`, cette page | |
+| Tests d'intégration | `python-package/cartiflette/tests/test_integration.py` | peuvent passer par l'API avec `CARTIFLETTE_API_URL` |
+| Image Docker | `api/Dockerfile`, `.dockerignore` | image de l'API, à construire depuis la racine du dépôt ; le `.dockerignore` racine, commun aux deux images, liste les fichiers autorisés |
+| CI | `.github/workflows/check.yml`, `.github/workflows/docker.yml` | jobs `api` : tests unitaires à chaque push, construction et publication de l'image |
+
+Le client Python et le pipeline ne changent pas.
+
+## Comment elle fonctionne
+
+L'API dépend du client Python (installé depuis `python-package/cartiflette`) et
+réutilise sa fonction `read_parquet`. Elle ne connaît donc pas les chemins S3
+par elle-même : il n'y a toujours que deux implémentations du contrat
+(pipeline et client), pas trois.
+
+Pour chaque requête :
+
+1. DuckDB lit le GeoParquet consolidé en HTTPS public (sans secret) et ne
+   télécharge que les parties utiles, comme le client ;
+2. chaque polygone est converti en _Feature_ GeoJSON directement en SQL
+   (`ST_AsGeoJSON`) ;
+3. la réponse part au fil de l'eau, compressée en gzip (niveau 1).
+
+### Deux routes
+
+**`/v1/geojson`**, avec les paramètres de `carti_download` et plusieurs valeurs
+dans une seule réponse :
+
+```text
+/v1/geojson?year=2025&borders=COMMUNE&filter_by=DEPARTEMENT&values=75&values=92&simplification=50
+```
+
+**Les chemins des fichiers GeoJSON actuels**, pour qu'un client existant n'ait
+qu'à changer d'hôte :
+
+```text
+https://minio.lab.sspcloud.fr/projet-cartiflette/production/provider=IGN/.../DEPARTEMENT=75/.../raw.geojson
+https://<hôte de l'API>/projet-cartiflette/production/provider=IGN/.../DEPARTEMENT=75/.../raw.geojson
+```
+
+### Millésimes sans GeoParquet (2022)
+
+Le client n'a pas à distinguer les millésimes. Quand il n'y a pas de GeoParquet :
+
+- les deux routes **redirigent** (307) vers le fichier GeoJSON existant sur S3 ;
+- `/v1/geojson` avec **plusieurs valeurs** lit les fichiers correspondants et les
+  renvoie fusionnés en une seule réponse, puisqu'une redirection ne peut viser
+  qu'un fichier.
+
+L'existence du GeoParquet est vérifiée une fois puis gardée en mémoire : si un
+GeoParquet est publié plus tard pour 2022, redémarrer l'API pour qu'elle le lise.
+
+### Différences avec les fichiers
+
+Le contenu est équivalent, pas identique à l'octet :
+
+- **mêmes attributs, dans le même ordre**. Les zonages (bassins de vie, aires
+  d'attraction…) ont en plus la colonne `AREA` (territoire) ;
+- **géométries légèrement différentes** : le GeoParquet est simplifié sur tout le
+  territoire du niveau, les GeoJSON fichier par fichier. C'est déjà le cas pour le
+  client Python depuis la 0.2.0 ;
+- **ordre des lignes non garanti**.
+
+Erreurs : 404 si un fichier n'existe pas, si le niveau ne peut pas être filtré
+de cette façon ou si une valeur est introuvable ; 400 pour un
+`path_within_bucket` invalide.
+
+## Vérifier
+
+```bash
+cd api && uv run pytest tests                                  # sans réseau
+
+cd api && uv run uvicorn --factory cartiflette_api.app:create_app --port 8000
+# dans un autre terminal : les cas d'usage du site, via l'API
+cd python-package/cartiflette
+CARTIFLETTE_API_URL=http://localhost:8000 uv run pytest -m integration
+```
+
+Via l'API, les tests d'intégration donnent 91 réussis, 5 ignorés et 2 échecs
+attendus (les mêmes que sans API). Les 5 ignorés testent des options propres au
+client Python (`force`, `engine="duckdb"`, topojson).
+
+## Ce que coûte l'API
+
+`api/benchmark.py` rejoue les cas d'usage des tests d'intégration (millésime
+2025, `test/v0.2.0`) et compare le GeoJSON obtenu via l'API au GeoJSON lu
+directement sur S3. Il lance l'API lui-même et la redémarre avant chaque cas : les
+chiffres ci-dessous sont ceux d'une première requête, cache vide.
+
+Mesures depuis un pod du SSPCloud, donc dans le même réseau que MinIO :
+
+| Cas | Taille | Fichiers | API |
+|---|---:|---:|---:|
+| Communes d'un département | 0,4 Mo | 0,03 s | 0,22 s |
+| Communes de deux départements | 2 Mo | 0,03 s | 0,28 s |
+| Départements, DROM rapprochés | 15 Mo | 0,10 s | 0,69 s |
+| Régions, France entière | 6 Mo | 0,05 s | 0,43 s |
+| Bassins de vie, France entière, sans simplification | 50 Mo | 0,25 s | 2,05 s |
+
+Dans le même réseau, l'API ajoute donc **environ 0,2 s pour une requête
+courante** et **environ 2 s pour les plus gros niveaux**. Sur ces gros niveaux, le
+temps se répartit entre la lecture (~0,3 s), la conversion en GeoJSON (~0,5 s) et
+la compression (~0,8 s).
+
+Pour un utilisateur hors du SSPCloud, c'est le téléchargement qui domine. MinIO
+envoie les fichiers GeoJSON sans compression, l'API en gzip, soit trois fois moins
+d'octets. Estimation à 20 Mbit/s :
+
+| Cas | Fichiers | API |
+|---|---:|---:|
+| Communes d'un département | 0,2 s | 0,3 s |
+| Départements, DROM rapprochés | 6 s | 3 s |
+| Bassins de vie, France entière, sans simplification | 20 s | 10 s |
+
+L'API est donc un peu plus lente pour les petites requêtes et plus rapide pour les
+grosses. Ce second gain vient de la compression, pas de l'API elle-même.
+
+Pour le client Python, rien ne change : lire le GeoParquet directement reste le
+plus rapide (1,6 s contre environ 5 s via l'API pour obtenir un `GeoDataFrame`
+des bassins de vie). L'API sert les autres clients.
+
+Le détail des mesures est dans `api/README.md`.
+
+## Mise en production : les enjeux
+
+::: {.callout-important}
+Rien de ce qui suit n'est fait. Chaque étape est une décision à prendre, dans cet
+ordre : **supprimer la production des GeoJSON avant que les clients soient passés
+par l'API casserait ces clients pour tous les nouveaux millésimes.**
+:::
+
+### 1. Déployer l'API
+
+L'**image Docker** existe : `api/Dockerfile`, construite à la racine du dépôt (l'API
+dépend du client dans `python-package/`) :
+
+```bash
+docker build -f api/Dockerfile -t cartiflette-api .
+docker run -p 8000:8000 cartiflette-api
+```
+
+La CI (`.github/workflows/docker.yml`, job `api`) la construit à chaque PR et la
+publie sur `main` et sur les tags sous `inseefrlab/cartiflette-api:v<version>`, la
+version étant celle de `api/pyproject.toml`. Comme pour l'image du pipeline,
+**pousser sur `main` sans monter cette version écrase l'image** déjà déployée.
+
+L'image écoute sur le port 8000, sans utilisateur root, avec les extensions DuckDB
+préinstallées. Un seul processus par conteneur : DuckDB utilise déjà tous les
+cœurs, on ajoute de la capacité en ajoutant des réplicas. Aucun secret n'est
+nécessaire : l'API lit les fichiers publics en HTTPS.
+
+Ce qui manque, pour un déploiement par Argo CD :
+
+- les **manifestes Kubernetes** (Deployment avec au moins deux réplicas, Service,
+  Ingress), avec des sondes sur `/health` ;
+- une **adresse publique stable** : c'est elle que les clients R et JS inscriront
+  dans leur code, elle ne doit plus changer ensuite ;
+- un **responsable** du service.
+
+### 2. Accepter de passer de fichiers à un service
+
+C'est le vrai changement de nature. Aujourd'hui, les clients lisent des fichiers
+statiques sur MinIO : tant que MinIO fonctionne, cartiflette fonctionne. Avec
+l'API, il y a un service à faire tourner :
+
+- **disponibilité** : si l'API tombe, les clients R et JS n'ont plus de GeoJSON
+  pour les millésimes qui n'existent qu'en GeoParquet. Il faut au moins deux
+  réplicas et une surveillance ;
+- **charge** : chaque requête coûte du calcul (environ 2 s de CPU pour un niveau
+  France entière non simplifié), là où un fichier statique ne coûte rien à servir.
+  Il n'y a pas de cache des réponses pour l'instant. Les requêtes les plus
+  fréquentes (France entière, départements) sont peu nombreuses et toujours
+  identiques : un cache serait le premier levier si la charge monte ;
+- **abus** : l'API est publique ; prévoir une limite de débit si besoin.
+
+### 3. Faire passer les clients par l'API
+
+| Client | Ce qu'il faut changer |
+|---|---|
+| R, JS/Observable, site web | remplacer `https://minio.lab.sspcloud.fr` par l'adresse de l'API ; les chemins restent les mêmes |
+| Python ≥ 0.2.0 | rien : il lit le GeoParquet directement |
+| Python < 0.2.0 | impossible à modifier : il lit les fichiers GeoJSON sur MinIO et ne trouvera pas les millésimes produits sans GeoJSON |
+
+Le dernier cas est le coût inévitable. Les utilisateurs d'anciennes versions du
+client Python devront mettre à jour pour les nouveaux millésimes, et continueront
+de lire les anciens millésimes sans rien changer.
+
+### 4. Arrêter de produire les GeoJSON
+
+Une fois les clients R et JS passés par l'API et leur fonctionnement vérifié :
+
+- retirer du workflow Argo les étapes `list-jobs` et `split`, et le code
+  correspondant (`combinations`, `split_and_upload`…). Ce travail n'est pas fait ;
+- ne rien supprimer sur S3 : les GeoJSON déjà publiés restent lus par les anciens
+  clients. Les supprimer serait une décision distincte, plus tard.
+
+Le pipeline passe alors de 106 jobs par millésime (74 + 32) à 32.
+
+### Décisions à prendre
+
+1. Déployer l'API, où, avec quelle adresse et qui en est responsable.
+2. Accepter qu'un service remplace des fichiers statiques, avec sa surveillance.
+3. Calendrier de migration des clients R et JS.
+4. À partir de quel millésime le pipeline ne produit plus de GeoJSON, et comment
+   prévenir les utilisateurs du client Python < 0.2.0.

@@ -1,11 +1,13 @@
 # cartiflette
 
-Two separate things live in this repo:
+Three separate things live in this repo:
 
 - `cartiflette/` + `argo-pipeline/`: the **production pipeline** (dist name `cartiflette-pipeline`, not on PyPI). It fetches IGN and Insee sources, processes them with mapshaper and DuckDB, and writes GeoJSON and GeoParquet files to S3 (MinIO, SSPCloud).
 - `python-package/cartiflette/`: the **client** published on PyPI as `cartiflette`. It reads those files over HTTPS with DuckDB (GeoJSON: `read_json` over the list of per-value links; GeoParquet: one link filtered in SQL), and converts to geopandas only at the end (`engine="geopandas"`, default) or returns the DuckDB relation (`engine="duckdb"`). GeoParquet is read whenever it exists (assumed from 2025 onwards, checked with a HEAD request for earlier years: `parquet_available`), even when GeoJSON is requested, with a warning; GeoJSON is only read when there is no GeoParquet or with `force=True` (also with a warning). It has its own `pyproject.toml`, `uv.lock` and tests; Python >= 3.10, DuckDB >= 1.5.
 
-The only contract between the two is the S3 layout. Paths are built by `cartiflette/paths.py` and by `python-package/cartiflette/cartiflette/utils.py` (`create_path_bucket` for GeoJSON, `create_path_consolidated` for GeoParquet), which must stay identical. Both test suites pin the same expected strings. The `cartiflette:filter_columns` metadata of the GeoParquet files is part of the contract too.
+- `api/`: `cartiflette-api` (FastAPI, not on PyPI), GeoJSON served from the consolidated GeoParquet, so that GeoJSON no longer needs one file per value. It depends on the client by path and reuses `client.read_parquet`; `/v1/geojson` takes the `carti_download` parameters, and any GeoJSON file path of the storage is also served. Without GeoParquet (2022), both routes redirect (307) to the GeoJSON file; `/v1/geojson` with several values merges the files. Image: `api/Dockerfile`, built from the repository root (`docker build -f api/Dockerfile .`), published by `docker.yml` as `inseefrlab/cartiflette-api:v<api version>`, deployed with Argo CD. Cost against the files: `api/benchmark.py`, results in `api/README.md`.
+
+The only contract between the pipeline and the clients is the S3 layout. Paths are built by `cartiflette/paths.py` and by `python-package/cartiflette/cartiflette/utils.py` (`create_path_bucket` for GeoJSON, `create_path_consolidated` for GeoParquet), which must stay identical. Both test suites pin the same expected strings. The `cartiflette:filter_columns` metadata of the GeoParquet files is part of the contract too.
 
 ## S3 safety: never write to production
 
@@ -52,7 +54,9 @@ The only contract between the two is the S3 layout. Paths are built by `cartifle
 ```bash
 uv run pytest tests                                   # pipeline, no S3; mapshaper tests skipped if not on PATH
 cd python-package/cartiflette && uv run pytest tests  # client; the `network` test reads a production file (read-only)
-cd python-package/cartiflette && uv run pytest -m integration  # website use cases on published files (read-only); CARTIFLETTE_TEST_PATH / CARTIFLETTE_TEST_YEARS
+cd python-package/cartiflette && uv run pytest -m integration  # website use cases on published files (read-only); CARTIFLETTE_TEST_PATH / CARTIFLETTE_TEST_YEARS; CARTIFLETTE_API_URL to go through the API
+cd api && uv run pytest tests                         # API, no network
+cd api && uv run python benchmark.py                  # API vs files, starts the API itself (read-only)
 ```
 
 - mapshaper is not installed system-wide on the dev machine. Install it locally with `npm install mapshaper@0.6.59` in a scratch directory and prepend its `node_modules/.bin` to `PATH`.
