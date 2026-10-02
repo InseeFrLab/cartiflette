@@ -56,9 +56,11 @@ docker build -f api/Dockerfile -t cartiflette-api .
 docker run -p 8000:8000 cartiflette-api
 ```
 
-Publiée par la CI (`docker.yml`) sous `inseefrlab/cartiflette-api:v<version>`,
-version de `api/pyproject.toml` : la monter avant de pousser sur `main`, sinon
-l'image est écrasée.
+Publiée par la CI (`docker.yml`) sur `main` et sur les tags `v*` et `api-*` sous
+`inseefrlab/cartiflette-api:v<version>`, version de `api/pyproject.toml` (pas le
+nom du tag) : la monter avant de pousser sur `main`, sinon l'image est écrasée.
+Un tag `api-*` (ex. `api-0.1.0`) ne construit que cette image, sans l'image du
+pipeline ni le client PyPI.
 
 ## Coût par rapport aux fichiers
 

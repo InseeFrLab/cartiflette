@@ -6,11 +6,14 @@ on:
       - 'main'
     tags:
       - 'v*'
+      # API release only: builds the API image, not the pipeline one
+      - 'api-*'
   # Build only (no push), to check the image before merging
   pull_request:
 
 jobs:
   docker:
+    if: ${{ !startsWith(github.ref, 'refs/tags/api-') }}
     runs-on: ubuntu-latest
     steps:
       -

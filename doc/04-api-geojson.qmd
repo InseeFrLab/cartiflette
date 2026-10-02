@@ -175,9 +175,12 @@ docker run -p 8000:8000 cartiflette-api
 ```
 
 La CI (`.github/workflows/docker.yml`, job `api`) la construit à chaque PR et la
-publie sur `main` et sur les tags sous `inseefrlab/cartiflette-api:v<version>`, la
-version étant celle de `api/pyproject.toml`. Comme pour l'image du pipeline,
-**pousser sur `main` sans monter cette version écrase l'image** déjà déployée.
+publie sur `main` et sur les tags `v*` et `api-*` sous
+`inseefrlab/cartiflette-api:v<version>`, la version étant celle de
+`api/pyproject.toml` (pas le nom du tag). Un tag `api-*` (ex. `api-0.1.0`) ne
+construit que l'image de l'API : ni l'image du pipeline ni le client PyPI,
+réservés aux tags `v*`. Comme pour l'image du pipeline, **pousser sur `main` sans
+monter cette version écrase l'image** déjà déployée.
 
 L'image écoute sur le port 8000, sans utilisateur root, avec les extensions DuckDB
 préinstallées. Un seul processus par conteneur : DuckDB utilise déjà tous les
