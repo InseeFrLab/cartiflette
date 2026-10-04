@@ -5,6 +5,7 @@ import os
 import urllib.error
 import urllib.request
 import warnings
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from urllib.parse import urlparse
 
@@ -294,6 +295,20 @@ def geojson_urls(
     return urls
 
 
+def _size(url: str) -> int:
+    """Size in bytes of a file, local or remote (HEAD request)."""
+    if not url.startswith(("http://", "https://")):
+        if not os.path.exists(url):
+            raise OSError(f"No file at {url}")
+        return os.path.getsize(url)
+    try:
+        request = urllib.request.Request(url, method="HEAD")
+        with urllib.request.urlopen(request) as response:
+            return int(response.headers["Content-Length"])
+    except urllib.error.HTTPError as e:
+        raise OSError(f"No file at {url} (HTTP {e.code})") from None
+
+
 def read_geojson(
     con: duckdb.DuckDBPyConnection, urls: list[str]
 ) -> duckdb.DuckDBPyRelation:
@@ -311,9 +326,24 @@ def read_geojson(
     -------
     duckdb.DuckDBPyRelation
         The properties of the features as columns, and a `geometry` column.
+
+    Raises
+    ------
+    OSError
+        If a file does not exist.
+
+    Notes
+    -----
+    A file is a single JSON object (FeatureCollection), so DuckDB's
+    `maximum_object_size` must exceed the size of the largest file. It is
+    set from the actual sizes (HEAD requests): DuckDB allocates buffers of
+    about twice this size, so a fixed large value (e.g. 2 GB) runs out of
+    memory on small machines and containers.
     """
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        largest = max(pool.map(_size, urls))
     return con.sql(
-        """
+        f"""
         SELECT
             unnest(feature.properties),
             ST_GeomFromGeoJSON(feature.geometry) AS geometry
@@ -321,7 +351,7 @@ def read_geojson(
             SELECT unnest(features) AS feature
             FROM read_json(
                 $urls,
-                maximum_object_size = 2000000000,
+                maximum_object_size = {largest + 1_000_000},
                 union_by_name = true,
                 hive_partitioning = false
             )

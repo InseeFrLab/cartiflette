@@ -229,7 +229,7 @@ def files_response(
     cursor = client.connect(con.cursor())
     try:
         relation = client.read_geojson(cursor, urls)
-    except (duckdb.IOException, duckdb.HTTPException) as e:
+    except (OSError, duckdb.IOException, duckdb.HTTPException) as e:
         cursor.close()
         raise HTTPException(404, str(e)) from None
     return stream_geojson(cursor, relation)

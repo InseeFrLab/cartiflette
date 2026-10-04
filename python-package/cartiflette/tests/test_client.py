@@ -248,6 +248,16 @@ def test_geojson_region_code_falls_back_to_unpadded(storage):
         assert list(_download(values=value, year=2022)["INSEE_DEP"]) == ["971"]
 
 
+def test_geojson_low_memory(storage):
+    # maximum_object_size follows the file sizes: with a fixed 2 GB, DuckDB
+    # allocated ~4 GB and failed in a 2 GiB container (API pods)
+    _write_geojson(storage, "11")
+    con = duckdb.connect()
+    con.execute("SET memory_limit = '64MB'")
+    gdf = _download(values="11", year=2022, con=con)
+    assert sorted(gdf["INSEE_DEP"]) == ["75", "92"]
+
+
 def test_geojson_missing_file_raises(storage):
     with pytest.raises((OSError, duckdb.IOException)):
         _download(values="11", year=2022)
