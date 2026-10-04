@@ -193,7 +193,7 @@ Les **manifestes** sont prêts, sur le modèle GitOps du cours
 
 | Fichier | Contenu |
 |---|---|
-| `api/deployment/deployment.yaml` | 2 réplicas de `inseefrlab/cartiflette-api:v0.1.0` ; 0,5 à 2 CPU, 1 à 2 Gio ; sondes sur `/health` |
+| `api/deployment/deployment.yaml` | 2 réplicas de `inseefrlab/cartiflette-api:v0.1.1` ; 0,5 à 2 CPU, 1 à 2 Gio ; sondes sur `/health` |
 | `api/deployment/service.yaml` | port 80 vers le port 8000 des pods |
 | `api/deployment/ingress.yaml` | `https://cartiflette-api.lab.sspcloud.fr`, CORS ouvert en lecture (`GET`) pour les navigateurs |
 | `api/application.yaml` | application Argo CD : suit `api/deployment/` sur `main`, namespace `projet-cartiflette`, synchronisation automatique |
