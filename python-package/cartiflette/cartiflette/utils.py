@@ -96,8 +96,9 @@ def create_path_bucket(
     """
     Path of a cartiflette file within the S3 storage.
 
-    This must stay identical to cartiflette/paths.py in the pipeline: it is
-    the only contract between the pipeline and the clients.
+    The pipeline no longer produces GeoJSON files: this layout is kept to
+    read the files already published (2022), and the API (api/) serves the
+    same paths. Do not change it.
 
     Parameters
     ----------

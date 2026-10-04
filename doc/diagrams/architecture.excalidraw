@@ -826,10 +826,6 @@
     {
      "type": "arrow",
      "id": "arrow37"
-    },
-    {
-     "type": "arrow",
-     "id": "arrow38"
     }
    ],
    "updated": 1,
@@ -982,7 +978,7 @@
    "type": "text",
    "x": 1002,
    "y": 28,
-   "width": 206,
+   "width": 132.0,
    "height": 20.0,
    "angle": 0,
    "strokeColor": "#1e1e1e",
@@ -996,15 +992,15 @@
    "frameId": null,
    "roundness": null,
    "seed": 722831293,
-   "version": 1,
+   "version": 2,
    "versionNonce": 219494903,
    "isDeleted": false,
    "boundElements": [],
    "updated": 1,
    "link": null,
    "locked": false,
-   "text": "Clients (lecture HTTPS)",
-   "originalText": "Clients (lecture HTTPS)",
+   "text": "Lecture (HTTPS)",
+   "originalText": "Lecture (HTTPS)",
    "fontSize": 16,
    "fontFamily": 1,
    "textAlign": "left",
@@ -1093,9 +1089,9 @@
    "id": "r",
    "type": "rectangle",
    "x": 1005,
-   "y": 200,
-   "width": 200,
-   "height": 70,
+   "y": 320,
+   "width": 95,
+   "height": 80,
    "angle": 0,
    "strokeColor": "#1e1e1e",
    "backgroundColor": "#ffffff",
@@ -1110,7 +1106,7 @@
     "type": 3
    },
    "seed": 1819980298,
-   "version": 1,
+   "version": 2,
    "versionNonce": 738639289,
    "isDeleted": false,
    "boundElements": [
@@ -1120,7 +1116,7 @@
     },
     {
      "type": "arrow",
-     "id": "arrow37"
+     "id": "arrow39"
     }
    ],
    "updated": 1,
@@ -1131,9 +1127,9 @@
    "id": "r_t",
    "type": "text",
    "x": 1011,
-   "y": 215.0,
-   "width": 188,
-   "height": 40.0,
+   "y": 335.625,
+   "width": 83,
+   "height": 48.75,
    "angle": 0,
    "strokeColor": "#1e1e1e",
    "backgroundColor": "transparent",
@@ -1146,16 +1142,16 @@
    "frameId": null,
    "roundness": null,
    "seed": 1296491778,
-   "version": 1,
+   "version": 2,
    "versionNonce": 568054228,
    "isDeleted": false,
    "boundElements": [],
    "updated": 1,
    "link": null,
    "locked": false,
-   "text": "Client R\n(hors de ce dépôt)",
-   "originalText": "Client R\n(hors de ce dépôt)",
-   "fontSize": 16,
+   "text": "Client R\n(hors de\nce dépôt)",
+   "originalText": "Client R\n(hors de\nce dépôt)",
+   "fontSize": 13,
    "fontFamily": 1,
    "textAlign": "center",
    "verticalAlign": "middle",
@@ -1167,10 +1163,10 @@
   {
    "id": "js",
    "type": "rectangle",
-   "x": 1005,
-   "y": 300,
-   "width": 200,
-   "height": 70,
+   "x": 1110,
+   "y": 320,
+   "width": 95,
+   "height": 80,
    "angle": 0,
    "strokeColor": "#1e1e1e",
    "backgroundColor": "#ffffff",
@@ -1185,7 +1181,7 @@
     "type": 3
    },
    "seed": 1733294784,
-   "version": 1,
+   "version": 2,
    "versionNonce": 93309106,
    "isDeleted": false,
    "boundElements": [
@@ -1205,10 +1201,10 @@
   {
    "id": "js_t",
    "type": "text",
-   "x": 1011,
-   "y": 315.0,
-   "width": 188,
-   "height": 40.0,
+   "x": 1116,
+   "y": 327.5,
+   "width": 83,
+   "height": 65.0,
    "angle": 0,
    "strokeColor": "#1e1e1e",
    "backgroundColor": "transparent",
@@ -1221,16 +1217,16 @@
    "frameId": null,
    "roundness": null,
    "seed": 1567087081,
-   "version": 1,
+   "version": 2,
    "versionNonce": 986607412,
    "isDeleted": false,
    "boundElements": [],
    "updated": 1,
    "link": null,
    "locked": false,
-   "text": "Client JS / Observable\n(hors de ce dépôt)",
-   "originalText": "Client JS / Observable\n(hors de ce dépôt)",
-   "fontSize": 16,
+   "text": "Client JS /\nObservable\n(hors de\nce dépôt)",
+   "originalText": "Client JS /\nObservable\n(hors de\nce dépôt)",
+   "fontSize": 13,
    "fontFamily": 1,
    "textAlign": "center",
    "verticalAlign": "middle",
@@ -1507,10 +1503,10 @@
   {
    "id": "arrow37",
    "type": "arrow",
-   "x": 945.7132918991919,
-   "y": 183.90803702426908,
-   "width": 53.57341620161628,
-   "height": 17.183925951461845,
+   "x": 946.0,
+   "y": 184.0,
+   "width": 53.0,
+   "height": 42.0,
    "angle": 0,
    "strokeColor": "#1e1e1e",
    "backgroundColor": "transparent",
@@ -1525,7 +1521,7 @@
     "type": 2
    },
    "seed": 1328261054,
-   "version": 1,
+   "version": 2,
    "versionNonce": 1901493144,
    "isDeleted": false,
    "boundElements": [],
@@ -1538,8 +1534,8 @@
      0.0
     ],
     [
-     53.57341620161628,
-     17.183925951461845
+     53.0,
+     42.0
     ]
    ],
    "lastCommittedPoint": null,
@@ -1549,7 +1545,7 @@
     "gap": 6
    },
    "endBinding": {
-    "elementId": "r",
+    "elementId": "api",
     "focus": 0,
     "gap": 6
    },
@@ -1560,10 +1556,10 @@
   {
    "id": "arrow38",
    "type": "arrow",
-   "x": 916.541370123641,
-   "y": 203.43454140707007,
-   "width": 133.40374623920457,
-   "height": 93.13091718585986,
+   "x": 1157.5,
+   "y": 286.0,
+   "width": 0.0,
+   "height": 28.0,
    "angle": 0,
    "strokeColor": "#1e1e1e",
    "backgroundColor": "transparent",
@@ -1578,7 +1574,7 @@
     "type": 2
    },
    "seed": 1850501473,
-   "version": 1,
+   "version": 2,
    "versionNonce": 776605305,
    "isDeleted": false,
    "boundElements": [],
@@ -1591,18 +1587,154 @@
      0.0
     ],
     [
-     133.40374623920457,
-     93.13091718585986
+     0.0,
+     28.0
     ]
    ],
    "lastCommittedPoint": null,
    "startBinding": {
-    "elementId": "prod",
+    "elementId": "api",
     "focus": 0,
     "gap": 6
    },
    "endBinding": {
     "elementId": "js",
+    "focus": 0,
+    "gap": 6
+   },
+   "startArrowhead": null,
+   "endArrowhead": "arrow",
+   "elbowed": false
+  },
+  {
+   "id": "api",
+   "type": "rectangle",
+   "x": 1005,
+   "y": 190,
+   "width": 200,
+   "height": 90,
+   "angle": 0,
+   "strokeColor": "#1e1e1e",
+   "backgroundColor": "#99e9f2",
+   "fillStyle": "solid",
+   "strokeWidth": 2,
+   "strokeStyle": "solid",
+   "roughness": 1,
+   "opacity": 100,
+   "groupIds": [],
+   "frameId": null,
+   "roundness": {
+    "type": 3
+   },
+   "seed": 1819980305,
+   "version": 2,
+   "versionNonce": 738639289,
+   "isDeleted": false,
+   "boundElements": [
+    {
+     "type": "text",
+     "id": "api_t"
+    },
+    {
+     "type": "arrow",
+     "id": "arrow37"
+    },
+    {
+     "type": "arrow",
+     "id": "arrow39"
+    },
+    {
+     "type": "arrow",
+     "id": "arrow38"
+    }
+   ],
+   "updated": 1,
+   "link": null,
+   "locked": false
+  },
+  {
+   "id": "api_t",
+   "type": "text",
+   "x": 1011,
+   "y": 200.0,
+   "width": 188,
+   "height": 70.0,
+   "angle": 0,
+   "strokeColor": "#1e1e1e",
+   "backgroundColor": "transparent",
+   "fillStyle": "solid",
+   "strokeWidth": 2,
+   "strokeStyle": "solid",
+   "roughness": 1,
+   "opacity": 100,
+   "groupIds": [],
+   "frameId": null,
+   "roundness": null,
+   "seed": 1296491778,
+   "version": 2,
+   "versionNonce": 568054228,
+   "isDeleted": false,
+   "boundElements": [],
+   "updated": 1,
+   "link": null,
+   "locked": false,
+   "text": "API GeoJSON (api/)\nFastAPI · Argo CD\ncartiflette-api\n.lab.sspcloud.fr",
+   "originalText": "API GeoJSON (api/)\nFastAPI · Argo CD\ncartiflette-api\n.lab.sspcloud.fr",
+   "fontSize": 14,
+   "fontFamily": 1,
+   "textAlign": "center",
+   "verticalAlign": "middle",
+   "containerId": "api",
+   "lineHeight": 1.25,
+   "autoResize": true,
+   "baseline": 14
+  },
+  {
+   "id": "arrow39",
+   "type": "arrow",
+   "x": 1052.5,
+   "y": 286.0,
+   "width": 0.0,
+   "height": 28.0,
+   "angle": 0,
+   "strokeColor": "#1e1e1e",
+   "backgroundColor": "transparent",
+   "fillStyle": "solid",
+   "strokeWidth": 2,
+   "strokeStyle": "solid",
+   "roughness": 1,
+   "opacity": 100,
+   "groupIds": [],
+   "frameId": null,
+   "roundness": {
+    "type": 2
+   },
+   "seed": 1328261065,
+   "version": 3,
+   "versionNonce": 1901493144,
+   "isDeleted": false,
+   "boundElements": [],
+   "updated": 1,
+   "link": null,
+   "locked": false,
+   "points": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     28.0
+    ]
+   ],
+   "lastCommittedPoint": null,
+   "startBinding": {
+    "elementId": "api",
+    "focus": 0,
+    "gap": 6
+   },
+   "endBinding": {
+    "elementId": "r",
     "focus": 0,
     "gap": 6
    },
@@ -1663,15 +1795,15 @@
    "frameId": null,
    "roundness": null,
    "seed": 1513056505,
-   "version": 1,
+   "version": 2,
    "versionNonce": 149368554,
    "isDeleted": false,
    "boundElements": [],
    "updated": 1,
    "link": null,
    "locked": false,
-   "text": "Contrat unique entre pipeline et clients : la structure des chemins S3\ncartiflette/paths.py  ≡  python-package/cartiflette/cartiflette/utils.py::create_path_bucket",
-   "originalText": "Contrat unique entre pipeline et clients : la structure des chemins S3\ncartiflette/paths.py  ≡  python-package/cartiflette/cartiflette/utils.py::create_path_bucket",
+   "text": "Contrat unique entre pipeline et clients : la structure des chemins S3 (GeoParquet)\ncreate_path_consolidated :  cartiflette/paths.py  ≡  python-package/cartiflette/cartiflette/utils.py",
+   "originalText": "Contrat unique entre pipeline et clients : la structure des chemins S3 (GeoParquet)\ncreate_path_consolidated :  cartiflette/paths.py  ≡  python-package/cartiflette/cartiflette/utils.py",
    "fontSize": 16,
    "fontFamily": 1,
    "textAlign": "center",
@@ -1686,7 +1818,7 @@
    "type": "text",
    "x": 310,
    "y": 565,
-   "width": 908.0500000000001,
+   "width": 850.85,
    "height": 32.5,
    "angle": 0,
    "strokeColor": "#495057",
@@ -1700,15 +1832,15 @@
    "frameId": null,
    "roundness": null,
    "seed": 98407117,
-   "version": 1,
+   "version": 2,
    "versionNonce": 1420052173,
    "isDeleted": false,
    "boundElements": [],
    "updated": 1,
    "link": null,
    "locked": false,
-   "text": "projet-cartiflette/production/provider=IGN/dataset_family=ADMINEXPRESS/source=EXPRESS-COG-CARTO-TERRITOIRE/year=2026/\nadministrative_level=DEPARTEMENT/crs=4326/REGION=11/vectorfile_format=parquet/territory=metropole/simplification=50/raw.parquet",
-   "originalText": "projet-cartiflette/production/provider=IGN/dataset_family=ADMINEXPRESS/source=EXPRESS-COG-CARTO-TERRITOIRE/year=2026/\nadministrative_level=DEPARTEMENT/crs=4326/REGION=11/vectorfile_format=parquet/territory=metropole/simplification=50/raw.parquet",
+   "text": "projet-cartiflette/production/provider=IGN/dataset_family=ADMINEXPRESS/source=EXPRESS-COG-CARTO-TERRITOIRE/year=2026/\nadministrative_level=DEPARTEMENT/crs=4326/layout=FRANCE_ENTIERE/vectorfile_format=parquet/simplification=50/raw.parquet",
+   "originalText": "projet-cartiflette/production/provider=IGN/dataset_family=ADMINEXPRESS/source=EXPRESS-COG-CARTO-TERRITOIRE/year=2026/\nadministrative_level=DEPARTEMENT/crs=4326/layout=FRANCE_ENTIERE/vectorfile_format=parquet/simplification=50/raw.parquet",
    "fontSize": 13,
    "fontFamily": 1,
    "textAlign": "left",

@@ -10,7 +10,7 @@ import pytest
 import yaml
 
 from cartiflette import __version__
-from cartiflette.pipeline import combinations, consolidated_combinations
+from cartiflette.pipeline import consolidated_combinations
 
 ROOT = Path(__file__).parents[1]
 WORKFLOW = yaml.safe_load((ROOT / "argo-pipeline" / "pipeline.yaml").read_text())
@@ -68,7 +68,7 @@ def test_target_checked_before_anything_else():
     assert "dependencies" not in tasks["check-target"]
     assert tasks["year"]["dependencies"] == ["check-target"]
     # Every step gets the write target and the production switch
-    for name in ("check-target", "prepare", "list-jobs", "split", "consolidate"):
+    for name in ("check-target", "prepare", "list-jobs", "consolidate"):
         env = {e["name"]: e.get("value") for e in TEMPLATES[name]["container"]["env"]}
         assert env["CARTIFLETTE_WRITE_PATH"] == "{{workflow.parameters.path}}"
         assert (
@@ -80,7 +80,7 @@ def test_target_checked_before_anything_else():
 @pytest.mark.parametrize(
     "path, allow, ok",
     [
-        ("test/v0.2.0", "false", True),
+        ("test/v0.3.0", "false", True),
         ("production", "false", False),
         ("production/", "yes", False),
         ("production", "true", True),
@@ -104,31 +104,29 @@ def test_check_target_script(path, allow, ok):
         assert "PermissionError" in result.stderr
 
 
-@pytest.mark.parametrize(
-    "kind, jobs",
-    [("geojson", combinations()), ("parquet", consolidated_combinations())],
-)
-def test_crossproduct_matches_workflow_items(kind, jobs):
+def test_crossproduct_matches_workflow_items():
     result = subprocess.run(
-        [
-            sys.executable,
-            str(ROOT / "argo-pipeline" / "src" / "crossproduct.py"),
-            "--kind",
-            kind,
-        ],
+        [sys.executable, str(ROOT / "argo-pipeline" / "src" / "crossproduct.py")],
         env={"PYTHONPATH": str(ROOT)},
         capture_output=True,
         text=True,
         check=True,
     )
     items = json.loads(result.stdout)
-    assert len(items) == len(jobs)
-    # Keys used as {{item.xxx}} in the split / consolidate tasks
-    task = "split" if kind == "geojson" else "consolidate"
+    assert len(items) == len(consolidated_combinations())
+    # Keys used as {{item.xxx}} in the consolidate task
     tasks = {t["name"]: t for t in TEMPLATES["year"]["dag"]["tasks"]}
     used = {
         a["value"][len("{{item.") : -2]
-        for a in tasks[task]["arguments"]["parameters"]
+        for a in tasks["consolidate"]["arguments"]["parameters"]
         if a["value"].startswith("{{item.")
     }
     assert used == set(items[0])
+
+
+def test_no_geojson_step():
+    # GeoJSON is served by the API from the GeoParquet: no step writes it
+    tasks = {t["name"] for t in TEMPLATES["year"]["dag"]["tasks"]}
+    assert tasks == {"prepare", "list-jobs", "consolidate"}
+    assert "split" not in TEMPLATES
+    assert not (ROOT / "argo-pipeline" / "src" / "split.py").exists()

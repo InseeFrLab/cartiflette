@@ -57,7 +57,10 @@ communes.aggregate("INSEE_REG, sum(POPULATION)")
 
 Les deux formats ne s'utilisent pas de la même façon :
 
-- **GeoJSON** : un fichier par valeur de `filter_by`. Le client construit la liste des
+- **GeoJSON** : un fichier par valeur de `filter_by`, publié seulement pour les
+  millésimes antérieurs à la refonte (2022) : le _pipeline_ n'en produit plus, le
+  GeoJSON des nouveaux millésimes est servi par l'API ([04](04-api-geojson.qmd)).
+  Le client construit la liste des
   liens ([`geojson_urls`](reference/client.geojson_urls.qmd), avec
   `create_path_bucket`) et DuckDB les lit ensemble
   ([`read_geojson`](reference/client.read_geojson.qmd), `read_json`).
@@ -77,7 +80,11 @@ le vérifie par une requête HEAD, puis [`choose_format`](reference/client.choos
 décide), même si `vectorfile_format="geojson"`
 est demandé : un avertissement l'indique. Il est aussi rapide que le GeoJSON pour une
 petite requête et bien plus rapide pour une grosse. Pour lire quand même le GeoJSON,
-passer `force=True` (un avertissement rappelle que le GeoParquet est plus rapide).
+passer `force=True` (un avertissement rappelle que le GeoParquet est plus rapide) :
+seulement pour les millésimes qui ont des fichiers GeoJSON (2022). À partir de 2025, ou
+pour un millésime republié par le _pipeline_ actuel, il n'y en a pas
+([`geojson_available`](reference/client.geojson_available.qmd) le vérifie) : le
+GeoParquet est lu malgré `force=True`, avec un avertissement.
 Sans GeoParquet (ex. 2022 en production aujourd'hui), le GeoJSON est lu sans
 avertissement.
 Mesures depuis le SSPCloud, millésime 2025, simplification 50 :
@@ -91,7 +98,7 @@ Mesures depuis le SSPCloud, millésime 2025, simplification 50 :
 
 ### Combinaisons disponibles
 
-Elles correspondent à `SPLITS` dans `cartiflette/pipeline.py`. Chaque
+Elles correspondent à `FILTERS` dans `cartiflette/pipeline.py`. Chaque
 combinaison existe avec `simplification` 0 et 50, en `crs=4326`.
 
 | `borders` (polygones) | `filter_by` (découpage) |
@@ -105,8 +112,9 @@ d'un territoire (`"metropole"`, `"guadeloupe"`…) ou `"France"`.
 
 ### Formats et millésimes
 
-- À partir de 2025 : `geojson` et `parquet` (alias accepté : `geoparquet`) ;
-  le client lit le `parquet`, sauf `vectorfile_format="geojson"` avec `force=True`.
+- À partir de 2025 : `parquet` seulement (alias accepté : `geoparquet`) ; le client lit
+  le `parquet` même si `geojson` est demandé, `force=True` compris. Le GeoJSON de ces
+  millésimes est servi par l'API ([04](04-api-geojson.qmd)).
 - Avant 2025 : `geojson` seulement en production pour 2022 (ancien pipeline) ; le
   client bascule seul sur le `parquet` si celui-ci est publié (2022 à 2024 peuvent
   être produits depuis les éditions IGN 3-x).
@@ -142,9 +150,10 @@ uv run pytest tests                   # tests `network` : lecture seule en produ
 uv run pytest tests -m "not network"  # hors ligne
 ```
 
-- `create_path_bucket` doit rester **identique** à `cartiflette/paths.py` dans le
-  pipeline (voir [Les parties du projet](01-architecture.qmd)). Les deux suites
-  de tests fixent la même chaîne attendue.
+- `create_path_consolidated` doit rester **identique** à `cartiflette/paths.py` dans
+  le pipeline (voir [Les parties du projet](01-architecture.qmd)). Les deux suites
+  de tests fixent la même chaîne attendue. `create_path_bucket` n'existe plus que
+  dans le client, pour lire les GeoJSON déjà publiés : ne pas le modifier.
 - Docstrings au format numpydoc : elles alimentent la référence de l'API.
 - Publication : monter `version` dans `python-package/cartiflette/pyproject.toml`,
   puis pousser un tag `v*`. Le workflow `pypi.yml` construit et publie le paquet

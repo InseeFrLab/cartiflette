@@ -3,34 +3,8 @@ from unittest import mock
 import pytest
 
 from cartiflette import config
-from cartiflette.paths import create_path_bucket, create_path_consolidated
+from cartiflette.paths import create_path_consolidated
 from cartiflette.s3 import check_write_target, upload
-
-
-def test_create_path_bucket_production_layout():
-    # Layout of the files read by the clients: must not change (same test in
-    # python-package/cartiflette/tests/test_client.py)
-    assert create_path_bucket(
-        bucket="projet-cartiflette",
-        path_within_bucket="production",
-        provider="IGN",
-        dataset_family="ADMINEXPRESS",
-        source="EXPRESS-COG-CARTO-TERRITOIRE",
-        year=2022,
-        borders="DEPARTEMENT",
-        crs=4326,
-        filter_by="REGION",
-        value="11",
-        vectorfile_format="geojson",
-        territory="metropole",
-        simplification=50.0,
-    ) == (
-        "projet-cartiflette/production/provider=IGN/dataset_family=ADMINEXPRESS/"
-        "source=EXPRESS-COG-CARTO-TERRITOIRE/year=2022/"
-        "administrative_level=DEPARTEMENT/crs=4326/REGION=11/"
-        "vectorfile_format=geojson/territory=metropole/simplification=50/"
-        "raw.geojson"
-    )
 
 
 def test_default_write_target_is_not_production():

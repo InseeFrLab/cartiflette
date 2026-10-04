@@ -21,17 +21,17 @@
 <path d="M 345.9 202.6 L 369.1 199.0" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#head)"/>
 <path d="M 701.0 172.5 L 744.0 172.5" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#head)"/>
 <rect x="20" y="340" width="1200" height="280" rx="14" fill="#ffec99" fill-opacity="0.45" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
-<text x="32.0" y="364.0" font-size="16" text-anchor="start" fill="#1e1e1e" font-weight="600"><tspan x="32.0" dy="0.0">Étape 3 — split_and_upload(...)  ·  un pod par job (niveau × découpage × simplification × crs)  ·  cartiflette/pipeline.py</tspan></text>
+<text x="32.0" y="364.0" font-size="16" text-anchor="start" fill="#1e1e1e" font-weight="600"><tspan x="32.0" dy="0.0">Étape 3 — consolidate_and_upload(...)  ·  un pod par job (niveau × disposition × simplification × crs)  ·  cartiflette/pipeline.py</tspan></text>
 <rect x="40" y="420" width="200" height="110" rx="10" fill="#ffffff" stroke="#1e1e1e" stroke-width="2" stroke-dasharray="8 6"/>
 <text x="140.0" y="453.3" font-size="14" text-anchor="middle" fill="#1e1e1e"><tspan x="140.0" dy="0.0">mapshaper.dissolve</tspan><tspan x="140.0" dy="17.5"></tspan><tspan x="140.0" dy="17.5">si niveau ≠ COMMUNE</tspan><tspan x="140.0" dy="17.5">(somme POPULATION)</tspan></text>
 <rect x="265" y="420" width="285" height="110" rx="10" fill="#ffffff" stroke="#1e1e1e" stroke-width="2" stroke-dasharray="8 6"/>
-<text x="407.5" y="444.6" font-size="14" text-anchor="middle" fill="#1e1e1e"><tspan x="407.5" dy="0.0">mapshaper</tspan><tspan x="407.5" dy="17.5">.bring_drom_closer</tspan><tspan x="407.5" dy="17.5"></tspan><tspan x="407.5" dy="17.5">si découpage =</tspan><tspan x="407.5" dy="17.5">FRANCE_ENTIERE_DROM_RAPPROCHES</tspan></text>
+<text x="407.5" y="444.6" font-size="14" text-anchor="middle" fill="#1e1e1e"><tspan x="407.5" dy="0.0">mapshaper</tspan><tspan x="407.5" dy="17.5">.bring_drom_closer</tspan><tspan x="407.5" dy="17.5"></tspan><tspan x="407.5" dy="17.5">si disposition =</tspan><tspan x="407.5" dy="17.5">FRANCE_ENTIERE_DROM_RAPPROCHES</tspan></text>
 <rect x="575" y="420" width="215" height="110" rx="10" fill="#ffffff" stroke="#1e1e1e" stroke-width="2"/>
-<text x="682.5" y="453.3" font-size="14" text-anchor="middle" fill="#1e1e1e"><tspan x="682.5" dy="0.0">mapshaper.split</tspan><tspan x="682.5" dy="17.5"></tspan><tspan x="682.5" dy="17.5">reprojection, simplification,</tspan><tspan x="682.5" dy="17.5">un fichier par valeur</tspan></text>
+<text x="682.5" y="453.3" font-size="14" text-anchor="middle" fill="#1e1e1e"><tspan x="682.5" dy="0.0">mapshaper.finalize</tspan><tspan x="682.5" dy="17.5"></tspan><tspan x="682.5" dy="17.5">reprojection, simplification,</tspan><tspan x="682.5" dy="17.5">un seul fichier</tspan></text>
 <rect x="815" y="420" width="180" height="110" rx="10" fill="#ffffff" stroke="#1e1e1e" stroke-width="2"/>
 <text x="905.0" y="453.3" font-size="14" text-anchor="middle" fill="#1e1e1e"><tspan x="905.0" dy="0.0">to_consolidated_parquet</tspan><tspan x="905.0" dy="17.5"></tspan><tspan x="905.0" dy="17.5">DuckDB</tspan><tspan x="905.0" dy="17.5">(threads = 1)</tspan></text>
 <rect x="1020" y="420" width="180" height="110" rx="10" fill="#b2f2bb" stroke="#1e1e1e" stroke-width="2"/>
-<text x="1110.0" y="444.6" font-size="14" text-anchor="middle" fill="#1e1e1e"><tspan x="1110.0" dy="0.0">s3.upload</tspan><tspan x="1110.0" dy="17.5"></tspan><tspan x="1110.0" dy="17.5">geojson + parquet</tspan><tspan x="1110.0" dy="17.5">chemin =</tspan><tspan x="1110.0" dy="17.5">create_path_bucket</tspan></text>
+<text x="1110.0" y="444.6" font-size="14" text-anchor="middle" fill="#1e1e1e"><tspan x="1110.0" dy="0.0">s3.upload</tspan><tspan x="1110.0" dy="17.5"></tspan><tspan x="1110.0" dy="17.5">GeoParquet, chemin =</tspan><tspan x="1110.0" dy="17.5">create_path_</tspan><tspan x="1110.0" dy="17.5">consolidated</tspan></text>
 <path d="M 246.0 475.0 L 259.0 475.0" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#head)"/>
 <path d="M 556.0 475.0 L 569.0 475.0" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#head)"/>
 <path d="M 796.0 475.0 L 809.0 475.0" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#head)"/>
@@ -39,5 +39,5 @@
 <path d="M 965.0 286.0 L 965.0 310.0 L 140.0 310.0 L 140.0 414.0" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#head)"/>
 <rect x="501.1" y="290.5" width="117.8" height="39.0" fill="#ffffff" fill-opacity="0.9"/>
 <text x="560.0" y="305.8" font-size="14" text-anchor="middle" fill="#1e1e1e"><tspan x="560.0" dy="0.0">entrées lues</tspan><tspan x="560.0" dy="17.5">par chaque job</tspan></text>
-<text x="40.0" y="574.0" font-size="14" text-anchor="start" fill="#495057"><tspan x="40.0" dy="0.0">Encadré pointillé = étape conditionnelle.  Étape 2 (list-jobs) : pipeline.combinations() génère les 74 jobs, voir schéma Argo.</tspan></text>
+<text x="40.0" y="574.0" font-size="14" text-anchor="start" fill="#495057"><tspan x="40.0" dy="0.0">Encadré pointillé = étape conditionnelle.  Étape 2 (list-jobs) : pipeline.consolidated_combinations() génère les 32 jobs, voir schéma Argo.</tspan></text>
 </svg>

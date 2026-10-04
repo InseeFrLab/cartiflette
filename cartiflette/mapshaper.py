@@ -1,7 +1,7 @@
 """
 Geographic processing with mapshaper (https://github.com/mbloch/mapshaper):
 dissolve of communes into larger levels, DROM brought closer to metropolitan
-France, simplification and split into one file per value.
+France, reprojection and simplification.
 """
 
 from __future__ import annotations
@@ -166,7 +166,7 @@ def bring_drom_closer(
 
 
 def _finalize_commands(crs: int, simplification: float, source_label: str) -> list:
-    """Reprojection, simplification and SOURCE field, common to all outputs."""
+    """Reprojection, simplification and SOURCE field."""
     simplify = ["-simplify", f"{simplification}%"] if simplification else []
     return [
         "-proj",
@@ -175,38 +175,6 @@ def _finalize_commands(crs: int, simplification: float, source_label: str) -> li
         "-each",
         f"SOURCE='{source_label}'",
     ]
-
-
-def split(
-    input_path: str,
-    output_dir: str,
-    split_field: str,
-    crs: int,
-    simplification: float,
-    source_label: str,
-) -> list[str]:
-    """
-    Reproject, simplify and split `input_path` into one GeoJSON per value of
-    `split_field`, named `{value}.geojson`. Returns the written paths.
-    """
-    os.makedirs(output_dir, exist_ok=True)
-    run(
-        input_path,
-        "name=",
-        *_finalize_commands(crs, simplification, source_label),
-        "-split",
-        split_field,
-        "-o",
-        output_dir + os.sep,
-        "format=geojson",
-        "extension=.geojson",
-        "singles",
-    )
-    return sorted(
-        os.path.join(output_dir, f)
-        for f in os.listdir(output_dir)
-        if f.endswith(".geojson")
-    )
 
 
 def finalize(

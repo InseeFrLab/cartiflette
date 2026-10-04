@@ -51,38 +51,28 @@ uv run python argo-pipeline/src/prepare.py --year $YEAR --localpath $DATA
 ls $DATA   # COMMUNE.geojson  COMMUNE_ARRONDISSEMENT.geojson  fields.json  raw/
 
 # Étape 2 : liste des jobs (tous, ou limités à un niveau de polygones)
-uv run python argo-pipeline/src/crossproduct.py --restrictfield REGION              # GeoJSON
-uv run python argo-pipeline/src/crossproduct.py --kind parquet --restrictfield REGION  # GeoParquet
+uv run python argo-pipeline/src/crossproduct.py --restrictfield REGION
 ```
 
-Pour l'étape 3 sans envoi sur S3, appeler directement `pipeline.process`, la
-partie de `split_and_upload` qui ne fait que les traitements :
-
-```bash
-uv run python -c "
-from cartiflette.pipeline import process
-files = process('$DATA', '/tmp/cartiflette/work', 'REGION', 'FRANCE_ENTIERE_DROM_RAPPROCHES', 50, 4326)
-print(files)
-"
-mapshaper /tmp/cartiflette/work/split/France.geojson -info
-```
-
-De même pour le GeoParquet, avec `pipeline.process_consolidated` :
+Pour l'étape 3 sans envoi sur S3, appeler directement
+`pipeline.process_consolidated`, la partie de `consolidate_and_upload` qui ne fait
+que les traitements :
 
 ```bash
 uv run python -c "
 from cartiflette.pipeline import process_consolidated
-print(process_consolidated('$DATA', '/tmp/cartiflette/work_parquet', 'REGION', 'FRANCE_ENTIERE', 50, 4326))
+print(process_consolidated('$DATA', '/tmp/cartiflette/work', 'REGION', 'FRANCE_ENTIERE_DROM_RAPPROCHES', 50, 4326))
 "
 ```
 
-On peut ensuite ouvrir le GeoJSON dans QGIS ou sur <https://mapshaper.org> pour
-vérifier le rendu. Le chapitre [03](03-verifier-et-faire-evoluer.qmd) détaille
+Le dossier de travail garde aussi le GeoJSON intermédiaire
+(`/tmp/cartiflette/work/final.geojson`), à ouvrir dans QGIS ou sur
+<https://mapshaper.org> pour vérifier le rendu. Le chapitre [03](03-verifier-et-faire-evoluer.qmd) détaille
 les contrôles à faire.
 
 ### Variante : local avec envoi vers l'espace de test
 
-`argo-pipeline/src/split.py` exécute un job complet, envoi compris. Sans
+`argo-pipeline/src/consolidate.py` exécute un job complet, envoi compris. Sans
 `--bucket` ni `--path`, il écrit dans `projet-cartiflette/test/v<version>`
 (voir `cartiflette/config.py`). Il crée un dossier de travail `work/` dans le
 répertoire courant : le lancer depuis un dossier temporaire.
@@ -90,16 +80,10 @@ répertoire courant : le lancer depuis un dossier temporaire.
 ```bash
 # ⚠ écrit sur S3 (espace de test)
 REPO=$(pwd)
-cd /tmp/cartiflette && uv run --project $REPO python $REPO/argo-pipeline/src/split.py \
-  --year 2026 --inputs $DATA \
-  --level_polygons REGION --filter_by TERRITOIRE --simplification 50 --crs 4326 \
-  --path test/v0.2.0
-
-# GeoParquet consolidé : même principe avec consolidate.py
 cd /tmp/cartiflette && uv run --project $REPO python $REPO/argo-pipeline/src/consolidate.py \
   --year 2026 --inputs $DATA \
   --level_polygons REGION --layout FRANCE_ENTIERE --simplification 50 --crs 4326 \
-  --path test/v0.2.0
+  --path test/v0.3.0
 ```
 
 ## B. Sur Argo, vers l'espace de test {#mode-argo-test}
@@ -111,7 +95,7 @@ cd /tmp/cartiflette && uv run --project $REPO python $REPO/argo-pipeline/src/con
 ### Ce que fait le workflow
 
 `argo-pipeline/pipeline.yaml` définit un DAG dans le namespace
-`projet-cartiflette` (le schéma ci-dessus montre un millésime, branche GeoJSON) :
+`projet-cartiflette` (le schéma ci-dessus montre un millésime) :
 
 0. `check-target` clone le dépôt GitHub à la révision `revision` dans `/mnt/bin`
    (volume partagé `volume-workflow-tmp`, 20 Gi) et vérifie la cible d'écriture :
@@ -121,13 +105,12 @@ cd /tmp/cartiflette && uv run --project $REPO python $REPO/argo-pipeline/src/con
 puis, pour chaque millésime de `years`, deux années à la fois (sous-DAG `year`) :
 
 1. `prepare` écrit les entrées dans `/mnt/data/<année>` (environ 1 Gi par année) ;
-2. `list-jobs` et `list-parquet-jobs` impriment les listes JSON des 74 jobs GeoJSON
-   et des 32 jobs GeoParquet ;
-3. `split` (GeoJSON) et `consolidate` (GeoParquet) créent un pod par job
+2. `list-jobs` imprime la liste JSON des 32 jobs GeoParquet ;
+3. `consolidate` crée un pod par job
    (`withParam`), au plus 10 pods à la fois pour l'ensemble du workflow. Chaque pod lit
    `/mnt/data/<année>` et écrit sur S3 sous `{path}`.
 
-`prepare`, `split` et `consolidate` sont relancés jusqu'à 2 fois (attente de 1 puis
+`prepare` et `consolidate` sont relancés jusqu'à 2 fois (attente de 1 puis
 2 minutes) : un job relancé réécrit les mêmes chemins.
 
 Paramètres du workflow :
@@ -135,10 +118,10 @@ Paramètres du workflow :
 | Paramètre | Défaut | Sens |
 |---|---|---|
 | `years` | `["2025"]` | millésimes ADMIN EXPRESS et TAGC à produire, liste JSON (2021 et après) |
-| `path` | `test/v0.2.0` | préfixe d'écriture dans le bucket (transmis en `CARTIFLETTE_WRITE_PATH`) |
+| `path` | `test/v0.3.0` | préfixe d'écriture dans le bucket (transmis en `CARTIFLETTE_WRITE_PATH`) |
 | `allow_production_write` | `false` | transmis en `CARTIFLETTE_ALLOW_PRODUCTION_WRITE` ; voir [C](#mode-production) |
 | `revision` | `main` | branche, tag ou commit dont le **code Python** est utilisé |
-| `image` | `inseefrlab/cartiflette:v0.2.0` | image Docker : mapshaper, DuckDB et dépendances Python |
+| `image` | `inseefrlab/cartiflette:v0.3.0` | image Docker : mapshaper, DuckDB et dépendances Python |
 
 `revision` ne change que le code de `cartiflette/` et `argo-pipeline/src/` ; les
 dépendances viennent de `image`.
@@ -176,7 +159,7 @@ export PATH="$HOME/.local/bin:$PATH"
 # ⚠ écrit sur S3 (espace de test). Une branche de travail, un préfixe neuf.
 argo submit argo-pipeline/pipeline.yaml -n projet-cartiflette \
   -p years='["2022", "2023", "2024", "2025", "2026"]' \
-  -p path=test/v0.2.0 \
+  -p path=test/v0.3.0 \
   -p revision=ma-branche \
   --watch
 ```
@@ -278,21 +261,25 @@ Sans `allow_production_write=true`, l'étape `check-target` échoue avec
    `CARTIFLETTE_TEST_PATH=production CARTIFLETTE_TEST_YEARS=... uv run pytest -m integration`
    dans `python-package/cartiflette`.
 
-### Première publication de la 0.2.0
+### Première publication en production
 
-Ordre conseillé, un millésime ou un groupe à la fois :
+Le _pipeline_ ne publie que du GeoParquet ; le GeoJSON est servi par l'API
+([04](04-api-geojson.qmd)). La production ne contient aujourd'hui que les GeoJSON
+2022 de l'ancien _pipeline_. Ordre conseillé, un millésime ou un groupe à la fois :
 
-1. **2023, 2024, 2025, 2026** : nouveaux en production (2023 et 2024 n'y ont qu'un
-   fichier intermédiaire que les clients ne lisent pas), rien n'est écrasé.
-2. **2022** : écrase les GeoJSON publiés par l'ancien pipeline, lus en direct par les
-   clients Python, R et JS. Changements visibles : `BV2012` devient `BV2022`, les
-   aires d'attraction et unités urbaines sont découpées par territoire (DROM
-   correctement placés), les codes de région sont écrits `REGION=01`. Les anciens
-   fichiers dont le chemin ne correspond plus (`REGION=1`, codes `BV2012`) restent en
-   place : les supprimer est une décision distincte, à prendre après la mise à jour
-   des clients R et JS.
-3. Publier le client Python 0.2.0 sur PyPI. Il lit le GeoParquet dès qu'il existe,
-   y compris pour 2022 à 2024 ; les versions antérieures continuent de lire le GeoJSON.
+1. **2023, 2024, 2025, 2026** : nouveaux en production, rien n'est écrasé. Ils ne
+   sont lisibles que par le client Python ≥ 0.2.0 (GeoParquet) et par l'API (GeoJSON) :
+   les clients R et JS doivent être passés sur l'API, les clients Python < 0.2.0 ne
+   les verront pas.
+2. **2022** : ajoute un GeoParquet à côté des GeoJSON de l'ancien _pipeline_, qui
+   **ne sont pas écrasés** puisque le _pipeline_ n'écrit plus de GeoJSON. Le client
+   Python ≥ 0.2.0 lira alors ce GeoParquet (contrôle par requête HEAD), avec les
+   changements du nouveau _pipeline_ : `BV2012` devient `BV2022`, aires d'attraction
+   et unités urbaines découpées par territoire (DROM correctement placés). L'API, elle,
+   continue de rediriger vers les anciens GeoJSON 2022 jusqu'à son redémarrage
+   (`kubectl rollout restart deployment/cartiflette-api`), puis sert le GeoParquet.
+   C'est une décision à part entière : les utilisateurs de 2022 verront ces
+   changements.
 
 ::: {.callout-caution}
 Ne jamais « copier » un résultat de test vers la production avec `mc` ou
@@ -309,9 +296,9 @@ La version du pipeline apparaît à **plusieurs endroits** qu'il faut modifier e
 
 | Fichier | Valeur |
 |---|---|
-| `pyproject.toml` | `version = "0.2.0"` : sert à taguer l'image Docker |
-| `cartiflette/__init__.py` | `__version__ = "0.2.0"` : sert au préfixe de test par défaut `test/v0.2.0` |
-| `argo-pipeline/pipeline.yaml` | paramètres `image` (`inseefrlab/cartiflette:v0.2.0`) et `path` (`test/v0.2.0`) ; `tests/test_argo.py` vérifie qu'ils suivent la version |
+| `pyproject.toml` | `version = "0.3.0"` : sert à taguer l'image Docker |
+| `cartiflette/__init__.py` | `__version__ = "0.3.0"` : sert au préfixe de test par défaut `test/v0.3.0` |
+| `argo-pipeline/pipeline.yaml` | paramètres `image` (`inseefrlab/cartiflette:v0.3.0`) et `path` (`test/v0.3.0`) ; `tests/test_argo.py` vérifie qu'ils suivent la version |
 | `argo-pipeline/README.md` | exemple de commande |
 
 Le client Python a **sa propre version** (`python-package/cartiflette/pyproject.toml`).
@@ -340,5 +327,5 @@ Si on pousse sur `main` sans monter la version, l'image existante
 | segfault, _Unsupported geometry type in WKB_ | `ST_Read` exécuté avec plusieurs threads | [pièges DuckDB](01-architecture.qmd#pieges-duckdb) |
 | `PermissionError: Refusing to write to projet-cartiflette/production…` | garde-fou normal | voulu : utiliser un préfixe de test |
 | `KeyError` dans `bring_drom_closer` | nouveau niveau sans entrée dans `IDF_ZOOM` | [03, nouveau niveau](03-verifier-et-faire-evoluer.qmd#nouveau-niveau) |
-| pods `split` bloqués en `ContainerCreating` | le volume est en `ReadWriteOnce` et les pods ont été placés sur des nœuds différents | `volumeClaimTemplates` dans `pipeline.yaml` |
+| pods `consolidate` bloqués en `ContainerCreating` | le volume est en `ReadWriteOnce` et les pods ont été placés sur des nœuds différents | `volumeClaimTemplates` dans `pipeline.yaml` |
 | `mapshaper: command not found` en local | mapshaper absent du PATH | [prérequis](#prerequis) |

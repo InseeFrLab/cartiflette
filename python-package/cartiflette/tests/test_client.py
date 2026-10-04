@@ -117,8 +117,31 @@ def test_choose_format_parquet_exists():
 def test_choose_format_prefers_geoparquet():
     with pytest.warns(UserWarning, match="GeoParquet is used instead"):
         assert client.choose_format("geojson", 2025) == "parquet"
+    # 2022 republished with GeoParquet: its GeoJSON files can still be forced
     with pytest.warns(UserWarning, match="force=True"):
-        assert client.choose_format("geojson", 2025, force=True) == "geojson"
+        assert (
+            client.choose_format("geojson", 2022, force=True, parquet_exists=True)
+            == "geojson"
+        )
+
+
+@pytest.mark.parametrize(
+    "year, geojson_exists", [(2025, None), (2026, None), (2023, False)]
+)
+def test_choose_format_force_without_geojson(year, geojson_exists):
+    # No GeoJSON file from 2025 onwards (or for a year republished by the
+    # current pipeline): force=True is ignored
+    with pytest.warns(UserWarning, match="no GeoJSON file.*force=True is ignored"):
+        assert (
+            client.choose_format(
+                "geojson",
+                year,
+                force=True,
+                parquet_exists=True,
+                geojson_exists=geojson_exists,
+            )
+            == "parquet"
+        )
 
 
 @pytest.mark.parametrize(
@@ -256,12 +279,39 @@ def test_geojson_requested_reads_geoparquet(storage):
     assert sorted(gdf["INSEE_DEP"]) == ["75", "92"]
 
 
-@pytest.mark.usefixtures("consolidated")
-def test_geojson_forced(storage):
-    _write_geojson(storage, "11", year=2025)
-    with pytest.warns(UserWarning, match="force=True"):
-        gdf = _download(values="11", year=2025, vectorfile_format="geojson", force=True)
+def test_geojson_forced(storage, readers):
+    # 2022: GeoJSON files of the former pipeline, and a GeoParquet produced
+    # afterwards
+    _write_geojson(storage, "11")
+    _write_consolidated(storage, 2022)
+    with pytest.warns(UserWarning, match="Reading GeoJSON files as requested"):
+        gdf = _download(values="11", year=2022, vectorfile_format="geojson", force=True)
     assert sorted(gdf["INSEE_DEP"]) == ["75", "92"]
+    assert readers == ["read_geojson"]
+
+
+@pytest.mark.parametrize("year", [2025, 2023])
+def test_geojson_forced_without_geojson_files(storage, readers, year):
+    # From 2025, or a year republished by the current pipeline: GeoParquet only
+    _write_consolidated(storage, year)
+    with pytest.warns(UserWarning, match="force=True is ignored"):
+        gdf = _download(values="11", year=year, vectorfile_format="geojson", force=True)
+    assert sorted(gdf["INSEE_DEP"]) == ["75", "92"]
+    assert readers == ["read_parquet"]
+
+
+@pytest.mark.parametrize(
+    "year, file_exists, expected",
+    [(2025, True, False), (2022, True, True), (2022, False, False)],
+)
+def test_geojson_available(storage, year, file_exists, expected):
+    if file_exists:
+        _write_geojson(storage, "11", year=year)
+    kwargs = {k: v for k, v in PATH_KWARGS.items() if k not in ("value", "filter_by")}
+    assert (
+        client.geojson_available(["11"], "REGION", **{**kwargs, "year": year})
+        is expected
+    )
 
 
 @pytest.mark.usefixtures("consolidated")

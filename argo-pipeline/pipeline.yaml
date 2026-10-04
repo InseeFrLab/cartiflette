@@ -51,7 +51,7 @@ spec:
       # Chemin d'écriture dans le bucket. Le code refuse d'écrire sous
       # "production" sauf si allow_production_write vaut "true".
       - name: path
-        value: "test/v0.2.0"
+        value: "test/v0.3.0"
       # Écriture en production : laisser "false". Pour publier, passer
       # -p allow_production_write=true -p path=production
       - name: allow_production_write
@@ -62,7 +62,7 @@ spec:
         value: "main"
       # Image (mapshaper, DuckDB, dépendances), taguée avec la version du pipeline
       - name: image
-        value: "inseefrlab/cartiflette:v0.2.0"
+        value: "inseefrlab/cartiflette:v0.3.0"
   volumeClaimTemplates:
     - metadata:
         name: volume-workflow-tmp
@@ -109,38 +109,11 @@ spec:
           - name: list-jobs
             template: list-jobs
             dependencies: [ prepare ]
-            arguments:
-              parameters:
-              - name: kind
-                value: "geojson"
-          - name: list-parquet-jobs
-            template: list-jobs
-            dependencies: [ prepare ]
-            arguments:
-              parameters:
-              - name: kind
-                value: "parquet"
-          # STEP 3a: GEOJSON, ONE JOB PER (LEVEL, FILTER_BY, SIMPLIFICATION, CRS)
-          - name: split
-            template: split
-            dependencies: [ list-jobs ]
-            arguments:
-              parameters:
-              - name: year
-                value: "{{inputs.parameters.year}}"
-              - name: level_polygons
-                value: "{{item.level-polygons}}"
-              - name: filter_by
-                value: "{{item.filter-by}}"
-              - name: simplification
-                value: "{{item.simplification}}"
-              - name: crs
-                value: "{{item.crs}}"
-            withParam: "{{tasks.list-jobs.outputs.result}}"
-          # STEP 3b: GEOPARQUET, ONE JOB PER (LEVEL, LAYOUT, SIMPLIFICATION, CRS)
+          # STEP 3: GEOPARQUET, ONE JOB PER (LEVEL, LAYOUT, SIMPLIFICATION, CRS).
+          # No GeoJSON: the API (api/) serves it from these files.
           - name: consolidate
             template: consolidate
-            dependencies: [ list-parquet-jobs ]
+            dependencies: [ list-jobs ]
             arguments:
               parameters:
               - name: year
@@ -153,7 +126,7 @@ spec:
                 value: "{{item.simplification}}"
               - name: crs
                 value: "{{item.crs}}"
-            withParam: "{{tasks.list-parquet-jobs.outputs.result}}"
+            withParam: "{{tasks.list-jobs.outputs.result}}"
 
     # The code is cloned once, on the shared volume, for all the steps
     # Exit handler. Its log, archived on S3 like the others, is the only trace of
@@ -227,39 +200,10 @@ spec:
             mountPath: /mnt
 
     - name: list-jobs
-      inputs:
-        parameters:
-        - name: kind
       container:
         image: "{{workflow.parameters.image}}"
         command: [sh, -c]
-        args: ["python /mnt/bin/argo-pipeline/src/crossproduct.py --kind {{inputs.parameters.kind}}"]
-        env: *env_parameters
-        volumeMounts:
-          - name: volume-workflow-tmp
-            mountPath: /mnt
-
-    - name: split
-      inputs:
-        parameters:
-        - name: year
-        - name: level_polygons
-        - name: filter_by
-        - name: simplification
-        - name: crs
-      retryStrategy: *retry
-      container:
-        image: "{{workflow.parameters.image}}"
-        command: [sh, -c]
-        args: ["
-          python /mnt/bin/argo-pipeline/src/split.py \
-          --year {{inputs.parameters.year}} \
-          --inputs $LOCAL_DATA_PATH/{{inputs.parameters.year}} \
-          --level_polygons {{inputs.parameters.level_polygons}} \
-          --filter_by {{inputs.parameters.filter_by}} \
-          --simplification {{inputs.parameters.simplification}} \
-          --crs {{inputs.parameters.crs}}"
-        ]
+        args: ["python /mnt/bin/argo-pipeline/src/crossproduct.py"]
         env: *env_parameters
         volumeMounts:
           - name: volume-workflow-tmp

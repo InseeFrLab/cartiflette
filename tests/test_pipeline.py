@@ -7,30 +7,15 @@ import pytest
 from cartiflette import pipeline, prepare
 
 
-def test_combinations():
-    jobs = pipeline.combinations()
-    # 37 (level, filter_by) pairs x 2 simplifications x 1 crs
-    assert len(jobs) == 74
-    assert {
-        "level_polygons": "COMMUNE_ARRONDISSEMENT",
-        "filter_by": "DEPARTEMENT",
-        "simplification": 50,
-        "crs": 4326,
-    } in jobs
-    assert {j["level_polygons"] for j in pipeline.combinations(["REGION"])} == {
-        "REGION"
-    }
-
-
-def test_split_and_upload_refuses_production_before_processing():
-    with mock.patch.object(pipeline, "process") as process:
+def test_consolidate_and_upload_refuses_production_before_processing():
+    with mock.patch.object(pipeline, "process_consolidated") as process:
         with pytest.raises(PermissionError):
-            pipeline.split_and_upload(
+            pipeline.consolidate_and_upload(
                 2025,
                 "inputs",
                 "work",
                 "REGION",
-                "TERRITOIRE",
+                "FRANCE_ENTIERE",
                 0,
                 4326,
                 fs=mock.Mock(),
@@ -52,28 +37,6 @@ COMMUNES = """(SELECT * FROM (VALUES
     -- not be merged with them
     ('97105', '971', '01', 'Guadeloupe', 'Guadeloupe', 'guadeloupe', 5, 'France', '01004', ST_GeomFromText('POLYGON((-61.6 16.0, -61.5 16.0, -61.5 16.1, -61.6 16.1, -61.6 16.0))'))
 ) t(INSEE_COM, INSEE_DEP, INSEE_REG, LIBELLE_DEPARTEMENT, LIBELLE_REGION, AREA, POPULATION, PAYS, BV2022, geometry))"""
-
-
-@needs_mapshaper
-@pytest.mark.parametrize(
-    "level, filter_by, expected_files",
-    [
-        ("COMMUNE", "DEPARTEMENT", ["01.geojson", "75.geojson", "971.geojson"]),
-        ("DEPARTEMENT", "REGION", ["01.geojson", "11.geojson", "84.geojson"]),
-        ("BASSIN_VIE", "FRANCE_ENTIERE", ["France.geojson"]),
-    ],
-)
-def test_process(tmp_path, level, filter_by, expected_files):
-    con = prepare.connect()
-    prepare.write_geojson(
-        con, f"SELECT * FROM {COMMUNES}", str(tmp_path / "COMMUNE.geojson")
-    )
-    (tmp_path / "fields.json").write_text(json.dumps({"BASSIN_VIE": "BV2022"}))
-
-    files = pipeline.process(
-        str(tmp_path), str(tmp_path / "work"), level, filter_by, 0, 4326
-    )
-    assert [f.rsplit("/", 1)[-1] for f in files] == expected_files
 
 
 @needs_mapshaper
@@ -107,12 +70,12 @@ def test_process_consolidated(tmp_path, level, layout, rows, filters):
     )
     (tmp_path / "fields.json").write_text(json.dumps({"BASSIN_VIE": "BV2022"}))
     # Only the zoning present in the tiny test data
-    splits = {
-        **pipeline.SPLITS,
-        "COMMUNE": ["BASSIN_VIE", "DEPARTEMENT", *pipeline.SPLITS["DEPARTEMENT"]],
+    test_filters = {
+        **pipeline.FILTERS,
+        "COMMUNE": ["BASSIN_VIE", "DEPARTEMENT", *pipeline.FILTERS["DEPARTEMENT"]],
     }
 
-    with mock.patch.object(pipeline, "SPLITS", splits):
+    with mock.patch.object(pipeline, "FILTERS", test_filters):
         parquet = pipeline.process_consolidated(
             str(tmp_path), str(tmp_path / "work"), level, layout, 0, 4326
         )
@@ -190,14 +153,12 @@ def test_dissolve_keeps_territories_apart(tmp_path):
         con, f"SELECT * FROM {COMMUNES}", str(tmp_path / "COMMUNE.geojson")
     )
     (tmp_path / "fields.json").write_text(json.dumps({"BASSIN_VIE": "BV2022"}))
-    files = pipeline.process(
-        str(tmp_path), str(tmp_path / "work"), "BASSIN_VIE", "TERRITOIRE", 0, 4326
+    parquet = pipeline.process_consolidated(
+        str(tmp_path), str(tmp_path / "work"), "BASSIN_VIE", "FRANCE_ENTIERE", 0, 4326
     )
-    assert [f.rsplit("/", 1)[-1] for f in files] == [
-        "guadeloupe.geojson",
-        "metropole.geojson",
-    ]
+    # Living area 01004 spans metropole and Guadeloupe: one row per territory
     rows = con.execute(
-        f"SELECT BV2022, AREA, POPULATION FROM ST_Read('{files[0]}')"
+        f"SELECT BV2022, AREA, POPULATION FROM '{parquet}' "
+        "WHERE BV2022 = '01004' ORDER BY AREA"
     ).fetchall()
-    assert rows == [("01004", "guadeloupe", 5)]
+    assert rows == [("01004", "guadeloupe", 5), ("01004", "metropole", 30)]

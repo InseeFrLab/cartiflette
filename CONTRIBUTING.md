@@ -1,12 +1,13 @@
 # Guide pour aider les développeurs du package <img height="18" width="18" src="https://cdn.simpleicons.org/python/00ccff99" /> `cartiflette`
 
-Le dépôt contient deux choses distinctes :
+Le dépôt contient trois choses distinctes :
 
 - le _pipeline_ de production des fonds de carte (dossier `cartiflette/`, orchestré par `argo-pipeline/`) :
   il récupère les données de l'IGN et de l'Insee, les restructure avec `mapshaper` et écrit
-  des fichiers GeoJSON et GeoParquet sur l'espace de stockage S3 ;
+  des fichiers GeoParquet sur l'espace de stockage S3 ;
 - le client `cartiflette` publié sur PyPI (dossier `python-package/cartiflette/`), qui lit
-  ces fichiers.
+  ces fichiers ;
+- l'API (dossier `api/`), qui sert ces fichiers en GeoJSON aux clients R et JavaScript.
 
 Le seul contrat entre les deux est le chemin des fichiers sur S3, construit par
 `cartiflette/paths.py` d'un côté et `python-package/cartiflette/cartiflette/utils.py` de l'autre.

@@ -2,12 +2,12 @@
 Production pipeline: the functions called by the Argo workflow steps.
 
 1. `prepare_year` -> inputs of a year (see cartiflette.prepare)
-2. GeoJSON, one file per value of a split level:
-   `combinations` lists the (level, filter_by, simplification, crs) jobs,
-   `split_and_upload` runs one of them.
-3. GeoParquet, one consolidated file per level and layout, filtered when
-   read: `consolidated_combinations` lists the (level, layout,
-   simplification, crs) jobs, `consolidate_and_upload` runs one of them.
+2. `consolidated_combinations` lists the (level, layout, simplification, crs)
+   jobs;
+3. `consolidate_and_upload` runs one of them: one GeoParquet per level and
+   layout, filtered when read by the clients.
+
+No GeoJSON is published: the API (api/) serves it from the GeoParquet.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ import duckdb
 import s3fs
 
 from cartiflette import config, mapshaper
-from cartiflette.paths import create_path_bucket, create_path_consolidated
+from cartiflette.paths import create_path_consolidated
 from cartiflette.prepare import prepare_year  # noqa: F401 (pipeline step)
 from cartiflette.s3 import check_write_target, upload
 
@@ -29,9 +29,8 @@ logger = logging.getLogger(__name__)
 
 DROM_RAPPROCHES = "FRANCE_ENTIERE_DROM_RAPPROCHES"
 
-# Levels of the polygons -> levels used to split (GeoJSON) or filter
-# (GeoParquet) the files
-SPLITS = {
+# Levels of the polygons -> levels their GeoParquet can be filtered by
+FILTERS = {
     "COMMUNE": [
         "BASSIN_VIE",
         "ZONE_EMPLOI",
@@ -51,31 +50,10 @@ SPLITS = {
     "AIRE_ATTRACTION_VILLES": ["TERRITOIRE", "FRANCE_ENTIERE", DROM_RAPPROCHES],
 }
 # Communes are also produced with Paris, Lyon, Marseille split by arrondissement
-SPLITS["COMMUNE_ARRONDISSEMENT"] = SPLITS["COMMUNE"]
+FILTERS["COMMUNE_ARRONDISSEMENT"] = FILTERS["COMMUNE"]
 
 SIMPLIFICATIONS = [0, 50]
 CRS = [4326]
-
-
-def combinations(
-    levels: list[str] | None = None,
-    simplifications: list[float] = SIMPLIFICATIONS,
-    crs_list: list[int] = CRS,
-) -> list[dict]:
-    """GeoJSON jobs, optionally restricted to some polygon levels."""
-    return [
-        {
-            "level_polygons": level,
-            "filter_by": filter_by,
-            "simplification": simplification,
-            "crs": crs,
-        }
-        for level, filters in SPLITS.items()
-        if levels is None or level in levels
-        for filter_by in filters
-        for simplification in simplifications
-        for crs in crs_list
-    ]
 
 
 def consolidated_combinations(
@@ -91,7 +69,7 @@ def consolidated_combinations(
             "simplification": simplification,
             "crs": crs,
         }
-        for level in SPLITS
+        for level in FILTERS
         if levels is None or level in levels
         for layout in config.LAYOUTS
         for simplification in simplifications
@@ -103,7 +81,7 @@ def filter_levels(level_polygons: str, layout: str) -> list[str]:
     """Levels a consolidated file of `layout` can be filtered by."""
     if layout == DROM_RAPPROCHES:
         return [DROM_RAPPROCHES]
-    return [x for x in SPLITS[level_polygons] if x != DROM_RAPPROCHES]
+    return [x for x in FILTERS[level_polygons] if x != DROM_RAPPROCHES]
 
 
 def sort_levels(level_polygons: str, levels: list[str]) -> list[str]:
@@ -168,38 +146,6 @@ def _prepare_polygons(
             fields,
         )
     return current
-
-
-def process(
-    inputs_dir: str,
-    work_dir: str,
-    level_polygons: str,
-    filter_by: str,
-    simplification: float,
-    crs: int,
-) -> list[str]:
-    """
-    Produce the GeoJSON files of one job from the prepared inputs: dissolve
-    communes if needed, bring the DROM closer if needed, then simplify and
-    split. Returns the paths of the files, named `{value}.geojson`.
-    """
-    fields = _read_fields(inputs_dir)
-    polygons = _prepare_polygons(
-        inputs_dir,
-        work_dir,
-        level_polygons,
-        [filter_by],
-        filter_by == DROM_RAPPROCHES,
-        fields,
-    )
-    return mapshaper.split(
-        polygons,
-        os.path.join(work_dir, "split"),
-        fields[filter_by],
-        crs,
-        simplification,
-        f"{config.PROVIDER}:{config.SOURCE}",
-    )
 
 
 def process_consolidated(
@@ -339,48 +285,6 @@ def to_consolidated_parquet(
             """
         )
     return parquet_path
-
-
-def split_and_upload(
-    year: int,
-    inputs_dir: str,
-    work_dir: str,
-    level_polygons: str,
-    filter_by: str,
-    simplification: float,
-    crs: int,
-    fs: s3fs.S3FileSystem,
-    bucket: str = config.WRITE_BUCKET,
-    path_within_bucket: str = config.WRITE_PATH,
-) -> list[str]:
-    """Run one GeoJSON job and upload its files to S3."""
-    # Fail before any processing if the target is not allowed
-    check_write_target(bucket, path_within_bucket)
-
-    geojsons = process(
-        inputs_dir, work_dir, level_polygons, filter_by, simplification, crs
-    )
-    uploaded = []
-    for geojson in geojsons:
-        remote = create_path_bucket(
-            bucket=bucket,
-            path_within_bucket=path_within_bucket,
-            provider=config.PROVIDER,
-            dataset_family=config.DATASET_FAMILY,
-            source=config.SOURCE,
-            year=year,
-            borders=level_polygons,
-            crs=crs,
-            filter_by=filter_by,
-            value=os.path.basename(geojson).removesuffix(".geojson"),
-            vectorfile_format="geojson",
-            territory=config.TERRITORY,
-            simplification=simplification,
-        )
-        uploaded.append(upload(geojson, remote, fs))
-
-    shutil.rmtree(work_dir)
-    return uploaded
 
 
 def consolidate_and_upload(

@@ -127,10 +127,11 @@ Des exemples dans chaque langage sont sur le
 flowchart LR
     IGN["IGN Géoplateforme<br/>ADMIN EXPRESS COG CARTO"] --> P
     INSEE["Insee<br/>appartenance géographique"] --> P
-    P["Pipeline Argo<br/><br/>Mise en cohérence des sources géographiques<br/><br/>DuckDB + mapshaper"] --> S3[("Stockage S3<br/>GeoJSON et GeoParquet")]
+    P["Pipeline Argo<br/><br/>Mise en cohérence des sources géographiques<br/><br/>DuckDB + mapshaper"] --> S3[("Stockage S3<br/>GeoParquet")]
     S3 --> PY["Python"]
-    S3 --> R["R"]
-    S3 --> JS["JavaScript"]
+    S3 --> API["API GeoJSON<br/>cartiflette-api.lab.sspcloud.fr"]
+    API --> R["R"]
+    API --> JS["JavaScript"]
 ```
 
 Le détail est dans la [documentation technique](doc/).

@@ -1,4 +1,4 @@
-"""Step 3b: build one consolidated GeoParquet and upload it."""
+"""Step 3: build one consolidated GeoParquet and upload it."""
 
 import argparse
 import logging
