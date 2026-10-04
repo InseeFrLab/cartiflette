@@ -7,11 +7,11 @@ Deselected by default, run them with:
 
     uv run pytest -m integration
 
-The new vintages are read from CARTIFLETTE_TEST_PATH (default "test/v0.2.0",
-the test location of the pipeline) for the years in CARTIFLETTE_TEST_YEARS
-(default "2025,2026"; add 2022, 2023, 2024 once produced from the IGN
-editions 3-x). The 2022 files are read from production, to check that
-the files published by the former pipeline are still readable.
+The new vintages are read from CARTIFLETTE_TEST_PATH (default "test/v0.3.0",
+the test location of the pipeline; "production" to check a publication) for
+the years in CARTIFLETTE_TEST_YEARS (default "2022,2023,2024,2025,2026"). The
+2022 GeoJSON files are also read from production, to check that the files
+published by the former pipeline are still readable.
 
 With CARTIFLETTE_API_URL (e.g. "http://localhost:8000", see api/), the same
 use cases read GeoJSON from the API (/v1/geojson) instead of the files.
@@ -34,9 +34,12 @@ from cartiflette import carti_download
 
 pytestmark = pytest.mark.integration
 
-TEST_PATH = os.environ.get("CARTIFLETTE_TEST_PATH", "test/v0.2.0")
+TEST_PATH = os.environ.get("CARTIFLETTE_TEST_PATH", "test/v0.3.0")
 YEARS = [
-    int(y) for y in os.environ.get("CARTIFLETTE_TEST_YEARS", "2025,2026").split(",")
+    int(y)
+    for y in os.environ.get("CARTIFLETTE_TEST_YEARS", "2022,2023,2024,2025,2026").split(
+        ","
+    )
 ]
 LEGACY_YEAR = 2022
 
