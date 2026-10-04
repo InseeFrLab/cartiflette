@@ -22,9 +22,10 @@
 <img height="18" width="18" src="https://cdn.simpleicons.org/r/B4540A" /> R ·
 <img height="18" width="18" src="https://cdn.simpleicons.org/javascript/B4540A" /> JavaScript
 
-[Site et exemples](https://inseefrlab.github.io/cartiflette-website/) ·
+[Site et exemples](https://inseefrlab.github.io/cartiflette/) ·
 [Client Python](python-package/cartiflette) ·
-[Documentation technique](doc/)
+[Documentation du client](https://inseefrlab.github.io/cartiflette/doc/client-python.html) ·
+[Documentation technique](https://inseefrlab.github.io/cartiflette/doc/)
 
 <img src="cartiflette.png" height="140" alt="cartiflette" />
 
@@ -108,7 +109,7 @@ communes.aggregate("INSEE_REG, sum(POPULATION)")
 
 Derrière un proxy, déclarer la variable d'environnement `https_proxy` : elle est
 transmise à DuckDB. D'autres exemples et cas d'usage sont sur le
-[site de cartiflette](https://inseefrlab.github.io/cartiflette-website/), et
+[site de cartiflette](https://inseefrlab.github.io/cartiflette/), et
 toutes les options dans le [README du client Python](python-package/cartiflette).
 
 ## En R et en JavaScript
@@ -119,7 +120,7 @@ Les mêmes fonds de carte sont disponibles depuis :
 - <img height="16" width="16" src="https://cdn.simpleicons.org/javascript/B4540A" /> (**JavaScript / Observable**) : `import {carti_download} from "@linogaliana/cartiflette-js"`.
 
 Des exemples dans chaque langage sont sur le
-[site de documentation](https://inseefrlab.github.io/cartiflette-website/).
+[site de documentation](https://inseefrlab.github.io/cartiflette/).
 
 ## Comment ça marche
 

@@ -16,6 +16,10 @@ dependencies = [
     "pyarrow>=17.0.0",
 ]
 
+[project.urls]
+Documentation = "https://inseefrlab.github.io/cartiflette/doc/client-python.html"
+Repository = "https://github.com/InseeFrLab/cartiflette"
+
 [dependency-groups]
 dev = [
     "pytest>=8.3.3,<9",

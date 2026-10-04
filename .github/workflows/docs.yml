@@ -1,0 +1,107 @@
+name: "Documentation"
+
+# Publishes on GitHub Pages (https://inseefrlab.github.io/cartiflette/):
+# - at the root, the cartiflette-website site (examples, use cases), rendered
+#   with the client of this repository;
+# - under doc/, the Quarto site of doc/ (technical documentation and quartodoc
+#   API reference of the client).
+# Pull requests only check the build.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'doc/**'
+      - 'python-package/cartiflette/**'
+      - '.github/workflows/docs.yml'
+  pull_request:
+    paths:
+      - 'doc/**'
+      - 'python-package/cartiflette/**'
+      - '.github/workflows/docs.yml'
+  # Sent by cartiflette-website to republish after a change there
+  repository_dispatch:
+    types: [cartiflette-website]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout cartiflette-website
+        uses: actions/checkout@v4
+        with:
+          repository: InseeFrLab/cartiflette-website
+          path: website
+
+      - name: Install uv and setup the python version
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: '3.11'
+          enable-cache: true
+          cache-dependency-glob: |
+            python-package/cartiflette/uv.lock
+            website/requirements.txt
+
+      - name: Set up Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          version: 1.10.18
+
+      # The client comes from this repository, not from the requirements of
+      # the website (they install the repository root, now the pipeline).
+      # geopandas 1.2 breaks a use case (categorical plot with an empty
+      # category and markersize).
+      - name: Install the website dependencies
+        working-directory: ./website
+        run: |
+          uv venv .venv
+          grep -v '^cartiflette' requirements.txt > requirements-site.txt
+          uv pip install --python .venv -r requirements-site.txt \
+            ../python-package/cartiflette matplotlib openpyxl "geopandas<1.2"
+
+      - name: Render cartiflette-website
+        working-directory: ./website
+        env:
+          QUARTO_PROFILE: cartiflette,complete
+        run: |
+          cp ../doc/website/_quarto-cartiflette.yml .
+          QUARTO_PYTHON="$PWD/.venv/bin/python" quarto render
+
+      - name: Build the API reference
+        working-directory: ./doc
+        run: uv run --project ../python-package/cartiflette --group docs quartodoc build
+
+      - name: Render the documentation under doc/
+        working-directory: ./doc
+        run: quarto render --output-dir ../website/_site/doc
+
+      - name: Upload the site
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: website/_site
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
