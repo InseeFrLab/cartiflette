@@ -48,7 +48,7 @@ wheels = [
 
 [[package]]
 name = "cartiflette"
-version = "0.2.0"
+version = "0.2.1"
 source = { editable = "../python-package/cartiflette" }
 dependencies = [
     { name = "duckdb" },
@@ -76,7 +76,7 @@ docs = [
 
 [[package]]
 name = "cartiflette-api"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "." }
 dependencies = [
     { name = "cartiflette" },

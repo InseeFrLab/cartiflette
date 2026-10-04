@@ -69,6 +69,7 @@ def choose_format(
     year: int | str,
     force: bool = False,
     parquet_exists: bool | None = None,
+    geojson_exists: bool | None = None,
 ) -> str:
     """
     Format of the files to read.
@@ -77,7 +78,8 @@ def choose_format(
     earlier years it has been produced for): only the needed parts of the
     file are downloaded, which is as fast as GeoJSON for a small request and
     much faster for a large one. GeoJSON is only read when there is no
-    GeoParquet, or when explicitly requested with ``force=True``.
+    GeoParquet, or when explicitly requested with ``force=True`` for a year
+    that has GeoJSON files: none is published from 2025 onwards.
 
     Parameters
     ----------
@@ -86,10 +88,14 @@ def choose_format(
     year : int or str
         Vintage.
     force : bool
-        Read GeoJSON when requested even if GeoParquet exists.
+        Read GeoJSON when requested even if GeoParquet exists, provided
+        GeoJSON files exist for the year.
     parquet_exists : bool, optional
         Whether GeoParquet exists (see `parquet_available`). By default,
         deduced from the year only: from 2025 onwards.
+    geojson_exists : bool, optional
+        Whether GeoJSON files exist (see `geojson_available`). By default,
+        deduced from the year only: before 2025.
 
     Returns
     -------
@@ -99,8 +105,8 @@ def choose_format(
     Notes
     -----
     A UserWarning is emitted when GeoJSON is requested and GeoParquet exists:
-    either GeoParquet is read instead (``force=False``), or GeoJSON is read
-    but is slower (``force=True``).
+    either GeoParquet is read instead (``force=False``, or no GeoJSON file
+    for the year), or GeoJSON is read but is slower (``force=True``).
 
     Examples
     --------
@@ -111,11 +117,23 @@ def choose_format(
     """
     if parquet_exists is None:
         parquet_exists = int(year) >= PARQUET_FIRST_YEAR
+    if geojson_exists is None:
+        geojson_exists = int(year) < PARQUET_FIRST_YEAR
     if vectorfile_format.lower() == "auto":
         return "parquet" if parquet_exists else "geojson"
     vectorfile_format = standardize_format(vectorfile_format)
     if vectorfile_format != "geojson" or not parquet_exists:
         return vectorfile_format
+    if not geojson_exists:
+        warnings.warn(
+            f"GeoParquet is used instead of GeoJSON: no GeoJSON file is "
+            f"published for {year} (only GeoParquet from {PARQUET_FIRST_YEAR} "
+            "onwards; the cartiflette API serves GeoJSON). It gives the same "
+            "result." + (" force=True is ignored." if force else ""),
+            UserWarning,
+            stacklevel=3,
+        )
+        return "parquet"
     if force:
         warnings.warn(
             f"Reading GeoJSON files as requested (force=True). GeoParquet is "
@@ -192,6 +210,38 @@ def parquet_available(filter_by: str, **path_kwargs) -> bool:
     if int(path_kwargs["year"]) >= PARQUET_FIRST_YEAR:
         return True
     return _exists(consolidated_url(filter_by, **path_kwargs))
+
+
+def geojson_available(
+    values: list[str | int | float], filter_by: str, **path_kwargs
+) -> bool:
+    """
+    Whether GeoJSON files exist for these parameters.
+
+    No GeoJSON file is published from 2025 onwards, so no request is made
+    for them. For earlier years, the file of the first value is checked with
+    a HEAD request: a year republished by the current pipeline only has
+    GeoParquet.
+
+    Parameters
+    ----------
+    values : list
+        Values of `filter_by`.
+    filter_by : str
+        Level used to split the files.
+    **path_kwargs
+        Other arguments of `create_path_bucket`.
+
+    Returns
+    -------
+    bool
+    """
+    if int(path_kwargs["year"]) >= PARQUET_FIRST_YEAR:
+        return False
+    try:
+        return _exists(geojson_urls(values[:1], filter_by, **path_kwargs)[0])
+    except OSError:
+        return False
 
 
 def geojson_urls(
@@ -436,7 +486,7 @@ def carti_download(
     vectorfile_format : str
         "auto" (default), "geojson" or "parquet". GeoParquet is read whenever
         it exists, even if "geojson" is requested, unless `force` is True;
-        see `choose_format` and `parquet_available`.
+        see `choose_format`, `parquet_available` and `geojson_available`.
     year : str or int
         Vintage of the borders. Defaults to the current year.
     crs : str or int
@@ -467,6 +517,8 @@ def carti_download(
     force : bool
         Read GeoJSON when ``vectorfile_format="geojson"`` even if GeoParquet
         exists for the year. A warning recalls that GeoParquet is faster.
+        Only for years with GeoJSON files (2022): none is published from
+        2025 onwards, so GeoParquet is read anyway, with a warning.
 
     Returns
     -------
@@ -524,11 +576,18 @@ def carti_download(
         "simplification": simplification,
         "filename": filename,
     }
+    parquet_exists = parquet_available(filter_by, **path_kwargs)
+    geojson_exists = None
+    if force and parquet_exists and vectorfile_format.lower() == "geojson":
+        geojson_exists = geojson_available(
+            values, filter_by, territory=territory, **path_kwargs
+        )
     vectorfile_format = choose_format(
         vectorfile_format,
         year,
         force,
-        parquet_exists=parquet_available(filter_by, **path_kwargs),
+        parquet_exists=parquet_exists,
+        geojson_exists=geojson_exists,
     )
     con = connect(con)
     if vectorfile_format == "parquet":

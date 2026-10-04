@@ -3,13 +3,14 @@ title: "API GeoJSON"
 ---
 
 Cette page décrit l'API ajoutée dans `api/`, ce qu'elle coûte en temps de
-réponse, et ce qu'il reste à décider avant de la mettre en production.
-**Elle n'est pas déployée** : le code, les tests et les mesures existent, rien
-d'autre n'a changé côté production.
+réponse, sa mise en production, et la suppression des GeoJSON du _pipeline_
+qu'elle a permise. L'API est déployée par Argo CD sur
+`https://cartiflette-api.lab.sspcloud.fr`, et le _pipeline_ ne produit plus que du
+GeoParquet.
 
 ## Pourquoi une API
 
-Le pipeline publie chaque niveau sous deux formes :
+Le _pipeline_ publiait chaque niveau sous deux formes :
 
 - en **GeoParquet**, un fichier par niveau (32 jobs par millésime), que le
   client Python filtre à la lecture ;
@@ -17,14 +18,14 @@ Le pipeline publie chaque niveau sous deux formes :
   `REGION=11`…), soit **74 jobs par millésime**, chacun avec son pod Argo, ses
   relances et ses fichiers à écrire sur S3.
 
-Le GeoJSON n'existe que pour les clients qui ne savent pas lire le GeoParquet
-(R, JS/Observable, navigateur, client Python antérieur à 0.2.0). L'API les sert à
-partir du GeoParquet, à la demande : si les clients passent par elle, le
-pipeline n'a plus besoin de produire les 74 jobs GeoJSON.
+Le GeoJSON n'existait que pour les clients qui ne savent pas lire le GeoParquet
+(R, JS/Observable, navigateur, client Python antérieur à 0.2.0). L'API le sert à
+partir du GeoParquet, à la demande : le _pipeline_ n'a plus besoin de produire les
+74 jobs GeoJSON.
 
 ```text
-Aujourd'hui   client R / JS  ──HTTPS──▶  S3 : un GeoJSON par valeur (74 jobs)
-Avec l'API    client R / JS  ──HTTPS──▶  API  ──HTTPS──▶  S3 : GeoParquet (32 jobs)
+Avant        client R / JS  ──HTTPS──▶  S3 : un GeoJSON par valeur (74 jobs)
+Maintenant   client R / JS  ──HTTPS──▶  API  ──HTTPS──▶  S3 : GeoParquet (32 jobs)
 ```
 
 ## Ce qui a été ajouté
@@ -159,9 +160,9 @@ Le détail des mesures est dans `api/README.md`.
 ## Mise en production : les enjeux
 
 ::: {.callout-important}
-Rien de ce qui suit n'est fait. Chaque étape est une décision à prendre, dans cet
-ordre : **supprimer la production des GeoJSON avant que les clients soient passés
-par l'API casserait ces clients pour tous les nouveaux millésimes.**
+L'API est déployée (étape 1) et le _pipeline_ ne produit plus de GeoJSON
+(étape 4). Les clients R et JS doivent donc passer par l'API (étape 3) : sinon,
+ils ne trouveront aucun millésime publié après ce changement.
 :::
 
 ### 1. Déployer l'API
@@ -192,7 +193,7 @@ Les **manifestes** sont prêts, sur le modèle GitOps du cours
 
 | Fichier | Contenu |
 |---|---|
-| `api/deployment/deployment.yaml` | 2 réplicas de `inseefrlab/cartiflette-api:v0.1.0` ; 0,5 à 2 CPU, 1 à 2 Gio ; sondes sur `/health` |
+| `api/deployment/deployment.yaml` | 2 réplicas de `inseefrlab/cartiflette-api:v0.1.1` ; 0,5 à 2 CPU, 1 à 2 Gio ; sondes sur `/health` |
 | `api/deployment/service.yaml` | port 80 vers le port 8000 des pods |
 | `api/deployment/ingress.yaml` | `https://cartiflette-api.lab.sspcloud.fr`, CORS ouvert en lecture (`GET`) pour les navigateurs |
 | `api/application.yaml` | application Argo CD : suit `api/deployment/` sur `main`, namespace `projet-cartiflette`, synchronisation automatique |
@@ -254,21 +255,32 @@ Le dernier cas est le coût inévitable. Les utilisateurs d'anciennes versions d
 client Python devront mettre à jour pour les nouveaux millésimes, et continueront
 de lire les anciens millésimes sans rien changer.
 
-### 4. Arrêter de produire les GeoJSON
+### 4. Arrêter de produire les GeoJSON (fait)
 
-Une fois les clients R et JS passés par l'API et leur fonctionnement vérifié :
+Le _workflow_ Argo n'a plus d'étape `split` : `list-jobs` ne liste que les 32 jobs
+GeoParquet, et le code correspondant (`combinations`, `process`,
+`split_and_upload`, `mapshaper.split`, `paths.create_path_bucket`) est supprimé.
+Le _pipeline_ passe de 106 jobs par millésime (74 + 32) à 32.
 
-- retirer du workflow Argo les étapes `list-jobs` et `split`, et le code
-  correspondant (`combinations`, `split_and_upload`…). Ce travail n'est pas fait ;
-- ne rien supprimer sur S3 : les GeoJSON déjà publiés restent lus par les anciens
-  clients. Les supprimer serait une décision distincte, plus tard.
+Rien n'est supprimé sur S3 : les GeoJSON déjà publiés (2022 en production) restent
+lus par les anciens clients et par l'API, qui y redirige. Les supprimer serait une
+décision distincte.
 
-Le pipeline passe alors de 106 jobs par millésime (74 + 32) à 32.
+Conséquences :
+
+- les millésimes publiés désormais n'existent qu'en GeoParquet : lisibles par le
+  client Python ≥ 0.2.0 et par l'API, pas par les clients qui lisent les GeoJSON
+  sur MinIO (R et JS non migrés, Python < 0.2.0) ;
+- `carti_download(..., vectorfile_format="geojson", force=True)` lit le GeoParquet
+  pour ces millésimes, avec un avertissement : il n'y a plus de fichier GeoJSON à
+  forcer (client 0.2.1, `geojson_available`) ;
+- republier 2022 n'écrase plus ses GeoJSON : cela ajoute un GeoParquet à côté
+  (voir [02](02-lancer-le-pipeline.qmd)).
 
 ### Décisions à prendre
 
 1. Déployer l'API, où, avec quelle adresse et qui en est responsable.
 2. Accepter qu'un service remplace des fichiers statiques, avec sa surveillance.
 3. Calendrier de migration des clients R et JS.
-4. À partir de quel millésime le pipeline ne produit plus de GeoJSON, et comment
-   prévenir les utilisateurs du client Python < 0.2.0.
+4. Comment prévenir les utilisateurs du client Python < 0.2.0, qui ne verront pas
+   les nouveaux millésimes.

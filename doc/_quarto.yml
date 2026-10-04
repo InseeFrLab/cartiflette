@@ -82,6 +82,7 @@ quartodoc:
         - client.connect
         - client.consolidated_url
         - client.parquet_available
+        - client.geojson_available
         - client.geojson_urls
         - client.read_geojson
         - client.read_parquet

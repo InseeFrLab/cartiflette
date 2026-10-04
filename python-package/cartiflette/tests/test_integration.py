@@ -195,19 +195,18 @@ def test_usecase2_departements_drom_rapproches(year, path):
 
 @skip_with_api
 @pytest.mark.parametrize("year, path", NEW_LOCATIONS)
-def test_usecase2_geojson_forced_equals_geoparquet(year, path):
+def test_usecase2_geojson_forced_reads_geoparquet(year, path):
+    # No GeoJSON file from 2025 onwards: force=True is ignored
     kwargs = {
         "values": "France",
         "borders": "DEPARTEMENT",
         "filter_by": "FRANCE_ENTIERE_DROM_RAPPROCHES",
     }
     parquet = download(year, path, **kwargs)
-    with pytest.warns(UserWarning, match="force=True"):
-        geojson = download(
-            year, path, vectorfile_format="geojson", force=True, **kwargs
-        )
-    assert sorted(parquet["INSEE_DEP"]) == sorted(geojson["INSEE_DEP"])
-    assert parquet["POPULATION"].sum() == geojson["POPULATION"].sum()
+    with pytest.warns(UserWarning, match="force=True is ignored"):
+        forced = download(year, path, vectorfile_format="geojson", force=True, **kwargs)
+    assert sorted(parquet["INSEE_DEP"]) == sorted(forced["INSEE_DEP"])
+    assert parquet["POPULATION"].sum() == forced["POPULATION"].sum()
 
 
 # --------------------------------------------------------------------------

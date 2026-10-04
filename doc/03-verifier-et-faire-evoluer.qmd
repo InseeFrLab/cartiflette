@@ -45,8 +45,9 @@ CARTIFLETTE_TEST_PATH=test/v0.3.0 CARTIFLETTE_TEST_YEARS=2026 uv run pytest -m i
 |---|---|---|---|
 | `ign` | `tests/test_ign.py` | analyse des noms d'édition, préférence GeoParquet > GPKG, année absente, pagination Atom (réponses HTTP simulées) | — |
 | `prepare` | `tests/test_prepare.py` | requêtes DuckDB sur de petites tables qui imitent l'IGN 4-0 et la TAGC : renommage des champs, exclusion de SPM, arrondissements PLM, jointure TAGC, écriture GeoJSON, détection des zonages | — |
-| `pipeline` | `tests/test_pipeline.py` | nombre de jobs (74 GeoJSON, 32 GeoParquet), refus de la production **avant** traitement, `process` et `process_consolidated` sur 3 communes synthétiques (métadonnées `geo` 1.1.0 et `cartiflette:filter_columns`, `bbox`, tri) | mapshaper pour `test_process*` |
-| `paths`, `s3` | `tests/test_paths_and_s3.py` | chaîne de chemin exacte (contrat), cible par défaut ≠ production, refus de la production, `upload` sans toucher S3 (système de fichiers simulé) | — |
+| `pipeline` | `tests/test_pipeline.py` | nombre de jobs (32), refus de la production **avant** traitement, `process_consolidated` sur 4 communes synthétiques (métadonnées `geo` 1.1.0 et `cartiflette:filter_columns`, `bbox`, tri, zonage à cheval sur deux territoires) | mapshaper pour `test_process_consolidated` et `test_dissolve_*` |
+| `argo` | `tests/test_argo.py` | garde-fous du _workflow_ (cible de test par défaut, version de l'image, ressources, logs), liste des jobs, absence d'étape GeoJSON | — |
+| `paths`, `s3` | `tests/test_paths_and_s3.py` | chaîne de chemin exacte du GeoParquet (contrat), cible par défaut ≠ production, refus de la production, `upload` sans toucher S3 (système de fichiers simulé) | — |
 | client | `python-package/.../tests/test_client.py` | mêmes chaînes de chemin, formats, concaténation GeoJSON, repli `REGION=01 → 1`, lecture filtrée d'un GeoParquet consolidé (stockage local simulé), erreurs (filtre impossible, valeur absente, année sans GeoParquet), lecture d'un fichier de production | réseau pour `network` |
 | intégration | `python-package/.../tests/test_integration.py` | cas d'usage du site cartiflette sur les fichiers publiés : communes avec arrondissements de la petite couronne (dissolve, jointure spatiale, `INSEE_COG`), Lyon et Marseille, départements DROM rapprochés (jointure sur `INSEE_DEP`, `POPULATION`), cartes France entière des niveaux de la page d'accueil (avec ou sans DROM rapprochés, simplification 0 et 50, emprises), communes de départements, métadonnées, moteur DuckDB | réseau ; lancé seulement avec `-m integration` |
 
@@ -146,28 +147,30 @@ Points à contrôler :
 
 ```bash
 uv run python -c "
-from cartiflette.pipeline import process
-for f in process('$DATA', '/tmp/cartiflette/work', 'DEPARTEMENT', 'REGION', 50, 4326):
-    print(f)
+import duckdb
+from cartiflette.pipeline import process_consolidated
+p = process_consolidated('$DATA', '/tmp/cartiflette/work', 'DEPARTEMENT', 'FRANCE_ENTIERE', 50, 4326)
+print(duckdb.sql(f\"SELECT INSEE_REG, count(*) FROM '{p}' GROUP BY 1 ORDER BY 1\"))
 "
-mapshaper /tmp/cartiflette/work/split/11.geojson -info
+mapshaper /tmp/cartiflette/work/final.geojson -info
 ```
 
-`process` ne vide pas le dossier de travail : le supprimer entre deux essais
-(`rm -rf /tmp/cartiflette/work`).
+`process_consolidated` ne vide pas le dossier de travail : le supprimer entre deux
+essais (`rm -rf /tmp/cartiflette/work`). Il contient aussi le GeoJSON intermédiaire
+`final.geojson`, utile pour le contrôle visuel.
 
 Résultats attendus pour quelques combinaisons utiles :
 
-| Niveau × découpage | Fichiers attendus | À regarder |
-|---|---|---|
-| `DEPARTEMENT × REGION` | 18 (un par région, DROM compris) | `11.geojson` contient 8 départements |
-| `REGION × TERRITOIRE` | 6 (`metropole.geojson`, `guadeloupe.geojson`…) | 13 régions en métropole |
-| `COMMUNE × FRANCE_ENTIERE_DROM_RAPPROCHES` | 1 (`France.geojson`) | **à afficher** : DROM près de la métropole, zoom de l'Île-de-France par département |
-| `BASSIN_VIE × FRANCE_ENTIERE` | 1 | le champ `BVxxxx` vient bien de `fields.json` |
-| `COMMUNE_ARRONDISSEMENT × DEPARTEMENT` | ~100 | `75.geojson` contient 20 arrondissements |
+| Niveau × disposition | À regarder dans le GeoParquet |
+|---|---|
+| `DEPARTEMENT × FRANCE_ENTIERE` | 101 lignes ; 8 départements pour `INSEE_REG = '11'` |
+| `REGION × FRANCE_ENTIERE` | 18 lignes, dont 13 avec `AREA = 'metropole'` |
+| `COMMUNE × FRANCE_ENTIERE_DROM_RAPPROCHES` | **à afficher** : DROM près de la métropole, zoom de l'Île-de-France par département |
+| `BASSIN_VIE × FRANCE_ENTIERE` | le champ `BVxxxx` vient bien de `fields.json` |
+| `COMMUNE_ARRONDISSEMENT × FRANCE_ENTIERE` | 20 arrondissements pour `INSEE_DEP = '75'` |
 
-Pour `FRANCE_ENTIERE_DROM_RAPPROCHES`, seul un contrôle visuel est fiable :
-ouvrir `France.geojson` sur <https://mapshaper.org> ou dans QGIS.
+Pour `FRANCE_ENTIERE_DROM_RAPPROCHES`, seul un contrôle visuel est fiable : ouvrir
+`final.geojson` sur <https://mapshaper.org> ou dans QGIS.
 
 ### Conversion GeoParquet
 
@@ -190,7 +193,7 @@ colonne `bbox`, les champs historiques, `SOURCE`, la version `1.1.0` et les filt
 
 ## 4–5. Relire une sortie publiée en test {#relire-test}
 
-Après une exécution qui a écrit dans `test/v<version>` (Argo ou `split.py`, voir
+Après une exécution qui a écrit dans `test/v<version>` (Argo ou `consolidate.py`, voir
 [02](02-lancer-le-pipeline.qmd#mode-argo-test)), la relire avec
 le client, comme le ferait un utilisateur :
 
@@ -204,7 +207,7 @@ gdf = carti_download(
     year=2026,
     simplification=50,
     vectorfile_format="parquet",
-    path_within_bucket="test/v0.2.0",   # au lieu de "production"
+    path_within_bucket="test/v0.3.0",   # au lieu de "production"
 )
 gdf.plot()
 ```
@@ -216,7 +219,7 @@ et lire les fichiers avec `s3fs`, en lecture seule, avec vos identifiants :
 from cartiflette.s3 import get_fs
 
 fs = get_fs()
-fs.ls("projet-cartiflette/test/v0.2.0/provider=IGN/dataset_family=ADMINEXPRESS/"
+fs.ls("projet-cartiflette/test/v0.3.0/provider=IGN/dataset_family=ADMINEXPRESS/"
       "source=EXPRESS-COG-CARTO-TERRITOIRE/year=2026")
 ```
 
@@ -226,7 +229,7 @@ rupture pour les utilisateurs :
 ```python
 kw = dict(values=["11"], borders="DEPARTEMENT", filter_by="REGION", simplification=50)
 old = carti_download(year=2025, **kw)
-new = carti_download(year=2026, path_within_bucket="test/v0.2.0", **kw)
+new = carti_download(year=2026, path_within_bucket="test/v0.3.0", **kw)
 print(set(old.columns) ^ set(new.columns))   # colonnes ajoutées ou disparues
 print(len(old), len(new))
 ```
@@ -259,33 +262,38 @@ dans `tests/test_ign.py` et `tests/test_prepare.py`. Les noms de champs
 
 Exemple : ajouter les EPCI.
 
-1. `pipeline.SPLITS` : déclarer le niveau et ses découpages autorisés.
+1. `pipeline.FILTERS` : déclarer le niveau et les niveaux par lesquels il peut être filtré.
 2. Champ de code :
    - s'il est stable, dans `mapshaper.LEVEL_FIELDS` (ex. `"EPCI": "EPCI"`) ;
    - s'il porte un millésime (comme `BV2022`), dans `prepare.ZONING_PREFIXES`.
 3. Si le niveau est découpé en `FRANCE_ENTIERE_DROM_RAPPROCHES` : **ajouter une
    entrée dans `mapshaper.IDF_ZOOM`**, sinon `bring_drom_closer` lève un `KeyError`.
 4. Libellé éventuel dans `mapshaper.LABEL_FIELDS`.
-5. Tests : mettre à jour le nombre de jobs dans `test_combinations` (74 aujourd'hui)
-   et `test_consolidated_combinations` (32), et ajouter un cas à `test_process`.
+5. Tests : mettre à jour le nombre de jobs dans `test_consolidated_combinations`
+   (32 aujourd'hui) et ajouter un cas à `test_process_consolidated`.
 6. Client : compléter la docstring de `carti_download` (liste des `borders` et `filter_by`).
 7. Marche 3 sur le nouveau niveau, dont un contrôle visuel.
 
 ### Ajouter un format de sortie
 
-Les deux formats actuels ont chacun leur étape : `split_and_upload` pour le GeoJSON
-(un fichier par valeur), `consolidate_and_upload` pour le GeoParquet (un fichier par niveau).
+Le _pipeline_ ne publie que du GeoParquet (`consolidate_and_upload`, un fichier par
+niveau et disposition). Les autres formats se servent à la demande à partir de lui :
+c'est le rôle de l'API (`api/`), qui produit le GeoJSON. Avant d'ajouter une étape au
+_pipeline_, se demander si l'API ne peut pas plutôt le servir : c'est ce qui a permis
+de supprimer les 74 jobs GeoJSON par millésime.
 
-1. Choisir l'organisation (par valeur ou consolidée) et produire le fichier dans l'étape
-   correspondante, avec sa fonction de chemin dans `paths.py` et son pendant côté client.
-2. Client : `utils.FORMATS`, et la lecture dans `client.py` (`read_file` ou `read_consolidated`).
+S'il faut vraiment un nouveau fichier publié :
+
+1. Le produire dans `consolidate_and_upload` ou une nouvelle étape, avec sa fonction de
+   chemin dans `paths.py` et son pendant côté client.
+2. Client : `utils.FORMATS`, et la lecture dans `client.py`.
 3. Argo : une liste de jobs et un _fan-out_ si c'est une nouvelle étape.
 4. Tests des deux côtés (`test_standardize_format`, un test de production côté pipeline).
 
 ### Changer une simplification ou une projection
 
 `pipeline.SIMPLIFICATIONS` et `pipeline.CRS`. Le nombre de jobs change (mettre à
-jour `test_combinations`) et le volume de fichiers sur S3 aussi.
+jour `test_consolidated_combinations`) et le volume de fichiers sur S3 aussi.
 
 ### Monter la version de mapshaper ou de DuckDB
 

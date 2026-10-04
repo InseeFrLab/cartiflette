@@ -28,12 +28,16 @@ GeoJSON à partir du GeoParquet, en s'appuyant sur le client Python : voir
 ## Le contrat : la structure des chemins S3
 
 Le seul lien entre le pipeline et tous les clients est l'emplacement des
-fichiers. Il est construit par deux fonctions qui doivent rester identiques :
+fichiers. Le pipeline ne publie que du **GeoParquet**, dont le chemin est
+construit par deux fonctions qui doivent rester identiques :
 
-- `cartiflette/paths.py::create_path_bucket` (pipeline) ;
-- `python-package/cartiflette/cartiflette/utils.py::create_path_bucket` (client),
+- `cartiflette/paths.py::create_path_consolidated` (pipeline) ;
+- `python-package/cartiflette/cartiflette/utils.py::create_path_consolidated` (client).
 
-et de même `create_path_consolidated` pour le GeoParquet.
+Les **GeoJSON** ne sont plus produits : le GeoJSON est servi par l'API
+([04](04-api-geojson.qmd)). Les fichiers déjà publiés (2022) restent lisibles, à
+l'arborescence ci-dessous, construite par `create_path_bucket`, qui n'existe plus
+que dans le client (et que l'API accepte telle quelle) :
 
 ```text
 {bucket}/{path_within_bucket}
@@ -51,7 +55,7 @@ et de même `create_path_consolidated` pour le GeoParquet.
 ```
 
 Le **GeoParquet** a une arborescence différente, construite par `create_path_consolidated` :
-un seul fichier par niveau, que le client filtre à la lecture.
+un seul fichier par niveau, que le client et l'API filtrent à la lecture.
 
 ```text
 {bucket}/{path_within_bucket}
@@ -128,14 +132,14 @@ Cela permet de rendre le  développement du projet plus simple mais reste robust
 | `ign.py` | lecture du catalogue Atom de la Géoplateforme, choix de l'édition, téléchargement des couches en GeoParquet (ou GPKG converti) | `list_editions`, `select_edition`, `list_files`, `fetch_layers`, `gpkg_to_parquet` |
 | `insee.py` | téléchargement de la TAGC et conversion xlsx → parquet | `fetch_tagc`, `tagc_to_parquet` |
 | `prepare.py` | étape 1 : requêtes DuckDB qui produisent les entrées communes à tous les jobs | `prepare_year`, `communes_query`, `enrich_query`, `zoning_fields` |
-| `mapshaper.py` | appels à mapshaper (liste d'arguments, jamais `shell=True`) | `dissolve`, `bring_drom_closer`, `split` |
-| `pipeline.py` | étapes 2 et 3 : listes des jobs, traitement d'un job GeoJSON ou GeoParquet, envoi | `combinations`, `process`, `split_and_upload`, `consolidated_combinations`, `process_consolidated`, `to_consolidated_parquet`, `consolidate_and_upload` |
-| `paths.py` | contrat de chemins (voir plus haut) | `create_path_bucket` |
+| `mapshaper.py` | appels à mapshaper (liste d'arguments, jamais `shell=True`) | `dissolve`, `bring_drom_closer`, `finalize` |
+| `pipeline.py` | étapes 2 et 3 : liste des jobs, traitement d'un job GeoParquet, envoi | `consolidated_combinations`, `process_consolidated`, `to_consolidated_parquet`, `consolidate_and_upload` |
+| `paths.py` | contrat de chemins (voir plus haut) | `create_path_consolidated` |
 | `s3.py` | seul point d'écriture S3, avec le garde-fou production | `get_fs`, `check_write_target`, `upload` |
 
-`argo-pipeline/src/` contient trois petits scripts en ligne de commande, un par
-étape Argo, qui ne font qu'appeler ces fonctions : `prepare.py`,
-`crossproduct.py`, `split.py`.
+`argo-pipeline/src/` contient de petits scripts en ligne de commande, un par
+étape Argo, qui ne font qu'appeler ces fonctions : `check_target.py`,
+`prepare.py`, `crossproduct.py`, `consolidate.py`.
 
 ### Étape 1 — `prepare_year`
 
@@ -166,37 +170,28 @@ Cela permet de rendre le  développement du projet plus simple mais reste robust
   Marseille remplacées par leurs arrondissements municipaux, `INSEE_COG` = code de
   l'arrondissement) et `fields.json`.
 
-### Étape 2 — `combinations`
+### Étape 2 — `consolidated_combinations`
 
-Produit du dictionnaire `SPLITS` (niveau des polygones → niveaux de découpage
-autorisés), de `SIMPLIFICATIONS = [0, 50]` et de `CRS = [4326]`, soit
-**74 jobs** : 37 couples × 2 simplifications × 1 projection.
+Produit des 8 niveaux de polygones du dictionnaire `FILTERS` (niveau des polygones →
+niveaux par lesquels son GeoParquet peut être filtré), des 2 dispositions
+(`config.LAYOUTS`), de `SIMPLIFICATIONS = [0, 50]` et de `CRS = [4326]`, soit
+**32 jobs** : 8 niveaux × 2 dispositions × 2 simplifications × 1 projection.
 
-### Étape 3 — `split_and_upload` (un job)
+### Étape 3 — `consolidate_and_upload` (un job)
 
 1. `check_write_target` : échoue **avant tout traitement** si la cible est la production non autorisée ;
-2. `process` : repart de `COMMUNE.geojson` (ou `COMMUNE_ARRONDISSEMENT.geojson`), puis :
-   - `mapshaper.dissolve` si le niveau n'est pas la commune (somme des populations) ;
-   - `mapshaper.bring_drom_closer` si le découpage est `FRANCE_ENTIERE_DROM_RAPPROCHES`
+2. `process_consolidated` : repart de `COMMUNE.geojson` (ou `COMMUNE_ARRONDISSEMENT.geojson`), puis :
+   - `mapshaper.dissolve` si le niveau n'est pas la commune (somme des populations), en
+     gardant les champs de **tous** les niveaux de filtre possibles (`filter_levels`) ;
+   - `mapshaper.bring_drom_closer` pour la disposition `FRANCE_ENTIERE_DROM_RAPPROCHES`
      (DROM déplacés et agrandis près de la métropole, zoom sur l'Île-de-France) ;
-   - `mapshaper.split` : reprojection, simplification, un GeoJSON par valeur du champ de découpage ;
-3. `upload` de chaque GeoJSON, au chemin donné par `create_path_bucket`.
-
-### Étape 3 bis — `consolidate_and_upload` (un job GeoParquet)
-
-`consolidated_combinations` liste **32 jobs** : 8 niveaux × 2 dispositions (`layout`) × 2 simplifications.
-Pour chacun :
-
-1. `check_write_target`, comme pour le GeoJSON ;
-2. `process_consolidated` : même préparation des polygones, mais `dissolve` garde les
-   champs de **tous** les niveaux de filtre possibles (`filter_levels`), puis
-   `mapshaper.finalize` reprojette et simplifie en un seul GeoJSON ;
+   - `mapshaper.finalize` : reprojection et simplification, en un seul GeoJSON intermédiaire ;
 3. `to_consolidated_parquet` : conversion par DuckDB (tri, groupes de lignes, `bbox`,
    métadonnées `geo` en version 1.1.0 et `cartiflette:filter_columns`) ;
 4. `upload` au chemin donné par `create_path_consolidated`.
 
-La simplification est calculée sur tout le territoire du niveau, pas fichier par
-fichier : le résultat diffère légèrement des GeoJSON découpés, ce qui est accepté.
+La simplification est calculée sur tout le territoire du niveau : le résultat
+diffère légèrement des anciens GeoJSON découpés par valeur, ce qui est accepté.
 
 Les champs qui portent le code de chaque niveau sont dans
 `mapshaper.LEVEL_FIELDS`, complétés par `fields.json` pour les zonages.
@@ -223,7 +218,7 @@ Ces contournements sont déjà en place. Ils ne doivent pas être « simplifiés
 | Élément | Fichier | Rôle |
 |---|---|---|
 | Image Docker | `Dockerfile`, `docker/install-mapshaper.sh` | base `python:3.12-slim`, mapshaper 0.6.59, dépendances du pipeline aux versions de `uv.lock`, extensions DuckDB préinstallées ; pas de code (Argo clone la révision demandée) |
-| Workflow Argo | `argo-pipeline/pipeline.yaml` | DAG `prepare → list-jobs → split` (voir [02](02-lancer-le-pipeline.qmd)) |
+| Workflow Argo | `argo-pipeline/pipeline.yaml` | DAG `prepare → list-jobs → consolidate` (voir [02](02-lancer-le-pipeline.qmd)) |
 | CI tests | `.github/workflows/check.yml` | `pytest` pipeline (avec mapshaper), client et API, à chaque push |
 | CI lint | `.github/workflows/lint.yml` | ruff (`check` et `format --check`) sur tout le dépôt : pipeline, client et API ; version figée dans le workflow |
 | CI image | `.github/workflows/docker.yml` | construit `inseefrlab/cartiflette:v<version>` sur `main` et sur les tags `v*` |

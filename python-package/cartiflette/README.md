@@ -58,8 +58,13 @@ Chaque niveau est publié en GeoParquet dans un seul fichier, que DuckDB lit
 partiellement : seules les parties correspondant aux valeurs demandées sont
 téléchargées (environ 2 Mo pour les communes d'un département). Le client lit le
 GeoParquet dès qu'il existe, même si `vectorfile_format="geojson"` est demandé (un
-avertissement l'indique ; `force=True` lit quand même le GeoJSON). Pour les
-millésimes publiés seulement en GeoJSON, le client le détecte et lit le GeoJSON.
+avertissement l'indique). Pour les millésimes publiés seulement en GeoJSON (2022),
+le client le détecte et lit le GeoJSON.
+
+Aucun fichier GeoJSON n'est publié à partir de 2025 : `force=True`, qui force la
+lecture du GeoJSON, ne vaut que pour les millésimes qui en ont (2022). Pour obtenir
+du GeoJSON des millésimes récents, par exemple depuis R ou JavaScript, utiliser
+l'API : `https://cartiflette-api.lab.sspcloud.fr/v1/geojson`.
 
 ## Rester dans DuckDB
 
