@@ -94,7 +94,9 @@ os.environ["https_proxy"] = "http://mon-proxy:8080"
 
 ## En savoir plus
 
-- [Site de cartiflette](https://inseefrlab.github.io/cartiflette-website/) : exemples
+- [Documentation du client](https://inseefrlab.github.io/cartiflette/doc/client-python.html) :
+  guide d'utilisation et [référence des fonctions](https://inseefrlab.github.io/cartiflette/doc/reference/).
+- [Site de cartiflette](https://inseefrlab.github.io/cartiflette/) : exemples
   et cas d'usage, aussi en R et en JavaScript.
 - [Dépôt GitHub](https://github.com/InseeFrLab/cartiflette) : pipeline de production
   et documentation technique.

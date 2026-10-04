@@ -171,3 +171,20 @@ quarto render      # ou quarto preview
 ```
 
 Les pages générées (`doc/reference/`, `doc/objects.json`) ne sont pas versionnées.
+
+### Publication
+
+Le workflow `.github/workflows/docs.yml` publie sur GitHub Pages
+(<https://inseefrlab.github.io/cartiflette/>) un site unique :
+
+- à la racine, le site [cartiflette-website](https://github.com/InseeFrLab/cartiflette-website)
+  (exemples, cas d'usage), dont les exemples Python sont exécutés avec le client de
+  ce dépôt ;
+- sous `doc/`, ce site-ci.
+
+Le lien « Documentation Python » de la barre de navigation du site principal est
+ajouté par un profil Quarto, `doc/website/_quarto-cartiflette.yml`, copié dans le
+dépôt cartiflette-website au moment du rendu. Le workflow tourne à chaque
+modification de `doc/` ou du client sur `main`, à la main (`workflow_dispatch`), ou
+quand cartiflette-website envoie un événement `repository_dispatch` de type
+`cartiflette-website`. Sur une pull request, il vérifie seulement la construction.

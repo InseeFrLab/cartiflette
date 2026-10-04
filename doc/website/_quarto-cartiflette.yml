@@ -1,0 +1,9 @@
+# Quarto profile added to the cartiflette-website checkout by
+# .github/workflows/docs.yml: links the client documentation, published
+# under doc/ next to the website.
+website:
+  site-url: https://inseefrlab.github.io/cartiflette/
+  navbar:
+    left:
+      - href: doc/client-python.html
+        text: Documentation Python

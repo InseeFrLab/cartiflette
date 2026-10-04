@@ -9,6 +9,7 @@ lang: fr
 
 website:
   title: "cartiflette"
+  site-url: https://inseefrlab.github.io/cartiflette/doc/
   description: "Documentation de reprise du projet cartiflette"
   favicon: images/logo.png
   back-to-top-navigation: true
@@ -22,6 +23,9 @@ website:
     logo: images/logo.png
     title: "cartiflette"
     left:
+      # The cartiflette-website site, published at the root (docs.yml)
+      - text: "Site cartiflette"
+        href: https://inseefrlab.github.io/cartiflette/
       - text: "Reprise du projet"
         href: index.qmd
       - text: "Client Python"
