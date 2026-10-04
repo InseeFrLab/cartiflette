@@ -25,7 +25,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from cartiflette import carti_download
 
-PATH_WITHIN_BUCKET = "test/v0.2.0"
+PATH_WITHIN_BUCKET = "production"
 YEAR = 2026
 
 DOC = Path(__file__).parents[1]

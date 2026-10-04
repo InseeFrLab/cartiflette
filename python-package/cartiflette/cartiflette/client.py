@@ -527,7 +527,7 @@ def carti_download(
         Bucket of the files, "projet-cartiflette".
     path_within_bucket : str
         Prefix within the bucket: "production" for the published files, or a
-        test location such as "test/v0.2.0".
+        test location such as "test/v0.3.0".
     provider : str
         Provider of the data, "IGN".
     dataset_family : str

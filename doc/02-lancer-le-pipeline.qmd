@@ -261,25 +261,31 @@ Sans `allow_production_write=true`, l'étape `check-target` échoue avec
    `CARTIFLETTE_TEST_PATH=production CARTIFLETTE_TEST_YEARS=... uv run pytest -m integration`
    dans `python-package/cartiflette`.
 
-### Première publication en production
+### État de la production
 
 Le _pipeline_ ne publie que du GeoParquet ; le GeoJSON est servi par l'API
-([04](04-api-geojson.qmd)). La production ne contient aujourd'hui que les GeoJSON
-2022 de l'ancien _pipeline_. Ordre conseillé, un millésime ou un groupe à la fois :
+([04](04-api-geojson.qmd)).
 
-1. **2023, 2024, 2025, 2026** : nouveaux en production, rien n'est écrasé. Ils ne
-   sont lisibles que par le client Python ≥ 0.2.0 (GeoParquet) et par l'API (GeoJSON) :
-   les clients R et JS doivent être passés sur l'API, les clients Python < 0.2.0 ne
-   les verront pas.
-2. **2022** : ajoute un GeoParquet à côté des GeoJSON de l'ancien _pipeline_, qui
-   **ne sont pas écrasés** puisque le _pipeline_ n'écrit plus de GeoJSON. Le client
-   Python ≥ 0.2.0 lira alors ce GeoParquet (contrôle par requête HEAD), avec les
-   changements du nouveau _pipeline_ : `BV2012` devient `BV2022`, aires d'attraction
-   et unités urbaines découpées par territoire (DROM correctement placés). L'API, elle,
-   continue de rediriger vers les anciens GeoJSON 2022 jusqu'à son redémarrage
-   (`kubectl rollout restart deployment/cartiflette-api`), puis sert le GeoParquet.
-   C'est une décision à part entière : les utilisateurs de 2022 verront ces
-   changements.
+| Millésime | En production | Lisible par |
+|---|---|---|
+| 2023 à 2026 | GeoParquet (_pipeline_ 0.3.0, publiés le 4 octobre 2026) | client Python ≥ 0.2.0 (0.2.1 sur PyPI), API ; pas les clients R et JS non passés sur l'API, ni le client Python < 0.2.0 |
+| 2022 | GeoJSON de l'ancien _pipeline_ | tous les clients, et l'API (redirection) |
+
+Ordre suivi pour cette publication : publication du client 0.2.1 sur PyPI (seul
+capable de lire le GeoParquet consolidé), puis _workflow_ de production pour
+`["2023", "2024", "2025", "2026"]`, puis tests d'intégration sur la production.
+
+Reste une décision à part :
+
+- **2022** : republier ajoute un GeoParquet à côté des GeoJSON de l'ancien _pipeline_, qui
+  **ne sont pas écrasés** puisque le _pipeline_ n'écrit plus de GeoJSON. Le client
+  Python ≥ 0.2.0 lira alors ce GeoParquet (contrôle par requête HEAD), avec les
+  changements du nouveau _pipeline_ : `BV2012` devient `BV2022`, aires d'attraction
+  et unités urbaines découpées par territoire (DROM correctement placés). L'API, elle,
+  continue de rediriger vers les anciens GeoJSON 2022 jusqu'à son redémarrage
+  (`kubectl rollout restart deployment/cartiflette-api`), puis sert le GeoParquet.
+  C'est une décision à part entière : les utilisateurs de 2022 verront ces
+  changements.
 
 ::: {.callout-caution}
 Ne jamais « copier » un résultat de test vers la production avec `mc` ou
