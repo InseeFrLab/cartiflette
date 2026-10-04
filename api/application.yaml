@@ -1,0 +1,19 @@
+# Argo CD application of the API: in the Argo CD service of the project
+# (SSPCloud, "Mes services"), New App > Edit as YAML, paste this file.
+# Argo CD then applies api/deployment/ of the main branch at every commit.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cartiflette-api
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/InseeFrLab/cartiflette.git
+    targetRevision: main
+    path: api/deployment
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: projet-cartiflette
+  syncPolicy:
+    automated:
+      selfHeal: true

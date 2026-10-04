@@ -62,6 +62,17 @@ nom du tag) : la monter avant de pousser sur `main`, sinon l'image est écrasée
 Un tag `api-*` (ex. `api-0.1.0`) ne construit que cette image, sans l'image du
 pipeline ni le client PyPI.
 
+## Déploiement (Argo CD)
+
+Manifestes Kubernetes dans `deployment/` (Deployment, Service, Ingress sur
+`https://cartiflette-api.lab.sspcloud.fr`) et application Argo CD dans
+`application.yaml`, qui suit `api/deployment` sur `main` dans le namespace
+`projet-cartiflette`. Dans le service Argo CD du projet : _New App_, _Edit as
+YAML_, coller `application.yaml`.
+
+Nouvelle version : monter `api/pyproject.toml`, attendre l'image publiée par la CI,
+changer le tag de l'image dans `deployment/deployment.yaml` et pousser sur `main`.
+
 ## Coût par rapport aux fichiers
 
 `benchmark.py` rejoue les cas d'usage des tests d'intégration (millésime 2025,

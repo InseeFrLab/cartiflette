@@ -187,12 +187,43 @@ préinstallées. Un seul processus par conteneur : DuckDB utilise déjà tous le
 cœurs, on ajoute de la capacité en ajoutant des réplicas. Aucun secret n'est
 nécessaire : l'API lit les fichiers publics en HTTPS.
 
-Ce qui manque, pour un déploiement par Argo CD :
+Les **manifestes** sont prêts, sur le modèle GitOps du cours
+[ENSAE reproductibilité](https://ensae-reproductibilite.github.io/website/chapters/application.html) :
 
-- les **manifestes Kubernetes** (Deployment avec au moins deux réplicas, Service,
-  Ingress), avec des sondes sur `/health` ;
-- une **adresse publique stable** : c'est elle que les clients R et JS inscriront
-  dans leur code, elle ne doit plus changer ensuite ;
+| Fichier | Contenu |
+|---|---|
+| `api/deployment/deployment.yaml` | 2 réplicas de `inseefrlab/cartiflette-api:v0.1.0` ; 0,5 à 2 CPU, 1 à 2 Gio ; sondes sur `/health` |
+| `api/deployment/service.yaml` | port 80 vers le port 8000 des pods |
+| `api/deployment/ingress.yaml` | `https://cartiflette-api.lab.sspcloud.fr`, CORS ouvert en lecture (`GET`) pour les navigateurs |
+| `api/application.yaml` | application Argo CD : suit `api/deployment/` sur `main`, namespace `projet-cartiflette`, synchronisation automatique |
+
+Contrairement au cours, les manifestes restent dans ce dépôt plutôt que dans un
+dépôt GitOps séparé : Argo CD lit le sous-dossier `api/deployment`.
+`application.yaml` est volontairement en dehors de ce dossier, pour qu'Argo CD ne
+l'applique pas lui-même.
+
+DuckDB suit les limites du conteneur : autant de threads que de CPU autorisés, et
+80 % de la limite mémoire. Changer les limites change donc directement sa
+capacité.
+
+Pour déployer :
+
+1. lancer un service Argo CD dans le projet `cartiflette` du SSPCloud (_Mes
+   services_, catalogue _Automation_) ;
+2. _New App_, puis _Edit as YAML_ : coller `api/application.yaml`, puis _Create_ ;
+3. vérifier `https://cartiflette-api.lab.sspcloud.fr/health`.
+
+Pour une nouvelle version : monter la version dans `api/pyproject.toml`, laisser la
+CI publier l'image (push sur `main` ou tag `api-*`), puis changer le tag de
+l'image dans `deployment.yaml`. Le commit sur `main` suffit : Argo CD redéploie.
+Le tag de l'image est fixe et non `latest`, pour savoir ce qui tourne et pouvoir
+revenir en arrière en annulant le commit.
+
+Restent à décider :
+
+- l'**adresse publique** : `cartiflette-api.lab.sspcloud.fr` est libre aujourd'hui,
+  mais c'est elle que les clients R et JS inscriront dans leur code, elle ne doit
+  plus changer ensuite ;
 - un **responsable** du service.
 
 ### 2. Accepter de passer de fichiers à un service

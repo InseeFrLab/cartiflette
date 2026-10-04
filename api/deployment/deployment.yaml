@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cartiflette-api
+  labels:
+    app: cartiflette-api
+spec:
+  # Two replicas: the clients R and JS depend on the API for GeoJSON
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cartiflette-api
+  template:
+    metadata:
+      labels:
+        app: cartiflette-api
+    spec:
+      containers:
+        - name: cartiflette-api
+          # To deploy a new version: bump api/pyproject.toml, let the CI
+          # publish the image, then change this tag (Argo CD syncs the commit)
+          image: inseefrlab/cartiflette-api:v0.1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          # DuckDB follows these limits (threads = CPU quota, memory_limit =
+          # 80 % of the memory limit)
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 30

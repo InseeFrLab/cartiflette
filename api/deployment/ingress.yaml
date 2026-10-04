@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cartiflette-api
+  annotations:
+    # Read from browsers (Observable, website): public, read-only
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, OPTIONS"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - cartiflette-api.lab.sspcloud.fr
+  rules:
+    - host: cartiflette-api.lab.sspcloud.fr
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: cartiflette-api
+                port:
+                  number: 80
