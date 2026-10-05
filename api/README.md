@@ -14,15 +14,23 @@ GeoJSON se fait en SQL (`ST_AsGeoJSON`), en streaming, avec une compression gzip
 - `GET /v1/geojson?year=2025&borders=COMMUNE&filter_by=DEPARTEMENT&values=75&values=92`
   : plusieurs valeurs dans une seule réponse. Mêmes paramètres que
   `carti_download` (`crs`, `simplification`, `path_within_bucket`, par défaut
-  `production`).
+  `production`). Avec `download=1`, le fichier est téléchargé plutôt qu'affiché.
+- `GET /v1/geoparquet?…` : mêmes paramètres, un fichier GeoParquet à télécharger
+  avec les seuls polygones demandés (millésimes publiés en GeoParquet).
 - `GET /{chemin d'un fichier GeoJSON du stockage}`, par exemple
   `/projet-cartiflette/production/provider=IGN/.../DEPARTEMENT=75/vectorfile_format=geojson/territory=metropole/simplification=50/raw.geojson`
   : un client qui lit les fichiers n'a qu'à changer d'hôte.
 - `GET /health`.
 
-Pour un millésime sans GeoParquet (2022), les deux routes redirigent (307) vers
-le fichier GeoJSON ; `/v1/geojson` avec plusieurs valeurs lit les fichiers et les
-renvoie fusionnés.
+Les fichiers sont nommés d'après le niveau et le millésime, comme ceux de
+l'Insee, et non `raw` : `DEP2026.geojson`, `BV2023.parquet`, `COMARM2026.geojson`
+(communes et arrondissements municipaux). Préfixes : `COM`, `COMARM`, `DEP`, `REG`,
+`BV`, `ZE`, `UU`, `AAV`.
+
+Pour un millésime sans GeoParquet (2022), les routes GeoJSON redirigent (307) vers
+le fichier GeoJSON ; `/v1/geojson` avec plusieurs valeurs, ou avec `download=1`
+(une redirection ne peut pas nommer le fichier), lit les fichiers et les renvoie
+fusionnés.
 
 Erreurs : 404 si un fichier n'existe pas, si le niveau ne peut pas être filtré
 par `filter_by` ou si une valeur est introuvable ; 400 pour un
