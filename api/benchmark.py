@@ -306,6 +306,8 @@ def markdown(results: dict) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--year", type=int, default=2025)
+    # GeoJSON files to compare with: the pipeline no longer writes them, the
+    # last ones are in test/v0.2.0 (2025, 2026)
     parser.add_argument("--path-within-bucket", default="test/v0.2.0")
     parser.add_argument("--repeat", type=int, default=5)
     parser.add_argument("--output", help="JSON file for the raw results")

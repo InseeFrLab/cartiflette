@@ -139,7 +139,7 @@ emplacement que la production. C'est utile pour relire une exécution du pipelin
 
 ```python
 carti_download(values="11", borders="DEPARTEMENT", filter_by="REGION",
-               year=2026, path_within_bucket="test/v0.2.0")
+               year=2026, path_within_bucket="test/v0.3.0")
 ```
 
 ## Développer le client

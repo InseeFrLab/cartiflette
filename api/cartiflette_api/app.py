@@ -45,7 +45,7 @@ DEFAULT_PATH_KWARGS = {
     "source": "EXPRESS-COG-CARTO-TERRITOIRE",
     "filename": "raw",
 }
-# Prefix within the bucket: "production" or e.g. "test/v0.2.0", no ".."
+# Prefix within the bucket: "production" or e.g. "test/v0.3.0", no ".."
 PATH_WITHIN_BUCKET_PATTERN = re.compile(r"[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*")
 # Path of a GeoJSON file, as built by create_path_bucket
 LEGACY_PATH = re.compile(

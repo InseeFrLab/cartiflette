@@ -29,12 +29,12 @@ uvx vulture cartiflette argo-pipeline/src --min-confidence 80
 
 La CI (`check.yml`) installe mapshaper 0.6.59 et lance les deux suites à chaque
 push. Les tests d'intégration, eux, se lancent à la main après une écriture en test
-(ils lisent `test/v0.2.0` pour 2025 et 2026, et la production pour 2022) :
+(ils lisent `test/v0.3.0` pour 2022 à 2026, et la production pour 2022 en GeoJSON) :
 
 ```bash
 cd python-package/cartiflette
 uv run pytest -m integration
-CARTIFLETTE_TEST_PATH=test/v0.3.0 CARTIFLETTE_TEST_YEARS=2026 uv run pytest -m integration
+CARTIFLETTE_TEST_PATH=production CARTIFLETTE_TEST_YEARS=2023,2024,2025,2026 uv run pytest -m integration
 ```
  Un `skipped` en local n'est donc pas un `passed` : installer mapshaper
 (voir [02, prérequis](02-lancer-le-pipeline.qmd#prerequis)) avant de conclure.
