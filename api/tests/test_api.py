@@ -202,3 +202,87 @@ def test_legacy_path_without_parquet_redirects(api, storage):
 )
 def test_legacy_path_unknown(api, path):
     assert api.get("/" + path).status_code == 404
+
+
+@pytest.mark.parametrize(
+    "borders, year, extension, expected",
+    [
+        ("DEPARTEMENT", 2026, "geojson", "DEP2026.geojson"),
+        ("bassin_vie", "2023", "parquet", "BV2023.parquet"),
+        ("COMMUNE_ARRONDISSEMENT", 2025, "geojson", "COMARM2025.geojson"),
+        ("NOUVEAU_NIVEAU", 2026, "geojson", "NOUVEAU_NIVEAU2026.geojson"),
+    ],
+)
+def test_file_name(borders, year, extension, expected):
+    assert api_module.file_name(borders, year, extension) == expected
+
+
+@pytest.mark.parametrize(
+    "download, disposition", [(None, "inline"), ("1", "attachment")]
+)
+def test_v1_file_name(api, download, disposition):
+    params = {"values": "11"} if download is None else {"values": "11", "download": 1}
+    response = _v1(api, **params)
+    assert response.status_code == 200
+    assert response.headers["content-disposition"] == (
+        f'{disposition}; filename="DEP2025.geojson"'
+    )
+
+
+def test_v1_without_parquet_download_is_not_redirected(api, storage):
+    # A redirect cannot name the file: the GeoJSON file is read and sent
+    _write_geojson(storage, "11")
+    response = _v1(api, values="11", year=2022, download=1, follow_redirects=False)
+    assert response.status_code == 200
+    assert response.headers["content-disposition"] == (
+        'attachment; filename="DEP2022.geojson"'
+    )
+    features = response.json()["features"]
+    assert sorted(f["properties"]["INSEE_DEP"] for f in features) == ["75", "92"]
+
+
+def _geoparquet(api, **params):
+    return api.get(
+        "/v1/geoparquet",
+        params={
+            "year": 2025,
+            "borders": "DEPARTEMENT",
+            "filter_by": "REGION",
+            "simplification": 50,
+            **params,
+        },
+    )
+
+
+def test_geoparquet(api, tmp_path):
+    response = _geoparquet(api, values=["11", "84"])
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/vnd.apache.parquet"
+    assert response.headers["content-disposition"] == (
+        'attachment; filename="DEP2025.parquet"'
+    )
+    path = tmp_path / "telecharge.parquet"
+    path.write_bytes(response.content)
+    gdf = gpd.read_parquet(path)
+    assert sorted(gdf["INSEE_DEP"]) == ["01", "75", "92"]
+    assert gdf.crs.to_epsg() == 4326
+    assert "bbox" not in gdf.columns
+
+
+def test_geoparquet_temporary_file_deleted(api, monkeypatch, tmp_path):
+    monkeypatch.setattr(api_module.tempfile, "tempdir", str(tmp_path))
+    assert _geoparquet(api, values="11").status_code == 200
+    assert list(tmp_path.glob("*.parquet")) == []
+
+
+@pytest.mark.parametrize(
+    "params, message",
+    [
+        ({"values": "99"}, "No REGION 99"),
+        ({"values": "11", "year": 2022}, "No GeoParquet file"),
+    ],
+)
+def test_geoparquet_not_found(api, params, message):
+    response = _geoparquet(api, **params)
+    assert response.status_code == 404
+    assert message in response.json()["detail"]
