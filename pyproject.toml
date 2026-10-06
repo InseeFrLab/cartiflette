@@ -2,7 +2,7 @@
 # Production pipeline of the cartiflette files (not published on PyPI).
 # The client published on PyPI as `cartiflette` lives in python-package/.
 name = "cartiflette-pipeline"
-version = "0.3.0"
+version = "0.4.0"
 description = "Pipeline producing the cartiflette French borders files"
 authors = [
     { name = "Lino Galiana", email = "lino.galiana@insee.fr" },

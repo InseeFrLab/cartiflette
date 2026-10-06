@@ -14,7 +14,9 @@ import geopandas as gpd
 
 from cartiflette.constants import (
     BUCKET,
+    DEFAULT_SIMPLIFICATION,
     ENDPOINT_URL,
+    GEOJSON_DEFAULT_SIMPLIFICATION,
     PARQUET_FIRST_YEAR,
     PATH_WITHIN_BUCKET,
 )
@@ -522,7 +524,9 @@ def carti_download(
     crs : str or int
         EPSG code of the projection. Default 4326.
     simplification : int, optional
-        Simplification level (percentage of points removed): 0 or 50.
+        Simplification level, as the percentage of points removed: 0
+        (complete contours), 50, or 80 (lightest). Default 80, or 50 for the
+        years only published as GeoJSON (2022), which have no 80 version.
     bucket : str
         Bucket of the files, "projet-cartiflette".
     path_within_bucket : str
@@ -594,6 +598,7 @@ def carti_download(
     if isinstance(values, (str, int, float)):
         values = [values]
 
+    default_simplification = simplification is None
     path_kwargs = {
         "bucket": bucket,
         "path_within_bucket": path_within_bucket,
@@ -603,7 +608,9 @@ def carti_download(
         "year": year,
         "borders": borders,
         "crs": crs,
-        "simplification": simplification,
+        "simplification": (
+            DEFAULT_SIMPLIFICATION if default_simplification else simplification
+        ),
         "filename": filename,
     }
     parquet_exists = parquet_available(filter_by, **path_kwargs)
@@ -619,6 +626,9 @@ def carti_download(
         parquet_exists=parquet_exists,
         geojson_exists=geojson_exists,
     )
+    if vectorfile_format == "geojson" and default_simplification:
+        # The GeoJSON files have no 80 version
+        path_kwargs["simplification"] = GEOJSON_DEFAULT_SIMPLIFICATION
     con = connect(con)
     if vectorfile_format == "parquet":
         relation = read_parquet(con, values, filter_by, **path_kwargs)

@@ -286,3 +286,47 @@ def test_geoparquet_not_found(api, params, message):
     response = _geoparquet(api, **params)
     assert response.status_code == 404
     assert message in response.json()["detail"]
+
+
+def _copy_simplification(storage, year, simplification):
+    """The test GeoParquet (simplification 50) copied to another level."""
+    source = storage / create_path_consolidated(
+        layout="FRANCE_ENTIERE", year=year, **PATH_KWARGS
+    )
+    target = storage / create_path_consolidated(
+        layout="FRANCE_ENTIERE",
+        year=year,
+        **{**PATH_KWARGS, "simplification": simplification},
+    )
+    target.parent.mkdir(parents=True)
+    target.write_bytes(source.read_bytes())
+
+
+@pytest.mark.parametrize("route", ["geojson", "geoparquet"])
+def test_default_simplification_is_80(api, storage, route):
+    params = {
+        "year": 2025,
+        "borders": "DEPARTEMENT",
+        "filter_by": "REGION",
+        "values": "11",
+    }
+    # Only the 50 version: the default (80) is not found
+    assert api.get(f"/v1/{route}", params=params).status_code == 404
+    _copy_simplification(storage, 2025, 80)
+    assert api.get(f"/v1/{route}", params=params).status_code == 200
+
+
+def test_default_simplification_geojson_files_is_50(api, storage):
+    # 2022: GeoJSON files, which only exist with 0 and 50
+    response = api.get(
+        "/v1/geojson",
+        params={
+            "year": 2022,
+            "borders": "DEPARTEMENT",
+            "filter_by": "REGION",
+            "values": "11",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 307
+    assert response.headers["location"] == f"{storage}/{_legacy_path(2022, '11')}"

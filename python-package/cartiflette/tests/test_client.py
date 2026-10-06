@@ -192,7 +192,7 @@ def _write_geojson(storage, region, year=2022, region_in_path=None):
     DEPARTEMENTS[DEPARTEMENTS["INSEE_REG"] == region].to_file(path, driver="GeoJSON")
 
 
-def _write_consolidated(storage, year):
+def _write_consolidated(storage, year, simplification=50):
     """Consolidated GeoParquet of departements, one row group per row."""
     path = storage / create_path_consolidated(
         layout="FRANCE_ENTIERE",
@@ -203,6 +203,7 @@ def _write_consolidated(storage, year):
                 if k not in ("value", "filter_by", "territory")
             },
             "year": year,
+            "simplification": simplification,
         },
     )
     path.parent.mkdir(parents=True)
@@ -431,3 +432,22 @@ def test_production():
     )
     assert isinstance(gdf, gpd.GeoDataFrame)
     assert len(gdf) == 8
+
+
+def test_default_simplification_is_80(storage):
+    # Without simplification, the lightest GeoParquet (80 % of points removed)
+    _write_consolidated(storage, 2025, simplification=80)
+    gdf = client.carti_download(
+        values="11", borders="DEPARTEMENT", filter_by="REGION", year=2025
+    )
+    assert sorted(gdf["INSEE_DEP"]) == ["75", "92"]
+
+
+def test_default_simplification_geojson_is_50(storage, readers):
+    # The GeoJSON files of 2022 only exist with 0 and 50: 50 by default
+    _write_geojson(storage, "11")
+    gdf = client.carti_download(
+        values="11", borders="DEPARTEMENT", filter_by="REGION", year=2022
+    )
+    assert sorted(gdf["INSEE_DEP"]) == ["75", "92"]
+    assert readers == ["read_geojson"]

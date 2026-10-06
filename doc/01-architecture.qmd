@@ -175,8 +175,12 @@ Cela permet de rendre le  développement du projet plus simple mais reste robust
 
 Produit des 8 niveaux de polygones du dictionnaire `FILTERS` (niveau des polygones →
 niveaux par lesquels son GeoParquet peut être filtré), des 2 dispositions
-(`config.LAYOUTS`), de `SIMPLIFICATIONS = [0, 50]` et de `CRS = [4326]`, soit
-**32 jobs** : 8 niveaux × 2 dispositions × 2 simplifications × 1 projection.
+(`config.LAYOUTS`), de `SIMPLIFICATIONS = [0, 50, 80]` et de `CRS = [4326]`, soit
+**48 jobs** : 8 niveaux × 2 dispositions × 3 simplifications × 1 projection.
+
+La simplification est la part des points retirés (80 : contours les plus légers).
+`mapshaper -simplify` attend au contraire la part des points gardés :
+`mapshaper._finalize_commands` lui passe `100 - simplification`.
 
 ### Étape 3 — `consolidate_and_upload` (un job)
 
