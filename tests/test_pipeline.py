@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest
 
-from cartiflette import pipeline, prepare
+from cartiflette import mapshaper, pipeline, prepare
 
 
 def test_consolidate_and_upload_refuses_production_before_processing():
@@ -101,8 +101,8 @@ def test_process_consolidated(tmp_path, level, layout, rows, filters):
 
 def test_consolidated_combinations():
     jobs = pipeline.consolidated_combinations()
-    # 8 levels x 2 geometries x 2 simplifications x 1 crs
-    assert len(jobs) == 32
+    # 8 levels x 2 geometries x 3 simplifications x 1 crs
+    assert len(jobs) == 48
     assert {
         "level_polygons": "COMMUNE",
         "layout": "FRANCE_ENTIERE_DROM_RAPPROCHES",
@@ -162,3 +162,18 @@ def test_dissolve_keeps_territories_apart(tmp_path):
         "WHERE BV2022 = '01004' ORDER BY AREA"
     ).fetchall()
     assert rows == [("01004", "guadeloupe", 5), ("01004", "metropole", 30)]
+
+
+@pytest.mark.parametrize(
+    "simplification, expected",
+    [(0, []), (50, ["-simplify", "50%"]), (80, ["-simplify", "20%"])],
+)
+def test_simplification_is_the_share_of_points_removed(simplification, expected):
+    # mapshaper keeps the given share of points: 80 % removed = 20 % kept
+    commands = mapshaper._finalize_commands(4326, simplification, "IGN")
+    simplify = (
+        commands[commands.index("-simplify") : commands.index("-simplify") + 2]
+        if "-simplify" in commands
+        else []
+    )
+    assert simplify == expected

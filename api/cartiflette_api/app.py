@@ -32,7 +32,12 @@ from typing import Annotated
 
 import duckdb
 from cartiflette import client
-from cartiflette.constants import BUCKET, PATH_WITHIN_BUCKET
+from cartiflette.constants import (
+    BUCKET,
+    DEFAULT_SIMPLIFICATION,
+    GEOJSON_DEFAULT_SIMPLIFICATION,
+    PATH_WITHIN_BUCKET,
+)
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
@@ -321,7 +326,7 @@ def geojson(
     filter_by: str,
     values: Annotated[list[str], Query(min_length=1)],
     crs: int = 4326,
-    simplification: int = 0,
+    simplification: int | None = None,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
     download: bool = False,
 ) -> StreamingResponse | RedirectResponse:
@@ -333,14 +338,22 @@ def geojson(
     Read from the GeoParquet; for a year without GeoParquet (2022), see
     `files_response`. The file is named after the level and the year (e.g.
     DEP2026.geojson): shown by a browser, or downloaded with ``download=1``.
+    Without `simplification`, 80 (50 for the GeoJSON files of 2022, which
+    have no 80 version), as `carti_download`.
     """
     filter_by = filter_by.upper()
     path_kwargs = request_path_kwargs(
-        year, borders, crs, simplification, path_within_bucket
+        year,
+        borders,
+        crs,
+        DEFAULT_SIMPLIFICATION if simplification is None else simplification,
+        path_within_bucket,
     )
     headers = content_disposition(file_name(borders, year, "geojson"), download)
     con = request.app.state.con
     if not parquet_available(filter_by, tuple(sorted(path_kwargs.items()))):
+        if simplification is None:
+            path_kwargs["simplification"] = GEOJSON_DEFAULT_SIMPLIFICATION
         return files_response(con, values, filter_by, path_kwargs, headers, download)
     return parquet_response(con, values, filter_by, path_kwargs, headers)
 
@@ -352,7 +365,7 @@ def geoparquet(
     filter_by: str,
     values: Annotated[list[str], Query(min_length=1)],
     crs: int = 4326,
-    simplification: int = 0,
+    simplification: int | None = None,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
 ) -> FileResponse:
     """
@@ -363,7 +376,11 @@ def geoparquet(
     """
     filter_by = filter_by.upper()
     path_kwargs = request_path_kwargs(
-        year, borders, crs, simplification, path_within_bucket
+        year,
+        borders,
+        crs,
+        DEFAULT_SIMPLIFICATION if simplification is None else simplification,
+        path_within_bucket,
     )
     cursor, relation = read_parquet(
         request.app.state.con, values, filter_by, path_kwargs

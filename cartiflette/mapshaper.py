@@ -166,8 +166,15 @@ def bring_drom_closer(
 
 
 def _finalize_commands(crs: int, simplification: float, source_label: str) -> list:
-    """Reprojection, simplification and SOURCE field."""
-    simplify = ["-simplify", f"{simplification}%"] if simplification else []
+    """
+    Reprojection, simplification and SOURCE field.
+
+    `simplification` is the percentage of removable points removed (0: none,
+    80: lightest), as documented for the clients. mapshaper's ``-simplify``
+    takes the percentage of points to keep, hence ``100 - simplification``.
+    """
+    retained = 100 - simplification
+    simplify = ["-simplify", f"{retained:g}%"] if simplification else []
     return [
         "-proj",
         f"EPSG:{crs}",

@@ -52,7 +52,8 @@ FILTERS = {
 # Communes are also produced with Paris, Lyon, Marseille split by arrondissement
 FILTERS["COMMUNE_ARRONDISSEMENT"] = FILTERS["COMMUNE"]
 
-SIMPLIFICATIONS = [0, 50]
+# Percentage of points removed: complete contours, then lighter and lighter
+SIMPLIFICATIONS = [0, 50, 80]
 CRS = [4326]
 
 

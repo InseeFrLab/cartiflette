@@ -99,7 +99,9 @@ Mesures depuis le SSPCloud, millésime 2025, simplification 50 :
 ### Combinaisons disponibles
 
 Elles correspondent à `FILTERS` dans `cartiflette/pipeline.py`. Chaque
-combinaison existe avec `simplification` 0 et 50, en `crs=4326`.
+combinaison existe avec `simplification` 0, 50 et 80 (part des points retirés, 80
+par défaut), en `crs=4326`. Les GeoJSON de 2022 n'existent qu'en 0 et 50 : le défaut
+y est 50.
 
 | `borders` (polygones) | `filter_by` (découpage) |
 |---|---|

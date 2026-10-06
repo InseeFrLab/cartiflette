@@ -36,7 +36,6 @@ departements = carti_download(
     borders="DEPARTEMENT",
     filter_by="FRANCE_ENTIERE_DROM_RAPPROCHES",
     year=2026,
-    simplification=50,
 )
 departements.plot("POPULATION")
 ```
@@ -47,7 +46,9 @@ departements.plot("POPULATION")
 - `filter_by` et `values` : zone couverte, par exemple `filter_by="REGION"` et
   `values=["11", "84"]`, ou `filter_by="FRANCE_ENTIERE"` et `values="France"`.
   Les codes de région sous 10 s'écrivent indifféremment `1`, `"1"` ou `"01"`.
-- `simplification` : `0` (contours complets) ou `50` (plus léger).
+- `simplification` : part des points retirés, `0` (contours complets), `50` ou
+  `80` (le plus léger, par défaut). Pour 2022, publié seulement en GeoJSON, le
+  défaut est `50`.
 - `year` : millésime du Code officiel géographique.
 
 Le résultat est un `GeoDataFrame` geopandas (EPSG:4326).

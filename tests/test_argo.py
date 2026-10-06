@@ -80,7 +80,7 @@ def test_target_checked_before_anything_else():
 @pytest.mark.parametrize(
     "path, allow, ok",
     [
-        ("test/v0.3.0", "false", True),
+        ("test/v0.4.0", "false", True),
         ("production", "false", False),
         ("production/", "yes", False),
         ("production", "true", True),

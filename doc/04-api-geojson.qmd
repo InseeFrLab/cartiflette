@@ -12,7 +12,7 @@ GeoParquet.
 
 Le _pipeline_ publiait chaque niveau sous deux formes :
 
-- en **GeoParquet**, un fichier par niveau (32 jobs par millésime), que le
+- en **GeoParquet**, un fichier par niveau (32 jobs par millésime à l'époque), que le
   client Python filtre à la lecture ;
 - en **GeoJSON**, un fichier par valeur de découpage (`DEPARTEMENT=75`,
   `REGION=11`…), soit **74 jobs par millésime**, chacun avec son pod Argo, ses
@@ -25,7 +25,7 @@ partir du GeoParquet, à la demande : le _pipeline_ n'a plus besoin de produire 
 
 ```text
 Avant        client R / JS  ──HTTPS──▶  S3 : un GeoJSON par valeur (74 jobs)
-Maintenant   client R / JS  ──HTTPS──▶  API  ──HTTPS──▶  S3 : GeoParquet (32 jobs)
+Maintenant   client R / JS  ──HTTPS──▶  API  ──HTTPS──▶  S3 : GeoParquet (48 jobs)
 ```
 
 ## Ce qui a été ajouté
@@ -202,7 +202,7 @@ Les **manifestes** sont prêts, sur le modèle GitOps du cours
 
 | Fichier | Contenu |
 |---|---|
-| `api/deployment/deployment.yaml` | 2 réplicas de `inseefrlab/cartiflette-api:v0.1.3` ; 0,5 à 2 CPU, 1 à 2 Gio ; sondes sur `/health` |
+| `api/deployment/deployment.yaml` | 2 réplicas de `inseefrlab/cartiflette-api:v0.1.4` ; 0,5 à 2 CPU, 1 à 2 Gio ; sondes sur `/health` |
 | `api/deployment/service.yaml` | port 80 vers le port 8000 des pods |
 | `api/deployment/ingress.yaml` | `https://cartiflette-api.lab.sspcloud.fr`, CORS ouvert en lecture (`GET`) pour les navigateurs |
 | `api/application.yaml` | application Argo CD : suit `api/deployment/` sur `main`, namespace `projet-cartiflette`, synchronisation automatique |
@@ -269,7 +269,8 @@ de lire les anciens millésimes sans rien changer.
 Le _workflow_ Argo n'a plus d'étape `split` : `list-jobs` ne liste que les 32 jobs
 GeoParquet, et le code correspondant (`combinations`, `process`,
 `split_and_upload`, `mapshaper.split`, `paths.create_path_bucket`) est supprimé.
-Le _pipeline_ passe de 106 jobs par millésime (74 + 32) à 32.
+Le _pipeline_ passe de 106 jobs par millésime (74 + 32) à 32, puis 48 avec l'ajout
+de la simplification à 80 %.
 
 Rien n'est supprimé sur S3 : les GeoJSON déjà publiés (2022 en production) restent
 lus par les anciens clients et par l'API, qui y redirige. Les supprimer serait une
