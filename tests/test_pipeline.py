@@ -61,6 +61,19 @@ COMMUNES = """(SELECT * FROM (VALUES
             3,
             {"REGION": "INSEE_REG", "TERRITOIRE": "AREA", "FRANCE_ENTIERE": "PAYS"},
         ),
+        # Paris is copied by the Ile-de-France zoom: still one row
+        (
+            "DEPARTEMENT",
+            "FRANCE_ENTIERE_DROM_RAPPROCHES",
+            3,
+            {"FRANCE_ENTIERE_DROM_RAPPROCHES": "PAYS"},
+        ),
+        (
+            "COMMUNE",
+            "FRANCE_ENTIERE_DROM_RAPPROCHES",
+            4,
+            {"FRANCE_ENTIERE_DROM_RAPPROCHES": "PAYS"},
+        ),
     ],
 )
 def test_process_consolidated(tmp_path, level, layout, rows, filters):
@@ -92,11 +105,17 @@ def test_process_consolidated(tmp_path, level, layout, rows, filters):
     columns = [c[0] for c in con.execute(f"DESCRIBE '{parquet}'").fetchall()]
     assert {"geometry", "bbox", "SOURCE", *filters.values()} <= set(columns)
     assert con.execute(f"SELECT count(*) FROM '{parquet}'").fetchone()[0] == rows
-    # Sorted by region first
-    regions = [
-        r[0] for r in con.execute(f"SELECT INSEE_REG FROM '{parquet}'").fetchall()
-    ]
-    assert regions == sorted(regions)
+    if layout == "FRANCE_ENTIERE_DROM_RAPPROCHES":
+        # The zoomed copy of Paris is a second part of the same feature
+        assert con.execute(
+            f"SELECT ST_NumGeometries(geometry) FROM '{parquet}' WHERE INSEE_DEP = '75'"
+        ).fetchall() == [(2,)]
+    if "REGION" in filters:
+        # Sorted by region first
+        regions = [
+            r[0] for r in con.execute(f"SELECT INSEE_REG FROM '{parquet}'").fetchall()
+        ]
+        assert regions == sorted(regions)
 
 
 def test_consolidated_combinations():

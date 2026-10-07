@@ -219,12 +219,28 @@ def to_consolidated_parquet(
       to filter by extent;
     - `filter_columns` (level used to filter -> column, e.g.
       BASSIN_VIE -> BV2022) stored in the file metadata under the key
-      "cartiflette:filter_columns", for the clients.
+      "cartiflette:filter_columns", for the clients;
+    - one row per feature: rows with the same attributes are merged into
+      one multipolygon. The Ile-de-France zoom of the DROM-rapproches layout
+      (see `mapshaper.bring_drom_closer`) copies the features of Paris and
+      its suburbs, which would otherwise come out twice when joined to data.
+      The copies are disjoint and already simplified (by mapshaper, before),
+      so the union only collects their parts.
     """
     with _connect_reading_gdal() as con:
         con.execute(
-            "CREATE TABLE polygons AS SELECT * EXCLUDE (OGC_FID, geom), "
-            f"geom AS geometry FROM ST_Read('{geojson_path}')"
+            f"""
+            CREATE TABLE polygons AS
+            SELECT
+                * EXCLUDE (geometry),
+                CASE WHEN count(*) = 1 THEN any_value(geometry)
+                    ELSE ST_Union_Agg(geometry) END AS geometry
+            FROM (
+                SELECT * EXCLUDE (OGC_FID, geom), geom AS geometry
+                FROM ST_Read('{geojson_path}')
+            )
+            GROUP BY ALL
+            """
         )
         # GeoParquet metadata as written by DuckDB (for the CRS), completed
         # with the bbox covering
