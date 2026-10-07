@@ -367,8 +367,10 @@ WHERE_CASES = [
         ["01", "75", "92"],
     ),
     (
-        "ST_DWithin(ST_Transform(geometry, 'EPSG:4326', 'EPSG:2154'), "
-        "ST_Transform(ST_Point(2.35, 48.85), 'EPSG:4326', 'EPSG:2154'), 400000)",
+        (
+            "ST_DWithin(ST_Transform(geometry, 'EPSG:4326', 'EPSG:2154'), "
+            "ST_Transform(ST_Point(2.35, 48.85), 'EPSG:4326', 'EPSG:2154'), 400000)"
+        ),
         ["01", "75", "92"],
     ),
 ]
