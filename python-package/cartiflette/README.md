@@ -126,6 +126,8 @@ os.environ["https_proxy"] = "http://mon-proxy:8080"
   et cas d'usage, aussi en R et en JavaScript.
 - [Dépôt GitHub](https://github.com/InseeFrLab/cartiflette) : pipeline de production
   et documentation technique.
+- [Changelog](https://github.com/InseeFrLab/cartiflette/blob/main/python-package/cartiflette/CHANGELOG.md) :
+  les changements de chaque version.
 
 `cartiflette` est un projet collaboratif lancé par des agents de l'État dans le cadre
 du [Programme 10 %](https://www.10pourcent.etalab.gouv.fr/). Pour contribuer, voir

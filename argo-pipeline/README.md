@@ -43,7 +43,7 @@ Puis, pour chaque millésime de `years` (sous-DAG `year`, données dans `/mnt/da
    si disponible, puis GPKG, puis shapefile pour les éditions 3-x de 2021 à 2024) et la table d'appartenance géographique (TAGC) de l'Insee.
    Produit `COMMUNE.geojson` et `COMMUNE_ARRONDISSEMENT.geojson` enrichis des zonages
    supra-communaux, sur le volume partagé entre les _pods_.
-2. `list-jobs` ([src/crossproduct.py](src/crossproduct.py)) : liste les 32 combinaisons
+2. `list-jobs` ([src/crossproduct.py](src/crossproduct.py)) : liste les 48 combinaisons
    à produire par millésime.
 3. `consolidate` ([src/consolidate.py](src/consolidate.py)) : GeoParquet. Pour chaque
    combinaison (niveau des polygones, disposition, simplification, projection), un seul

@@ -9,6 +9,8 @@ Elle réutilise le client (`cartiflette.client.read_parquet`) : DuckDB ne
 télécharge que les row groups des valeurs demandées, puis la sérialisation en
 GeoJSON se fait en SQL (`ST_AsGeoJSON`), en streaming, avec une compression gzip.
 
+Changements de chaque version : [CHANGELOG.md](CHANGELOG.md).
+
 ## Routes
 
 - `GET /v1/geojson?year=2025&borders=COMMUNE&filter_by=DEPARTEMENT&values=75&values=92`
