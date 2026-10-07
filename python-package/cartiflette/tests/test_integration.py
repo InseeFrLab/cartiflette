@@ -56,6 +56,15 @@ PETITE_COURONNE = ["75", "92", "93", "94"]
 DROM = {"971", "972", "973", "974", "976"}
 
 
+def has_zoom_duplicates(year, path):
+    """
+    Files of the former pipeline (2022 GeoJSON in production): the
+    Ile-de-France zoom of the DROM rapproches layout is a second row of the
+    same feature. One multipolygon per feature since pipeline 0.4.0.
+    """
+    return (year, path) == (LEGACY_YEAR, "production")
+
+
 def download(year, path, **kwargs):
     kwargs.setdefault("crs", 4326)
     kwargs.setdefault("simplification", 50)
@@ -178,15 +187,21 @@ def test_usecase2_departements_drom_rapproches(year, path):
             filter_by="FRANCE_ENTIERE_DROM_RAPPROCHES",
         )
     codes = departements["INSEE_DEP"].astype(str)
-    # 101 departements, and the 4 departements of the Ile-de-France zoom
     assert codes.nunique() == 101
-    assert len(departements) == 105
-    assert sorted(codes[codes.duplicated()]) == PETITE_COURONNE
+    if has_zoom_duplicates(year, path):
+        # The 4 departements of the Ile-de-France zoom come out twice
+        assert len(departements) == 105
+        assert sorted(codes[codes.duplicated()]) == PETITE_COURONNE
+    else:
+        # One row per departement: the zoom is a part of its multipolygon
+        assert len(departements) == 101
+        paris = departements.loc[codes == "75"].geometry.iloc[0]
+        assert paris.geom_type == "MultiPolygon" and len(paris.geoms) >= 2
 
     # Merge with departemental data, then a ratio on POPULATION
     cheptel = pd.DataFrame({"code": sorted(codes.unique()), "bovins": 1000})
     merged = departements.merge(cheptel, left_on="INSEE_DEP", right_on="code")
-    assert len(merged) == 105
+    assert len(merged) == len(departements)
     assert pd.api.types.is_numeric_dtype(merged["POPULATION"])
     assert (merged["POPULATION"] > 0).all()
     assert merged["bovins"].div(merged["POPULATION"]).notna().all()
@@ -216,7 +231,8 @@ def test_usecase2_geojson_forced_reads_geoparquet(year, path):
 # Home page: France entiere maps (src/_programs.qmd, print_program_france)
 # --------------------------------------------------------------------------
 
-# Expected number of polygons, without / with the Ile-de-France zoom
+# Expected number of polygons, and of rows with the Ile-de-France zoom in the
+# files of the former pipeline (see has_zoom_duplicates)
 FRANCE_LEVELS = {
     "DEPARTEMENT": ("INSEE_DEP", 101, 105),
     "REGION": ("INSEE_REG", 18, 19),
@@ -254,7 +270,8 @@ def test_homepage_france(year, path, level, drom_rapproches, simplification):
     code, n, n_drom = FRANCE_LEVELS[level]
     if code:
         assert gdf[code].nunique() == n
-        assert len(gdf) == (n_drom if drom_rapproches else n)
+        zoom_rows = drom_rapproches and has_zoom_duplicates(year, path)
+        assert len(gdf) == (n_drom if zoom_rows else n)
     else:
         assert len(gdf) > n
     assert gdf.crs.to_epsg() == 4326

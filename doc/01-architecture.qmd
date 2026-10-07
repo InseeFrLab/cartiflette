@@ -79,6 +79,8 @@ diffèrent (DROM déplacés, zoom sur l'Île-de-France). Dans chaque fichier :
   communes par région, département, bassin de vie puis commune ; départements par région
   puis département ; zonages par territoire puis code ;
 - une colonne `bbox` est déclarée comme _covering_ GeoParquet 1.1, pour filtrer par emprise ;
+- une seule ligne par entité : la copie agrandie de l'Île-de-France est une partie de
+  plus du même multipolygone (pas de doublon lors d'une jointure avec des données) ;
 - la métadonnée `cartiflette:filter_columns` associe chaque `filter_by` utilisable à
   sa colonne (ex. `BASSIN_VIE` → `BV2022`). Elle fait partie du contrat avec les clients.
 
@@ -191,7 +193,8 @@ La simplification est la part des points retirés (80 : contours les plus léger
    - `mapshaper.bring_drom_closer` pour la disposition `FRANCE_ENTIERE_DROM_RAPPROCHES`
      (DROM déplacés et agrandis près de la métropole, zoom sur l'Île-de-France) ;
    - `mapshaper.finalize` : reprojection et simplification, en un seul GeoJSON intermédiaire ;
-3. `to_consolidated_parquet` : conversion par DuckDB (tri, groupes de lignes, `bbox`,
+3. `to_consolidated_parquet` : conversion par DuckDB (fusion en un multipolygone des
+   lignes aux attributs identiques, après la simplification, tri, groupes de lignes, `bbox`,
    métadonnées `geo` en version 1.1.0 et `cartiflette:filter_columns`) ;
 4. `upload` au chemin donné par `create_path_consolidated`.
 
