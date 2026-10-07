@@ -135,7 +135,9 @@ flowchart LR
     API --> JS["JavaScript"]
 ```
 
-Le détail est dans la [documentation technique](doc/).
+Le détail est dans la [documentation technique](doc/). Les changements de chaque
+version sont dans les changelogs du [pipeline](CHANGELOG.md), du
+[client Python](python-package/cartiflette/CHANGELOG.md) et de l'[API](api/CHANGELOG.md).
 
 ## Contexte
 

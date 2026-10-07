@@ -19,7 +19,7 @@ spec:
         - name: cartiflette-api
           # To deploy a new version: bump api/pyproject.toml, let the CI
           # publish the image, then change this tag (Argo CD syncs the commit)
-          image: inseefrlab/cartiflette-api:v0.1.4
+          image: inseefrlab/cartiflette-api:v0.2.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000

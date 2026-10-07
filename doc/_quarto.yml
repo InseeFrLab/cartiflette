@@ -90,6 +90,7 @@ quartodoc:
         - client.geojson_urls
         - client.read_geojson
         - client.read_parquet
+        - client.filter_relation
         - client.to_geopandas
 
 format:

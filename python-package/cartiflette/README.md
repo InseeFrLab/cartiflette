@@ -53,6 +53,44 @@ departements.plot("POPULATION")
 
 Le résultat est un `GeoDataFrame` geopandas (EPSG:4326).
 
+## Filtrer : `where`
+
+`where` garde les polygones qui vérifient une expression SQL DuckDB, sur leurs
+attributs ou leur géométrie (fonctions `ST_*` de l'extension spatiale, coordonnées
+en longitude, latitude) :
+
+```python
+# Communes de plus de 2 000 habitants d'Occitanie
+carti_download(
+    values="76",
+    borders="COMMUNE",
+    filter_by="REGION",
+    year=2026,
+    where="POPULATION > 2000",
+)
+
+# Communes qui touchent une emprise (la Camargue)
+carti_download(
+    values="France",
+    borders="COMMUNE",
+    filter_by="FRANCE_ENTIERE",
+    year=2026,
+    where="ST_Intersects(geometry, ST_MakeEnvelope(4.1, 43.3, 4.9, 43.75))",
+)
+
+# Communes dont le centre est à moins de 30 km du Capitole de Toulouse
+carti_download(
+    values="France",
+    borders="COMMUNE",
+    filter_by="FRANCE_ENTIERE",
+    year=2026,
+    where="ST_Distance_Sphere(ST_Centroid(geometry), ST_Point(1.4442, 43.6047)) < 30000",
+)
+```
+
+Sur le GeoParquet, le filtre est appliqué pendant la lecture : seules les parties
+utiles du fichier sont téléchargées.
+
 ## Formats : GeoParquet d'abord
 
 Chaque niveau est publié en GeoParquet dans un seul fichier, que DuckDB lit
@@ -101,6 +139,8 @@ os.environ["https_proxy"] = "http://mon-proxy:8080"
   et cas d'usage, aussi en R et en JavaScript.
 - [Dépôt GitHub](https://github.com/InseeFrLab/cartiflette) : pipeline de production
   et documentation technique.
+- [Changelog](https://github.com/InseeFrLab/cartiflette/blob/main/python-package/cartiflette/CHANGELOG.md) :
+  les changements de chaque version.
 
 `cartiflette` est un projet collaboratif lancé par des agents de l'État dans le cadre
 du [Programme 10 %](https://www.10pourcent.etalab.gouv.fr/). Pour contribuer, voir

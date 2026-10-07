@@ -1,7 +1,7 @@
 [project]
 # GeoJSON API over the consolidated GeoParquet files (not published on PyPI).
 name = "cartiflette-api"
-version = "0.1.4"
+version = "0.2.0"
 description = "GeoJSON API over the cartiflette GeoParquet files"
 requires-python = ">=3.10"
 license = "MIT"
