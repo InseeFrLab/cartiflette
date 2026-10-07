@@ -330,3 +330,77 @@ def test_default_simplification_geojson_files_is_50(api, storage):
     )
     assert response.status_code == 307
     assert response.headers["location"] == f"{storage}/{_legacy_path(2022, '11')}"
+
+
+@pytest.mark.parametrize(
+    "where, expected",
+    [
+        ("POPULATION > 2", ["01", "971"]),
+        ("NOM ILIKE 'h%' OR INSEE_DEP IN ('01')", ["01", "92"]),
+        ("ST_Intersects(geometry, ST_MakeEnvelope(2.25, 48.7, 2.4, 48.9))", ["75"]),
+        (
+            "ST_Distance_Sphere(ST_Centroid(geometry), ST_Point(2.35, 48.85)) < 400000",
+            ["01", "75", "92"],
+        ),
+        ("CASE WHEN INSEE_REG = '11' THEN POPULATION::INT > 1 ELSE false END", ["92"]),
+    ],
+)
+def test_v1_where(api, where, expected):
+    values = ["11", "84", "01"]
+    assert _geoparquet(api, values=values, where=where).status_code == 200
+    features = _v1(api, values=values, where=where).json()["features"]
+    assert sorted(f["properties"]["INSEE_DEP"] for f in features) == expected
+
+
+def test_geoparquet_where(api, tmp_path):
+    response = _geoparquet(api, values=["11", "84"], where="POPULATION >= 2")
+    path = tmp_path / "result.parquet"
+    path.write_bytes(response.content)
+    assert sorted(gpd.read_parquet(path)["INSEE_DEP"]) == ["01", "92"]
+
+
+@pytest.mark.parametrize(
+    "where, message",
+    [
+        # Reading anything else than the polygons
+        ("INSEE_DEP IN (SELECT content FROM read_text('/etc/passwd'))", "subquery"),
+        ("EXISTS (SELECT 1)", "subquery"),
+        ("true FROM read_text('/etc/passwd')", "single expression"),
+        ("true UNION SELECT 1", "single expression"),
+        ("true; SELECT 1", "single expression"),
+        ("true ORDER BY (SELECT 1)", "single expression"),
+        ("current_setting('http_proxy') = ''", "function current_setting"),
+        ("getvariable('x') IS NULL", "function getvariable"),
+        ("main.st_area(geometry) > 0", "function st_area"),
+        ("list_any_value(list_transform([1], x -> x)) = 1", "not allowed"),
+        # Not valid
+        ("POPULATION >", "Invalid where"),
+        ("UNKNOWN > 1", "Invalid where"),
+    ],
+)
+def test_v1_where_rejected(api, storage, where, message):
+    _write_geojson(storage, "11")
+    for response in (
+        _v1(api, values="11", where=where),
+        _v1(api, values="11", year=2022, where=where),
+        _geoparquet(api, values="11", where=where),
+    ):
+        assert response.status_code == 400, response.text
+        assert message in response.json()["detail"]
+
+
+def test_v1_where_failing_on_values(api):
+    response = _v1(api, values="11", where="NOM::INT > 1")
+    assert response.status_code == 400
+    assert "Could not convert" in response.json()["detail"]
+
+
+def test_v1_without_parquet_where_is_not_redirected(api, storage):
+    # A redirect would not filter: the GeoJSON file is read and filtered
+    _write_geojson(storage, "11")
+    response = _v1(
+        api, values="11", year=2022, where="POPULATION > 1", follow_redirects=False
+    )
+    assert response.status_code == 200
+    features = response.json()["features"]
+    assert [f["properties"]["INSEE_DEP"] for f in features] == ["92"]

@@ -334,6 +334,15 @@ def test_engine_duckdb_returns_a_relation():
     assert "GEOMETRY" in str(rel.select("geometry").types[0])
 
 
+@pytest.mark.usefixtures("consolidated")
+def test_engine_duckdb_relation_is_lazy():
+    # Not read yet: a later filter is applied while reading the file
+    rel = _download(values="11", year=2025, engine="duckdb", where="POPULATION > 1")
+    plan = rel.explain()
+    assert "COLUMN_DATA_SCAN" not in plan
+    assert "POPULATION>1" in plan.replace(" ", "")
+
+
 def test_engine_duckdb_geojson(storage):
     _write_geojson(storage, "11")
     rel = _download(values="11", year=2022, engine="duckdb")
@@ -343,6 +352,60 @@ def test_engine_duckdb_geojson(storage):
 def test_unknown_engine():
     with pytest.raises(ValueError, match="engine"):
         _download(values="11", year=2025, engine="polars")
+
+
+# Paris (2.3, 48.8), Hauts-de-Seine (2.2, 48.8), Guadeloupe, Ain (5, 46)
+WHERE_CASES = [
+    ("POPULATION > 1", ["75"]),
+    ("INSEE_DEP IN ('92', '01') AND POPULATION = 1", ["01", "92"]),
+    # Bounding box around Paris
+    ("ST_Intersects(geometry, ST_MakeEnvelope(2.25, 48.7, 2.4, 48.9))", ["75"]),
+    # Within 400 km of Paris: Ain is ~390 km away (~440 km if the coordinates
+    # were read as latitude, longitude)
+    (
+        "ST_Distance_Sphere(ST_Centroid(geometry), ST_Point(2.35, 48.85)) < 400000",
+        ["01", "75", "92"],
+    ),
+    (
+        "ST_DWithin(ST_Transform(geometry, 'EPSG:4326', 'EPSG:2154'), "
+        "ST_Transform(ST_Point(2.35, 48.85), 'EPSG:4326', 'EPSG:2154'), 400000)",
+        ["01", "75", "92"],
+    ),
+]
+
+
+@pytest.mark.usefixtures("consolidated")
+@pytest.mark.parametrize("where, expected", WHERE_CASES)
+def test_parquet_where(where, expected):
+    gdf = _download(values="France", filter_by="FRANCE_ENTIERE", year=2025, where=where)
+    assert sorted(gdf["INSEE_DEP"]) == expected
+
+
+@pytest.mark.parametrize("where, expected", WHERE_CASES)
+def test_geojson_where(storage, where, expected):
+    for region in ("11", "84", "01"):
+        _write_geojson(storage, region, region_in_path="1" if region == "01" else None)
+    gdf = _download(values=["11", "84", "01"], year=2022, where=where)
+    assert sorted(gdf["INSEE_DEP"]) == expected
+
+
+@pytest.mark.usefixtures("consolidated")
+def test_where_engine_duckdb_and_json():
+    rel = _download(values="11", year=2025, engine="duckdb", where="POPULATION > 1")
+    assert rel.aggregate("count(*)").fetchone()[0] == 1
+    geojson = json.loads(
+        _download(values="11", year=2025, return_as_json=True, where="POPULATION > 1")
+    )
+    assert [f["properties"]["INSEE_DEP"] for f in geojson["features"]] == ["75"]
+
+
+@pytest.mark.usefixtures("consolidated")
+@pytest.mark.parametrize(
+    "where", ["POPULATION >", "UNKNOWN_COLUMN > 1", "not_a_function(geometry)"]
+)
+def test_where_invalid(where):
+    with pytest.raises(ValueError, match="Invalid where expression"):
+        _download(values="11", year=2025, where=where)
 
 
 @pytest.mark.usefixtures("consolidated")

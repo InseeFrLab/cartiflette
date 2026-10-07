@@ -17,11 +17,17 @@ Two routes:
 When there is no GeoParquet for the year (2022), both routes redirect to the
 GeoJSON file; ``/v1/geojson`` with several values merges the files instead.
 
+``where`` filters the polygons with a DuckDB SQL expression, as in
+`carti_download`, before they are serialized. It is checked first
+(`check_where`): one expression, no subquery, and only some functions, so
+that it cannot read anything but the requested polygons.
+
 Run with ``uvicorn --factory cartiflette_api.app:create_app``.
 """
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import tempfile
@@ -69,6 +75,55 @@ DEFAULT_PATH_KWARGS = {
 }
 # Prefix within the bucket: "production" or e.g. "test/v0.3.0", no ".."
 PATH_WITHIN_BUCKET_PATTERN = re.compile(r"[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*")
+# What a `where` expression may contain (see check_where): nodes of the
+# DuckDB syntax tree, and functions besides the operators and the spatial
+# ones (st_*)
+WHERE_NODES = {
+    "BETWEEN",
+    "CASE",
+    "CAST",
+    "COLUMN_REF",
+    "COMPARISON",
+    "CONJUNCTION",
+    "CONSTANT",
+    "FUNCTION",
+    "OPERATOR",
+}
+WHERE_FUNCTIONS = {
+    "abs",
+    "ceil",
+    "coalesce",
+    "concat",
+    "contains",
+    "ends_with",
+    "floor",
+    "greatest",
+    "least",
+    "left",
+    "length",
+    "lower",
+    "nullif",
+    "prefix",
+    "regexp_matches",
+    "replace",
+    "right",
+    "round",
+    "sqrt",
+    "starts_with",
+    "strip_accents",
+    "strlen",
+    "substr",
+    "substring",
+    "suffix",
+    "trim",
+    "upper",
+}
+# Errors of an expression on the values of the rows (e.g. a failed cast)
+WHERE_ERRORS = (
+    duckdb.ConversionException,
+    duckdb.InvalidInputException,
+    duckdb.OutOfRangeException,
+)
 # Path of a GeoJSON file, as built by create_path_bucket
 LEGACY_PATH = re.compile(
     r"(?P<bucket>[^/]+)/(?P<path_within_bucket>.+?)"
@@ -145,6 +200,9 @@ def stream_geojson(
     except (duckdb.IOException, duckdb.HTTPException) as e:
         cursor.close()
         raise HTTPException(404, str(e)) from None
+    except WHERE_ERRORS as e:
+        cursor.close()
+        raise HTTPException(400, str(e)) from None
 
     def chunks(rows: list) -> Iterator[str]:
         try:
@@ -197,6 +255,117 @@ def check_path_within_bucket(path_within_bucket: str) -> str:
     return path_within_bucket
 
 
+def _syntax_nodes(node) -> Iterator[dict]:
+    """Expression nodes of a DuckDB syntax tree (json_serialize_sql)."""
+    if isinstance(node, dict):
+        if "class" in node:
+            yield node
+        for value in node.values():
+            yield from _syntax_nodes(value)
+    elif isinstance(node, list):
+        for value in node:
+            yield from _syntax_nodes(value)
+
+
+def check_where(con: duckdb.DuckDBPyConnection, where: str) -> str:
+    """
+    Check that a `where` parameter is a harmless expression.
+
+    It is parsed by DuckDB (``json_serialize_sql``) as ``SELECT <where>``,
+    the way `DuckDBPyRelation.filter` parses it: one expression, without
+    ``FROM``, subquery or other clause, made of columns, constants,
+    operators, ``CASE``, ``CAST``, the spatial functions (``ST_*``) and the
+    functions of `WHERE_FUNCTIONS`. Table functions (``read_text``,
+    ``ST_Read``...) can only be called in a subquery or a ``FROM``, so the
+    expression cannot read anything else than the requested polygons.
+
+    Parameters
+    ----------
+    con : duckdb.DuckDBPyConnection
+        Connection used to parse the expression.
+    where : str
+        Expression.
+
+    Returns
+    -------
+    str
+        `where`, unchanged.
+
+    Raises
+    ------
+    HTTPException
+        400 if the expression is not allowed.
+    """
+    parsed = json.loads(
+        con.execute(
+            "SELECT json_serialize_sql($q)", {"q": f"SELECT {where}"}
+        ).fetchone()[0]
+    )
+    if parsed["error"]:
+        raise HTTPException(400, f"Invalid where: {parsed['error_message']}")
+    statements = parsed["statements"]
+    node = statements[0]["node"] if len(statements) == 1 else {}
+    if (
+        node.get("type") != "SELECT_NODE"
+        or len(node["select_list"]) != 1
+        or node["from_table"]["type"] != "EMPTY"
+        or node["cte_map"]["map"]
+        or any(
+            node[key]
+            for key in (
+                "where_clause",
+                "group_expressions",
+                "having",
+                "qualify",
+                "sample",
+                "modifiers",
+            )
+        )
+    ):
+        raise HTTPException(400, "Invalid where: expected a single expression")
+    for expression in _syntax_nodes(node["select_list"]):
+        if expression["class"] not in WHERE_NODES:
+            raise HTTPException(
+                400, f"Invalid where: {expression['class'].lower()} not allowed"
+            )
+        if expression["class"] != "FUNCTION" or expression["is_operator"]:
+            continue
+        name = expression["function_name"].lower()
+        if (
+            expression["schema"]
+            or expression["catalog"]
+            or not (name.startswith("st_") or name in WHERE_FUNCTIONS)
+        ):
+            raise HTTPException(400, f"Invalid where: function {name} not allowed")
+    return where
+
+
+def filter_relation(
+    cursor: duckdb.DuckDBPyConnection,
+    relation: duckdb.DuckDBPyRelation,
+    where: str | None,
+) -> duckdb.DuckDBPyRelation:
+    """
+    `client.filter_relation` of a checked `where`; the cursor is closed on
+    error.
+
+    Raises
+    ------
+    HTTPException
+        400 if the expression is not allowed or not valid.
+    """
+    if not where:
+        return relation
+    try:
+        return client.filter_relation(relation, check_where(cursor, where))
+    except ValueError as e:
+        cursor.close()
+        raise HTTPException(400, str(e)) from None
+    except HTTPException:
+        cursor.close()
+        raise
+
+
 @lru_cache(maxsize=1024)
 def parquet_available(filter_by: str, path_kwargs: tuple) -> bool:
     """`client.parquet_available`, cached: a HEAD request before 2025."""
@@ -209,6 +378,7 @@ def parquet_response(
     filter_by: str,
     path_kwargs: dict,
     headers: dict | None = None,
+    where: str | None = None,
 ) -> StreamingResponse:
     """
     GeoJSON of the polygons of some values, read from the GeoParquet.
@@ -225,6 +395,8 @@ def parquet_response(
         Arguments of `create_path_consolidated`, except `layout`.
     headers : dict, optional
         Headers of the response.
+    where : str, optional
+        DuckDB SQL expression filtering the polygons (see `check_where`).
 
     Returns
     -------
@@ -234,9 +406,10 @@ def parquet_response(
     ------
     HTTPException
         404 if there is no GeoParquet file, if it cannot be filtered by
-        `filter_by` or if some values are not found.
+        `filter_by` or if some values are not found; 400 if `where` is not
+        allowed or not valid.
     """
-    cursor, relation = read_parquet(con, values, filter_by, path_kwargs)
+    cursor, relation = read_parquet(con, values, filter_by, path_kwargs, where)
     return stream_geojson(cursor, relation, headers)
 
 
@@ -245,6 +418,7 @@ def read_parquet(
     values: list[str],
     filter_by: str,
     path_kwargs: dict,
+    where: str | None = None,
 ) -> tuple[duckdb.DuckDBPyConnection, duckdb.DuckDBPyRelation]:
     """
     Cursor and relation over the polygons of some values in the GeoParquet.
@@ -255,7 +429,8 @@ def read_parquet(
     ------
     HTTPException
         404 if there is no GeoParquet file, if it cannot be filtered by
-        `filter_by` or if some values are not found.
+        `filter_by` or if some values are not found; 400 if `where` is not
+        allowed or not valid.
     """
     cursor = client.connect(con.cursor())
     try:
@@ -263,7 +438,7 @@ def read_parquet(
     except (OSError, ValueError) as e:
         cursor.close()
         raise HTTPException(404, str(e)) from None
-    return cursor, relation
+    return cursor, filter_relation(cursor, relation, where)
 
 
 def files_response(
@@ -273,13 +448,15 @@ def files_response(
     path_kwargs: dict,
     headers: dict | None = None,
     download: bool = False,
+    where: str | None = None,
 ) -> StreamingResponse | RedirectResponse:
     """
     GeoJSON of some values when there is no GeoParquet (e.g. 2022).
 
     One value: redirect to its GeoJSON file, unless it is downloaded (a
-    redirect cannot name the file). Several values, or a download: the files
-    are read and merged into one FeatureCollection.
+    redirect cannot name the file) or filtered with `where`. Several values,
+    a download or a filter: the files are read and merged into one
+    FeatureCollection.
 
     Parameters
     ----------
@@ -292,6 +469,8 @@ def files_response(
         Headers of the response, when it is not a redirect.
     download : bool
         Whether the file is downloaded (see `geojson`).
+    where : str, optional
+        See `parquet_response`.
 
     Returns
     -------
@@ -300,7 +479,8 @@ def files_response(
     Raises
     ------
     HTTPException
-        404 if a file does not exist.
+        404 if a file does not exist; 400 if `where` is not allowed or not
+        valid.
     """
     try:
         urls = client.geojson_urls(
@@ -308,7 +488,7 @@ def files_response(
         )
     except OSError as e:
         raise HTTPException(404, str(e)) from None
-    if len(urls) == 1 and not download:
+    if len(urls) == 1 and not download and not where:
         return RedirectResponse(urls[0], status_code=307)
     cursor = client.connect(con.cursor())
     try:
@@ -316,6 +496,7 @@ def files_response(
     except (OSError, duckdb.IOException, duckdb.HTTPException) as e:
         cursor.close()
         raise HTTPException(404, str(e)) from None
+    relation = filter_relation(cursor, relation, where)
     return stream_geojson(cursor, relation, headers)
 
 
@@ -329,6 +510,7 @@ def geojson(
     simplification: int | None = None,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
     download: bool = False,
+    where: str | None = None,
 ) -> StreamingResponse | RedirectResponse:
     """
     Polygons of `borders` for some values of `filter_by`, as GeoJSON.
@@ -339,7 +521,10 @@ def geojson(
     `files_response`. The file is named after the level and the year (e.g.
     DEP2026.geojson): shown by a browser, or downloaded with ``download=1``.
     Without `simplification`, 80 (50 for the GeoJSON files of 2022, which
-    have no 80 version), as `carti_download`.
+    have no 80 version), as `carti_download`. `where` keeps only the
+    polygons matching a DuckDB SQL expression, as in `carti_download`
+    (e.g. ``where=POPULATION > 2000``); see `check_where` for what it may
+    contain.
     """
     filter_by = filter_by.upper()
     path_kwargs = request_path_kwargs(
@@ -354,8 +539,10 @@ def geojson(
     if not parquet_available(filter_by, tuple(sorted(path_kwargs.items()))):
         if simplification is None:
             path_kwargs["simplification"] = GEOJSON_DEFAULT_SIMPLIFICATION
-        return files_response(con, values, filter_by, path_kwargs, headers, download)
-    return parquet_response(con, values, filter_by, path_kwargs, headers)
+        return files_response(
+            con, values, filter_by, path_kwargs, headers, download, where
+        )
+    return parquet_response(con, values, filter_by, path_kwargs, headers, where)
 
 
 def geoparquet(
@@ -367,12 +554,13 @@ def geoparquet(
     crs: int = 4326,
     simplification: int | None = None,
     path_within_bucket: str = PATH_WITHIN_BUCKET,
+    where: str | None = None,
 ) -> FileResponse:
     """
     Polygons of `borders` for some values of `filter_by`, as a GeoParquet
     file to download, named after the level and the year (e.g.
-    DEP2026.parquet). Same parameters as `geojson`; only for the years
-    published as GeoParquet.
+    DEP2026.parquet). Same parameters as `geojson` (`where` included); only
+    for the years published as GeoParquet.
     """
     filter_by = filter_by.upper()
     path_kwargs = request_path_kwargs(
@@ -383,7 +571,7 @@ def geoparquet(
         path_within_bucket,
     )
     cursor, relation = read_parquet(
-        request.app.state.con, values, filter_by, path_kwargs
+        request.app.state.con, values, filter_by, path_kwargs, where
     )
     # Written by DuckDB (GeoParquet metadata, CRS) to a temporary file,
     # deleted once sent
@@ -391,6 +579,9 @@ def geoparquet(
     os.close(fd)
     try:
         relation.to_parquet(path)
+    except WHERE_ERRORS as e:
+        os.remove(path)
+        raise HTTPException(400, str(e)) from None
     except Exception:
         os.remove(path)
         raise

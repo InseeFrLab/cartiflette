@@ -83,7 +83,7 @@ def _read_geojson_url(url):
 
 
 def download_api(
-    year, path, values, borders, filter_by, crs, simplification, **_format
+    year, path, values, borders, filter_by, crs, simplification, where=None, **_format
 ):
     """Same polygons as `carti_download`, as GeoJSON from the API."""
     query = urllib.parse.urlencode(
@@ -95,6 +95,7 @@ def download_api(
             "crs": crs,
             "simplification": simplification,
             "path_within_bucket": path,
+            **({"where": where} if where else {}),
         },
         doseq=True,
     )
@@ -166,6 +167,73 @@ def test_usecase1_lyon_marseille(year, path, departement, city, arrondissements)
     city_rows = contours[contours["INSEE_COM"].astype(str) == city]
     assert len(city_rows) == arrondissements
     assert city not in set(contours["INSEE_COG"].astype(str))
+
+
+# --------------------------------------------------------------------------
+# Filters on the attributes or the geometry (where, issue #112)
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("year, path", LOCATIONS)
+def test_where_communes_plus_2000_occitanie(year, path):
+    kwargs = {"values": "76", "borders": "COMMUNE", "filter_by": "REGION"}
+    occitanie = download(year, path, **kwargs)
+    plus_2000 = download(year, path, where="POPULATION > 2000", **kwargs)
+    assert len(occitanie) > 4000
+    assert 400 < len(plus_2000) < 700
+    expected = occitanie.loc[occitanie["POPULATION"] > 2000, "INSEE_COM"]
+    assert sorted(plus_2000["INSEE_COM"]) == sorted(expected)
+
+
+@pytest.mark.parametrize("year, path", NEW_LOCATIONS)
+def test_where_bounding_box_camargue(year, path):
+    # Across two regions: Gard and Herault (Occitanie), Bouches-du-Rhone (PACA)
+    communes = download(
+        year,
+        path,
+        values="France",
+        borders="COMMUNE",
+        filter_by="FRANCE_ENTIERE",
+        where="ST_Intersects(geometry, ST_MakeEnvelope(4.1, 43.3, 4.9, 43.75))",
+    )
+    assert set(communes["INSEE_DEP"]) == {"13", "30", "34"}
+    assert "13004" in set(communes["INSEE_COM"])  # Arles
+
+
+@pytest.mark.parametrize("year, path", NEW_LOCATIONS)
+def test_where_distance_bugey(year, path):
+    # Communes within 20 km of the Bugey nuclear plant (Saint-Vulbas, Ain)
+    communes = download(
+        year,
+        path,
+        values="France",
+        borders="COMMUNE",
+        filter_by="FRANCE_ENTIERE",
+        where=(
+            "ST_DWithin(ST_Transform(geometry, 'EPSG:4326', 'EPSG:2154'), "
+            "ST_Transform(ST_Point(5.2706, 45.7983), 'EPSG:4326', 'EPSG:2154'), "
+            "20000)"
+        ),
+    )
+    assert set(communes["INSEE_DEP"]) == {"01", "38", "69"}
+    assert "01390" in set(communes["INSEE_COM"])  # Saint-Vulbas
+    distances = communes.to_crs(2154).distance(
+        gpd.GeoSeries([Point(5.2706, 45.7983)], crs=4326).to_crs(2154).iloc[0]
+    )
+    assert (distances <= 20000).all()
+
+
+@pytest.mark.parametrize("year, path", NEW_LOCATIONS)
+def test_where_point_in_polygon(year, path):
+    arrondissement = download(
+        year,
+        path,
+        values="75",
+        borders="COMMUNE_ARRONDISSEMENT",
+        filter_by="DEPARTEMENT",
+        where="ST_Contains(geometry, ST_Point(2.2945, 48.8584))",  # Tour Eiffel
+    )
+    assert list(arrondissement["INSEE_COG"]) == ["75107"]
 
 
 # --------------------------------------------------------------------------

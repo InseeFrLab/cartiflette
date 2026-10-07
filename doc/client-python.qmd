@@ -53,6 +53,112 @@ communes.aggregate("INSEE_REG, sum(POPULATION)")
   connexion (par exemple pour joindre le résultat à d'autres tables) ; par défaut,
   une connexion en mémoire est partagée par tous les appels.
 
+### Filtrer les polygones : `where`
+
+`where` garde, parmi les polygones de `values`, ceux qui vérifient une
+expression SQL DuckDB, comme dans une clause `WHERE`
+([`filter_relation`](reference/client.filter_relation.qmd)). Elle peut porter sur
+les attributs (`POPULATION`, `NOM`, `INSEE_DEP`, les codes de zonage…) et sur la
+colonne `geometry`, avec les fonctions de l'extension
+[spatial](https://duckdb.org/docs/stable/core_extensions/spatial/functions) de
+DuckDB. Le filtre est appliqué avant la conversion, quels que soient le format et
+`engine`. Sur le GeoParquet, DuckDB l'applique pendant la lecture : il ne
+télécharge que les groupes de lignes qui peuvent contenir des polygones retenus,
+grâce aux statistiques (emprise des géométries comprise) écrites dans le fichier.
+
+`values` et `filter_by` restent obligatoires : pour chercher dans toute la France,
+`values="France"` et `filter_by="FRANCE_ENTIERE"`. Les coordonnées s'écrivent en
+(longitude, latitude), dans le système de `crs` (WGS84 par défaut).
+
+**Filtre attributaire** : les communes de plus de 2 000 habitants d'Occitanie
+(542 communes sur 4 446 en 2026).
+
+```python
+villes = carti_download(
+    values="76",
+    borders="COMMUNE",
+    filter_by="REGION",
+    year=2026,
+    where="POPULATION > 2000",
+)
+```
+
+Toute expression SQL est possible : `"INSEE_DEP IN ('31', '32') AND POPULATION > 2000"`,
+`"STATUT = 'Préfecture'"`, `"NOM ILIKE 'saint%'"`…
+
+**Emprise (_bounding box_)** : les communes qui touchent un rectangle, ici la
+Camargue, à cheval sur deux régions (Gard et Hérault en Occitanie,
+Bouches-du-Rhône en Provence-Alpes-Côte d'Azur). C'est le fond de carte d'une
+carte centrée sur une zone qui ne correspond à aucun découpage administratif,
+ou de l'emprise affichée par une carte web.
+
+```python
+camargue = carti_download(
+    values="France",
+    borders="COMMUNE",
+    filter_by="FRANCE_ENTIERE",
+    year=2026,
+    # ST_MakeEnvelope(longitude min, latitude min, longitude max, latitude max)
+    where="ST_Intersects(geometry, ST_MakeEnvelope(4.1, 43.3, 4.9, 43.75))",
+)
+```
+
+**Distance à un point** : les communes situées à moins de 20 km de la centrale
+nucléaire du Bugey (Ain), le rayon des plans particuliers d'intervention. Les
+distances se calculent en mètres dans une projection adaptée : Lambert 93
+(EPSG:2154) pour la métropole.
+
+```python
+autour_du_bugey = carti_download(
+    values="France",
+    borders="COMMUNE",
+    filter_by="FRANCE_ENTIERE",
+    year=2026,
+    where="""
+        ST_DWithin(
+            ST_Transform(geometry, 'EPSG:4326', 'EPSG:2154'),
+            ST_Transform(ST_Point(5.2706, 45.7983), 'EPSG:4326', 'EPSG:2154'),
+            20000
+        )
+    """,
+)
+```
+
+Cette expression garde les communes dont une partie est à moins de 20 km (121
+communes de l'Ain, de l'Isère et du Rhône). Pour le centre de la commune plutôt
+que son contour, et partout (DROM compris, sans changer de projection), la
+distance sur la sphère :
+`"ST_Distance_Sphere(ST_Centroid(geometry), ST_Point(1.4442, 43.6047)) < 30000"`
+(communes dont le centre est à moins de 30 km du Capitole de Toulouse).
+
+**Point dans un polygone** : la commune ou l'arrondissement qui contient un point,
+par exemple pour rattacher une adresse géocodée.
+
+```python
+carti_download(
+    values="75",
+    borders="COMMUNE_ARRONDISSEMENT",
+    filter_by="DEPARTEMENT",
+    year=2026,
+    where="ST_Contains(geometry, ST_Point(2.2945, 48.8584))",  # Tour Eiffel
+)  # Paris 7e arrondissement
+```
+
+Les filtres se combinent : `"POPULATION > 2000 AND ST_Intersects(geometry, ...)"`.
+Une expression invalide (syntaxe, colonne ou fonction inconnue) lève une
+`ValueError`. Mesures depuis le SSPCloud, millésime 2026, simplification 50 : 0,1
+à 0,4 s pour chacun de ces exemples, y compris sur la France entière.
+
+::: {.callout-note}
+## Ordre des coordonnées
+
+La connexion du client active `geometry_always_xy` : `ST_Transform` depuis
+EPSG:4326 et `ST_Distance_Sphere` lisent les coordonnées en (longitude,
+latitude), l'ordre des fichiers. Sans ce réglage, DuckDB les lit en (latitude,
+longitude) et les distances sont fausses (440 km entre Paris et Lyon au lieu de
+391 km). Avec une connexion passée par `con`, le client l'active aussi.
+:::
+
 ### Format : `vectorfile_format`
 
 Les deux formats ne s'utilisent pas de la même façon :

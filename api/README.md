@@ -15,6 +15,10 @@ GeoJSON se fait en SQL (`ST_AsGeoJSON`), en streaming, avec une compression gzip
   : plusieurs valeurs dans une seule réponse. Mêmes paramètres que
   `carti_download` (`crs`, `simplification`, `path_within_bucket`, par défaut
   `production`). Avec `download=1`, le fichier est téléchargé plutôt qu'affiché.
+  `where` filtre les polygones par une expression SQL DuckDB, comme dans
+  `carti_download` (`where=POPULATION > 2000`), vérifiée avant exécution
+  (`check_where` : une seule expression, sans sous-requête, fonctions `ST_*` et
+  `WHERE_FUNCTIONS` seulement).
 - `GET /v1/geoparquet?…` : mêmes paramètres, un fichier GeoParquet à télécharger
   avec les seuls polygones demandés (millésimes publiés en GeoParquet).
 - `GET /{chemin d'un fichier GeoJSON du stockage}`, par exemple
@@ -28,13 +32,13 @@ l'Insee, et non `raw` : `DEP2026.geojson`, `BV2023.parquet`, `COMARM2026.geojson
 `BV`, `ZE`, `UU`, `AAV`.
 
 Pour un millésime sans GeoParquet (2022), les routes GeoJSON redirigent (307) vers
-le fichier GeoJSON ; `/v1/geojson` avec plusieurs valeurs, ou avec `download=1`
-(une redirection ne peut pas nommer le fichier), lit les fichiers et les renvoie
-fusionnés.
+le fichier GeoJSON ; `/v1/geojson` avec plusieurs valeurs, avec `download=1`
+(une redirection ne peut pas nommer le fichier) ou avec `where`, lit les fichiers
+et les renvoie fusionnés.
 
 Erreurs : 404 si un fichier n'existe pas, si le niveau ne peut pas être filtré
 par `filter_by` ou si une valeur est introuvable ; 400 pour un
-`path_within_bucket` invalide.
+`path_within_bucket` invalide ou un `where` refusé ou invalide.
 
 ## Lancer
 

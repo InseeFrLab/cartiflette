@@ -70,6 +70,26 @@ dans une seule réponse :
 télécharger, limité aux polygones demandés (pour les millésimes publiés en
 GeoParquet). C'est ce que propose le bouton « GeoParquet » du site.
 
+Les deux routes acceptent aussi `where`, le filtre de `carti_download` (voir
+[Client Python](client-python.qmd#filtrer-les-polygones-where)), appliqué avant la
+conversion en GeoJSON :
+
+```text
+/v1/geojson?year=2026&borders=COMMUNE&filter_by=REGION&values=76&where=POPULATION > 2000
+```
+
+L'expression vient d'un inconnu : l'API la vérifie avant de l'exécuter
+(`check_where`, sur l'arbre syntaxique que DuckDB produit avec
+`json_serialize_sql`). Elle doit être une seule expression, sans `FROM`,
+sous-requête ni autre clause, faite de colonnes, de constantes, d'opérateurs,
+de `CASE`, de `CAST`, des fonctions spatiales (`ST_*`) et de quelques fonctions
+usuelles (`WHERE_FUNCTIONS` : `lower`, `starts_with`, `round`…). Les fonctions
+qui lisent des fichiers (`read_text`, `ST_Read`…) sont des fonctions de table,
+utilisables seulement dans un `FROM` ou une sous-requête : l'expression ne peut
+rien lire d'autre que les polygones demandés. Sinon, réponse 400. Pour 2022
+(sans GeoParquet), une requête avec `where` n'est pas redirigée : le fichier est
+lu et filtré.
+
 Les fichiers sont nommés d'après le niveau et le millésime, comme ceux de l'Insee :
 `DEP2026.geojson`, `BV2023.parquet`, `COMARM2026.geojson` pour les communes et
 arrondissements municipaux. Le GeoJSON s'affiche dans le navigateur ; avec
@@ -108,7 +128,7 @@ Le contenu est équivalent, pas identique à l'octet :
 
 Erreurs : 404 si un fichier n'existe pas, si le niveau ne peut pas être filtré
 de cette façon ou si une valeur est introuvable ; 400 pour un
-`path_within_bucket` invalide.
+`path_within_bucket` invalide ou un `where` refusé ou invalide.
 
 ## Vérifier
 

@@ -52,7 +52,11 @@ def connect(con: duckdb.DuckDBPyConnection | None = None) -> duckdb.DuckDBPyConn
     -------
     duckdb.DuckDBPyConnection
         Connection with the httpfs and spatial extensions loaded. The proxy
-        is taken from the https_proxy environment variable.
+        is taken from the https_proxy environment variable. Coordinates are
+        read as (longitude, latitude), the order of the files, by the
+        functions that depend on it (``geometry_always_xy``):
+        ``ST_Distance_Sphere`` and ``ST_Transform`` from EPSG:4326 expect
+        (latitude, longitude) otherwise.
     """
     global _CONNECTION
     if con is None:
@@ -61,6 +65,7 @@ def connect(con: duckdb.DuckDBPyConnection | None = None) -> duckdb.DuckDBPyConn
         con = _CONNECTION
     con.execute("SET enable_progress_bar = false")
     con.execute("INSTALL httpfs; LOAD httpfs; INSTALL spatial; LOAD spatial;")
+    con.execute("SET geometry_always_xy = true")
     proxy = os.environ.get("https_proxy") or os.environ.get("HTTPS_PROXY")
     if proxy:
         con.execute("SET http_proxy = ?", [urlparse(proxy).netloc or proxy])
@@ -439,9 +444,56 @@ def read_parquet(
     if missing:
         raise ValueError(f"No {filter_by} {', '.join(missing)} in {url}")
 
-    return con.sql(
-        f"SELECT * EXCLUDE (bbox) FROM {source} WHERE {where}", params=params
+    # Relational API rather than con.sql(..., params=...), which runs the
+    # query at once: the relation stays lazy, so that a later filter (`where`,
+    # or SQL with engine="duckdb") is applied while reading the file
+    return (
+        con.read_parquet(url, hive_partitioning=False)
+        .filter(
+            duckdb.ColumnExpression(column).isin(
+                *(duckdb.ConstantExpression(v) for v in wanted)
+            )
+        )
+        .select(duckdb.StarExpression(exclude=["bbox"]))
     )
+
+
+def filter_relation(
+    relation: duckdb.DuckDBPyRelation, where: str
+) -> duckdb.DuckDBPyRelation:
+    """
+    Keep the rows of a relation matching a DuckDB SQL expression.
+
+    The expression can use the attributes (e.g. ``POPULATION > 2000``) and
+    the `geometry` column with the functions of the DuckDB spatial extension
+    (e.g. ``ST_Intersects(geometry, ST_MakeEnvelope(4.2, 43.3, 4.9, 43.8))``).
+    On a GeoParquet file, DuckDB applies it while reading.
+
+    Parameters
+    ----------
+    relation : duckdb.DuckDBPyRelation
+        Relation, e.g. from `read_parquet` or `read_geojson`.
+    where : str
+        SQL expression, as in a ``WHERE`` clause.
+
+    Returns
+    -------
+    duckdb.DuckDBPyRelation
+
+    Raises
+    ------
+    ValueError
+        If the expression is not valid SQL, or refers to an unknown column
+        or function.
+    """
+    try:
+        return relation.filter(where)
+    except (
+        duckdb.ParserException,
+        duckdb.BinderException,
+        duckdb.CatalogException,
+    ) as e:
+        raise ValueError(f"Invalid where expression {where!r}: {e}") from None
 
 
 def to_geopandas(relation: duckdb.DuckDBPyRelation, crs: int | str) -> gpd.GeoDataFrame:
@@ -488,6 +540,7 @@ def carti_download(
     engine: str = "geopandas",
     con: duckdb.DuckDBPyConnection | None = None,
     force: bool = False,
+    where: str | None = None,
 ) -> gpd.GeoDataFrame | duckdb.DuckDBPyRelation | str:
     """
     Download official French borders produced by cartiflette.
@@ -553,6 +606,12 @@ def carti_download(
         exists for the year. A warning recalls that GeoParquet is faster.
         Only for years with GeoJSON files (2022): none is published from
         2025 onwards, so GeoParquet is read anyway, with a warning.
+    where : str, optional
+        DuckDB SQL expression to keep only some of the polygons of `values`,
+        on their attributes (``"POPULATION > 2000"``) or their geometry
+        (``"ST_Intersects(geometry, ST_MakeEnvelope(4.2, 43.3, 4.9, 43.8))"``,
+        coordinates in `crs`); see `filter_relation`. Applied before the
+        conversion, whatever the format and the engine.
 
     Returns
     -------
@@ -561,9 +620,9 @@ def carti_download(
     Raises
     ------
     ValueError
-        If `vectorfile_format` or `engine` is not supported; GeoParquet only:
-        if `borders` cannot be filtered by `filter_by`, or if some values are
-        not found.
+        If `vectorfile_format` or `engine` is not supported, or if `where`
+        is not a valid expression; GeoParquet only: if `borders` cannot be
+        filtered by `filter_by`, or if some values are not found.
     OSError
         If a file cannot be found.
 
@@ -590,6 +649,16 @@ def carti_download(
     ...     engine="duckdb",
     ... )
     >>> rel.aggregate("INSEE_REG, sum(POPULATION)")  # doctest: +SKIP
+
+    Communes of more than 2,000 inhabitants in Occitanie:
+
+    >>> gdf = carti_download(
+    ...     values="76",
+    ...     borders="COMMUNE",
+    ...     filter_by="REGION",
+    ...     year=2025,
+    ...     where="POPULATION > 2000",
+    ... )  # doctest: +SKIP
     """
     if engine not in ENGINES:
         raise ValueError(f"engine must be one of {ENGINES}, not {engine!r}")
@@ -635,6 +704,8 @@ def carti_download(
     else:
         urls = geojson_urls(values, filter_by, territory=territory, **path_kwargs)
         relation = read_geojson(con, urls)
+    if where:
+        relation = filter_relation(relation, where)
 
     if engine == "duckdb" and not return_as_json:
         return relation
