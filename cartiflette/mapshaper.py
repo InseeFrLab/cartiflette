@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 LEVEL_FIELDS = {
     "COMMUNE": "INSEE_COM",
     "COMMUNE_ARRONDISSEMENT": "INSEE_COG",
+    "IRIS": "CODE_IRIS",
     "DEPARTEMENT": "INSEE_DEP",
     "REGION": "INSEE_REG",
     "TERRITOIRE": "AREA",
@@ -55,6 +56,13 @@ IDF_ZOOM = {
     "AIRE_ATTRACTION_VILLES": ("{field} == '001'", "1.5"),
 }
 IDF_SHIFT = "-650000,275000"
+# Levels zoomed with the filter of another level (communes and IRIS: the
+# departements of Paris and its suburbs)
+IDF_ZOOM_LEVEL = {
+    "COMMUNE": "DEPARTEMENT",
+    "COMMUNE_ARRONDISSEMENT": "DEPARTEMENT",
+    "IRIS": "DEPARTEMENT",
+}
 
 
 def run(*args: str) -> None:
@@ -112,10 +120,10 @@ def bring_drom_closer(
     """
     Move the DROM next to metropolitan France and add a zoomed-in
     Ile-de-France, in a single layer (WGS84). The IDF zoom depends on the
-    level of the polygons (departements for communes).
+    level of the polygons (departements for communes and IRIS).
     """
     work_dir = os.path.dirname(output_path)
-    idf_level = "DEPARTEMENT" if level.startswith("COMMUNE") else level
+    idf_level = IDF_ZOOM_LEVEL.get(level, level)
     idf_filter, idf_scale = IDF_ZOOM[idf_level]
     idf_filter = idf_filter.format(field=fields.get(idf_level, ""))
 
@@ -172,9 +180,11 @@ def _finalize_commands(crs: int, simplification: float, source_label: str) -> li
     `simplification` is the percentage of removable points removed (0: none,
     80: lightest), as documented for the clients. mapshaper's ``-simplify``
     takes the percentage of points to keep, hence ``100 - simplification``.
+    ``keep-shapes`` keeps the smallest polygons, which would otherwise have a
+    null geometry (8 urban IRIS of 2026 at 80).
     """
     retained = 100 - simplification
-    simplify = ["-simplify", f"{retained:g}%"] if simplification else []
+    simplify = ["-simplify", f"{retained:g}%", "keep-shapes"] if simplification else []
     return [
         "-proj",
         f"EPSG:{crs}",

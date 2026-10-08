@@ -109,6 +109,10 @@ spec:
           - name: list-jobs
             template: list-jobs
             dependencies: [ prepare ]
+            arguments:
+              parameters:
+              - name: year
+                value: "{{inputs.parameters.year}}"
           # STEP 3: GEOPARQUET, ONE JOB PER (LEVEL, LAYOUT, SIMPLIFICATION, CRS).
           # No GeoJSON: the API (api/) serves it from these files.
           - name: consolidate
@@ -200,10 +204,17 @@ spec:
             mountPath: /mnt
 
     - name: list-jobs
+      inputs:
+        parameters:
+        - name: year
       container:
         image: "{{workflow.parameters.image}}"
         command: [sh, -c]
-        args: ["python /mnt/bin/argo-pipeline/src/crossproduct.py"]
+        # Only the levels prepared for the year: no IRIS before 2025
+        args: ["
+                python /mnt/bin/argo-pipeline/src/crossproduct.py \
+                --inputs $LOCAL_DATA_PATH/{{inputs.parameters.year}}
+                "]
         env: *env_parameters
         volumeMounts:
           - name: volume-workflow-tmp

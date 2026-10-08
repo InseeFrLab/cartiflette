@@ -8,6 +8,10 @@ dépôt, `api/CHANGELOG.md`).
 
 ### Ajouté
 
+- `borders="IRIS"` (à partir de 2025, fichiers du _pipeline_ ≥ 0.4.0), filtrable
+  notamment par commune : `filter_by="COMMUNE", values="34172"`. Aucun
+  changement de code : la docstring de `carti_download` le mentionne.
+
 - Argument `where` de `carti_download` : expression SQL DuckDB qui ne garde
   qu'une partie des polygones de `values` (#112). Elle porte sur les attributs
   (`where="POPULATION > 2000"`) ou sur la géométrie, avec les fonctions spatiales

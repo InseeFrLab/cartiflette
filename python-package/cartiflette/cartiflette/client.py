@@ -560,11 +560,13 @@ def carti_download(
         "France" for FRANCE_ENTIERE). Region codes below 10 can be given as
         1, "1" or "01".
     borders : str
-        Level of the polygons: COMMUNE, COMMUNE_ARRONDISSEMENT, DEPARTEMENT,
-        REGION, BASSIN_VIE, ZONE_EMPLOI, UNITE_URBAINE, AIRE_ATTRACTION_VILLES.
+        Level of the polygons: COMMUNE, COMMUNE_ARRONDISSEMENT, IRIS (2025
+        onwards), DEPARTEMENT, REGION, BASSIN_VIE, ZONE_EMPLOI, UNITE_URBAINE,
+        AIRE_ATTRACTION_VILLES.
     filter_by : str
         Level used to select the polygons: DEPARTEMENT, REGION, TERRITOIRE,
-        FRANCE_ENTIERE, FRANCE_ENTIERE_DROM_RAPPROCHES or a zoning.
+        FRANCE_ENTIERE, FRANCE_ENTIERE_DROM_RAPPROCHES or a zoning; also
+        COMMUNE and COMMUNE_ARRONDISSEMENT for IRIS.
     territory : str
         Kept for compatibility with the storage layout of the GeoJSON files,
         "metropole".

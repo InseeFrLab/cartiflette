@@ -76,8 +76,10 @@ diffèrent (DROM déplacés, zoom sur l'Île-de-France). Dans chaque fichier :
 
 - les lignes sont triées (`pipeline.sort_levels`) en groupes de 2 048 lignes, pour que
   chaque région, département ou zonage tienne dans un ou deux groupes :
-  communes par région, département, bassin de vie puis commune ; départements par région
-  puis département ; zonages par territoire puis code ;
+  communes par région, département, bassin de vie puis commune ; IRIS par département
+  puis code IRIS (les IRIS d'une commune se suivent : `INSEE_COM` a trop de valeurs par
+  groupe pour un filtre de Bloom) ; départements par région puis département ; zonages
+  par territoire puis code ;
 - une colonne `bbox` est déclarée comme _covering_ GeoParquet 1.1, pour filtrer par emprise ;
 - une seule ligne par entité : la copie agrandie de l'Île-de-France est une partie de
   plus du même multipolygone (pas de doublon lors d'une jointure avec des données) ;
@@ -147,7 +149,8 @@ Cela permet de rendre le  développement du projet plus simple mais reste robust
 ### Étape 1 — `prepare_year`
 
 - **Source IGN** : ADMIN EXPRESS COG CARTO édition 4-0, « France entière » (zone `FRA`),
-  WGS84. Catalogue Atom : `https://data.geopf.fr/chunk/telechargement/resource/ADMIN-EXPRESS-COG-CARTO`.
+  WGS84. Catalogue Atom : `https://data.geopf.fr/telechargement/resource/ADMIN-EXPRESS-COG-CARTO`
+  (pas `…/chunk/telechargement`, qui ne liste pas Contours IRIS).
   GeoParquet à partir de 2026, GPKG (archive `.7z`) seulement pour 2025.
   `select_edition` préfère le GeoParquet, puis le GPKG, puis le shapefile et, à
   format égal, la date la plus récente.
@@ -157,6 +160,15 @@ Cela permet de rendre le  développement du projet plus simple mais reste robust
   champs en noms de l'édition 4-0 (`ign.SHAPEFILE_LAYERS` : `INSEE_COM` → `code_insee`,
   `INSEE_ARM` → `code_insee`…), si bien que la suite du pipeline ne distingue pas les
   éditions. Saint-Pierre-et-Miquelon n'y figure pas.
+- **IRIS** : Contours IRIS (`CONTOURS-IRIS`, pas la version généralisée
+  `CONTOURS-IRIS-PE`, dont les limites ne suivent pas celles des communes), en
+  GeoParquet France entière WGS84, soit 2025 et 2026. `ign.fetch_iris` renvoie `None`
+  pour les années sans cette édition : pas de niveau IRIS. L'édition 2025 code la
+  géométrie en GeoArrow (`multipolygon`), que DuckDB lit comme des listes imbriquées :
+  `ign.iris_to_parquet` la reconstruit (WKT). Les IRIS de 2026 suivent exactement les
+  limites des communes d'ADMIN EXPRESS COG CARTO ; en 2025, quelques centaines de
+  communes (Calvados, Eure-et-Loir surtout) diffèrent un peu (jusqu'à 8 % de la
+  surface d'une commune).
 - **Limite de débit** : la Géoplateforme accepte 1 requête par seconde. `http.get_session`
   relance automatiquement sur les erreurs 429.
 - **Noms de champs** : l'édition 4-0 a renommé tous les champs (`code_insee`, `population`…).
@@ -171,24 +183,34 @@ Cela permet de rendre le  développement du projet plus simple mais reste robust
   dans `fields.json`, sans rien coder en dur.
 - **Sorties** : `COMMUNE.geojson`, `COMMUNE_ARRONDISSEMENT.geojson` (Paris, Lyon et
   Marseille remplacées par leurs arrondissements municipaux, `INSEE_COG` = code de
-  l'arrondissement) et `fields.json`.
+  l'arrondissement), `IRIS.geojson` (à partir de 2025) et `fields.json`.
+  `IRIS.geojson` reprend les noms historiques des Contours IRIS (`CODE_IRIS`,
+  `NOM_IRIS`, `TYP_IRIS`, `NOM_COM`), `INSEE_COG` (commune ou arrondissement de
+  l'IRIS : l'IGN code ceux de Paris, Lyon et Marseille par arrondissement), `INSEE_COM`,
+  `AREA` et les champs de la TAGC ; pas de population. La jointure avec les communes
+  écarte Saint-Pierre-et-Miquelon, Saint-Martin et Saint-Barthélemy, et
+  `check_iris_cover_communes` échoue si une commune n'a aucun IRIS.
 
 ### Étape 2 — `consolidated_combinations`
 
-Produit des 8 niveaux de polygones du dictionnaire `FILTERS` (niveau des polygones →
+Produit des 9 niveaux de polygones du dictionnaire `FILTERS` (niveau des polygones →
 niveaux par lesquels son GeoParquet peut être filtré), des 2 dispositions
 (`config.LAYOUTS`), de `SIMPLIFICATIONS = [0, 50, 80]` et de `CRS = [4326]`, soit
-**48 jobs** : 8 niveaux × 2 dispositions × 3 simplifications × 1 projection.
+**54 jobs** : 9 niveaux × 2 dispositions × 3 simplifications × 1 projection. L'étape
+Argo `list-jobs` ne garde que les niveaux dont l'entrée a été préparée
+(`available_levels`) : 48 jobs avant 2025, sans IRIS.
 
 La simplification est la part des points retirés (80 : contours les plus légers).
 `mapshaper -simplify` attend au contraire la part des points gardés :
-`mapshaper._finalize_commands` lui passe `100 - simplification`.
+`mapshaper._finalize_commands` lui passe `100 - simplification`, avec `keep-shapes`
+pour que les plus petits polygones (des IRIS urbains) ne perdent pas leur géométrie.
 
 ### Étape 3 — `consolidate_and_upload` (un job)
 
 1. `check_write_target` : échoue **avant tout traitement** si la cible est la production non autorisée ;
-2. `process_consolidated` : repart de `COMMUNE.geojson` (ou `COMMUNE_ARRONDISSEMENT.geojson`), puis :
-   - `mapshaper.dissolve` si le niveau n'est pas la commune (somme des populations), en
+2. `process_consolidated` : repart de `COMMUNE.geojson` (ou `COMMUNE_ARRONDISSEMENT.geojson`,
+   `IRIS.geojson` : `pipeline.BASE_LEVELS`), puis :
+   - `mapshaper.dissolve` si le niveau n'est pas l'un de ceux-là (somme des populations), en
      gardant les champs de **tous** les niveaux de filtre possibles (`filter_levels`) ;
    - `mapshaper.bring_drom_closer` pour la disposition `FRANCE_ENTIERE_DROM_RAPPROCHES`
      (DROM déplacés et agrandis près de la métropole, zoom sur l'Île-de-France) ;

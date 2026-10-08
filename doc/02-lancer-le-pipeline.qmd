@@ -105,7 +105,8 @@ cd /tmp/cartiflette && uv run --project $REPO python $REPO/argo-pipeline/src/con
 puis, pour chaque millésime de `years`, deux années à la fois (sous-DAG `year`) :
 
 1. `prepare` écrit les entrées dans `/mnt/data/<année>` (environ 1 Gi par année) ;
-2. `list-jobs` imprime la liste JSON des 48 jobs GeoParquet ;
+2. `list-jobs` imprime la liste JSON des jobs GeoParquet des niveaux préparés : 54,
+   ou 48 sans IRIS (avant 2025) ;
 3. `consolidate` crée un pod par job
    (`withParam`), au plus 10 pods à la fois pour l'ensemble du workflow. Chaque pod lit
    `/mnt/data/<année>` et écrit sur S3 sous `{path}`.
@@ -327,7 +328,7 @@ Si on pousse sur `main` sans monter la version, l'image existante
 |---|---|---|
 | `429 Too Many Requests` en boucle, `prepare` très lent | limite de 1 requête/s de la Géoplateforme | `http.get_session` (relances, `Retry-After`) |
 | `Incomplete download of …` | téléchargement interrompu | relancer ; `http.download_file` |
-| `No France entière WGS84 edition of … for YYYY` | l'IGN n'a pas encore publié l'édition, ou son nom a changé | `ign.select_edition`, catalogue Atom |
+| `No France entière WGS84 edition in … for YYYY` | l'IGN n'a pas encore publié l'édition, ou son nom a changé | `ign.select_edition`, catalogue Atom |
 | erreur 404 sur la TAGC | fichier Insee pas encore publié, ou identifiant de page (`7671844`) changé | `insee.TAGC_URL` |
 | `No BVYYYY field for BASSIN_VIE` | colonnes de la TAGC renommées | `prepare.ZONING_PREFIXES` |
 | segfault, _Unsupported geometry type in WKB_ | `ST_Read` exécuté avec plusieurs threads | [pièges DuckDB](01-architecture.qmd#pieges-duckdb) |

@@ -1,5 +1,6 @@
 """
-Retrieval of ADMIN EXPRESS COG CARTO from the IGN Géoplateforme.
+Retrieval of ADMIN EXPRESS COG CARTO and Contours IRIS from the IGN
+Géoplateforme.
 
 The download service exposes Atom feeds:
     {BASE}/resource/{RESOURCE}                 -> editions (sub-resources)
@@ -13,6 +14,10 @@ Editions are named like
 We use the "France entière" (FRA) editions in WGS84, which contain the DROM,
 in GeoParquet when available, then GPKG, then shapefile (editions 3-x, up to
 2024). The layers are always returned with the field names of the edition 4-0.
+
+Contours IRIS (CONTOURS-IRIS, not the generalized CONTOURS-IRIS-PE) shares
+the commune boundaries of ADMIN EXPRESS COG CARTO. It exists in France
+entière WGS84 from 2025 onwards, as GeoParquet only.
 """
 
 from __future__ import annotations
@@ -30,8 +35,10 @@ from cartiflette.http import download_file, get_session
 
 logger = logging.getLogger(__name__)
 
-BASE_URL = "https://data.geopf.fr/chunk/telechargement"
+# The "chunk" service lists ADMIN EXPRESS but not Contours IRIS
+BASE_URL = "https://data.geopf.fr/telechargement"
 RESOURCE = "ADMIN-EXPRESS-COG-CARTO"
+IRIS_RESOURCE = "CONTOURS-IRIS"
 FORMAT_PREFERENCE = ("GEOPARQUET", "GPKG", "SHP")
 
 # Editions 3-x (shapefile): one file per layer, with the former field names,
@@ -103,10 +110,15 @@ def list_editions(session: requests.Session, resource: str = RESOURCE) -> list[s
     return [e.findtext("atom:title", namespaces=_ATOM) for e in entries]
 
 
-def select_edition(editions: list[str], year: int) -> str:
+def select_edition(
+    editions: list[str],
+    year: int,
+    formats: tuple[str, ...] = FORMAT_PREFERENCE,
+) -> str:
     """
-    Pick the France entière WGS84 edition of `year`, preferring GeoParquet.
-    If several editions exist for the same year, the latest one is taken.
+    Pick the France entière WGS84 edition of `year` in one of `formats`,
+    preferring the first ones. If several editions exist for the same year,
+    the latest one is taken.
     """
     candidates = [
         (name, parsed)
@@ -115,13 +127,13 @@ def select_edition(editions: list[str], year: int) -> str:
         and parsed["zone"] == "FRA"
         and parsed["crs"] == "WGS84G"
         and parsed["date"].startswith(str(year))
-        and parsed["format"] in FORMAT_PREFERENCE
+        and parsed["format"] in formats
     ]
     if not candidates:
-        raise ValueError(f"No France entière WGS84 edition of {RESOURCE} for {year}")
-    candidates.sort(
-        key=lambda c: (-FORMAT_PREFERENCE.index(c[1]["format"]), c[1]["date"])
-    )
+        raise ValueError(
+            f"No France entière WGS84 edition in {'/'.join(formats)} for {year}"
+        )
+    candidates.sort(key=lambda c: (-formats.index(c[1]["format"]), c[1]["date"]))
     return candidates[-1][0]
 
 
@@ -261,3 +273,80 @@ def fetch_layers(year: int, layers: list[str], dest_dir: str) -> dict[str, str]:
         )
         for layer in layers
     }
+
+
+# GeoArrow "multipolygon" (list of polygons, of rings, of {x, y} points) as WKT
+_GEOARROW_MULTIPOLYGON_WKT = """
+    'MULTIPOLYGON(' || array_to_string(list_transform(geometrie, lambda polygon:
+        '(' || array_to_string(list_transform(polygon, lambda ring:
+            '(' || array_to_string(list_transform(ring, lambda point:
+                point.x::VARCHAR || ' ' || point.y::VARCHAR
+            ), ',') || ')'
+        ), ',') || ')'
+    ), ',') || ')'
+"""
+
+
+def iris_to_parquet(src: str, dest: str) -> str:
+    """
+    Copy the Contours IRIS GeoParquet `src` to `dest` with the geometry
+    (`geometrie`) as a DuckDB geometry. The edition 2025 stores it in the
+    GeoArrow "multipolygon" encoding, which DuckDB reads as nested lists:
+    it is rebuilt from WKT (DuckDB prints doubles exactly).
+    """
+    with duckdb.connect() as con:
+        con.execute("SET enable_progress_bar = false;")
+        con.execute("INSTALL spatial; LOAD spatial;")
+        types = dict(
+            con.execute(
+                f"SELECT column_name, column_type FROM (DESCRIBE '{src}')"
+            ).fetchall()
+        )
+        geometry = (
+            "geometrie"
+            if types["geometrie"].startswith("GEOMETRY")
+            else f"ST_GeomFromText({_GEOARROW_MULTIPOLYGON_WKT})"
+        )
+        con.execute(
+            f"""
+            COPY (
+                SELECT * EXCLUDE (geometrie, geometrie_bbox), {geometry} AS geometrie
+                FROM '{src}'
+            ) TO '{dest}' (FORMAT parquet)
+            """
+        )
+    return dest
+
+
+def fetch_iris(year: int, dest_dir: str) -> str | None:
+    """
+    Download the Contours IRIS of `year` (France entière, WGS84, GeoParquet)
+    into `dest_dir`.
+
+    Returns a DuckDB table expression reading it, with the fields of the IGN
+    (code_insee, code_iris, nom_iris...) and the geometry as `geometrie`, or
+    None if there is no such edition for `year` (before 2025).
+    """
+    os.makedirs(dest_dir, exist_ok=True)
+    with get_session() as session:
+        try:
+            edition = select_edition(
+                list_editions(session, IRIS_RESOURCE), year, formats=("GEOPARQUET",)
+            )
+        except ValueError:
+            logger.info("No %s edition for %s: no IRIS", IRIS_RESOURCE, year)
+            return None
+        logger.info("Using IGN edition %s", edition)
+        files = [
+            f
+            for f in list_files(edition, session, IRIS_RESOURCE)
+            if f.endswith(".parquet")
+        ]
+        if len(files) != 1:
+            raise ValueError(f"Expected one .parquet in {edition}, found {files}")
+        raw = download_file(
+            files[0], os.path.join(dest_dir, "contours_iris_raw.parquet"), session
+        )
+    iris = iris_to_parquet(raw, os.path.join(dest_dir, "contours_iris.parquet"))
+    os.remove(raw)
+    return f"read_parquet('{iris}')"

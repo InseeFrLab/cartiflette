@@ -43,6 +43,69 @@ def test_select_edition_missing_year():
         ign.select_edition(EDITIONS, 2023)
 
 
+IRIS_EDITIONS = [
+    "CONTOURS-IRIS_3-0__SHP__FRA_2023-01-01",
+    "CONTOURS-IRIS_3-0__GPKG_LAMB93_FXX_2024-01-01",
+    "CONTOURS-IRIS_3-0__GEOPARQUET_WGS84G_FRA_2025-01-01",
+    "CONTOURS-IRIS_3-0__GPKG_WGS84G_FRA_2026-01-01",
+    "CONTOURS-IRIS_3-0__GEOPARQUET_WGS84G_FRA_2026-01-01",
+]
+
+
+def test_select_edition_formats():
+    for year in (2025, 2026):
+        assert ign.select_edition(IRIS_EDITIONS, year, formats=("GEOPARQUET",)) == (
+            f"CONTOURS-IRIS_3-0__GEOPARQUET_WGS84G_FRA_{year}-01-01"
+        )
+    # No France entière WGS84 file before 2025
+    with pytest.raises(ValueError):
+        ign.select_edition(IRIS_EDITIONS, 2024, formats=("GEOPARQUET",))
+
+
+def test_fetch_iris_without_edition(tmp_path):
+    with mock.patch.object(ign, "list_editions", return_value=IRIS_EDITIONS):
+        assert ign.fetch_iris(2024, str(tmp_path)) is None
+
+
+IRIS_SQUARE = [
+    [
+        [
+            {"x": 2.0, "y": 48.0},
+            {"x": 2.5, "y": 48.0},
+            {"x": 2.5, "y": 48.5},
+            {"x": 2.0, "y": 48.0},
+        ]
+    ]
+]
+
+
+@pytest.mark.parametrize("geoarrow", [True, False])
+def test_iris_to_parquet(tmp_path, geoarrow):
+    """The 2025 edition is in GeoArrow, the 2026 one in WKB: same result."""
+    src, dest = str(tmp_path / "src.parquet"), str(tmp_path / "dest.parquet")
+    geometry = (
+        f"{IRIS_SQUARE}::STRUCT(x DOUBLE, y DOUBLE)[][][]"
+        if geoarrow
+        else "ST_GeomFromText('MULTIPOLYGON(((2 48,2.5 48,2.5 48.5,2 48)))')"
+    )
+    with prepare.connect() as con:
+        con.execute(
+            f"""
+            COPY (
+                SELECT '751010101' AS code_iris, {geometry} AS geometrie,
+                    {{'xmin': 2.0, 'ymin': 48.0, 'xmax': 2.5, 'ymax': 48.5}}
+                        AS geometrie_bbox
+            ) TO '{src}' (FORMAT parquet)
+            """
+        )
+        ign.iris_to_parquet(src, dest)
+        assert con.execute(
+            f"SELECT code_iris, ST_AsText(geometrie) FROM '{dest}'"
+        ).fetchall() == [
+            ("751010101", "MULTIPOLYGON (((2 48, 2.5 48, 2.5 48.5, 2 48)))")
+        ]
+
+
 def test_shapefile_to_parquet(tmp_path):
     """Layers of the editions 3-x get the field names of the edition 4-0."""
     shp = str(tmp_path / "COMMUNE.shp")

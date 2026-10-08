@@ -16,6 +16,20 @@ que lisent les clients Python, R et JavaScript.
 - **Simplification 80** (part des points retirés), en plus de 0 et 50 :
   48 fichiers par millésime au lieu de 32. C'est le défaut du client 0.3.0, de
   l'API 0.1.4 et du site : ces fichiers doivent être publiés avant eux.
+- **Niveau `IRIS`** (Contours IRIS de l'IGN, à partir de 2025, première
+  édition France entière en WGS84) : 54 fichiers par millésime au lieu de 48.
+  Champs historiques des Contours IRIS (`CODE_IRIS`, `NOM_IRIS`, `TYP_IRIS`,
+  `NOM_COM`), plus `INSEE_COM`, `INSEE_COG` (arrondissement de Paris, Lyon et
+  Marseille) et les champs de la TAGC, comme les communes ; pas de
+  population. Filtrable par `COMMUNE` et `COMMUNE_ARRONDISSEMENT` en plus des
+  filtres des communes ; trié par département puis code IRIS, pour que les
+  IRIS d'une commune tiennent dans un groupe de lignes. Les IRIS de
+  Saint-Pierre-et-Miquelon, Saint-Martin et Saint-Barthélemy sont exclus. En
+  2026, ils suivent exactement les limites des communes d'ADMIN EXPRESS COG
+  CARTO ; en 2025, quelques centaines de communes (surtout le Calvados et
+  l'Eure-et-Loir) ont des limites un peu différentes (jusqu'à 8 % de la
+  surface d'une commune). `list-jobs` ne liste que les niveaux préparés :
+  pas d'IRIS avant 2025.
 
 ### Modifié
 
@@ -29,6 +43,12 @@ que lisent les clients Python, R et JavaScript.
 
 ### Corrigé
 
+- `mapshaper -simplify ... keep-shapes` : sans cette option, la simplification
+  80 donnait une géométrie nulle à 8 petits IRIS urbains de 2026. Les
+  communes et les autres niveaux ne changent pas (fichiers identiques).
+- Catalogue de la Géoplateforme lu sur `data.geopf.fr/telechargement` au lieu
+  de `data.geopf.fr/chunk/telechargement`, qui ne liste pas Contours IRIS
+  (mêmes éditions et fichiers pour ADMIN EXPRESS).
 - `mapshaper -simplify` attend la part des points **gardés** : le _pipeline_
   lui passe `100 - simplification`. Les fichiers 0 et 50 ne changent pas
   (50 donne 50 dans les deux sens) ; 80 retire bien 80 % des points.

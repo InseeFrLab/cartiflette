@@ -51,6 +51,10 @@ FILTERS = {
 }
 # Communes are also produced with Paris, Lyon, Marseille split by arrondissement
 FILTERS["COMMUNE_ARRONDISSEMENT"] = FILTERS["COMMUNE"]
+FILTERS["IRIS"] = ["COMMUNE", "COMMUNE_ARRONDISSEMENT", *FILTERS["COMMUNE"]]
+# Levels read as is from the prepared inputs ({level}.geojson); the others
+# are dissolved from the communes
+BASE_LEVELS = ("COMMUNE", "COMMUNE_ARRONDISSEMENT", "IRIS")
 
 # Percentage of points removed: complete contours, then lighter and lighter
 SIMPLIFICATIONS = [0, 50, 80]
@@ -78,6 +82,19 @@ def consolidated_combinations(
     ]
 
 
+def base_level(level_polygons: str) -> str:
+    return level_polygons if level_polygons in BASE_LEVELS else "COMMUNE"
+
+
+def available_levels(inputs_dir: str) -> list[str]:
+    """Levels whose input was prepared: no IRIS before 2025."""
+    return [
+        level
+        for level in FILTERS
+        if os.path.exists(os.path.join(inputs_dir, f"{base_level(level)}.geojson"))
+    ]
+
+
 def filter_levels(level_polygons: str, layout: str) -> list[str]:
     """Levels a consolidated file of `layout` can be filtered by."""
     if layout == DROM_RAPPROCHES:
@@ -95,8 +112,15 @@ def sort_levels(level_polygons: str, levels: list[str]) -> list[str]:
     contiguous and fit in one or two row groups, which the clients read
     alone. Without administrative level (zonings), the territory comes
     first.
+
+    IRIS are mostly filtered by commune, which has too many values per row
+    group for a bloom filter: they are sorted by departement and code (which
+    starts with the code of the commune), so that the rows of a commune are
+    contiguous.
     """
     available = {level_polygons, *levels}
+    if level_polygons == "IRIS":
+        return [x for x in ("DEPARTEMENT",) if x in available] + ["IRIS"]
     order = [x for x in ("REGION", "DEPARTEMENT") if x in available]
     if not order and "TERRITOIRE" in available:
         order = ["TERRITOIRE"]
@@ -123,14 +147,10 @@ def _prepare_polygons(
     fields of `keep_levels`, with the DROM brought closer if requested.
     """
     os.makedirs(work_dir, exist_ok=True)
-    base_level = (
-        "COMMUNE_ARRONDISSEMENT"
-        if level_polygons == "COMMUNE_ARRONDISSEMENT"
-        else "COMMUNE"
-    )
-    current = os.path.join(inputs_dir, f"{base_level}.geojson")
+    base = base_level(level_polygons)
+    current = os.path.join(inputs_dir, f"{base}.geojson")
 
-    if level_polygons != base_level:
+    if level_polygons != base:
         current = mapshaper.dissolve(
             current,
             os.path.join(work_dir, "dissolved.geojson"),
