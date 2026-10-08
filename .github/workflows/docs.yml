@@ -50,21 +50,21 @@ jobs:
           enable-cache: true
           cache-dependency-glob: |
             python-package/cartiflette/uv.lock
-            website/requirements.txt
+            website/uv.lock
 
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2
         with:
           version: 1.10.18
 
-      # The client comes from this repository, not from PyPI as in the
-      # requirements of the website: its examples test the client of the commit
+      # Dependencies from the uv.lock of the website, except the client: it
+      # comes from this repository, so that the examples test the client of
+      # the commit
       - name: Install the website dependencies
         working-directory: ./website
         run: |
-          uv venv .venv
-          grep -v '^cartiflette' requirements.txt > requirements-site.txt
-          uv pip install --python .venv -r requirements-site.txt ../python-package/cartiflette
+          uv sync --locked --no-install-package cartiflette
+          uv pip install --python .venv ../python-package/cartiflette
 
       - name: Render cartiflette-website
         working-directory: ./website
