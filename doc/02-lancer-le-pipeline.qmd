@@ -83,7 +83,7 @@ REPO=$(pwd)
 cd /tmp/cartiflette && uv run --project $REPO python $REPO/argo-pipeline/src/consolidate.py \
   --year 2026 --inputs $DATA \
   --level_polygons REGION --layout FRANCE_ENTIERE --simplification 50 --crs 4326 \
-  --path test/v0.4.0
+  --path test/v0.4.1
 ```
 
 ## B. Sur Argo, vers l'espace de test {#mode-argo-test}
@@ -105,7 +105,8 @@ cd /tmp/cartiflette && uv run --project $REPO python $REPO/argo-pipeline/src/con
 puis, pour chaque millésime de `years`, deux années à la fois (sous-DAG `year`) :
 
 1. `prepare` écrit les entrées dans `/mnt/data/<année>` (environ 1 Gi par année) ;
-2. `list-jobs` imprime la liste JSON des 48 jobs GeoParquet ;
+2. `list-jobs` imprime la liste JSON des jobs GeoParquet des niveaux préparés : 54,
+   ou 48 sans IRIS (avant 2025) ;
 3. `consolidate` crée un pod par job
    (`withParam`), au plus 10 pods à la fois pour l'ensemble du workflow. Chaque pod lit
    `/mnt/data/<année>` et écrit sur S3 sous `{path}`.
@@ -118,10 +119,10 @@ Paramètres du workflow :
 | Paramètre | Défaut | Sens |
 |---|---|---|
 | `years` | `["2025"]` | millésimes ADMIN EXPRESS et TAGC à produire, liste JSON (2021 et après) |
-| `path` | `test/v0.4.0` | préfixe d'écriture dans le bucket (transmis en `CARTIFLETTE_WRITE_PATH`) |
+| `path` | `test/v0.4.1` | préfixe d'écriture dans le bucket (transmis en `CARTIFLETTE_WRITE_PATH`) |
 | `allow_production_write` | `false` | transmis en `CARTIFLETTE_ALLOW_PRODUCTION_WRITE` ; voir [C](#mode-production) |
 | `revision` | `main` | branche, tag ou commit dont le **code Python** est utilisé |
-| `image` | `inseefrlab/cartiflette:v0.4.0` | image Docker : mapshaper, DuckDB et dépendances Python |
+| `image` | `inseefrlab/cartiflette:v0.4.1` | image Docker : mapshaper, DuckDB et dépendances Python |
 
 `revision` ne change que le code de `cartiflette/` et `argo-pipeline/src/` ; les
 dépendances viennent de `image`.
@@ -159,7 +160,7 @@ export PATH="$HOME/.local/bin:$PATH"
 # ⚠ écrit sur S3 (espace de test). Une branche de travail, un préfixe neuf.
 argo submit argo-pipeline/pipeline.yaml -n projet-cartiflette \
   -p years='["2022", "2023", "2024", "2025", "2026"]' \
-  -p path=test/v0.4.0 \
+  -p path=test/v0.4.1 \
   -p revision=ma-branche \
   --watch
 ```
@@ -302,9 +303,9 @@ La version du pipeline apparaît à **plusieurs endroits** qu'il faut modifier e
 
 | Fichier | Valeur |
 |---|---|
-| `pyproject.toml` | `version = "0.4.0"` : sert à taguer l'image Docker |
-| `cartiflette/__init__.py` | `__version__ = "0.4.0"` : sert au préfixe de test par défaut `test/v0.4.0` |
-| `argo-pipeline/pipeline.yaml` | paramètres `image` (`inseefrlab/cartiflette:v0.4.0`) et `path` (`test/v0.4.0`) ; `tests/test_argo.py` vérifie qu'ils suivent la version |
+| `pyproject.toml` | `version = "0.4.1"` : sert à taguer l'image Docker |
+| `cartiflette/__init__.py` | `__version__ = "0.4.1"` : sert au préfixe de test par défaut `test/v0.4.1` |
+| `argo-pipeline/pipeline.yaml` | paramètres `image` (`inseefrlab/cartiflette:v0.4.1`) et `path` (`test/v0.4.1`) ; `tests/test_argo.py` vérifie qu'ils suivent la version |
 | `argo-pipeline/README.md` | exemple de commande |
 
 Le client Python a **sa propre version** (`python-package/cartiflette/pyproject.toml`).
@@ -327,7 +328,7 @@ Si on pousse sur `main` sans monter la version, l'image existante
 |---|---|---|
 | `429 Too Many Requests` en boucle, `prepare` très lent | limite de 1 requête/s de la Géoplateforme | `http.get_session` (relances, `Retry-After`) |
 | `Incomplete download of …` | téléchargement interrompu | relancer ; `http.download_file` |
-| `No France entière WGS84 edition of … for YYYY` | l'IGN n'a pas encore publié l'édition, ou son nom a changé | `ign.select_edition`, catalogue Atom |
+| `No France entière WGS84 edition in … for YYYY` | l'IGN n'a pas encore publié l'édition, ou son nom a changé | `ign.select_edition`, catalogue Atom |
 | erreur 404 sur la TAGC | fichier Insee pas encore publié, ou identifiant de page (`7671844`) changé | `insee.TAGC_URL` |
 | `No BVYYYY field for BASSIN_VIE` | colonnes de la TAGC renommées | `prepare.ZONING_PREFIXES` |
 | segfault, _Unsupported geometry type in WKB_ | `ST_Read` exécuté avec plusieurs threads | [pièges DuckDB](01-architecture.qmd#pieges-duckdb) |

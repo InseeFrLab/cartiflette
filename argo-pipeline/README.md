@@ -13,7 +13,7 @@ export PATH="$HOME/.local/bin:$PATH"
 
 argo submit argo-pipeline/pipeline.yaml -n projet-cartiflette \
   -p years='["2022", "2023", "2024", "2025", "2026"]' \
-  -p path=test/v0.4.0 \
+  -p path=test/v0.4.1 \
   -p revision=main
 ```
 
@@ -25,10 +25,10 @@ argo submit argo-pipeline/pipeline.yaml -n projet-cartiflette \
 | Paramètre | Défaut | Sens |
 |---|---|---|
 | `years` | `["2025"]` | millésimes à produire (liste JSON), traités deux par deux |
-| `path` | `test/v0.4.0` | préfixe d'écriture dans le bucket |
+| `path` | `test/v0.4.1` | préfixe d'écriture dans le bucket |
 | `allow_production_write` | `false` | `true` pour autoriser `path=production` |
 | `revision` | `main` | branche, tag ou commit dont le code Python est utilisé |
-| `image` | `inseefrlab/cartiflette:v0.4.0` | image Docker (mapshaper, DuckDB, dépendances) |
+| `image` | `inseefrlab/cartiflette:v0.4.1` | image Docker (mapshaper, DuckDB, dépendances) |
 
 ## Structure du _pipeline_
 

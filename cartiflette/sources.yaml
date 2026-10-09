@@ -1,0 +1,76 @@
+# Sources of the IGN on the Géoplateforme, read by cartiflette/ign.py
+# (`ign.sources()`). The URLs of the files are not stored: they are read at
+# runtime from the Atom feeds of the download service:
+#   {catalogue}/resource/{resource}             -> editions
+#   {catalogue}/resource/{resource}/{edition}   -> files of an edition
+#   {catalogue}/download/{resource}/{edition}/{file}
+# Editions are named like
+#   ADMIN-EXPRESS-COG-CARTO_4-0__GEOPARQUET_WGS84G_FRA_2026-01-01
+#   (resource, version, format, projection, zone, date): see ign.parse_edition.
+
+# Download service. The "chunk" service (.../chunk/telechargement) lists
+# ADMIN EXPRESS but not Contours IRIS.
+catalogue: https://data.geopf.fr/telechargement
+
+admin_express:
+  resource: ADMIN-EXPRESS-COG-CARTO
+  # Formats of the France entière WGS84 editions, preferred first:
+  # GeoParquet from 2026, GPKG for 2025, shapefile for the editions 3-x
+  formats: [GEOPARQUET, GPKG, SHP]
+  # Editions 3-x (2021-2024, shapefile): one file per layer, with the former
+  # field names, renamed into those of the edition 4-0 so that the rest of
+  # the pipeline does not depend on the edition
+  shapefile_layers:
+    commune:
+      file: COMMUNE
+      fields:
+        ID: cleabs
+        NOM: nom_officiel
+        INSEE_COM: code_insee
+        STATUT: statut
+        POPULATION: population
+        INSEE_DEP: code_insee_du_departement
+    arrondissement_municipal:
+      file: ARRONDISSEMENT_MUNICIPAL
+      fields:
+        ID: cleabs
+        NOM: nom_officiel
+        INSEE_ARM: code_insee
+        INSEE_COM: code_insee_de_la_commune_de_rattach
+        POPULATION: population
+    departement:
+      file: DEPARTEMENT
+      fields:
+        ID: cleabs
+        NOM: nom_officiel
+        INSEE_DEP: code_insee
+    region:
+      file: REGION
+      fields:
+        ID: cleabs
+        NOM: nom_officiel
+        INSEE_REG: code_insee
+
+# Contours IRIS (not the generalized CONTOURS-IRIS-PE, whose limits don't
+# follow the communes), from 2025 onwards.
+contours_iris:
+  resource: CONTOURS-IRIS
+  # Format of the France entière WGS84 edition
+  format: GEOPARQUET
+  # Editions per territory (GPKG, in the projection of the territory):
+  # metropolitan France and the 5 DROM, as in cartiflette
+  territories: [FXX, GLP, MTQ, GUF, REU, MYT]
+  # Projection of each, from the projection part of the edition name
+  crs:
+    LAMB93: "EPSG:2154"
+    RGAF09UTM20: "EPSG:5490"
+    UTM22RGFG95: "EPSG:2972"
+    RGR92UTM40S: "EPSG:2975"
+    RGM04UTM38S: "EPSG:4471"
+  # Years read from the editions per territory rather than France entière.
+  # The France entière GeoParquet of 2025, published in June 2026, was drawn
+  # on the commune boundaries and IRIS of 2026: its communes differ from
+  # ADMIN EXPRESS COG CARTO 2025 for 1 229 of them (13.7 km2), and some IRIS
+  # were redivided (Montpellier, Blain...). The GPKG of June 2025 match COG
+  # CARTO 2025.
+  by_territory_years: [2025]

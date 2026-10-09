@@ -23,5 +23,5 @@ RUN cd /tmp/pipeline \
 # DuckDB extensions, so that the pipeline does not download them at runtime
 # (installed for root, the user the Argo steps run as)
 RUN python -c "import duckdb; duckdb.sql('INSTALL spatial; INSTALL excel;')" \
-  && python -c "import duckdb, py7zr, requests, s3fs; duckdb.sql('LOAD spatial; LOAD excel;')" \
+  && python -c "import duckdb, py7zr, requests, s3fs, yaml; duckdb.sql('LOAD spatial; LOAD excel;')" \
   && mapshaper -v

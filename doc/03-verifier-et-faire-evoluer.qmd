@@ -267,10 +267,15 @@ Exemple : ajouter les EPCI.
    - s'il est stable, dans `mapshaper.LEVEL_FIELDS` (ex. `"EPCI": "EPCI"`) ;
    - s'il porte un millésime (comme `BV2022`), dans `prepare.ZONING_PREFIXES`.
 3. Si le niveau est découpé en `FRANCE_ENTIERE_DROM_RAPPROCHES` : **ajouter une
-   entrée dans `mapshaper.IDF_ZOOM`**, sinon `bring_drom_closer` lève un `KeyError`.
+   entrée dans `mapshaper.IDF_ZOOM`** (ou, pour un niveau plus fin que la commune, dans
+   `mapshaper.IDF_ZOOM_LEVEL`), sinon `bring_drom_closer` lève un `KeyError`.
 4. Libellé éventuel dans `mapshaper.LABEL_FIELDS`.
 5. Tests : mettre à jour le nombre de jobs dans `test_consolidated_combinations`
-   (32 aujourd'hui) et ajouter un cas à `test_process_consolidated`.
+   (54 aujourd'hui) et ajouter un cas à `test_process_consolidated`.
+   Un niveau qui ne s'obtient pas en regroupant des communes (comme `IRIS`) a sa propre
+   entrée, préparée par `prepare_year` (`{niveau}.geojson`) : l'ajouter à
+   `pipeline.BASE_LEVELS`, et vérifier son tri (`pipeline.sort_levels`) sur le filtre le
+   plus courant.
 6. Client : compléter la docstring de `carti_download` (liste des `borders` et `filter_by`).
 7. Marche 3 sur le nouveau niveau, dont un contrôle visuel.
 

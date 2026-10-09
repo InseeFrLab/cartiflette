@@ -31,6 +31,16 @@ REGION = """(SELECT * FROM (VALUES ('84', 'Auvergne-Rhône-Alpes'), ('11', 'Île
     t(code_insee, nom_officiel))"""
 
 
+IRIS = """(SELECT * FROM (VALUES
+    ('IRIS_1', '01001', '010010000', 'Ville', 'Z', 'Ville', ST_Point(5, 46)),
+    ('IRIS_2', '75101', '751010101', 'Saint-Germain-l''Auxerrois', 'H', 'Paris 1er Arrondissement', ST_Point(2.34, 48.86)),
+    ('IRIS_3', '75102', '751020501', 'Vivienne', 'A', 'Paris 2e Arrondissement', ST_Point(2.35, 48.87)),
+    ('IRIS_4', '97105', '971050000', 'Basse-Terre', 'Z', 'Basse-Terre', ST_Point(-61.7, 16)),
+    ('IRIS_5', '97502', '975020000', 'Saint-Pierre', 'Z', 'Saint-Pierre', ST_Point(-56, 46)),
+    ('IRIS_6', '97801', '978010000', 'Saint-Martin', 'Z', 'Saint-Martin', ST_Point(-63, 18))
+) t(cleabs, code_insee, code_iris, nom_iris, type_iris, nom_commune, geometrie))"""
+
+
 @pytest.fixture(scope="module")
 def con():
     con = prepare.connect()
@@ -41,6 +51,9 @@ def con():
     con.execute(
         "CREATE TABLE communes_arrondissement AS "
         + prepare.communes_arrondissement_query("communes", ARRONDISSEMENT)
+    )
+    con.execute(
+        f"CREATE TABLE iris AS {prepare.iris_query(IRIS, 'communes_arrondissement')}"
     )
     yield con
     con.close()
@@ -66,6 +79,34 @@ def test_communes_arrondissement(con):
         ("75056", "75102", "Arrondissement municipal"),
         ("97105", "97105", "Préfecture"),
     ]
+
+
+def test_iris(con):
+    rows = con.execute(
+        "SELECT CODE_IRIS, TYP_IRIS, INSEE_COM, INSEE_COG, NOM_COM, AREA "
+        "FROM iris ORDER BY 1"
+    ).fetchall()
+    # IRIS of Saint-Pierre-et-Miquelon and Saint-Martin are not covered; those
+    # of Paris belong to its arrondissements
+    assert rows == [
+        ("010010000", "Z", "01001", "01001", "Ville", "metropole"),
+        ("751010101", "H", "75056", "75101", "Paris 1er Arrondissement", "metropole"),
+        ("751020501", "A", "75056", "75102", "Paris 2e Arrondissement", "metropole"),
+        ("971050000", "Z", "97105", "97105", "Basse-Terre", "guadeloupe"),
+    ]
+    enriched = con.execute(prepare.enrich_query("iris", "metadata")).df()
+    assert enriched.set_index("CODE_IRIS").loc["751010101", "BV2022"] == "75056"
+    assert "POPULATION" not in enriched.columns
+
+
+def test_check_iris_cover_communes(con):
+    prepare.check_iris_cover_communes(con, "iris", "communes_arrondissement")
+    with pytest.raises(ValueError, match="75102"):
+        prepare.check_iris_cover_communes(
+            con,
+            "(SELECT * FROM iris WHERE INSEE_COG <> '75102')",
+            "communes_arrondissement",
+        )
 
 
 def test_enrich(con):

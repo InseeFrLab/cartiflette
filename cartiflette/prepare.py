@@ -10,6 +10,10 @@ sources. Writes into `local_dir`:
 - COMMUNE_ARRONDISSEMENT.geojson: same, where Paris, Lyon and Marseille are
   replaced by their municipal arrondissements (INSEE_COG is the code of the
   arrondissement, INSEE_COM the one of the commune);
+- IRIS.geojson (2025 onwards, see `ign.fetch_iris`): IRIS with the
+  historical Contours IRIS field names (CODE_IRIS, NOM_IRIS, TYP_IRIS,
+  NOM_COM), INSEE_COG (commune or arrondissement holding the IRIS),
+  INSEE_COM, AREA and the same TAGC fields as the communes. No population;
 - fields.json: name of the field holding each zoning (e.g. BASSIN_VIE ->
   BV2022), as the vintage of the zonings changes over time.
 
@@ -108,6 +112,29 @@ def communes_arrondissement_query(communes: str, arrondissement_municipal: str) 
     """
 
 
+def iris_query(iris: str, communes_arrondissement: str) -> str:
+    """
+    IRIS with the fields of their commune. The IGN codes the IRIS of Paris,
+    Lyon and Marseille by arrondissement, hence the join on INSEE_COG. It
+    drops the IRIS of the territories not covered (Saint-Pierre-et-Miquelon,
+    Saint-Barthélemy, Saint-Martin).
+    """
+    return f"""
+        SELECT
+            iris.cleabs AS ID,
+            iris.code_iris AS CODE_IRIS,
+            iris.nom_iris AS NOM_IRIS,
+            iris.type_iris AS TYP_IRIS,
+            iris.nom_commune AS NOM_COM,
+            com.INSEE_COM,
+            com.INSEE_COG,
+            com.AREA,
+            iris.geometrie AS geometry
+        FROM {iris} AS iris
+        JOIN {communes_arrondissement} AS com ON iris.code_insee = com.INSEE_COG
+    """
+
+
 def metadata_query(tagc: str, departement: str, region: str) -> str:
     """TAGC with the labels of departements and regions, keyed by CODGEO."""
     return f"""
@@ -134,6 +161,24 @@ def enrich_query(polygons: str, metadata: str) -> str:
         LEFT JOIN {metadata} AS m ON p.INSEE_COM = m.CODGEO
         ORDER BY p.INSEE_COM
     """
+
+
+def check_iris_cover_communes(
+    con: duckdb.DuckDBPyConnection, iris: str, communes_arrondissement: str
+) -> None:
+    """Every commune (or arrondissement) must hold at least one IRIS."""
+    missing = [
+        row[0]
+        for row in con.execute(
+            f"""
+            SELECT INSEE_COG FROM {communes_arrondissement}
+            WHERE INSEE_COG NOT IN (SELECT INSEE_COG FROM {iris})
+            ORDER BY 1
+            """
+        ).fetchall()
+    ]
+    if missing:
+        raise ValueError(f"No IRIS for the communes {missing}")
 
 
 def zoning_fields(columns: list[str]) -> dict[str, str]:
@@ -171,6 +216,17 @@ def prepare_year(year: int, local_dir: str) -> dict[str, str]:
         "CREATE TABLE communes_arrondissement AS "
         + communes_arrondissement_query("communes", tables["arrondissement_municipal"])
     )
+    levels = [
+        ("COMMUNE", "communes"),
+        ("COMMUNE_ARRONDISSEMENT", "communes_arrondissement"),
+    ]
+    iris = ign.fetch_iris(year, raw_dir)
+    if iris is not None:
+        con.execute(
+            f"CREATE TABLE iris AS {iris_query(iris, 'communes_arrondissement')}"
+        )
+        check_iris_cover_communes(con, "iris", "communes_arrondissement")
+        levels.append(("IRIS", "iris"))
 
     outputs = {
         level: write_geojson(
@@ -178,10 +234,7 @@ def prepare_year(year: int, local_dir: str) -> dict[str, str]:
             enrich_query(table, "metadata"),
             os.path.join(local_dir, f"{level}.geojson"),
         )
-        for level, table in [
-            ("COMMUNE", "communes"),
-            ("COMMUNE_ARRONDISSEMENT", "communes_arrondissement"),
-        ]
+        for level, table in levels
     }
 
     columns = [c[0] for c in con.execute("DESCRIBE metadata").fetchall()]

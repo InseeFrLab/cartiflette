@@ -80,7 +80,7 @@ def test_target_checked_before_anything_else():
 @pytest.mark.parametrize(
     "path, allow, ok",
     [
-        ("test/v0.4.0", "false", True),
+        ("test/v0.4.1", "false", True),
         ("production", "false", False),
         ("production/", "yes", False),
         ("production", "true", True),
@@ -122,6 +122,29 @@ def test_crossproduct_matches_workflow_items():
         if a["value"].startswith("{{item.")
     }
     assert used == set(items[0])
+
+
+def test_crossproduct_only_lists_prepared_levels(tmp_path):
+    # Year without IRIS: only the communes were prepared
+    for level in ("COMMUNE", "COMMUNE_ARRONDISSEMENT"):
+        (tmp_path / f"{level}.geojson").touch()
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "argo-pipeline" / "src" / "crossproduct.py"),
+            "--inputs",
+            str(tmp_path),
+        ],
+        env={"PYTHONPATH": str(ROOT)},
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    levels = {item["level-polygons"] for item in json.loads(result.stdout)}
+    assert "COMMUNE" in levels and "IRIS" not in levels
+    # The workflow passes the prepared inputs of the year
+    args = TEMPLATES["list-jobs"]["container"]["args"][0]
+    assert "--inputs $LOCAL_DATA_PATH/{{inputs.parameters.year}}" in args
 
 
 def test_no_geojson_step():
