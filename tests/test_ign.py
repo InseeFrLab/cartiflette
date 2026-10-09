@@ -62,6 +62,88 @@ def test_select_edition_formats():
         ign.select_edition(IRIS_EDITIONS, 2024, formats=("GEOPARQUET",))
 
 
+TERRITORY_EDITIONS = [
+    f"CONTOURS-IRIS_3-0__GPKG_{crs}_{zone}_{year}-01-01"
+    for zone, crs in [
+        ("FXX", "LAMB93"),
+        ("GLP", "RGAF09UTM20"),
+        ("MTQ", "RGAF09UTM20"),
+        ("GUF", "UTM22RGFG95"),
+        ("REU", "RGR92UTM40S"),
+        ("MYT", "RGM04UTM38S"),
+        ("SPM", "RGSPM06U21"),
+    ]
+    for year in (2025, 2026)
+]
+
+
+def test_select_territory_editions():
+    editions = ign.select_territory_editions(IRIS_EDITIONS + TERRITORY_EDITIONS, 2025)
+    # Metropolitan France and the 5 DROM, not Saint-Pierre-et-Miquelon
+    assert list(editions) == ["FXX", "GLP", "MTQ", "GUF", "REU", "MYT"]
+    assert editions["REU"] == "CONTOURS-IRIS_3-0__GPKG_RGR92UTM40S_REU_2025-01-01"
+    assert {ign.parse_edition(e)["crs"] for e in editions.values()} <= set(ign.IRIS_CRS)
+
+
+def test_select_territory_editions_missing():
+    editions = [e for e in TERRITORY_EDITIONS if "_MYT_" not in e]
+    with pytest.raises(ValueError, match="MYT"):
+        ign.select_territory_editions(editions, 2025)
+
+
+def test_fetch_iris_2025_by_territory(tmp_path):
+    # The France entière GeoParquet of 2025 is drawn on the boundaries of 2026
+    with (
+        mock.patch.object(ign, "get_session"),
+        mock.patch.object(
+            ign, "_fetch_iris_by_territory", return_value="iris.parquet"
+        ) as by_territory,
+    ):
+        assert ign.fetch_iris(2025, str(tmp_path)) == "read_parquet('iris.parquet')"
+    by_territory.assert_called_once()
+
+
+def test_iris_gpkg_to_parquet(tmp_path):
+    """GPKG in Lambert 93 and UTM 40S merged in WGS84 (longitude, latitude)."""
+    gpkgs = []
+    for name, crs, wkt in [
+        (
+            "fxx",
+            "EPSG:2154",
+            "MULTIPOLYGON(((652000 6862000, 652100 6862000, 652100 6862100, 652000 6862000)))",
+        ),
+        (
+            "reu",
+            "EPSG:2975",
+            "MULTIPOLYGON(((340000 7690000, 340100 7690000, 340100 7690100, 340000 7690000)))",
+        ),
+    ]:
+        path = str(tmp_path / f"{name}.gpkg")
+        with prepare.connect() as con:
+            con.execute(
+                f"""
+                COPY (
+                    SELECT 'IRIS_{name}' AS cleabs, '{name}' AS code_iris,
+                        ST_GeomFromText('{wkt}') AS geometrie
+                ) TO '{path}' (
+                    FORMAT GDAL, DRIVER 'GPKG', SRS '{crs}',
+                    LAYER_CREATION_OPTIONS 'GEOMETRY_NAME=geometrie'
+                )
+                """
+            )
+        gpkgs.append((path, crs))
+    dest = ign.iris_gpkg_to_parquet(gpkgs, str(tmp_path / "iris.parquet"))
+    with prepare.connect() as con:
+        rows = con.execute(
+            f"SELECT code_iris, cleabs, ST_X(ST_Centroid(geometrie)), "
+            f"ST_Y(ST_Centroid(geometrie)) FROM '{dest}' ORDER BY code_iris"
+        ).fetchall()
+    assert [r[:2] for r in rows] == [("fxx", "IRIS_fxx"), ("reu", "IRIS_reu")]
+    (_, _, x_fxx, y_fxx), (_, _, x_reu, y_reu) = rows
+    assert 2.3 < x_fxx < 2.4 and 48.8 < y_fxx < 48.9  # Paris
+    assert 55.4 < x_reu < 55.5 and -20.95 < y_reu < -20.8  # Saint-Denis
+
+
 def test_fetch_iris_without_edition(tmp_path):
     with mock.patch.object(ign, "list_editions", return_value=IRIS_EDITIONS):
         assert ign.fetch_iris(2024, str(tmp_path)) is None

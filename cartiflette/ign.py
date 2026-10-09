@@ -16,8 +16,11 @@ in GeoParquet when available, then GPKG, then shapefile (editions 3-x, up to
 2024). The layers are always returned with the field names of the edition 4-0.
 
 Contours IRIS (CONTOURS-IRIS, not the generalized CONTOURS-IRIS-PE) shares
-the commune boundaries of ADMIN EXPRESS COG CARTO. It exists in France
-entière WGS84 from 2025 onwards, as GeoParquet only.
+the commune boundaries of ADMIN EXPRESS COG CARTO of the same year. It exists
+in France entière WGS84 from 2025 onwards, as GeoParquet, and one edition per
+territory (GPKG, in the projection of the territory). The France entière
+GeoParquet of 2025 was produced in June 2026, on the commune boundaries and
+IRIS of 2026: for 2025, the editions per territory of June 2025 are used.
 """
 
 from __future__ import annotations
@@ -25,6 +28,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+import shutil
 import xml.etree.ElementTree as ET
 
 import duckdb
@@ -39,6 +43,22 @@ logger = logging.getLogger(__name__)
 BASE_URL = "https://data.geopf.fr/telechargement"
 RESOURCE = "ADMIN-EXPRESS-COG-CARTO"
 IRIS_RESOURCE = "CONTOURS-IRIS"
+# Contours IRIS editions per territory (GPKG): metropolitan France and the 5
+# DROM, as in cartiflette, and the projection of each (from the edition name)
+IRIS_TERRITORIES = ("FXX", "GLP", "MTQ", "GUF", "REU", "MYT")
+IRIS_CRS = {
+    "LAMB93": "EPSG:2154",
+    "RGAF09UTM20": "EPSG:5490",
+    "UTM22RGFG95": "EPSG:2972",
+    "RGR92UTM40S": "EPSG:2975",
+    "RGM04UTM38S": "EPSG:4471",
+}
+# Years read from the editions per territory rather than France entière. The
+# France entière GeoParquet of 2025, published in June 2026, was drawn on the
+# commune boundaries and IRIS of 2026: its communes differ from ADMIN EXPRESS
+# COG CARTO 2025 for 1 229 of them (13.7 km2), and some IRIS were redivided
+# (Montpellier, Blain...). The GPKG of June 2025 match COG CARTO 2025.
+IRIS_BY_TERRITORY_YEARS = (2025,)
 FORMAT_PREFERENCE = ("GEOPARQUET", "GPKG", "SHP")
 
 # Editions 3-x (shapefile): one file per layer, with the former field names,
@@ -318,10 +338,94 @@ def iris_to_parquet(src: str, dest: str) -> str:
     return dest
 
 
+def select_territory_editions(editions: list[str], year: int) -> dict[str, str]:
+    """
+    Contours IRIS GPKG editions of `year`, one per territory of
+    `IRIS_TERRITORIES` (the latest one if several).
+
+    Raises
+    ------
+    ValueError
+        If a territory has no edition for `year`.
+    """
+    found = {}
+    for name in editions:
+        parsed = parse_edition(name)
+        if (
+            parsed
+            and parsed["format"] == "GPKG"
+            and parsed["zone"] in IRIS_TERRITORIES
+            and parsed["date"].startswith(str(year))
+        ):
+            found[parsed["zone"]] = max(found.get(parsed["zone"], name), name)
+    missing = [zone for zone in IRIS_TERRITORIES if zone not in found]
+    if missing:
+        raise ValueError(f"No {IRIS_RESOURCE} GPKG edition for {missing} in {year}")
+    return {zone: found[zone] for zone in IRIS_TERRITORIES}
+
+
+def iris_gpkg_to_parquet(gpkgs: list[tuple[str, str]], dest: str) -> str:
+    """
+    Merge Contours IRIS GPKG files, each in the projection of its territory,
+    into one GeoParquet in WGS84 (longitude, latitude), with the same fields
+    as `iris_to_parquet`.
+
+    Parameters
+    ----------
+    gpkgs : list of (str, str)
+        Path of each GPKG and its CRS (e.g. "EPSG:2154").
+    dest : str
+        Output path.
+
+    Returns
+    -------
+    str
+        `dest`.
+    """
+    select = " UNION ALL ".join(
+        f"SELECT * EXCLUDE (geometrie), "
+        f"ST_Transform(geometrie, '{crs}', 'EPSG:4326') AS geometrie "
+        f"FROM ST_Read('{path}')"
+        for path, crs in gpkgs
+    )
+    # ST_Read (GDAL) single-threaded, see _st_read_to_parquet
+    with duckdb.connect() as con:
+        con.execute("SET enable_progress_bar = false; SET threads = 1;")
+        con.execute("INSTALL spatial; LOAD spatial; SET geometry_always_xy = true;")
+        con.execute(f"COPY ({select}) TO '{dest}' (FORMAT parquet)")
+    return dest
+
+
+def _fetch_iris_by_territory(
+    year: int, dest_dir: str, session: requests.Session
+) -> str:
+    """Contours IRIS of `year` from the editions per territory, as GeoParquet."""
+    editions = select_territory_editions(list_editions(session, IRIS_RESOURCE), year)
+    gpkgs = []
+    for zone, edition in editions.items():
+        logger.info("Using IGN edition %s", edition)
+        archives = [
+            f for f in list_files(edition, session, IRIS_RESOURCE) if f.endswith(".7z")
+        ]
+        if len(archives) != 1:
+            raise ValueError(f"Expected one .7z in {edition}, found {archives}")
+        archive = download_file(
+            archives[0], os.path.join(dest_dir, f"iris_{zone}.7z"), session
+        )
+        gpkg = _extract_gpkg(archive, os.path.join(dest_dir, f"iris_{zone}"))
+        os.remove(archive)
+        gpkgs.append((gpkg, IRIS_CRS[parse_edition(edition)["crs"]]))
+    iris = iris_gpkg_to_parquet(gpkgs, os.path.join(dest_dir, "contours_iris.parquet"))
+    for zone in editions:
+        shutil.rmtree(os.path.join(dest_dir, f"iris_{zone}"))
+    return iris
+
+
 def fetch_iris(year: int, dest_dir: str) -> str | None:
     """
     Download the Contours IRIS of `year` (France entière, WGS84, GeoParquet)
-    into `dest_dir`.
+    into `dest_dir`; for the years of `IRIS_BY_TERRITORY_YEARS`, the editions
+    per territory, merged and reprojected to WGS84.
 
     Returns a DuckDB table expression reading it, with the fields of the IGN
     (code_insee, code_iris, nom_iris...) and the geometry as `geometrie`, or
@@ -329,6 +433,9 @@ def fetch_iris(year: int, dest_dir: str) -> str | None:
     """
     os.makedirs(dest_dir, exist_ok=True)
     with get_session() as session:
+        if year in IRIS_BY_TERRITORY_YEARS:
+            iris = _fetch_iris_by_territory(year, dest_dir, session)
+            return f"read_parquet('{iris}')"
         try:
             edition = select_edition(
                 list_editions(session, IRIS_RESOURCE), year, formats=("GEOPARQUET",)

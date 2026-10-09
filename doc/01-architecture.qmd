@@ -162,13 +162,20 @@ Cela permet de rendre le  développement du projet plus simple mais reste robust
   éditions. Saint-Pierre-et-Miquelon n'y figure pas.
 - **IRIS** : Contours IRIS (`CONTOURS-IRIS`, pas la version généralisée
   `CONTOURS-IRIS-PE`, dont les limites ne suivent pas celles des communes), en
-  GeoParquet France entière WGS84, soit 2025 et 2026. `ign.fetch_iris` renvoie `None`
-  pour les années sans cette édition : pas de niveau IRIS. L'édition 2025 code la
-  géométrie en GeoArrow (`multipolygon`), que DuckDB lit comme des listes imbriquées :
-  `ign.iris_to_parquet` la reconstruit (WKT). Les IRIS de 2026 suivent exactement les
-  limites des communes d'ADMIN EXPRESS COG CARTO ; en 2025, quelques centaines de
-  communes (Calvados, Eure-et-Loir surtout) diffèrent un peu (jusqu'à 8 % de la
-  surface d'une commune).
+  2025 et 2026. `ign.fetch_iris` renvoie `None` pour les années sans édition : pas de
+  niveau IRIS.
+  - 2026 : GeoParquet France entière WGS84, dont les IRIS suivent exactement les
+    limites des communes d'ADMIN EXPRESS COG CARTO 2026.
+  - 2025 : **éditions par territoire** (GPKG de juin 2025 : métropole en Lambert 93,
+    chaque DROM dans sa projection UTM), fusionnées et reprojetées en WGS84 par
+    `ign.iris_gpkg_to_parquet` (`ign.IRIS_BY_TERRITORY_YEARS`). Le GeoParquet France
+    entière « 2025 » n'a été publié qu'en juin 2026, sur les limites communales et la
+    grille IRIS de 2026 : ses communes diffèrent du COG CARTO 2025 pour 1 229 d'entre
+    elles (13,7 km², des limites déplacées entre communes voisines, Calvados et
+    Eure-et-Loir surtout), et il contient des IRIS redécoupés en 2026 (Montpellier,
+    Blain…). Les GPKG de juin 2025, eux, coïncident avec le COG CARTO 2025.
+  - `ign.iris_to_parquet` reconstruit la géométrie quand un GeoParquet la code en
+    GeoArrow (`multipolygon`, lu par DuckDB comme des listes imbriquées).
 - **Limite de débit** : la Géoplateforme accepte 1 requête par seconde. `http.get_session`
   relance automatiquement sur les erreurs 429.
 - **Noms de champs** : l'édition 4-0 a renommé tous les champs (`code_insee`, `population`…).
