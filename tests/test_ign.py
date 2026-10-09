@@ -77,12 +77,28 @@ TERRITORY_EDITIONS = [
 ]
 
 
+def test_sources():
+    sources = ign.sources()
+    assert sources["catalogue"].startswith("https://data.geopf.fr/")
+    assert sources["admin_express"]["formats"][0] == "GEOPARQUET"
+    iris = sources["contours_iris"]
+    assert iris["resource"] == "CONTOURS-IRIS"
+    assert iris["by_territory_years"] == [2025]
+    # Every projection is an EPSG code, for ST_Transform
+    assert all(crs.startswith("EPSG:") for crs in iris["crs"].values())
+    # Field order is kept: it is the order of the columns
+    fields = sources["admin_express"]["shapefile_layers"]["commune"]["fields"]
+    assert list(fields)[:3] == ["ID", "NOM", "INSEE_COM"]
+
+
 def test_select_territory_editions():
     editions = ign.select_territory_editions(IRIS_EDITIONS + TERRITORY_EDITIONS, 2025)
     # Metropolitan France and the 5 DROM, not Saint-Pierre-et-Miquelon
     assert list(editions) == ["FXX", "GLP", "MTQ", "GUF", "REU", "MYT"]
     assert editions["REU"] == "CONTOURS-IRIS_3-0__GPKG_RGR92UTM40S_REU_2025-01-01"
-    assert {ign.parse_edition(e)["crs"] for e in editions.values()} <= set(ign.IRIS_CRS)
+    assert {ign.parse_edition(e)["crs"] for e in editions.values()} <= set(
+        ign.sources()["contours_iris"]["crs"]
+    )
 
 
 def test_select_territory_editions_missing():
@@ -203,7 +219,8 @@ def test_shapefile_to_parquet(tmp_path):
             "INSEE_REG, geom)) "
             f"TO '{shp}' WITH (FORMAT GDAL, DRIVER 'ESRI Shapefile')"
         )
-    layer, fields = ign.SHAPEFILE_LAYERS["commune"]
+    commune = ign.sources()["admin_express"]["shapefile_layers"]["commune"]
+    layer, fields = commune["file"], commune["fields"]
     assert layer == "COMMUNE"
     parquet = ign.shapefile_to_parquet(shp, fields, str(tmp_path / "commune.parquet"))
 

@@ -83,7 +83,7 @@ REPO=$(pwd)
 cd /tmp/cartiflette && uv run --project $REPO python $REPO/argo-pipeline/src/consolidate.py \
   --year 2026 --inputs $DATA \
   --level_polygons REGION --layout FRANCE_ENTIERE --simplification 50 --crs 4326 \
-  --path test/v0.4.0
+  --path test/v0.4.1
 ```
 
 ## B. Sur Argo, vers l'espace de test {#mode-argo-test}
@@ -119,10 +119,10 @@ Paramètres du workflow :
 | Paramètre | Défaut | Sens |
 |---|---|---|
 | `years` | `["2025"]` | millésimes ADMIN EXPRESS et TAGC à produire, liste JSON (2021 et après) |
-| `path` | `test/v0.4.0` | préfixe d'écriture dans le bucket (transmis en `CARTIFLETTE_WRITE_PATH`) |
+| `path` | `test/v0.4.1` | préfixe d'écriture dans le bucket (transmis en `CARTIFLETTE_WRITE_PATH`) |
 | `allow_production_write` | `false` | transmis en `CARTIFLETTE_ALLOW_PRODUCTION_WRITE` ; voir [C](#mode-production) |
 | `revision` | `main` | branche, tag ou commit dont le **code Python** est utilisé |
-| `image` | `inseefrlab/cartiflette:v0.4.0` | image Docker : mapshaper, DuckDB et dépendances Python |
+| `image` | `inseefrlab/cartiflette:v0.4.1` | image Docker : mapshaper, DuckDB et dépendances Python |
 
 `revision` ne change que le code de `cartiflette/` et `argo-pipeline/src/` ; les
 dépendances viennent de `image`.
@@ -160,7 +160,7 @@ export PATH="$HOME/.local/bin:$PATH"
 # ⚠ écrit sur S3 (espace de test). Une branche de travail, un préfixe neuf.
 argo submit argo-pipeline/pipeline.yaml -n projet-cartiflette \
   -p years='["2022", "2023", "2024", "2025", "2026"]' \
-  -p path=test/v0.4.0 \
+  -p path=test/v0.4.1 \
   -p revision=ma-branche \
   --watch
 ```
@@ -303,9 +303,9 @@ La version du pipeline apparaît à **plusieurs endroits** qu'il faut modifier e
 
 | Fichier | Valeur |
 |---|---|
-| `pyproject.toml` | `version = "0.4.0"` : sert à taguer l'image Docker |
-| `cartiflette/__init__.py` | `__version__ = "0.4.0"` : sert au préfixe de test par défaut `test/v0.4.0` |
-| `argo-pipeline/pipeline.yaml` | paramètres `image` (`inseefrlab/cartiflette:v0.4.0`) et `path` (`test/v0.4.0`) ; `tests/test_argo.py` vérifie qu'ils suivent la version |
+| `pyproject.toml` | `version = "0.4.1"` : sert à taguer l'image Docker |
+| `cartiflette/__init__.py` | `__version__ = "0.4.1"` : sert au préfixe de test par défaut `test/v0.4.1` |
+| `argo-pipeline/pipeline.yaml` | paramètres `image` (`inseefrlab/cartiflette:v0.4.1`) et `path` (`test/v0.4.1`) ; `tests/test_argo.py` vérifie qu'ils suivent la version |
 | `argo-pipeline/README.md` | exemple de commande |
 
 Le client Python a **sa propre version** (`python-package/cartiflette/pyproject.toml`).

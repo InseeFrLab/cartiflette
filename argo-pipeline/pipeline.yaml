@@ -51,7 +51,7 @@ spec:
       # Chemin d'écriture dans le bucket. Le code refuse d'écrire sous
       # "production" sauf si allow_production_write vaut "true".
       - name: path
-        value: "test/v0.4.0"
+        value: "test/v0.4.1"
       # Écriture en production : laisser "false". Pour publier, passer
       # -p allow_production_write=true -p path=production
       - name: allow_production_write
@@ -62,7 +62,7 @@ spec:
         value: "main"
       # Image (mapshaper, DuckDB, dépendances), taguée avec la version du pipeline
       - name: image
-        value: "inseefrlab/cartiflette:v0.4.0"
+        value: "inseefrlab/cartiflette:v0.4.1"
   volumeClaimTemplates:
     - metadata:
         name: volume-workflow-tmp

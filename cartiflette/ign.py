@@ -1,6 +1,7 @@
 """
 Retrieval of ADMIN EXPRESS COG CARTO and Contours IRIS from the IGN
-Géoplateforme.
+Géoplateforme. The catalogue, products, formats and territories are in
+`sources.yaml` (see `sources`); the URLs of the files are read at runtime.
 
 The download service exposes Atom feeds:
     {BASE}/resource/{RESOURCE}                 -> editions (sub-resources)
@@ -30,70 +31,31 @@ import os
 import re
 import shutil
 import xml.etree.ElementTree as ET
+from functools import cache
+from pathlib import Path
 
 import duckdb
 import py7zr
 import requests
+import yaml
 
 from cartiflette.http import download_file, get_session
 
 logger = logging.getLogger(__name__)
 
-# The "chunk" service lists ADMIN EXPRESS but not Contours IRIS
-BASE_URL = "https://data.geopf.fr/telechargement"
-RESOURCE = "ADMIN-EXPRESS-COG-CARTO"
-IRIS_RESOURCE = "CONTOURS-IRIS"
-# Contours IRIS editions per territory (GPKG): metropolitan France and the 5
-# DROM, as in cartiflette, and the projection of each (from the edition name)
-IRIS_TERRITORIES = ("FXX", "GLP", "MTQ", "GUF", "REU", "MYT")
-IRIS_CRS = {
-    "LAMB93": "EPSG:2154",
-    "RGAF09UTM20": "EPSG:5490",
-    "UTM22RGFG95": "EPSG:2972",
-    "RGR92UTM40S": "EPSG:2975",
-    "RGM04UTM38S": "EPSG:4471",
-}
-# Years read from the editions per territory rather than France entière. The
-# France entière GeoParquet of 2025, published in June 2026, was drawn on the
-# commune boundaries and IRIS of 2026: its communes differ from ADMIN EXPRESS
-# COG CARTO 2025 for 1 229 of them (13.7 km2), and some IRIS were redivided
-# (Montpellier, Blain...). The GPKG of June 2025 match COG CARTO 2025.
-IRIS_BY_TERRITORY_YEARS = (2025,)
-FORMAT_PREFERENCE = ("GEOPARQUET", "GPKG", "SHP")
+# Catalogue, products and editions of the IGN sources
+SOURCES_PATH = Path(__file__).with_name("sources.yaml")
 
-# Editions 3-x (shapefile): one file per layer, with the former field names,
-# renamed into the ones of the edition 4-0
-SHAPEFILE_LAYERS = {
-    "commune": (
-        "COMMUNE",
-        {
-            "ID": "cleabs",
-            "NOM": "nom_officiel",
-            "INSEE_COM": "code_insee",
-            "STATUT": "statut",
-            "POPULATION": "population",
-            "INSEE_DEP": "code_insee_du_departement",
-        },
-    ),
-    "arrondissement_municipal": (
-        "ARRONDISSEMENT_MUNICIPAL",
-        {
-            "ID": "cleabs",
-            "NOM": "nom_officiel",
-            "INSEE_ARM": "code_insee",
-            "INSEE_COM": "code_insee_de_la_commune_de_rattach",
-            "POPULATION": "population",
-        },
-    ),
-    "departement": (
-        "DEPARTEMENT",
-        {"ID": "cleabs", "NOM": "nom_officiel", "INSEE_DEP": "code_insee"},
-    ),
-    "region": (
-        "REGION",
-        {"ID": "cleabs", "NOM": "nom_officiel", "INSEE_REG": "code_insee"},
-    ),
-}
+
+@cache
+def sources() -> dict:
+    """
+    Metadata of the IGN sources (catalogue, products, formats, fields of the
+    former editions, territories of Contours IRIS), from `sources.yaml`.
+    """
+    with open(SOURCES_PATH, encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
 
 _ATOM = {"atom": "http://www.w3.org/2005/Atom"}
 _EDITION = re.compile(
@@ -125,21 +87,25 @@ def parse_edition(name: str) -> dict | None:
     return match.groupdict() if match else None
 
 
-def list_editions(session: requests.Session, resource: str = RESOURCE) -> list[str]:
-    entries = _atom_entries(f"{BASE_URL}/resource/{resource}", session)
+def list_editions(session: requests.Session, resource: str | None = None) -> list[str]:
+    """Editions of `resource` (by default ADMIN EXPRESS COG CARTO)."""
+    resource = resource or sources()["admin_express"]["resource"]
+    entries = _atom_entries(f"{sources()['catalogue']}/resource/{resource}", session)
     return [e.findtext("atom:title", namespaces=_ATOM) for e in entries]
 
 
 def select_edition(
     editions: list[str],
     year: int,
-    formats: tuple[str, ...] = FORMAT_PREFERENCE,
+    formats: tuple[str, ...] | None = None,
 ) -> str:
     """
     Pick the France entière WGS84 edition of `year` in one of `formats`,
-    preferring the first ones. If several editions exist for the same year,
-    the latest one is taken.
+    preferring the first ones (by default those of ADMIN EXPRESS COG CARTO,
+    see `sources`). If several editions exist for the same year, the latest
+    one is taken.
     """
+    formats = tuple(formats or sources()["admin_express"]["formats"])
     candidates = [
         (name, parsed)
         for name, parsed in ((n, parse_edition(n)) for n in editions)
@@ -158,10 +124,13 @@ def select_edition(
 
 
 def list_files(
-    edition: str, session: requests.Session, resource: str = RESOURCE
+    edition: str, session: requests.Session, resource: str | None = None
 ) -> list[str]:
-    """Download URLs of the files of an edition."""
-    entries = _atom_entries(f"{BASE_URL}/resource/{resource}/{edition}", session)
+    """Download URLs of the files of an edition (of `resource`, see `list_editions`)."""
+    resource = resource or sources()["admin_express"]["resource"]
+    entries = _atom_entries(
+        f"{sources()['catalogue']}/resource/{resource}/{edition}", session
+    )
     return [e.find("atom:link", _ATOM).get("href") for e in entries]
 
 
@@ -267,18 +236,19 @@ def fetch_layers(year: int, layers: list[str], dest_dir: str) -> dict[str, str]:
         )
 
     if edition_format == "SHP":
-        unknown = set(layers) - set(SHAPEFILE_LAYERS)
+        shapefile_layers = sources()["admin_express"]["shapefile_layers"]
+        unknown = set(layers) - set(shapefile_layers)
         if unknown:
             raise ValueError(f"Layers {unknown} not handled for {edition}")
         shp = _extract_shapefiles(
-            archive, dest_dir, [SHAPEFILE_LAYERS[layer][0] for layer in layers]
+            archive, dest_dir, [shapefile_layers[layer]["file"] for layer in layers]
         )
         os.remove(archive)
         return {
             layer: "read_parquet('{}')".format(
                 shapefile_to_parquet(
-                    shp[SHAPEFILE_LAYERS[layer][0]],
-                    SHAPEFILE_LAYERS[layer][1],
+                    shp[shapefile_layers[layer]["file"]],
+                    shapefile_layers[layer]["fields"],
                     os.path.join(dest_dir, f"{layer}.parquet"),
                 )
             )
@@ -340,28 +310,29 @@ def iris_to_parquet(src: str, dest: str) -> str:
 
 def select_territory_editions(editions: list[str], year: int) -> dict[str, str]:
     """
-    Contours IRIS GPKG editions of `year`, one per territory of
-    `IRIS_TERRITORIES` (the latest one if several).
+    Contours IRIS GPKG editions of `year`, one per territory (see `sources`),
+    the latest one if several.
 
     Raises
     ------
     ValueError
         If a territory has no edition for `year`.
     """
+    iris = sources()["contours_iris"]
     found = {}
     for name in editions:
         parsed = parse_edition(name)
         if (
             parsed
             and parsed["format"] == "GPKG"
-            and parsed["zone"] in IRIS_TERRITORIES
+            and parsed["zone"] in iris["territories"]
             and parsed["date"].startswith(str(year))
         ):
             found[parsed["zone"]] = max(found.get(parsed["zone"], name), name)
-    missing = [zone for zone in IRIS_TERRITORIES if zone not in found]
+    missing = [zone for zone in iris["territories"] if zone not in found]
     if missing:
-        raise ValueError(f"No {IRIS_RESOURCE} GPKG edition for {missing} in {year}")
-    return {zone: found[zone] for zone in IRIS_TERRITORIES}
+        raise ValueError(f"No {iris['resource']} GPKG edition for {missing} in {year}")
+    return {zone: found[zone] for zone in iris["territories"]}
 
 
 def iris_gpkg_to_parquet(gpkgs: list[tuple[str, str]], dest: str) -> str:
@@ -400,12 +371,15 @@ def _fetch_iris_by_territory(
     year: int, dest_dir: str, session: requests.Session
 ) -> str:
     """Contours IRIS of `year` from the editions per territory, as GeoParquet."""
-    editions = select_territory_editions(list_editions(session, IRIS_RESOURCE), year)
+    iris = sources()["contours_iris"]
+    editions = select_territory_editions(list_editions(session, iris["resource"]), year)
     gpkgs = []
     for zone, edition in editions.items():
         logger.info("Using IGN edition %s", edition)
         archives = [
-            f for f in list_files(edition, session, IRIS_RESOURCE) if f.endswith(".7z")
+            f
+            for f in list_files(edition, session, iris["resource"])
+            if f.endswith(".7z")
         ]
         if len(archives) != 1:
             raise ValueError(f"Expected one .7z in {edition}, found {archives}")
@@ -414,7 +388,7 @@ def _fetch_iris_by_territory(
         )
         gpkg = _extract_gpkg(archive, os.path.join(dest_dir, f"iris_{zone}"))
         os.remove(archive)
-        gpkgs.append((gpkg, IRIS_CRS[parse_edition(edition)["crs"]]))
+        gpkgs.append((gpkg, iris["crs"][parse_edition(edition)["crs"]]))
     iris = iris_gpkg_to_parquet(gpkgs, os.path.join(dest_dir, "contours_iris.parquet"))
     for zone in editions:
         shutil.rmtree(os.path.join(dest_dir, f"iris_{zone}"))
@@ -424,29 +398,32 @@ def _fetch_iris_by_territory(
 def fetch_iris(year: int, dest_dir: str) -> str | None:
     """
     Download the Contours IRIS of `year` (France entière, WGS84, GeoParquet)
-    into `dest_dir`; for the years of `IRIS_BY_TERRITORY_YEARS`, the editions
-    per territory, merged and reprojected to WGS84.
+    into `dest_dir`; for the years read by territory (`by_territory_years` in
+    `sources`), the editions per territory, merged and reprojected to WGS84.
 
     Returns a DuckDB table expression reading it, with the fields of the IGN
     (code_insee, code_iris, nom_iris...) and the geometry as `geometrie`, or
     None if there is no such edition for `year` (before 2025).
     """
+    iris = sources()["contours_iris"]
     os.makedirs(dest_dir, exist_ok=True)
     with get_session() as session:
-        if year in IRIS_BY_TERRITORY_YEARS:
+        if year in iris["by_territory_years"]:
             iris = _fetch_iris_by_territory(year, dest_dir, session)
             return f"read_parquet('{iris}')"
         try:
             edition = select_edition(
-                list_editions(session, IRIS_RESOURCE), year, formats=("GEOPARQUET",)
+                list_editions(session, iris["resource"]),
+                year,
+                formats=(iris["format"],),
             )
         except ValueError:
-            logger.info("No %s edition for %s: no IRIS", IRIS_RESOURCE, year)
+            logger.info("No %s edition for %s: no IRIS", iris["resource"], year)
             return None
         logger.info("Using IGN edition %s", edition)
         files = [
             f
-            for f in list_files(edition, session, IRIS_RESOURCE)
+            for f in list_files(edition, session, iris["resource"])
             if f.endswith(".parquet")
         ]
         if len(files) != 1:
