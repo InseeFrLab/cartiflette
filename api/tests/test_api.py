@@ -211,6 +211,7 @@ def test_legacy_path_unknown(api, path):
         ("bassin_vie", "2023", "parquet", "BV2023.parquet"),
         ("COMMUNE_ARRONDISSEMENT", 2025, "geojson", "COMARM2025.geojson"),
         ("NOUVEAU_NIVEAU", 2026, "geojson", "NOUVEAU_NIVEAU2026.geojson"),
+        ("CARREAU_200M", 2026, "parquet", "CAR200M2026.parquet"),
     ],
 )
 def test_file_name(borders, year, extension, expected):
@@ -314,6 +315,16 @@ def test_default_simplification_is_80(api, storage, route):
     assert api.get(f"/v1/{route}", params=params).status_code == 404
     _copy_simplification(storage, 2025, 80)
     assert api.get(f"/v1/{route}", params=params).status_code == 200
+
+
+@pytest.mark.parametrize("simplification", [0, 50, 80])
+def test_grids_are_not_simplified(simplification):
+    # Squares: only published with simplification 0, whatever is requested
+    kwargs = api_module.request_path_kwargs(
+        2026, "carreau_200m", 4326, simplification, "production"
+    )
+    assert kwargs["simplification"] == 0
+    assert kwargs["borders"] == "CARREAU_200M"
 
 
 def test_default_simplification_geojson_files_is_50(api, storage):

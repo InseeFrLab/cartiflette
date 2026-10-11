@@ -14,6 +14,11 @@ sources. Writes into `local_dir`:
   historical Contours IRIS field names (CODE_IRIS, NOM_IRIS, TYP_IRIS,
   NOM_COM), INSEE_COG (commune or arrondissement holding the IRIS),
   INSEE_COM, AREA and the same TAGC fields as the communes. No population;
+- CARREAU_200M.parquet, CARREAU_1KM.parquet (see `cartiflette.carreaux`):
+  the cells of the Insee gridded data (Filosofi) with the Insee fields, the
+  commune holding their centre (INSEE_COM, INSEE_COG, NOM_COM, AREA) and the
+  same TAGC fields as the communes. Parquet rather than GeoJSON: millions of
+  squares;
 - fields.json: name of the field holding each zoning (e.g. BASSIN_VIE ->
   BV2022), as the vintage of the zonings changes over time.
 
@@ -30,7 +35,7 @@ import re
 
 import duckdb
 
-from cartiflette import ign, insee
+from cartiflette import carreaux, ign, insee
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +80,12 @@ def write_geojson(con: duckdb.DuckDBPyConnection, query: str, path: str) -> str:
         f"COPY ({query}) TO '{path}' WITH (FORMAT GDAL, DRIVER 'GeoJSON', "
         "LAYER_CREATION_OPTIONS 'COORDINATE_PRECISION=7')"
     )
+    return path
+
+
+def write_parquet(con: duckdb.DuckDBPyConnection, query: str, path: str) -> str:
+    """Write the result of `query` (WGS84, `geometry` column) as GeoParquet."""
+    con.execute(f"COPY ({query}) TO '{path}' (FORMAT parquet, COMPRESSION zstd)")
     return path
 
 
@@ -181,6 +192,45 @@ def check_iris_cover_communes(
         raise ValueError(f"No IRIS for the communes {missing}")
 
 
+def prepare_grids(
+    con: duckdb.DuckDBPyConnection, year: int, raw_dir: str, local_dir: str
+) -> dict[str, str]:
+    """
+    Write {level}.parquet for each grid of the Insee (see
+    `cartiflette.carreaux`), attached to the communes and arrondissements of
+    the year (`communes_arrondissement`) and enriched with `metadata`.
+    """
+    outputs = {}
+    for level, id_field in carreaux.GRIDS.items():
+        grid = carreaux.fetch_grid(year, level, os.path.join(raw_dir, level))
+        if grid is None:
+            continue
+        edition, csvs = grid
+        carreaux.create_cells(con, csvs, id_field, "cells")
+        attached = carreaux.attach_to_communes(
+            con, "cells", id_field, "communes_arrondissement"
+        )
+        con.execute(
+            "CREATE TABLE grid AS "
+            + carreaux.grid_query(
+                "cells",
+                id_field,
+                attached,
+                "communes_arrondissement",
+                f"INSEE:FILOSOFI-{edition}",
+            )
+        )
+        outputs[level] = write_parquet(
+            con,
+            enrich_query("grid", "metadata"),
+            os.path.join(local_dir, f"{level}.parquet"),
+        )
+        con.execute(f"DROP TABLE cells; DROP TABLE {attached}; DROP TABLE grid")
+        for csv in csvs:
+            os.remove(csv)
+    return outputs
+
+
 def zoning_fields(columns: list[str]) -> dict[str, str]:
     """Map each zoning with a vintage to its field, e.g. BASSIN_VIE -> BV2022."""
     fields = {}
@@ -236,6 +286,7 @@ def prepare_year(year: int, local_dir: str) -> dict[str, str]:
         )
         for level, table in levels
     }
+    outputs.update(prepare_grids(con, year, raw_dir, local_dir))
 
     columns = [c[0] for c in con.execute("DESCRIBE metadata").fetchall()]
     outputs["fields"] = os.path.join(local_dir, "fields.json")

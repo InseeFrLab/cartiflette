@@ -193,13 +193,26 @@ def test_available_levels(tmp_path):
     assert "IRIS" not in pipeline.available_levels(str(tmp_path))
     assert "REGION" in pipeline.available_levels(str(tmp_path))
     (tmp_path / "IRIS.geojson").touch()
+    # The grids are prepared as parquet
+    assert "CARREAU_200M" not in pipeline.available_levels(str(tmp_path))
+    for level in pipeline.GRID_LEVELS:
+        (tmp_path / f"{level}.parquet").touch()
     assert pipeline.available_levels(str(tmp_path)) == list(pipeline.FILTERS)
 
 
 def test_consolidated_combinations():
     jobs = pipeline.consolidated_combinations()
-    # 9 levels x 2 geometries x 3 simplifications x 1 crs
-    assert len(jobs) == 54
+    # 9 levels x 2 geometries x 3 simplifications x 1 crs, plus one file per
+    # grid (FRANCE_ENTIERE, never simplified)
+    assert len(jobs) == 54 + 2
+    assert [j for j in jobs if j["level_polygons"] == "CARREAU_200M"] == [
+        {
+            "level_polygons": "CARREAU_200M",
+            "layout": "FRANCE_ENTIERE",
+            "simplification": 0,
+            "crs": 4326,
+        }
+    ]
     assert {
         "level_polygons": "COMMUNE",
         "layout": "FRANCE_ENTIERE_DROM_RAPPROCHES",
@@ -234,6 +247,11 @@ def test_filter_levels():
         # Commune of the rows contiguous: no region first
         ("IRIS", "FRANCE_ENTIERE", ["DEPARTEMENT", "IRIS"]),
         ("IRIS", "FRANCE_ENTIERE_DROM_RAPPROCHES", ["IRIS"]),
+        (
+            "CARREAU_200M",
+            "FRANCE_ENTIERE",
+            ["REGION", "DEPARTEMENT", "COMMUNE_ARRONDISSEMENT", "CARREAU_200M"],
+        ),
         ("DEPARTEMENT", "FRANCE_ENTIERE", ["REGION", "DEPARTEMENT"]),
         ("REGION", "FRANCE_ENTIERE", ["REGION"]),
         ("BASSIN_VIE", "FRANCE_ENTIERE", ["TERRITOIRE", "BASSIN_VIE"]),

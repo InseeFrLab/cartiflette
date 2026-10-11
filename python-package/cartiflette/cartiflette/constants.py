@@ -13,3 +13,6 @@ PARQUET_FIRST_YEAR = 2025
 # the former pipeline only exist with 0 and 50: 50 is their default.
 DEFAULT_SIMPLIFICATION = 80
 GEOJSON_DEFAULT_SIMPLIFICATION = 50
+# Grids of the Insee (gridded data, Filosofi): squares, published only without
+# simplification (simplification=0 in the path)
+GRID_LEVELS = ("CARREAU_200M", "CARREAU_1KM")

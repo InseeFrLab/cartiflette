@@ -516,3 +516,22 @@ def test_default_simplification_geojson_is_50(storage, readers):
     )
     assert sorted(gdf["INSEE_DEP"]) == ["75", "92"]
     assert readers == ["read_geojson"]
+
+
+@pytest.mark.parametrize(
+    "borders, simplification, expected",
+    [
+        ("CARREAU_200M", None, 0),
+        ("carreau_1km", 0, 0),
+        ("COMMUNE", None, None),
+        ("COMMUNE", 50, 50),
+    ],
+)
+def test_grid_simplification(borders, simplification, expected):
+    # The grids (squares) are only published without simplification
+    assert client.grid_simplification(borders, simplification) == expected
+
+
+def test_grid_simplification_warns_when_ignored():
+    with pytest.warns(UserWarning, match="ignored"):
+        assert client.grid_simplification("CARREAU_200M", 80) == 0

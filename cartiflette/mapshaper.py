@@ -18,6 +18,9 @@ LEVEL_FIELDS = {
     "COMMUNE": "INSEE_COM",
     "COMMUNE_ARRONDISSEMENT": "INSEE_COG",
     "IRIS": "CODE_IRIS",
+    # Grids of the Insee (cartiflette.carreaux), never processed by mapshaper
+    "CARREAU_200M": "idcar_200m",
+    "CARREAU_1KM": "idcar_1km",
     "DEPARTEMENT": "INSEE_DEP",
     "REGION": "INSEE_REG",
     "TERRITOIRE": "AREA",

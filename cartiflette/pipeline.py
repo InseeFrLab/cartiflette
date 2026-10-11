@@ -7,6 +7,11 @@ Production pipeline: the functions called by the Argo workflow steps.
 3. `consolidate_and_upload` runs one of them: one GeoParquet per level and
    layout, filtered when read by the clients.
 
+The grids of the Insee (CARREAU_200M, CARREAU_1KM, see cartiflette.carreaux)
+skip mapshaper: squares are neither simplified nor moved, so they only have
+one file, FRANCE_ENTIERE with simplification 0, written from the prepared
+parquet.
+
 No GeoJSON is published: the API (api/) serves it from the GeoParquet.
 """
 
@@ -20,7 +25,7 @@ import shutil
 import duckdb
 import s3fs
 
-from cartiflette import config, mapshaper
+from cartiflette import carreaux, config, mapshaper
 from cartiflette.paths import create_path_consolidated
 from cartiflette.prepare import prepare_year  # noqa: F401 (pipeline step)
 from cartiflette.s3 import check_write_target, upload
@@ -52,9 +57,13 @@ FILTERS = {
 # Communes are also produced with Paris, Lyon, Marseille split by arrondissement
 FILTERS["COMMUNE_ARRONDISSEMENT"] = FILTERS["COMMUNE"]
 FILTERS["IRIS"] = ["COMMUNE", "COMMUNE_ARRONDISSEMENT", *FILTERS["COMMUNE"]]
-# Levels read as is from the prepared inputs ({level}.geojson); the others
-# are dissolved from the communes
-BASE_LEVELS = ("COMMUNE", "COMMUNE_ARRONDISSEMENT", "IRIS")
+# Grids: attached to communes like the IRIS, no DROM-rapproches layout
+GRID_LEVELS = tuple(carreaux.GRIDS)
+for _grid in GRID_LEVELS:
+    FILTERS[_grid] = [x for x in FILTERS["IRIS"] if x != DROM_RAPPROCHES]
+# Levels read as is from the prepared inputs ({level}.geojson, or
+# {level}.parquet for the grids); the others are dissolved from the communes
+BASE_LEVELS = ("COMMUNE", "COMMUNE_ARRONDISSEMENT", "IRIS", *GRID_LEVELS)
 
 # Percentage of points removed: complete contours, then lighter and lighter
 SIMPLIFICATIONS = [0, 50, 80]
@@ -76,23 +85,40 @@ def consolidated_combinations(
         }
         for level in FILTERS
         if levels is None or level in levels
-        for layout in config.LAYOUTS
-        for simplification in simplifications
+        for layout in level_layouts(level)
+        for simplification in level_simplifications(level, simplifications)
         for crs in crs_list
     ]
+
+
+def level_layouts(level_polygons: str) -> tuple[str, ...]:
+    """Layouts of a level: the grids are only published at their position."""
+    if level_polygons in GRID_LEVELS:
+        return ("FRANCE_ENTIERE",)
+    return config.LAYOUTS
+
+
+def level_simplifications(
+    level_polygons: str, simplifications: list[float]
+) -> list[float]:
+    """Simplifications of a level: squares are never simplified (0 only)."""
+    return [0] if level_polygons in GRID_LEVELS else simplifications
 
 
 def base_level(level_polygons: str) -> str:
     return level_polygons if level_polygons in BASE_LEVELS else "COMMUNE"
 
 
+def input_path(inputs_dir: str, level_polygons: str) -> str:
+    """Prepared input a level is built from."""
+    base = base_level(level_polygons)
+    extension = "parquet" if base in GRID_LEVELS else "geojson"
+    return os.path.join(inputs_dir, f"{base}.{extension}")
+
+
 def available_levels(inputs_dir: str) -> list[str]:
-    """Levels whose input was prepared: no IRIS before 2025."""
-    return [
-        level
-        for level in FILTERS
-        if os.path.exists(os.path.join(inputs_dir, f"{base_level(level)}.geojson"))
-    ]
+    """Levels whose input was prepared: no IRIS before 2025, no grid if no edition."""
+    return [level for level in FILTERS if os.path.exists(input_path(inputs_dir, level))]
 
 
 def filter_levels(level_polygons: str, layout: str) -> list[str]:
@@ -116,11 +142,15 @@ def sort_levels(level_polygons: str, levels: list[str]) -> list[str]:
     IRIS are mostly filtered by commune, which has too many values per row
     group for a bloom filter: they are sorted by departement and code (which
     starts with the code of the commune), so that the rows of a commune are
-    contiguous.
+    contiguous. The cells of the grids, whose id does not hold the commune,
+    are sorted by region, departement, then commune or arrondissement.
     """
     available = {level_polygons, *levels}
     if level_polygons == "IRIS":
         return [x for x in ("DEPARTEMENT",) if x in available] + ["IRIS"]
+    if level_polygons in GRID_LEVELS:
+        order = ("REGION", "DEPARTEMENT", "COMMUNE_ARRONDISSEMENT")
+        return [x for x in order if x in available] + [level_polygons]
     order = [x for x in ("REGION", "DEPARTEMENT") if x in available]
     if not order and "TERRITOIRE" in available:
         order = ["TERRITOIRE"]
@@ -148,7 +178,7 @@ def _prepare_polygons(
     """
     os.makedirs(work_dir, exist_ok=True)
     base = base_level(level_polygons)
-    current = os.path.join(inputs_dir, f"{base}.geojson")
+    current = input_path(inputs_dir, level_polygons)
 
     if level_polygons != base:
         current = mapshaper.dissolve(
@@ -183,6 +213,17 @@ def process_consolidated(
     """
     fields = _read_fields(inputs_dir)
     levels = filter_levels(level_polygons, layout)
+    sort_fields = [fields[x] for x in sort_levels(level_polygons, levels)]
+    filter_columns = {x: fields[x] for x in levels}
+    if level_polygons in GRID_LEVELS:
+        # Already in WGS84, one row per cell: no mapshaper step
+        os.makedirs(work_dir, exist_ok=True)
+        return to_consolidated_parquet(
+            input_path(inputs_dir, level_polygons),
+            os.path.join(work_dir, "consolidated.parquet"),
+            sort_fields=sort_fields,
+            filter_columns=filter_columns,
+        )
     polygons = _prepare_polygons(
         inputs_dir,
         work_dir,
@@ -198,12 +239,11 @@ def process_consolidated(
         simplification,
         f"{config.PROVIDER}:{config.SOURCE}",
     )
-    sort_fields = [fields[x] for x in sort_levels(level_polygons, levels)]
     return to_consolidated_parquet(
         geojson,
         os.path.join(work_dir, "consolidated.parquet"),
         sort_fields=sort_fields,
-        filter_columns={x: fields[x] for x in levels},
+        filter_columns=filter_columns,
     )
 
 
@@ -222,14 +262,36 @@ def _sql_string(value: str) -> str:
     return "'" + value.replace("'", "''") + "'"
 
 
+def _polygons_query(input_path: str) -> str:
+    """
+    Polygons of a prepared file, one row per feature. GeoJSON (from
+    mapshaper): rows with the same attributes are merged into one
+    multipolygon. Parquet (grids): read as is, one row per cell already.
+    """
+    if input_path.endswith(".parquet"):
+        return f"SELECT * FROM read_parquet('{input_path}')"
+    return f"""
+        SELECT
+            * EXCLUDE (geometry),
+            CASE WHEN count(*) = 1 THEN any_value(geometry)
+                ELSE ST_Union_Agg(geometry) END AS geometry
+        FROM (
+            SELECT * EXCLUDE (OGC_FID, geom), geom AS geometry
+            FROM ST_Read('{input_path}')
+        )
+        GROUP BY ALL
+    """
+
+
 def to_consolidated_parquet(
-    geojson_path: str,
+    input_path: str,
     parquet_path: str,
     sort_fields: list[str],
     filter_columns: dict[str, str],
 ) -> str:
     """
-    Convert a GeoJSON file to a GeoParquet (1.1) meant to be read partially:
+    Convert a GeoJSON file (or the parquet of a grid) to a GeoParquet (1.1)
+    meant to be read partially:
 
     - rows sorted by `sort_fields` (see `sort_levels`) and written in small
       row groups, so that the rows of a value fit in few row groups: the
@@ -248,20 +310,7 @@ def to_consolidated_parquet(
       so the union only collects their parts.
     """
     with _connect_reading_gdal() as con:
-        con.execute(
-            f"""
-            CREATE TABLE polygons AS
-            SELECT
-                * EXCLUDE (geometry),
-                CASE WHEN count(*) = 1 THEN any_value(geometry)
-                    ELSE ST_Union_Agg(geometry) END AS geometry
-            FROM (
-                SELECT * EXCLUDE (OGC_FID, geom), geom AS geometry
-                FROM ST_Read('{geojson_path}')
-            )
-            GROUP BY ALL
-            """
-        )
+        con.execute(f"CREATE TABLE polygons AS {_polygons_query(input_path)}")
         # GeoParquet metadata as written by DuckDB (for the CRS), completed
         # with the bbox covering
         probe = parquet_path + ".probe"

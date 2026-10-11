@@ -1,6 +1,7 @@
-# Sources of the IGN on the Géoplateforme, read by cartiflette/ign.py
-# (`ign.sources()`). The URLs of the files are not stored: they are read at
-# runtime from the Atom feeds of the download service:
+# Sources of the pipeline, read by `ign.sources()`: the IGN products on the
+# Géoplateforme, and the gridded data of the Insee (`carreaux`, at the end).
+# The URLs of the IGN files are not stored: they are read at runtime from the
+# Atom feeds of the download service:
 #   {catalogue}/resource/{resource}             -> editions
 #   {catalogue}/resource/{resource}/{edition}   -> files of an edition
 #   {catalogue}/download/{resource}/{edition}/{file}
@@ -74,3 +75,17 @@ contours_iris:
   # were redivided (Montpellier, Blain...). The GPKG of June 2025 match COG
   # CARTO 2025.
   by_territory_years: [2025]
+
+# Gridded data of the Insee (données carroyées, Filosofi): squares of 200 m
+# and 1 km in metropolitan France, Martinique and La Réunion, with the
+# population, households, housing and income of their inhabitants. One csv
+# per territory in each archive; the geometry is read from the cell id
+# (CRS3035RES200mN2029800E4252400: projection, size, lower-left corner).
+# There is no feed: the archives of each edition are listed here. A year of
+# borders gets the latest edition whose data are not more recent than it.
+carreaux:
+  editions:
+    # https://www.insee.fr/fr/statistiques/8735243 (published in February 2026)
+    2021:
+      CARREAU_200M: https://www.insee.fr/fr/statistiques/fichier/8735162/Filosofi2021_carreaux_200m_csv.zip
+      CARREAU_1KM: https://www.insee.fr/fr/statistiques/fichier/8735171/Filosofi2021_carreaux_1km_csv.zip

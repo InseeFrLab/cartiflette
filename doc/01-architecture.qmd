@@ -78,7 +78,8 @@ diffèrent (DROM déplacés, zoom sur l'Île-de-France). Dans chaque fichier :
   chaque région, département ou zonage tienne dans un ou deux groupes :
   communes par région, département, bassin de vie puis commune ; IRIS par département
   puis code IRIS (les IRIS d'une commune se suivent : `INSEE_COM` a trop de valeurs par
-  groupe pour un filtre de Bloom) ; départements par région puis département ; zonages
+  groupe pour un filtre de Bloom) ; carreaux par région, département puis commune ou
+  arrondissement ; départements par région puis département ; zonages
   par territoire puis code ;
 - une colonne `bbox` est déclarée comme _covering_ GeoParquet 1.1, pour filtrer par emprise ;
 - une seule ligne par entité : la copie agrandie de l'Île-de-France est une partie de
@@ -176,6 +177,19 @@ Cela permet de rendre le  développement du projet plus simple mais reste robust
     Blain…). Les GPKG de juin 2025, eux, coïncident avec le COG CARTO 2025.
   - `ign.iris_to_parquet` reconstruit la géométrie quand un GeoParquet la code en
     GeoArrow (`multipolygon`, lu par DuckDB comme des listes imbriquées).
+- **Carreaux de l'Insee** (`cartiflette/carreaux.py`) : données carroyées du dispositif
+  Filosofi, carreaux de 200 m et de 1 km (`CARREAU_200M`, `CARREAU_1KM`), en métropole,
+  en Martinique et à La Réunion. L'Insee n'a pas de flux : les URL des archives CSV de
+  chaque édition sont dans `cartiflette/sources.yaml` (`carreaux`), et un millésime prend
+  la dernière édition dont les données ne sont pas plus récentes que lui
+  (`carreaux.select_edition`). Le carré se déduit de l'identifiant
+  (`CRS3035RES200mN2029800E4252400` : projection, taille, coin bas-gauche), dans la
+  projection du territoire (EPSG:3035, 5490, 2975), puis il est reprojeté en WGS84.
+  `attach_to_communes` rattache chaque carreau à la commune ou à l'arrondissement qui
+  contient son centre ; à défaut (centre en mer), à celle qui couvre la plus grande
+  part du carreau ; à défaut (îlot absent des contours), à la plus proche. L'Insee
+  n'envoie pas de `Content-Length` et coupe parfois le téléchargement :
+  `http.download_zip` vérifie l'archive et recommence.
 - **Limite de débit** : la Géoplateforme accepte 1 requête par seconde. `http.get_session`
   relance automatiquement sur les erreurs 429.
 - **Noms de champs** : l'édition 4-0 a renommé tous les champs (`code_insee`, `population`…).
@@ -197,6 +211,11 @@ Cela permet de rendre le  développement du projet plus simple mais reste robust
   `AREA` et les champs de la TAGC ; pas de population. La jointure avec les communes
   écarte Saint-Pierre-et-Miquelon, Saint-Martin et Saint-Barthélemy, et
   `check_iris_cover_communes` échoue si une commune n'a aucun IRIS.
+  `CARREAU_200M.parquet` et `CARREAU_1KM.parquet` (parquet : 2,3 millions de carreaux
+  de 200 m) gardent les variables de l'Insee, avec la commune du carreau (`INSEE_COM`,
+  `INSEE_COG`, `NOM_COM`, `AREA`) et les champs de la TAGC. Ils ne passent pas par
+  mapshaper : un seul fichier publié par grille, `FRANCE_ENTIERE`, simplification 0
+  (`pipeline.level_layouts`, `level_simplifications`).
 
 ### Étape 2 — `consolidated_combinations`
 
