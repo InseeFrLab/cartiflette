@@ -8,6 +8,12 @@ dépôt, `api/CHANGELOG.md`).
 
 ### Ajouté
 
+- Niveaux `CARREAU_200M` et `CARREAU_1KM` : les carreaux de l'Insee
+  (Filosofi), avec ses variables et la commune qui contient leur centre
+  (fichiers du _pipeline_ ≥ 0.5.0). Ces carrés ne sont publiés que sans
+  simplification : `carti_download` lit toujours `simplification=0` pour
+  eux, avec un avertissement si une autre valeur est demandée
+  (`client.grid_simplification`). Pas de `FRANCE_ENTIERE_DROM_RAPPROCHES`.
 - `borders="IRIS"` (à partir de 2025, fichiers du _pipeline_ ≥ 0.4.0), filtrable
   notamment par commune : `filter_by="COMMUNE", values="34172"`. Aucun
   changement de code : la docstring de `carti_download` le mentionne.

@@ -17,6 +17,7 @@ from cartiflette.constants import (
     DEFAULT_SIMPLIFICATION,
     ENDPOINT_URL,
     GEOJSON_DEFAULT_SIMPLIFICATION,
+    GRID_LEVELS,
     PARQUET_FIRST_YEAR,
     PATH_WITHIN_BUCKET,
 )
@@ -521,6 +522,22 @@ def to_geopandas(relation: duckdb.DuckDBPyRelation, crs: int | str) -> gpd.GeoDa
     )
 
 
+def grid_simplification(borders: str, simplification: float | None) -> float | None:
+    """
+    Simplification in the path: the grids (squares, `GRID_LEVELS`) are only
+    published without simplification, whatever is requested.
+    """
+    if borders.upper() not in GRID_LEVELS:
+        return simplification
+    if simplification:
+        warnings.warn(
+            f"{borders} is not simplified (squares): simplification={simplification}"
+            " is ignored",
+            stacklevel=3,
+        )
+    return 0
+
+
 def carti_download(
     values: list[str | int | float] | str | int,
     borders: str = "COMMUNE",
@@ -562,11 +579,15 @@ def carti_download(
     borders : str
         Level of the polygons: COMMUNE, COMMUNE_ARRONDISSEMENT, IRIS (2025
         onwards), DEPARTEMENT, REGION, BASSIN_VIE, ZONE_EMPLOI, UNITE_URBAINE,
-        AIRE_ATTRACTION_VILLES.
+        AIRE_ATTRACTION_VILLES; or the cells of the Insee gridded data
+        (Filosofi, metropolitan France, Martinique and La Réunion),
+        CARREAU_200M and CARREAU_1KM, with the Insee fields (ind, men,
+        ind_snv...) and the commune holding their centre.
     filter_by : str
         Level used to select the polygons: DEPARTEMENT, REGION, TERRITOIRE,
         FRANCE_ENTIERE, FRANCE_ENTIERE_DROM_RAPPROCHES or a zoning; also
-        COMMUNE and COMMUNE_ARRONDISSEMENT for IRIS.
+        COMMUNE and COMMUNE_ARRONDISSEMENT for IRIS and the grids (no
+        FRANCE_ENTIERE_DROM_RAPPROCHES for the grids).
     territory : str
         Kept for compatibility with the storage layout of the GeoJSON files,
         "metropole".
@@ -582,6 +603,7 @@ def carti_download(
         Simplification level, as the percentage of points removed: 0
         (complete contours), 50, or 80 (lightest). Default 80, or 50 for the
         years only published as GeoJSON (2022), which have no 80 version.
+        Always 0 for the grids: squares are not simplified.
     bucket : str
         Bucket of the files, "projet-cartiflette".
     path_within_bucket : str
@@ -669,6 +691,7 @@ def carti_download(
     if isinstance(values, (str, int, float)):
         values = [values]
 
+    simplification = grid_simplification(borders, simplification)
     default_simplification = simplification is None
     path_kwargs = {
         "bucket": bucket,

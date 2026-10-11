@@ -81,6 +81,7 @@ données (`INSEE_DEP`, `INSEE_REG`, `INSEE_COM`…).
 |---|---|
 | `COMMUNE`, `COMMUNE_ARRONDISSEMENT` | `DEPARTEMENT`, `REGION`, `BASSIN_VIE`, `ZONE_EMPLOI`, `UNITE_URBAINE`, `AIRE_ATTRACTION_VILLES`, `TERRITOIRE`, `FRANCE_ENTIERE`, `FRANCE_ENTIERE_DROM_RAPPROCHES` |
 | `IRIS` (à partir de 2025) | `COMMUNE`, `COMMUNE_ARRONDISSEMENT`, `DEPARTEMENT`, `REGION`, `BASSIN_VIE`, `ZONE_EMPLOI`, `UNITE_URBAINE`, `AIRE_ATTRACTION_VILLES`, `TERRITOIRE`, `FRANCE_ENTIERE`, `FRANCE_ENTIERE_DROM_RAPPROCHES` |
+| `CARREAU_200M`, `CARREAU_1KM` (Insee, Filosofi) | `COMMUNE`, `COMMUNE_ARRONDISSEMENT`, `DEPARTEMENT`, `REGION`, `BASSIN_VIE`, `ZONE_EMPLOI`, `UNITE_URBAINE`, `AIRE_ATTRACTION_VILLES`, `TERRITOIRE`, `FRANCE_ENTIERE` |
 | `DEPARTEMENT` | `REGION`, `TERRITOIRE`, `FRANCE_ENTIERE`, `FRANCE_ENTIERE_DROM_RAPPROCHES` |
 | `REGION`, `BASSIN_VIE`, `ZONE_EMPLOI`, `UNITE_URBAINE`, `AIRE_ATTRACTION_VILLES` | `TERRITOIRE`, `FRANCE_ENTIERE`, `FRANCE_ENTIERE_DROM_RAPPROCHES` |
 
@@ -89,6 +90,10 @@ données (`INSEE_DEP`, `INSEE_REG`, `INSEE_COM`…).
 - `COMMUNE_ARRONDISSEMENT` : Paris, Lyon et Marseille découpés en arrondissements.
 - `IRIS` : îlots regroupés pour l'information statistique de l'Insee (Contours IRIS
   de l'IGN), à partir de 2025 ; `filter_by="COMMUNE"` donne les IRIS d'une commune.
+- `CARREAU_200M`, `CARREAU_1KM` : les carreaux de 200 m et de 1 km de l'Insee
+  (dispositif Filosofi, édition 2021), en métropole, en Martinique et à La Réunion,
+  avec leurs variables (`ind`, `men`, `ind_snv`…). Chaque carreau est rattaché à la
+  commune qui contient son centre ; jamais simplifiés.
 - `simplification` : `0` (contours complets) ou `50` (50 % des points retirés,
   plus léger pour une carte).
 - `year` : millésimes 2022 à 2026, en WGS84 (EPSG:4326).

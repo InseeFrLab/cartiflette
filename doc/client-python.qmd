@@ -213,11 +213,21 @@ y est 50.
 |---|---|
 | `COMMUNE`, `COMMUNE_ARRONDISSEMENT` | `BASSIN_VIE`, `ZONE_EMPLOI`, `UNITE_URBAINE`, `AIRE_ATTRACTION_VILLES`, `DEPARTEMENT`, `REGION`, `TERRITOIRE`, `FRANCE_ENTIERE`, `FRANCE_ENTIERE_DROM_RAPPROCHES` |
 | `IRIS` (à partir de 2025) | `COMMUNE`, `COMMUNE_ARRONDISSEMENT`, `BASSIN_VIE`, `ZONE_EMPLOI`, `UNITE_URBAINE`, `AIRE_ATTRACTION_VILLES`, `DEPARTEMENT`, `REGION`, `TERRITOIRE`, `FRANCE_ENTIERE`, `FRANCE_ENTIERE_DROM_RAPPROCHES` |
+| `CARREAU_200M`, `CARREAU_1KM` (Insee, Filosofi) | `COMMUNE`, `COMMUNE_ARRONDISSEMENT`, `DEPARTEMENT`, `REGION`, `BASSIN_VIE`, `ZONE_EMPLOI`, `UNITE_URBAINE`, `AIRE_ATTRACTION_VILLES`, `TERRITOIRE`, `FRANCE_ENTIERE` |
 | `DEPARTEMENT` | `REGION`, `TERRITOIRE`, `FRANCE_ENTIERE`, `FRANCE_ENTIERE_DROM_RAPPROCHES` |
 | `REGION`, `BASSIN_VIE`, `ZONE_EMPLOI`, `UNITE_URBAINE`, `AIRE_ATTRACTION_VILLES` | `TERRITOIRE`, `FRANCE_ENTIERE`, `FRANCE_ENTIERE_DROM_RAPPROCHES` |
 
 Valeurs de `values` selon le découpage : un code Insee (`"75"`, `"11"`), le nom
 d'un territoire (`"metropole"`, `"guadeloupe"`…) ou `"France"`.
+
+Les carreaux de l'Insee (`CARREAU_200M`, `CARREAU_1KM`, dispositif Filosofi) sont
+des carrés : ils n'existent qu'avec `simplification=0`, que le client lit toujours
+pour eux, et ils ne sont pas proposés en `FRANCE_ENTIERE_DROM_RAPPROCHES`. Ils
+gardent les variables de l'Insee (`idcar_200m`, `ind`, `men`, `ind_snv`, `i_est_200`,
+`lcog_geo`…). Chaque carreau est rattaché à une seule commune, celle qui contient son
+centre (`INSEE_COM`, `INSEE_COG`, `NOM_COM` et les zonages de la commune) : les
+carreaux d'un département le pavent sans doublon. `lcog_geo` liste toutes les
+communes recouvertes, dans la géographie des données, pour un filtre `where`.
 
 ### Formats et millésimes
 

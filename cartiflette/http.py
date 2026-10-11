@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+import zipfile
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -41,3 +42,24 @@ def download_file(url: str, dest: str, session: requests.Session) -> str:
         os.remove(dest)
         raise OSError(f"Incomplete download of {url}")
     return dest
+
+
+def download_zip(
+    url: str, dest: str, session: requests.Session, attempts: int = 3
+) -> str:
+    """
+    Download a zip archive, checked by opening it, with new attempts. The
+    Insee sends no Content-Length and sometimes cuts long downloads: only
+    the archive itself shows that it is truncated.
+    """
+    for attempt in range(1, attempts + 1):
+        download_file(url, dest, session)
+        try:
+            with zipfile.ZipFile(dest) as z:
+                if z.testzip() is None:
+                    return dest
+        except zipfile.BadZipFile:
+            pass
+        os.remove(dest)
+        logger.warning("truncated archive %s (attempt %s/%s)", url, attempt, attempts)
+    raise OSError(f"Incomplete download of {url} after {attempts} attempts")

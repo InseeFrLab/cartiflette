@@ -42,7 +42,9 @@ departements.plot("POPULATION")
 
 - `borders` : niveau des contours (`COMMUNE`, `COMMUNE_ARRONDISSEMENT`,
   `IRIS` à partir de 2025, `DEPARTEMENT`, `REGION`, `BASSIN_VIE`,
-  `ZONE_EMPLOI`, `UNITE_URBAINE`, `AIRE_ATTRACTION_VILLES`).
+  `ZONE_EMPLOI`, `UNITE_URBAINE`, `AIRE_ATTRACTION_VILLES`), ou les carreaux
+  de l'Insee avec leurs données Filosofi (`CARREAU_200M`, `CARREAU_1KM`,
+  jamais simplifiés).
 - `filter_by` et `values` : zone couverte, par exemple `filter_by="REGION"` et
   `values=["11", "84"]`, ou `filter_by="FRANCE_ENTIERE"` et `values="France"`.
   Les codes de région sous 10 s'écrivent indifféremment `1`, `"1"` ou `"01"`.

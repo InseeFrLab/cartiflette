@@ -42,6 +42,7 @@ from cartiflette.constants import (
     BUCKET,
     DEFAULT_SIMPLIFICATION,
     GEOJSON_DEFAULT_SIMPLIFICATION,
+    GRID_LEVELS,
     PATH_WITHIN_BUCKET,
 )
 from fastapi import FastAPI, HTTPException, Query, Request
@@ -62,6 +63,8 @@ FILE_PREFIXES = {
     "ZONE_EMPLOI": "ZE",
     "UNITE_URBAINE": "UU",
     "AIRE_ATTRACTION_VILLES": "AAV",
+    "CARREAU_200M": "CAR200M",
+    "CARREAU_1KM": "CAR1KM",
 }
 # Features fetched from DuckDB and sent at once
 BATCH_SIZE = 500
@@ -598,7 +601,12 @@ def geoparquet(
 def request_path_kwargs(
     year: int, borders: str, crs: int, simplification: int, path_within_bucket: str
 ) -> dict:
-    """Arguments of the client path functions for a request."""
+    """
+    Arguments of the client path functions for a request. The grids are only
+    published without simplification (see `client.grid_simplification`).
+    """
+    if borders.upper() in GRID_LEVELS:
+        simplification = 0
     return {
         **DEFAULT_PATH_KWARGS,
         "path_within_bucket": check_path_within_bucket(path_within_bucket),

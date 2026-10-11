@@ -5,6 +5,15 @@ API FastAPI qui sert le GeoJSON à partir des GeoParquet publiés
 image `inseefrlab/cartiflette-api:v<version>`, et elle est déployée quand son
 tag est reporté dans `api/deployment/deployment.yaml`.
 
+## 0.2.1 (à publier)
+
+### Ajouté
+
+- Carreaux de l'Insee (`borders=CARREAU_200M` ou `CARREAU_1KM`, _pipeline_
+  ≥ 0.5.0). Ils ne sont publiés que sans simplification, donc
+  `simplification` est ignoré pour eux. Fichiers nommés `CAR200M2026` et
+  `CAR1KM2026`.
+
 ## 0.2.0 (2026-10-07)
 
 ### Ajouté

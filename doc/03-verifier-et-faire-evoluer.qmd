@@ -271,11 +271,15 @@ Exemple : ajouter les EPCI.
    `mapshaper.IDF_ZOOM_LEVEL`), sinon `bring_drom_closer` lève un `KeyError`.
 4. Libellé éventuel dans `mapshaper.LABEL_FIELDS`.
 5. Tests : mettre à jour le nombre de jobs dans `test_consolidated_combinations`
-   (54 aujourd'hui) et ajouter un cas à `test_process_consolidated`.
+   (56 aujourd'hui) et ajouter un cas à `test_process_consolidated`.
    Un niveau qui ne s'obtient pas en regroupant des communes (comme `IRIS`) a sa propre
    entrée, préparée par `prepare_year` (`{niveau}.geojson`) : l'ajouter à
    `pipeline.BASE_LEVELS`, et vérifier son tri (`pipeline.sort_levels`) sur le filtre le
-   plus courant.
+   plus courant. Des géométries que mapshaper n'a pas à traiter (les carreaux, ni
+   simplifiés ni déplacés) se préparent en parquet et s'écrivent directement
+   (`pipeline.GRID_LEVELS`, `input_path`) ; s'ils ne sont publiés qu'en une
+   simplification, le client et l'API doivent le savoir (`GRID_LEVELS` dans
+   `constants.py` du client).
 6. Client : compléter la docstring de `carti_download` (liste des `borders` et `filter_by`).
 7. Marche 3 sur le nouveau niveau, dont un contrôle visuel.
 

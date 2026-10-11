@@ -9,6 +9,42 @@ Python et l'API ont leur propre changelog
 Les changements des fichiers publiés sont les plus importants : ce sont eux
 que lisent les clients Python, R et JavaScript.
 
+## 0.5.0 (à publier)
+
+### Ajouté
+
+- **Données carroyées de l'Insee** (#123) : niveaux `CARREAU_200M` et
+  `CARREAU_1KM`, les carreaux de 200 m et de 1 km du dispositif Filosofi
+  (édition 2021, publiée en février 2026), en France métropolitaine, en
+  Martinique et à La Réunion. 2 fichiers de plus par millésime (56) :
+  - **Variables de l'Insee** (`idcar_200m`, `ind`, `men`, `ind_snv`,
+    `i_est_200`, `lcog_geo`…), gardées telles quelles.
+  - **Géométrie** : le carré est déduit de l'identifiant du carreau, dans
+    la projection du territoire (EPSG:3035, 5490 ou 2975), puis reprojeté en
+    WGS84. Seuls les CSV de l'Insee sont téléchargés.
+  - **Rattachement** : chaque carreau est rattaché à une seule commune (ou
+    un arrondissement municipal), celle qui contient son centre. Si le
+    centre est en mer, c'est celle qui couvre la plus grande part du
+    carreau, sinon la plus proche (îlots). Les carreaux d'une commune, d'un
+    département ou d'un zonage le pavent donc sans doublon ; `lcog_geo`
+    garde la liste des communes recouvertes, dans la géographie des
+    données.
+  - **Champs ajoutés** : `INSEE_COM`, `INSEE_COG`, `NOM_COM`, `AREA` et
+    les champs de la TAGC du millésime, comme pour les IRIS.
+  - **Filtres et tri** : filtrables comme les IRIS, sauf
+    `FRANCE_ENTIERE_DROM_RAPPROCHES`. Les lignes sont triées par région,
+    département, puis commune ou arrondissement.
+  - **Un seul fichier par grille** : `FRANCE_ENTIERE`, simplification 0.
+    Ni simplifiés ni déplacés, les carrés ne passent pas par mapshaper : ils
+    sont écrits directement depuis le parquet préparé (`CARREAU_*.parquet`
+    plutôt que GeoJSON : 2,3 millions de carreaux de 200 m).
+  - **Édition utilisée** : un millésime de fonds de carte prend la dernière
+    édition dont les données ne sont pas plus récentes que lui. Les URL des
+    archives sont dans `cartiflette/sources.yaml` (pas de flux à l'Insee).
+- `http.download_zip` : téléchargement d'une archive vérifié en l'ouvrant,
+  avec de nouvelles tentatives. L'Insee n'envoie pas de `Content-Length` et
+  coupe parfois les longs téléchargements.
+
 ## 0.4.0 (à publier)
 
 ### Ajouté
