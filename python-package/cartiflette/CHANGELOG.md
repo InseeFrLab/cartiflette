@@ -4,7 +4,10 @@ Client Python publié sur [PyPI](https://pypi.org/project/cartiflette/). Le
 _pipeline_ et l'API ont leur propre changelog (`CHANGELOG.md` à la racine du
 dépôt, `api/CHANGELOG.md`).
 
-## 0.4.0 (non publiée)
+## 0.4.0 (2026-10-12)
+
+Lit les fichiers du _pipeline_ 0.5.0, publiés en production le 11 octobre 2026
+(simplification 80, IRIS, carreaux).
 
 ### Ajouté
 

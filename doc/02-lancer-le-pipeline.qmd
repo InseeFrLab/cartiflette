@@ -269,12 +269,15 @@ Le _pipeline_ ne publie que du GeoParquet ; le GeoJSON est servi par l'API
 
 | Millésime | En production | Lisible par |
 |---|---|---|
-| 2023 à 2026 | GeoParquet (_pipeline_ 0.3.0, publiés le 4 octobre 2026) | client Python ≥ 0.2.0 (0.2.1 sur PyPI), API ; pas les clients R et JS non passés sur l'API, ni le client Python < 0.2.0 |
+| 2023 à 2026 | GeoParquet (_pipeline_ 0.5.0, publiés le 11 octobre 2026) : simplifications 0, 50 et 80, IRIS (2025 et 2026), carreaux de l'Insee | client Python ≥ 0.3.0 (≥ 0.4.0 pour `where`, et pour les carreaux sans `simplification=0` explicite), API ; pas les clients R et JS non passés sur l'API, ni le client Python < 0.2.0 |
 | 2022 | GeoJSON de l'ancien _pipeline_ | tous les clients, et l'API (redirection) |
 
-Ordre suivi pour cette publication : publication du client 0.2.1 sur PyPI (seul
-capable de lire le GeoParquet consolidé), puis _workflow_ de production pour
-`["2023", "2024", "2025", "2026"]`, puis tests d'intégration sur la production.
+Ordre suivi pour la première publication en GeoParquet (_pipeline_ 0.3.0, 4 octobre
+2026) : publication du client 0.2.1 sur PyPI (seul capable de lire le GeoParquet
+consolidé), puis _workflow_ de production pour `["2023", "2024", "2025", "2026"]`, puis
+tests d'intégration sur la production. Pour le _pipeline_ 0.5.0, l'ordre inverse : les
+fichiers d'abord (11 octobre), puis le client 0.4.0 et l'API 0.2.1, dont les défauts
+(simplification 80, simplification 0 des carreaux) supposent ces fichiers.
 
 Reste une décision à part :
 
