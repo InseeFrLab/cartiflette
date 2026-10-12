@@ -9,7 +9,10 @@ Python et l'API ont leur propre changelog
 Les changements des fichiers publiés sont les plus importants : ce sont eux
 que lisent les clients Python, R et JavaScript.
 
-## 0.5.0 (à publier)
+## 0.5.0 (2026-10-11)
+
+Publié en production pour 2023 à 2026 : tous les niveaux (simplifications 0,
+50 et 80), IRIS pour 2025 et 2026, carreaux de l'Insee.
 
 ### Ajouté
 

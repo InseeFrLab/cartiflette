@@ -112,8 +112,9 @@ MinIO du SSPCloud (`https://minio.lab.sspcloud.fr`), bucket `projet-cartiflette`
 | `test/v<version>/` | le pipeline, par défaut | vous, pour vérifier |
 | `test/` (racine) | personne : contient d'anciens essais, ne pas écrire à sa racine | — |
 
-En production : 2023 à 2026 en GeoParquet (_pipeline_ 0.3.0, publiés le 4 octobre
-2026), 2022 en GeoJSON seulement (ancien _pipeline_). 2021 n'y a qu'un fichier
+En production : 2023 à 2026 en GeoParquet (_pipeline_ 0.5.0, publiés le 11 octobre
+2026, avec les IRIS pour 2025 et 2026 et les carreaux de l'Insee), 2022 en GeoJSON
+seulement (ancien _pipeline_). 2021 n'y a qu'un fichier
 intermédiaire (`preprocessed=before_cog`) que les clients ne lisent pas. Le code
 actuel sait produire 2022 à 2024 à partir des éditions 3-x (shapefile), voir
 l'étape 1.

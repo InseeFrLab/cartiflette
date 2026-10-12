@@ -1,8 +1,12 @@
 .vscode
 _site/
 /_site/
+_freeze/
+_site/
 
 .claude/
+*/jours/donnees/
+donnees/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
